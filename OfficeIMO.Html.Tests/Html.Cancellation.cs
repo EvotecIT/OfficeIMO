@@ -10,23 +10,23 @@ namespace OfficeIMO.Tests {
         public async Task ToWordDocumentAsync_Cancelled_Throws() {
             using var cts = new CancellationTokenSource();
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>a</p>").ToWordDocumentAsync(cancellationToken: cts.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>a</p>").ToWordAsync(cancellationToken: cts.Token));
         }
 
         [Fact]
-        public async Task AddHtmlToHeaderAsync_Cancelled_Throws() {
+        public async Task Header_AddHtmlAsync_Cancelled_Throws() {
             using var doc = WordDocument.Create();
             using var cts = new CancellationTokenSource();
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>h</p>"), cancellationToken: cts.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => doc.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtmlAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>h</p>"), cancellationToken: cts.Token));
         }
 
         [Fact]
-        public async Task AddHtmlToFooterAsync_Cancelled_Throws() {
+        public async Task Footer_AddHtmlAsync_Cancelled_Throws() {
             using var doc = WordDocument.Create();
             using var cts = new CancellationTokenSource();
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>f</p>"), cancellationToken: cts.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => doc.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtmlAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>f</p>"), cancellationToken: cts.Token));
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             using var cts = new CancellationTokenSource();
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToBodyAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>b</p>"), cancellationToken: cts.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => doc.AddHtmlAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>b</p>"), cancellationToken: cts.Token));
         }
     }
 }

@@ -34,6 +34,11 @@ namespace OfficeIMO.Word {
     /// formatting, and target information.
     /// </summary>
     public class WordHyperLink : WordElement {
+        private WordParagraph? _authoringParagraph;
+
+        /// <summary>Gets the paragraph containing this hyperlink.</summary>
+        public WordParagraph Paragraph => _authoringParagraph ?? new WordParagraph(_document, _paragraph, _hyperlink);
+
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         internal readonly Hyperlink _hyperlink;
@@ -100,7 +105,7 @@ namespace OfficeIMO.Word {
             return ResolveRelationshipPart(_document, _paragraph);
         }
 
-        private static OpenXmlPart? ResolveRelationshipPart(WordDocument document, OpenXmlElement paragraph) {
+        internal static OpenXmlPart? ResolveRelationshipPart(WordDocument document, OpenXmlElement paragraph) {
             OpenXmlElement? parent = paragraph.Parent;
             while (parent != null && parent is not Body && parent is not Header && parent is not Footer && parent is not Footnote && parent is not Endnote) {
                 parent = parent.Parent;
@@ -309,7 +314,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a hyperlink pointing to the specified anchor within the document.
         /// </summary>
-        public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        public static WordHyperLink AddHyperLink(WordParagraph paragraph, string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             Hyperlink hyperlink = new Hyperlink() {
                 Anchor = anchor,
                 //DocLocation = "",
@@ -337,13 +342,13 @@ namespace OfficeIMO.Word {
             hyperlink.Append(run);
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
-            return paragraph;
+            return new WordHyperLink(paragraph._document, paragraph._paragraph, hyperlink) { _authoringParagraph = paragraph };
         }
 
         /// <summary>
         /// Adds a hyperlink pointing to the specified anchor within the document using existing runs.
         /// </summary>
-        public static WordParagraph AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        public static WordHyperLink AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (runs == null) throw new ArgumentNullException(nameof(runs));
 
@@ -370,7 +375,7 @@ namespace OfficeIMO.Word {
 
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
-            return paragraph;
+            return new WordHyperLink(paragraph._document, paragraph._paragraph, hyperlink) { _authoringParagraph = paragraph };
         }
 
         internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, string anchor, bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) {
@@ -394,7 +399,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds a hyperlink pointing to an external URI.
         /// </summary>
-        public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        public static WordHyperLink AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 
             OpenXmlPart relationshipOwner = ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
@@ -428,13 +433,13 @@ namespace OfficeIMO.Word {
             hyperlink.Append(run);
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
-            return paragraph;
+            return new WordHyperLink(paragraph._document, paragraph._paragraph, hyperlink) { _authoringParagraph = paragraph };
         }
 
         /// <summary>
         /// Adds a hyperlink pointing to an external URI using existing runs.
         /// </summary>
-        public static WordParagraph AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        public static WordHyperLink AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (runs == null) throw new ArgumentNullException(nameof(runs));
 
@@ -465,7 +470,7 @@ namespace OfficeIMO.Word {
 
             paragraph._paragraph.Append(hyperlink);
             paragraph._hyperlink = hyperlink;
-            return paragraph;
+            return new WordHyperLink(paragraph._document, paragraph._paragraph, hyperlink) { _authoringParagraph = paragraph };
         }
 
         internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, Uri uri, bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) {

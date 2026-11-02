@@ -1,7 +1,7 @@
 $source = '.\Review-Pack-Original.pdf'
 $reordered = '.\Review-Pack-Reordered.pdf'
 
-PdfNew -Path $source {
+New-OfficePdf -Path $source {
     PdfHeading 'Executive summary'
     PdfParagraph 'The review requires one decision.'
     PdfPageBreak

@@ -8,6 +8,13 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageImageRendererBatchTests {
     [Fact]
+    public void BoundedPageRendering_RejectsAnUnsupportedSharedImageEncoding() {
+        using var document = PdfDocument.Load(BuildSinglePagePdf("0 0 10 10 re f"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.Render.Pages(
+            options: new PdfPageRenderOptions { Format = OfficeImageExportFormat.Jpeg }));
+    }
+
+    [Fact]
     public void CapabilityManifest_IsStableAndSharesCodesWithPageDiagnostics() {
         PdfRenderCapabilityManifest manifest = PdfPageImageRenderer.GetCapabilityManifest();
         string json = manifest.ToJson();
@@ -23,7 +30,7 @@ public class PdfPageImageRendererBatchTests {
         byte[] pdf = BuildSinglePagePdf("1 M /RelativeColorimetric ri 0.5 i /Tag MP 1 2 FuturePaint");
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
         Assert.DoesNotContain(result.CapabilityDiagnostics, static diagnostic => diagnostic.Subject == "M");
@@ -41,7 +48,7 @@ public class PdfPageImageRendererBatchTests {
 
         IReadOnlyList<PdfPageRenderResult> results = PdfDocument.Load(pdf).Reader.RenderPages(
             PdfPageSelection.From(2, 1),
-            new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, Scale = 2D });
+            new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, Scale = 2D });
 
         Assert.Equal(new[] { 2, 1 }, results.Select(static result => result.PageNumber));
         Assert.All(results, result => {
@@ -93,7 +100,7 @@ public class PdfPageImageRendererBatchTests {
                 pdf,
                 PdfPageSelection.From(1),
                 new PdfPageRenderOptions {
-                    Format = PdfPageRenderFormat.Svg,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                     MaxOutputBytesPerPage = 1,
                     ContinueOnError = false
                 }));
@@ -103,7 +110,7 @@ public class PdfPageImageRendererBatchTests {
             PdfPageImageRenderer.RenderPages(
                 pdf,
                 options: new PdfPageRenderOptions {
-                    Format = PdfPageRenderFormat.Svg,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                     MaxTotalOutputBytes = 1
                 }));
         Assert.Equal(PdfReadLimitKind.RenderBytes, aggregate.Kind);
@@ -114,7 +121,7 @@ public class PdfPageImageRendererBatchTests {
         byte[] pdf = BuildTwoPagePdf();
         var timeout = TimeSpan.FromTicks(1);
         var options = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Svg,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
             RenderTimeout = timeout
         };
 

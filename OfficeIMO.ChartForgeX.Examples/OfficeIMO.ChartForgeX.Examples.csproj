@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OfficeIMO.ChartForgeX/OfficeIMO.ChartForgeX.csproj" />
+    <ProjectReference Include="../OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj" />
   </ItemGroup>
 </Project>

@@ -20,9 +20,11 @@ public sealed class XmlConversionLimitsTests {
             File.WriteAllBytes(output, original);
             var request = new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = "content://provider/source", OutputPath = output,
-                ConversionRouteId = "odg-pdf", ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConversionRouteId = "odg-pdf", ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumXmlCharactersInPart = tightXml ? 256 : 1024 * 1024 },
-                ConversionOptions = new() { RequireNoLoss = !tightXml },
+                ConversionOptions = new() {
+                FailOnLoss = !tightXml
+            },
                 InputStream = new("source.fodg", async token => {
                     entered.TrySetResult();
                     await resume.Task.WaitAsync(token);
@@ -32,7 +34,7 @@ public sealed class XmlConversionLimitsTests {
             Task<OfficeWorkflowResult> running = new OfficeWorkflowRunner().RunAsync(request);
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(15));
             request.Limits.MaximumXmlCharactersInPart = 1024 * 1024;
-            request.ConversionOptions.RequireNoLoss = false;
+            request.ConversionOptions.FailOnLoss = false;
             resume.SetResult();
             var result = await running;
             Assert.False(result.Succeeded);
@@ -58,7 +60,7 @@ public sealed class XmlConversionLimitsTests {
             var request = new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
                 ConversionRouteId = extension is ".odg" or ".fodg" ? "odg-pdf" : extension[1..] + "-pdf",
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 Limits = new() { MaximumXmlCharactersInPart = 256 }
             };
             var rejected = await new OfficeWorkflowRunner().RunAsync(request);
@@ -88,10 +90,10 @@ public sealed class XmlConversionLimitsTests {
                 using (var word = WordDocument.Create(path)) { word.AddParagraph(marker); word.Save(); }
                 break;
             case ".xlsx":
-                using (var excel = ExcelDocument.Create(path)) { excel.AddWorksheet("Budget").CellValue(1, 1, marker); excel.Save(); }
+                using (var excel = ExcelDocument.Create(path)) { excel.AddSheet("Budget").CellValue(1, 1, marker); excel.Save(); }
                 break;
             case ".pptx":
-                using (var presentation = PowerPointPresentation.Create(path)) { presentation.AddSlide().AddTextBox(marker); presentation.Save(); }
+                using (var presentation = PowerPointDocument.Create(path)) { presentation.AddSlide().AddTextBox(marker); presentation.Save(); }
                 break;
         }
     }

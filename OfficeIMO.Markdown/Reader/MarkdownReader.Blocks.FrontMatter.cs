@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static Dictionary<string, object?> ParseFrontMatter(string[] lines, int start, int end) {
         var dict = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in ParseFrontMatterEntries(lines, start, end, null)) {

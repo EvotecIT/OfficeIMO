@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
             private static readonly string?[] SharedStringCellCache = new string?[CachedSharedStringCellLimit];
             private static readonly string[][] CellReferencePrefixCache = CreateCellReferencePrefixCache();
 
-            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, bool disableSharedStrings = false, bool collectSharedStrings = false) {
+            internal static void Write(Stream stream, DirectDataSetWorkbookModel model, CancellationToken ct, string? themeXml, bool disableSharedStrings = false, bool collectSharedStrings = false) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
                 var sharedStrings = disableSharedStrings ? null
@@ -58,7 +58,7 @@ namespace OfficeIMO.Excel {
                     : new ExcelPositionReportingWriteStream(stream);
                 Stream packageDestination = positionReportingDestination ?? stream;
                 using var archive = new ZipArchive(packageDestination, ZipArchiveMode.Create, leaveOpen: true);
-                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null);
+                WritePackagePreamble(archive, model, stylePlan, sharedStrings != null, themeXml);
                 if (sharedStrings != null && !collectSharedStrings) {
                     WriteSharedStrings(archive, sharedStrings, ct);
                 }
@@ -90,8 +90,8 @@ namespace OfficeIMO.Excel {
                 ZipArchive archive,
                 DirectDataSetWorkbookModel model,
                 DirectStylePlan stylePlan,
-                bool includeSharedStrings) {
-                WriteContentTypes(archive, model.Sheets, includeSharedStrings);
+                bool includeSharedStrings, string? themeXml = null, OfficeTheme? theme = null) {
+                WriteContentTypes(archive, model.Sheets, includeSharedStrings, themeXml != null);
                 WriteTextEntry(archive, "_rels/.rels",
                     "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                     "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
@@ -102,8 +102,9 @@ namespace OfficeIMO.Excel {
                 WriteCoreProperties(archive);
                 WriteAppProperties(archive);
                 WriteWorkbook(archive, model);
-                WriteWorkbookRelationships(archive, model.Sheets.Count, includeSharedStrings);
-                WriteStyles(archive, stylePlan);
+                WriteWorkbookRelationships(archive, model.Sheets.Count, includeSharedStrings, themeXml != null);
+                WriteStyles(archive, stylePlan, theme);
+                if (themeXml != null) WriteTextEntry(archive, "xl/theme/theme1.xml", themeXml);
             }
 
             internal static bool TryCreateExtendedWritePlan(DirectDataSetWorkbookModel model, CancellationToken ct, out ExtendedDirectWritePlan? plan, bool disableSharedStrings = false) {
@@ -141,7 +142,7 @@ namespace OfficeIMO.Excel {
                 WriteWorksheet(archive, sheet, plan.Model.DateTimeOffsetWriteStrategy, plan.Model.DateSystem, plan.SharedStrings, plan.StylePlan, plan.ColumnWritePlans[sheetIndex], ct, worksheetPath, tableRelationshipId);
             }
 
-            private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings) {
+            private static void WriteContentTypes(ZipArchive archive, IReadOnlyList<DirectDataSetSheetModel> sheets, bool includeSharedStrings, bool includeTheme = false) {
                 var builder = new StringBuilder(1024 + sheets.Count * 260);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -154,6 +155,8 @@ namespace OfficeIMO.Excel {
                 if (includeSharedStrings) {
                     builder.Append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>");
                 }
+
+                if (includeTheme) builder.Append("<Override PartName=\"/xl/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/>");
 
                 foreach (var sheet in sheets) {
                     string sheetIndexText = InvariantNumberText.Get(sheet.Index);
@@ -196,7 +199,7 @@ namespace OfficeIMO.Excel {
                 WriteTextEntry(archive, "xl/workbook.xml", builder.ToString());
             }
 
-            private static void WriteWorkbookRelationships(ZipArchive archive, int sheetCount, bool includeSharedStrings) {
+            private static void WriteWorkbookRelationships(ZipArchive archive, int sheetCount, bool includeSharedStrings, bool includeTheme = false) {
                 var builder = new StringBuilder(384 + sheetCount * 160);
                 builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
@@ -218,6 +221,11 @@ namespace OfficeIMO.Excel {
                     builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings\" Target=\"sharedStrings.xml\"/>");
                 }
 
+                if (includeTheme) {
+                    builder.Append("<Relationship Id=\"rId");
+                    builder.Append(InvariantNumberText.Get(sheetCount + (includeSharedStrings ? 3 : 2)));
+                    builder.Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"theme/theme1.xml\"/>");
+                }
                 builder.Append("</Relationships>");
                 WriteTextEntry(archive, "xl/_rels/workbook.xml.rels", builder.ToString());
             }
@@ -241,7 +249,7 @@ namespace OfficeIMO.Excel {
                     "</Properties>");
             }
 
-            private static void WriteStyles(ZipArchive archive, DirectStylePlan stylePlan) {
+            private static void WriteStyles(ZipArchive archive, DirectStylePlan stylePlan, OfficeTheme? theme = null) {
                 if (stylePlan.TabularStyles != null) {
                     WriteTextEntry(archive, "xl/styles.xml", "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + stylePlan.TabularStyles.Stylesheet.OuterXml);
                     return;
@@ -261,7 +269,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 builder.Append("</numFmts>");
-                builder.Append("<fonts count=\"1\"><font><sz val=\"11\"/><color theme=\"1\"/><name val=\"Calibri\"/><family val=\"2\"/><scheme val=\"minor\"/></font></fonts>");
+                builder.Append("<fonts count=\"1\"><font><sz val=\"");
+                builder.Append(((theme ?? OfficeTheme.Default).TypeScale.Body.ToPoints()).ToString(CultureInfo.InvariantCulture));
+                builder.Append("\"/><color theme=\"1\"/><name val=\"");
+                AppendEscaped(builder, (theme ?? OfficeTheme.Default).Fonts.Body.Family);
+                builder.Append("\"/><family val=\"2\"/><scheme val=\"minor\"/></font></fonts>");
                 builder.Append("<fills count=\"2\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill></fills>");
                 builder.Append("<borders count=\"1\"><border><left/><right/><top/><bottom/><diagonal/></border></borders>");
                 builder.Append("<cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs>");

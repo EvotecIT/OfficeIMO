@@ -42,7 +42,7 @@ internal static class ServiceLevelReport {
             """;
         File.WriteAllText(Path.Combine(folder, "example.html"), html);
         HtmlConversionDocument.Parse(html).SaveAsPdf(Path.Combine(folder, "preview.pdf"),
-            new HtmlToPdfOptions { PageSize = OfficePageSizes.A4, Margins = HtmlRenderMargins.All(24D) }).RequireSuccess();
+            new HtmlToPdfOptions { PageSize = OfficePageSizes.A4, Margins = HtmlRenderMargins.All(24D) });
     }
 
     private sealed record Measure(string Name, decimal Actual, decimal Target, string Unit, bool HigherIsBetter);

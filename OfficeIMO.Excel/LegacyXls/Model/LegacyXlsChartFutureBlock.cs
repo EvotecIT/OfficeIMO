@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only StartBlock and EndBlock chart future-record scope metadata.
     /// </summary>
-    public sealed class LegacyXlsChartFutureBlock {
+    internal sealed class LegacyXlsChartFutureBlock {
         internal LegacyXlsChartFutureBlock(
             bool isStart,
             ushort objectKind,

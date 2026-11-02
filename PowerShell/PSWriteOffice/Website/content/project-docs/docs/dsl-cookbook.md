@@ -4,13 +4,13 @@ description: "Copy complete PowerShell recipes for Word, Excel, PowerPoint, PDF,
 layout: docs
 ---
 
-The PSWriteOffice DSL is a set of scoped PowerShell commands for composing documents. The outer `New-Office*` command creates and saves the file. Nested blocks establish the active section, sheet, slide, page, or Markdown document so content commands do not need the document object repeated on every line.
+The PSWriteOffice DSL is a set of scoped PowerShell commands for composing documents. With a content block, the outer `New-Office*` command publishes the completed document. Without a content block it returns a live document for explicit editing and saving. Nested blocks establish the active section, sheet, slide, page, or Markdown document so content commands do not need the document object repeated on every line.
 
 If loops or conditions need to keep and pass explicit document objects, use the companion [pipeline, object, and DSL workflow guide](/docs/pswriteoffice/object-workflows/).
 
 ## Choose one command style
 
-The scenario recipes use short DSL aliases from the outer constructor through the nested content commands. This keeps composition blocks compact and avoids switching naming styles halfway through a document.
+Document lifecycle commands use their full names: `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint` and `New-OfficePdf`. Inside the content block, use concise content aliases or full command names.
 
 ### DSL aliases
 
@@ -20,8 +20,7 @@ $rows = @(
     [pscustomobject]@{ Name = 'Beta'; Status = 'Review' }
 )
 
-PdfNew -Path '.\Status.pdf' {
-    PdfTheme Report
+New-OfficePdf -Path '.\Status.pdf' -Theme Modern {
     PdfHeading -Text 'Status' -Level 1
     PdfTable -InputObject $rows
 }
@@ -30,22 +29,13 @@ PdfNew -Path '.\Status.pdf' {
 ### Canonical cmdlets
 
 ```powershell
-New-OfficePdf -Path '.\Status.pdf' {
-    Set-OfficePdfTheme -Theme Report
+New-OfficePdf -Path '.\Status-Canonical.pdf' -Theme Modern {
     Add-OfficePdfHeading -Text 'Status' -Level 1
     Add-OfficePdfTable -InputObject $rows
 }
 ```
 
-These blocks call the same cmdlets and produce the same document. `PdfTheme` maps to `Set-OfficePdfTheme`: applying a theme changes the active PDF composition context, so the canonical verb is `Set`, not `New` or `Add`.
-
-- Word: `WordNew` maps to `New-OfficeWord`; `WordSection` maps to `Add-OfficeWordSection`.
-- Excel: `ExcelNew` maps to `New-OfficeExcel`.
-- PowerPoint: `PptNew` maps to `New-OfficePowerPoint`.
-- PDF: `PdfNew` maps to `New-OfficePdf`; `PdfTheme` maps to `Set-OfficePdfTheme`.
-- Markdown: `MarkdownNew` maps to `New-OfficeMarkdown`.
-
-Canonical command names are easier to discover in generated help. Aliases make dense composition blocks easier to scan. Pick one form for a script rather than mixing `New-OfficePdf` with `PdfTheme` and other aliases.
+Both styles call the same content commands. `PdfHeading` maps to `Add-OfficePdfHeading`, `PdfTable` maps to `Add-OfficePdfTable`, and `WordSection` maps to `Add-OfficeWordSection`. Use `-Theme` on the constructor to select the document's visual defaults.
 
 The same plain PowerShell objects can feed an Excel table, PowerPoint chart, PDF table, Word report, or Markdown document. Keep source collection and business calculations outside the DSL. Let the composition block describe the artifact.
 
@@ -54,14 +44,14 @@ The same plain PowerShell objects can feed an Excel table, PowerPoint chart, PDF
 Pass several strings to `WordText -Text` when every segment uses the same formatting. The strings are appended to one paragraph:
 
 ```powershell
-WordNew -Path '.\Formatting.docx' {
+New-OfficeWord -Path '.\Formatting.docx' {
     WordSection {
         WordText -Text @(
             'This is a text'
             ' that will show '
             'how WordText joins segments '
             'with the same formatting.'
-        ) -FontFamily Tahoma -FontSize 10 -Color Blue
+        ) -Font Tahoma -Size 10pt -Color Blue
     }
 }
 ```
@@ -117,7 +107,7 @@ Canvas coordinates use PDF points from the visual top-left. `Add-OfficePdfStamp 
 Saved DSL constructors are silent by default, so they do not need `Out-Null` or a suppression switch. Add `-PassThru` only when the next command needs the saved file:
 
 ```powershell
-$file = PdfNew -Path '.\Status.pdf' -PassThru {
+$file = New-OfficePdf -Path '.\Status-Review.pdf' -PassThru {
     PdfHeading 'Status'
     PdfText 'Ready for review.'
 }
@@ -125,7 +115,7 @@ $file = PdfNew -Path '.\Status.pdf' -PassThru {
 $file | Select-Object Name, Length, LastWriteTime
 ```
 
-When `New-OfficePdf` is used without a path, or with `-NoSave`, it returns the in-memory PDF document because no saved file exists.
+Without a content block, `New-OfficePdf` returns a live document and writes no file. An optional `-Path` becomes its associated destination; `Save-OfficePdf` saves to that path or an explicit new one. `Close-OfficePdf` releases it without saving.
 
 ## Word recipes
 

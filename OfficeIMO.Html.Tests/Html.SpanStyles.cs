@@ -10,19 +10,19 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_SpanStyles() {
             string html = "<p><span style=\"color:#ff0000;font-family:Arial;font-size:24px\">Styled</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal("FF0000", run.ColorHex);
             Assert.Equal("Arial", run.FontFamily);
-            Assert.Equal(24, run.FontSize);
+            Assert.Equal(18, run.FontSize?.ToPoints());
         }
 
         [Fact]
         public void HtmlToWord_SpanStyles_Decorations() {
             string html = "<p><span style=\"text-decoration:line-through\">strike</span><span style=\"text-decoration:underline\">under</span><span style=\"background-color:#ffff00\">mark</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var runs = doc.Paragraphs;
 
             var strikeRun = runs.First(r => r.Text == "strike");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_SpanStyles_FontStyles() {
             string html = "<p><span style=\"font-weight:bold;font-style:italic\">styled</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.True(run.Bold);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_SpanStyles_VerticalAlign() {
             string html = "<p><span style=\"vertical-align:super\">sup</span><span style=\"vertical-align:sub\">sub</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var runs = doc.Paragraphs;
 
             var supRun = runs.First(r => r.Text == "sup");
@@ -64,27 +64,27 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_SpanStyles_FontSizeNamed() {
             string html = "<p><span style=\"font-size:small\">text</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal(13, run.FontSize);
+            Assert.Equal(10, run.FontSize?.ToPoints());
         }
 
         [Fact]
         public void HtmlToWord_SpanStyles_FontSizePercentage() {
             string html = "<p><span style=\"font-size:200%\">text</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal(32, run.FontSize);
+            Assert.Equal(24, run.FontSize?.ToPoints());
         }
 
         [Fact]
         public void HtmlToWord_SpanStyles_SmallCaps() {
             string html = "<p><span style=\"font-variant:small-caps\">caps</span></p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal(WordCapsStyle.SmallCaps, run.CapsStyle);

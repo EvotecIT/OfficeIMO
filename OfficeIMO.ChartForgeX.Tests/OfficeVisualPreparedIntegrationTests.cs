@@ -40,41 +40,41 @@ namespace OfficeIMO.ChartForgeX.Tests
                     document.Save();
                 }
                 using (var document = ExcelDocument.Create(excelPath)) {
-                    document.AddWorksheet("Load").AddVisualArtifact(2, 3, conversion);
+                    document.AddSheet("Load").AddVisualArtifact(2, 3, conversion);
                     document.Save();
                 }
-                using (var document = PowerPointPresentation.Create(presentationPath)) {
+                using (var document = PowerPointDocument.Create(presentationPath)) {
                     document.AddSlide().AddVisualArtifact(conversion, 24D, 36D);
                     document.Save();
                 }
-                PdfDocument.Create(_ => { }, new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+                PdfDocument.Create(_ => { }, new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
                     .AddVisualArtifact(conversion).Save(pdfPath);
 
                 using (var document = WordDocument.Load(wordPath)) {
                     var image = Assert.Single(document.Images);
-                    Assert.Equal(160D / 0.75D, image.Width!.Value, 6);
-                    Assert.Equal(100D / 0.75D, image.Height!.Value, 6);
+                    Assert.Equal(160D / 0.75D, image.Width!.Value.ToPixels(), 6);
+                    Assert.Equal(100D / 0.75D, image.Height!.Value.ToPixels(), 6);
                     Assert.Equal(description, image.Description);
                     Assert.Equal("Service load", image.Title);
                 }
                 using (var document = ExcelDocument.Load(excelPath)) {
                     var image = Assert.Single(document.Sheets[0].Images);
-                    Assert.Equal(213, image.WidthPixels);
-                    Assert.Equal(133, image.HeightPixels);
+                    Assert.Equal(160D, image.Width.ToPoints(), 6);
+                    Assert.Equal(100D, image.Height.ToPoints(), 6);
                     Assert.Equal(description, image.Description);
                     Assert.Equal("Service load", image.Title);
                     Assert.Equal(2, image.RowIndex);
                     Assert.Equal(3, image.ColumnIndex);
                 }
-                using (var document = PowerPointPresentation.Load(presentationPath)) {
+                using (var document = PowerPointDocument.Load(presentationPath)) {
                     var picture = Assert.Single(document.Slides[0].Pictures);
-                    Assert.Equal(160D, picture.WidthPoints, 6);
-                    Assert.Equal(100D, picture.HeightPoints, 6);
+                    Assert.Equal(160D, picture.Width.ToPoints(), 6);
+                    Assert.Equal(100D, picture.Height.ToPoints(), 6);
                     Assert.Equal(description, picture.Description);
                     Assert.Equal("Service load", picture.Title);
                 }
                 var pdf = File.ReadAllBytes(pdfPath);
-                Assert.Single(PdfReadDocument.Open(pdf).Pages);
+                Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(pdf)).Pages);
                 string textAlternative = BitConverter.ToString(Encoding.UTF8.GetBytes(description)).Replace("-", string.Empty);
                 Assert.Contains("/Figure << /Alt <" + textAlternative + ">", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
             } finally { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }

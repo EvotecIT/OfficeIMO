@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes document-wide OfficeArtFDGGBlock drawing metadata discovered in an XLS drawing group.
     /// </summary>
-    public sealed class LegacyXlsDrawingGroupBlock {
+    internal sealed class LegacyXlsDrawingGroupBlock {
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArtFDGGBlock record.
         /// </summary>

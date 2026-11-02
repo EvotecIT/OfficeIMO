@@ -76,7 +76,7 @@ internal static partial class PdfRedactionVerification {
         }
 
         if (options.CheckManagedRendering) {
-            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
             for (int i = 0; i < renders.Count; i++) if (!renders[i].Succeeded) issues.Add(new PdfRedactionVerificationIssue("ManagedRendering", renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), "Managed rendering failed for redacted page " + renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + string.Join("; ", renders[i].Diagnostics)));
         }
 
@@ -204,6 +204,11 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
 
+        if (rewrittenPreflight.CanReadLogicalObjects) {
+            issues.AddRange(PdfRedactionApplier.FindSearchResidue(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
+            issues.AddRange(PdfRedactionApplier.FindRedactedContentOutsidePages(redactedPdf, reviewedPlan, readOptions, options.CancellationToken));
+        }
+
         if (hasResidualText) {
             issues.Add(new PdfRedactionVerificationIssue(
                 "RedactionPlanResidual",
@@ -227,12 +232,16 @@ internal static partial class PdfRedactionVerification {
                 $"The rewritten PDF still contains {group.Count()} {group.Key.Kind} match(es) inside a reviewed redaction area on page {group.Key.PageNumber}."));
         }
 
-        if (issues.Count == markerReport.Issues.Count) {
-            return markerReport;
+        PdfRedactionSearchCriteria[] searched = PdfRedactionApplier.GetSearchCriteria(reviewedPlan);
+        string extracted = searched.Any(criterion => criterion.Matches(markerReport.ExtractedText)) ? string.Empty : markerReport.ExtractedText;
+        for (int index = 0; index < issues.Count; index++) {
+            PdfRedactionVerificationIssue issue = issues[index];
+            if (searched.Any(criterion => criterion.Matches(issue.Message) || criterion.Matches(issue.Marker)))
+                issues[index] = new PdfRedactionVerificationIssue(issue.Feature, "Search", "Redaction verification found retained searched data.");
         }
 
         return new PdfRedactionVerificationReport(
-            markerReport.ExtractedText,
+            extracted,
             markerReport.RawPdfBytesChecked,
             markerReport.EncodedPdfStringsChecked,
             markerReport.DecodedPdfStreamsChecked,

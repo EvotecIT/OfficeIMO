@@ -2,8 +2,10 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public partial class Excel {
+namespace OfficeIMO.Tests
+{
+    public partial class Excel
+    {
         [Theory]
         [InlineData(1)]
         [InlineData(2)]
@@ -23,15 +25,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotMaterialization_CreatesWithoutTemplateOrOfficeRefresh() {
+        public void Test_PivotMaterialization_CreatesWithoutTemplateOrOfficeRefresh()
+        {
             string path = Path.Combine(_directoryWithFiles, "HeadlessPivot.TemplateFree.xlsx");
             using var oracle = ExcelDocumentReader.Open(PivotLookupOraclePath);
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:D9");
-            using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Sales");
-                for (int row = 1; row <= 9; row++) for (int column = 1; column <= 4; column++) sheet.CellValue(row, column, sourceValues[row - 1, column - 1]);
-                sheet.AddPivotTable("A1:D9", "F1", "SalesPivot", rowFields: new[] { "Region" }, columnFields: new[] { "Product" },
-                    dataFields: new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") }, layout: ExcelPivotLayout.Tabular);
+            using (var document = ExcelDocument.Create(path))
+            {
+                var sheet = document.AddSheet("Sales");
+                for (int row = 1; row <= 9; row++)
+                    for (int column = 1; column <= 4; column++)
+                        sheet.CellValue(row, column, sourceValues[row - 1, column - 1]);
+                sheet.AddPivotTable("A1:D9", "F1", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") }, Layout = ExcelPivotLayout.Tabular });
                 var result = sheet.MaterializePivotTable("SalesPivot");
                 Assert.Equal("F1:I6", result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
@@ -40,6 +45,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(cache.GetIdOfPart(cache.PivotTableCacheRecordsPart!), cache.PivotCacheDefinition!.Id!.Value);
                 document.Save();
             }
+
             using var reopened = ExcelDocument.Load(path);
             Assert.Equal(48d, reopened.GetSheet("Sales").GetPivotData("SalesPivot", "Metric").Value);
             Assert.Equal(8U, reopened.GetSheet("Sales").WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!.PivotCacheDefinition!.RecordCount!.Value);

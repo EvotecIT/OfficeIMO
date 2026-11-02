@@ -115,7 +115,7 @@ internal static class AdfToMarkdownConverter {
                 }
                 break;
             default:
-                if ((node.Type == "extension" || node.Type == "bodiedExtension") && options.ExtensionResolver != null && options.ExtensionResolver(node) is MarkdownDoc projection) {
+                if ((node.Type == "extension" || node.Type == "bodiedExtension") && options.ExtensionResolver != null && options.ExtensionResolver(node) is MarkdownDocument projection) {
                     AdfGraphGuard.CheckMarkdown(projection, options);
                     diagnostics.Add(Warning("ADF_EXTENSION_RESOLVED", path, "A caller-provided resolver projected extension content; native extension metadata has no Markdown representation."));
                     builder.Append(projection.ToMarkdown());
@@ -254,7 +254,7 @@ internal static class AdfToMarkdownConverter {
             return;
         }
         if (node.Type != "text") {
-            if (node.Type == "inlineExtension" && options.ExtensionResolver != null && options.ExtensionResolver(node) is MarkdownDoc projection) {
+            if (node.Type == "inlineExtension" && options.ExtensionResolver != null && options.ExtensionResolver(node) is MarkdownDocument projection) {
                 AdfGraphGuard.CheckMarkdown(projection, options);
                 if (projection.Blocks.Count > 1 || projection.Blocks.Count == 1 && projection.Blocks[0] is not ParagraphBlock)
                     throw new InvalidOperationException("An inlineExtension resolver must return an empty document or one paragraph.");

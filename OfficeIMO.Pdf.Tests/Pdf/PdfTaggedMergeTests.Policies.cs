@@ -45,7 +45,7 @@ public sealed partial class PdfTaggedMergeTests {
 
     [Fact]
     public void MergeRejectsUntaggedPagesWhenPrimaryDeclaresPdfUa() {
-        byte[] primary = PdfDocument.Create(new PdfOptions().SetPdfUaIdentification())
+        byte[] primary = PdfDocument.Create(new PdfCreateOptions().SetPdfUaIdentification())
             .TaggedPdfCatalogMarkers().H1("Service review").ToBytes();
         byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Attachment")).ToBytes();
         var error = Assert.Throws<NotSupportedException>(() => PdfDocument.MergeToBytes(primary, plain));

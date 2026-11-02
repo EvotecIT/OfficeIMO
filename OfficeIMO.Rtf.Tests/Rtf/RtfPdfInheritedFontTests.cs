@@ -21,8 +21,10 @@ public sealed class RtfPdfInheritedFontTests {
     public void EffectiveStyleFontsMatchDirectFontsInEachContentOwner(string owner) {
         RtfDocument inherited = CreateDocument(owner, directFont: false);
         byte[] source = inherited.ToBytes();
-        using PdfPigDocument expected = PdfPigDocument.Open(CreateDocument(owner, directFont: true).ToPdfBytes(PortableOptions()));
-        using PdfPigDocument actual = PdfPigDocument.Open(inherited.ToPdfBytes(PortableOptions()));
+        using PdfCore.PdfDocument expectedModel = CreateDocument(owner, directFont: true).ToPdf(PortableOptions());
+        using PdfPigDocument expected = PdfPigDocument.Open(expectedModel.ToBytes());
+        using PdfCore.PdfDocument actualModel = inherited.ToPdf(PortableOptions());
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
 
         Assert.Equal(1, actual.NumberOfPages);
         var expectedWord = Assert.Single(expected.GetPage(1).GetWords(), word => word.Text == Marker);
@@ -50,11 +52,11 @@ public sealed class RtfPdfInheritedFontTests {
         inherited.AddParagraph().SetStyle(1);
         inherited.AddParagraph("B");
         byte[] source = inherited.ToBytes();
-        PdfCore.PdfDocument actualDocument = inherited.ToPdfDocument(PortableOptions());
+        PdfCore.PdfDocument actualDocument = inherited.ToPdf(PortableOptions());
         PdfCore.RichParagraphBlock paragraph = Assert.IsType<PdfCore.RichParagraphBlock>(actualDocument.Blocks.ElementAt(1));
         PdfCore.PdfTextRun strut = Assert.Single(paragraph.Runs, run => run.IsLineBoxStrut);
         Assert.Equal(PdfCore.PdfStandardFont.Courier, strut.Font);
-        Assert.Equal(24D, strut.FontSize);
+        Assert.Equal(24D, strut.FontSize!.Value.ToPoints());
 
         using PdfPigDocument actual = PdfPigDocument.Open(actualDocument.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
@@ -67,8 +69,10 @@ public sealed class RtfPdfInheritedFontTests {
 
     [Fact]
     public void ControlOnlyStyledTabLeaderMatchesDirectFontGlyphsAndGeometry() {
-        using PdfPigDocument expected = PdfPigDocument.Open(CreateTabLeaderDocument(directFont: true).ToPdfBytes(PortableOptions()));
-        using PdfPigDocument actual = PdfPigDocument.Open(CreateTabLeaderDocument(directFont: false).ToPdfBytes(PortableOptions()));
+        using PdfCore.PdfDocument expectedModel = CreateTabLeaderDocument(directFont: true).ToPdf(PortableOptions());
+        using PdfPigDocument expected = PdfPigDocument.Open(expectedModel.ToBytes());
+        using PdfCore.PdfDocument actualModel = CreateTabLeaderDocument(directFont: false).ToPdf(PortableOptions());
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         var expectedDots = expected.GetPage(1).Letters.Where(letter => letter.Value == ".").ToArray();
         var actualDots = actual.GetPage(1).Letters.Where(letter => letter.Value == ".").ToArray();
@@ -92,8 +96,10 @@ public sealed class RtfPdfInheritedFontTests {
         plain.AddParagraph("BODYDEFAULT");
         withHeader.AddParagraph("BODYDEFAULT");
 
-        using PdfPigDocument expected = PdfPigDocument.Open(plain.ToPdfBytes(PortableOptions()));
-        using PdfPigDocument actual = PdfPigDocument.Open(withHeader.ToPdfBytes(PortableOptions()));
+        using PdfCore.PdfDocument expectedModel = plain.ToPdf(PortableOptions());
+        using PdfPigDocument expected = PdfPigDocument.Open(expectedModel.ToBytes());
+        using PdfCore.PdfDocument actualModel = withHeader.ToPdf(PortableOptions());
+        using PdfPigDocument actual = PdfPigDocument.Open(actualModel.ToBytes());
         Assert.Equal(1, actual.NumberOfPages);
         Assert.Single(actual.GetPage(1).GetWords(), word => word.Text == "HEADER");
         foreach (string text in new[] { Marker, "BODYDEFAULT" }) {
@@ -172,9 +178,9 @@ public sealed class RtfPdfInheritedFontTests {
     private static RtfToPdfOptions PortableOptions() => new RtfToPdfOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
-        PdfOptions = new PdfCore.PdfOptions {
+        PdfOptions = new PdfCore.PdfCreateOptions {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
-            DefaultFontSize = 12
+            DefaultFontSize = OfficeLength.Points(12)
         }
     };
 }

@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_keynote_numbered_lists_continue_after_the_initial_marker() {
         using MemoryStream package = CreateKeynotePackageWithNumberedSequence(0);
 
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(
             new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         PowerPointParagraph[] paragraphs = Assert.Single(
             Assert.Single(result.Value.Slides).TextBoxes).Paragraphs.ToArray();

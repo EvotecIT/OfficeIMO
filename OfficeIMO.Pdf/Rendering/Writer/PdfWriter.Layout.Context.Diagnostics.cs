@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
                 ReportOmittedInlineImagePaint(cell, lines, row, startLine + visibleLines, startLine + expectedLines, x, top, cellWidth, cellHeight);
             if (cell.Viewport != null || cell.TextRotation != 0) return;
             if (visibleLines < expectedLines && !string.IsNullOrWhiteSpace(cell.Text)) {
-                ReportAuthoredLayoutDiagnostic("TableCellContentClipped", "PdfTableCell[" + row + "," + cell.Column + "]",
+                ReportAuthoredLayoutDiagnostic("table-cell-content-clipped", "PdfTableCell[" + row + "," + cell.Column + "]",
                     "Cell text exceeded the authored cell height and was clipped or omitted.",
                     PdfLayoutDiagnosticKind.ClippedContent, x, top, cellWidth, cellHeight);
             }
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
                     double effectiveAdvance = MeasureRichLineWidth(lines.Lines[line]);
                     double availablePaintWidth = clip.Left + clip.Width + bleed - textX;
                     if (effectiveAdvance <= availablePaintWidth + .001D) continue;
-                    ReportAuthoredLayoutDiagnostic("TableCellContentClipped", "PdfTableCell[" + row + "," + cell.Column + "]",
+                    ReportAuthoredLayoutDiagnostic("table-cell-content-clipped", "PdfTableCell[" + row + "," + cell.Column + "]",
                         FormattableString.Invariant($"No-wrap cell text exceeded the authored cell width and was clipped. Effective advance {effectiveAdvance:0.###} pt exceeds available paint width {availablePaintWidth:0.###} pt."),
                         PdfLayoutDiagnosticKind.ClippedContent, x, top, cellWidth, cellHeight);
                     break;
@@ -47,11 +47,11 @@ internal static partial class PdfWriter {
             double bottom = top - GetTableCellPaddingTop(style, row, cell.Column) - verticalOffset - contentHeight;
             if (bottom < top - cellHeight - .001D) {
                 if (assessPageBounds && _canvasEffectToPage.Equals(OfficeIMO.Drawing.OfficeTransform.Identity) && bottom < -.001D) {
-                    ReportAuthoredLayoutDiagnostic("TableCellObjectPageBoundsClipped", "PdfTableCell[" + row + "," + cell.Column + "]",
+                    ReportAuthoredLayoutDiagnostic("table-cell-object-page-bounds-clipped", "PdfTableCell[" + row + "," + cell.Column + "]",
                         "Cell objects extend below the physical page and were clipped by the page bounds.",
                         PdfLayoutDiagnosticKind.ClippedContent, x, top, cellWidth, top - bottom);
                 } else {
-                    ReportAuthoredLayoutDiagnostic("TableCellObjectOverflow", "PdfTableCell[" + row + "," + cell.Column + "]",
+                    ReportAuthoredLayoutDiagnostic("table-cell-object-overflow", "PdfTableCell[" + row + "," + cell.Column + "]",
                         "Cell objects extend below the authored cell bounds and were preserved.",
                         PdfLayoutDiagnosticKind.Overflow, x, top, cellWidth, cellHeight,
                         PdfConversionWarningSeverity.Information);
@@ -70,7 +70,7 @@ internal static partial class PdfWriter {
                 List<RichSeg> line = lines[index];
                 if (line.Any(segment => !segment.IsLineBoxStrut &&
                     (segment.InlineElement is PdfInlineBox box
-                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth > 0D
+                        ? box.Background.HasValue || box.BorderColor.HasValue && box.BorderWidth.ToPoints() > 0D
                         : segment.InlineElement == null && !string.IsNullOrWhiteSpace(segment.Text)))) {
                     double inkBaseline = AdjustRichLineBaseline(baseline, line, currentOpts, fontSize, font);
                     GetRichLineInkMetrics(line, currentOpts, out double ascent, out double descent);
@@ -91,7 +91,7 @@ internal static partial class PdfWriter {
             PdfLayoutDiagnosticKind kind, double x, double top, double itemWidth, double itemHeight,
             PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning) {
             if (!currentOpts.HasDiagnosticsReport) return;
-            double yFromTop = currentOpts.PageHeight - top;
+            double yFromTop = currentOpts.PageHeight.ToPoints() - top;
             string occurrence = FormattableString.Invariant($"{source} on page {pages.Count + 1} at {x:0.###},{yFromTop:0.###}");
             currentOpts.AddLayoutDiagnostic(code, occurrence, message, kind, severity,
                 x, yFromTop, itemWidth, itemHeight);

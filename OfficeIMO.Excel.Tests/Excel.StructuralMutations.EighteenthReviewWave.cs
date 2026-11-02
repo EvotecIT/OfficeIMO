@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RewritesWorksheetChartExAndChartsheetFormulaRoots() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10);
             sheet.AddTable("A1:A2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemoveStaleRowSpans() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet insertSheet = document.AddWorksheet("Insert");
+            ExcelSheet insertSheet = document.AddSheet("Insert");
             insertSheet.CellValue(1, 1, "A");
             insertSheet.CellValue(1, 2, "B");
             insertSheet.CellValue(1, 3, "C");
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "A1", "C1", "D1" },
                 insertedRow.Elements<Cell>().Select(cell => cell.CellReference!.Value).ToArray());
 
-            ExcelSheet deleteSheet = document.AddWorksheet("Delete");
+            ExcelSheet deleteSheet = document.AddSheet("Delete");
             deleteSheet.CellValue(1, 1, "A");
             deleteSheet.CellValue(1, 2, "B");
             deleteSheet.CellValue(1, 3, "C");

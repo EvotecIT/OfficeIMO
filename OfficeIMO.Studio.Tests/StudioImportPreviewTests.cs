@@ -35,7 +35,7 @@ public sealed class StudioImportPreviewTests {
             string source = Path.Combine(root, "source.pdf");
             CreatePdf(150).Save(target);
             PdfDocument.Create(document => {
-                for (int page = 0; page <= 1000; page++) document.Page(current => current.Size(200, 300));
+                for (int page = 0; page <= 1000; page++) document.Page(current => current.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
             }).Save(source);
             byte[] bytes = await File.ReadAllBytesAsync(source);
             using var workspace = await PdfWorkspace.OpenAsync(target, CancellationToken.None);
@@ -92,7 +92,7 @@ public sealed class StudioImportPreviewTests {
                     Assert.Null(model.ErrorMessage); Assert.Equal(5, model.SelectedPage!.PageNumber);
                     Assert.Equal(new[] { 1, 2, 3, 4 }, model.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber));
                     await model.SaveAsCommand.ExecuteAsync(null);
-                    Assert.Equal(new[] { 300D, 310D, 220D, 200D, 150D }, PdfDocument.Load(File.ReadAllBytes(output)).Inspect().Pages.Select(page => page.Width));
+                    Assert.Equal(new[] { 300D, 310D, 220D, 200D, 150D }, PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(output))).Inspect().Pages.Select(page => page.Width));
                     await model.UndoCommand.ExecuteAsync(null);
                     Assert.Single(model.Pages); Assert.False(model.CanUndo);
                     Assert.False(Assert.Single(services.Jobs.Entries).IsActive);
@@ -180,7 +180,7 @@ public sealed class StudioImportPreviewTests {
         }, CancellationToken.None);
     }
     private static PdfDocument CreatePdf(params int[] widths) => PdfDocument.Create(document => {
-        foreach (int width in widths) document.Page(page => page.Size(width, 300));
+        foreach (int width in widths) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(300)));
     });
     private static async Task Layout(Window window) { window.UpdateLayout(); await Task.Delay(30); window.UpdateLayout(); }
     private static void Capture(Window window, string name) {

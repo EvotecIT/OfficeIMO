@@ -14,7 +14,7 @@ Most `Recipe-*` scripts use paths relative to the current folder. Parameterized 
 
 You can also copy a composition block into your own script and choose its inputs and file paths there.
 
-Creation recipes demonstrate short DSL aliases such as `WordNew`, `ExcelNew`, `PptNew`, `PdfNew`, and `MarkdownNew`, as well as their canonical cmdlet names. Recipes that read, update, merge, split, or convert existing files use operation-specific cmdlets. The [DSL cookbook](https://officeimo.com/docs/pswriteoffice/dsl-cookbook/) shows composition in alias and canonical forms so you can choose one style for your own script.
+Creation recipes combine `New-Office*` commands with content aliases such as `WordParagraph`, `ExcelTable`, `PowerPointSlide`, `PdfParagraph` and `MarkdownHeading`. PowerPoint aliases spell out the format name. Recipes that read, update, merge, split or convert existing files use operation-specific cmdlets. Use the [command reference](../Docs/Readme.md) for their parameters and examples.
 
 Saved DSL constructors are quiet by default. Add `-PassThru` only when the next command needs the saved file.
 

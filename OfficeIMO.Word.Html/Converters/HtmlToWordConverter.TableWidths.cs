@@ -8,16 +8,17 @@ namespace OfficeIMO.Word.Html {
             int available = cell != null
                 ? (_tableCellContentWidths.TryGetValue(cell._tableCell, out int? cached) ? cached :
                     WordTable.EstimateCellContentWidthInDxa(document, cell._tableCell)) ?? 1
-                : Math.Max(1, (int)(section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips)
-                    - (int)section.Margins.Left - (int)section.Margins.Right);
+                : Math.Max(1, (int)(checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                    - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())));
             int desired = available;
-            if (table.WidthType == WordTableWidthUnit.Dxa && table.Width > 0) desired = table.Width.Value;
-            else if (table.WidthType == WordTableWidthUnit.Pct && table.Width > 0)
-                desired = (int)Math.Round(available * (double)table.Width.Value / 5000);
+            if (table.Width?.LengthValue is { } length && length > global::OfficeIMO.OfficeLength.Zero) desired = checked((int)length.ToTwips());
+            else if (table.Width?.PercentValue is double percent && percent > 0)
+                desired = checked((int)Math.Round(available * percent / 100d));
             if (cell != null) desired = Math.Min(desired, available);
             int width = Math.Max(1, Math.Min(2400, desired / columns));
+            // Apply the computed width even at the cap; native defaults may fill the section.
             // Authored column and cell widths are applied afterward.
-            if (width < 2400) table.ColumnWidth = Enumerable.Repeat(width, columns).ToList();
+            table.ColumnWidth = Enumerable.Repeat<WordTableWidth?>(WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635)), columns).ToList();
         }
     }
 }

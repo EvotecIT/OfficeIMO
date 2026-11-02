@@ -18,7 +18,7 @@ internal static partial class PdfOcr {
         CancellationToken cancellationToken) {
         int concurrency = engine.Capabilities.SupportsConcurrentRequests ? options.MaxConcurrentPages : 1;
         var renderOptions = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Dpi = options.Dpi,
             ImageCodec = options.ImageCodec,
             MaxPixelsPerPage = options.MaxPixelsPerPage,

@@ -345,7 +345,7 @@ public sealed class EmailBodyProjectionTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => resource.OpenReadStream(cancellation.Token));
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             resource.OpenReadStreamAsync(cancellation.Token));
     }
 

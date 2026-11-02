@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
 
             int row;
             int column;
-            if (!A1.TryParseCellReferenceFast(cell.CellReference?.Value, out row, out column)) {
+            if (!ExcelA1.TryParseCellReferenceFast(cell.CellReference?.Value, out row, out column)) {
                 effectiveCoordinates ??= BuildEffectiveCellCoordinates();
                 if (!effectiveCoordinates.TryGetValue(cell, out var coordinate)) {
                     return string.Empty;
@@ -236,14 +236,14 @@ namespace OfficeIMO.Excel {
                     : cellsByRow[row];
                 foreach (Cell cell in rowCells) {
                     int effectiveColumn = previousColumn + 1;
-                    if (A1.TryParseCellReferenceFast(
+                    if (ExcelA1.TryParseCellReferenceFast(
                         cell.CellReference?.Value,
                         out int explicitRow,
                         out int explicitColumn)) {
                         coordinates[cell] = (explicitRow, explicitColumn);
                         effectiveColumn = explicitColumn;
-                    } else if (effectiveRow <= (uint)A1.MaxRows
-                        && effectiveColumn <= A1.MaxColumns) {
+                    } else if (effectiveRow <= (uint)ExcelA1.MaxRows
+                        && effectiveColumn <= ExcelA1.MaxColumns) {
                         coordinates[cell] = (checked((int)effectiveRow), effectiveColumn);
                     }
 
@@ -261,7 +261,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            return A1.TryParseRange(
+            return ExcelA1.TryParseRange(
                     definition.Reference!.Replace("$", string.Empty),
                     out int firstRow,
                     out int firstColumn,
@@ -390,26 +390,26 @@ namespace OfficeIMO.Excel {
         private static string TranslateSharedFormulaCell(ExcelReferencePoint point, int rowOffset, int columnOffset) {
             int targetRow = point.RowAbsolute ? point.Row : point.Row + rowOffset;
             int targetColumn = point.ColumnAbsolute ? point.Column : point.Column + columnOffset;
-            if (targetRow <= 0 || targetRow > A1.MaxRows || targetColumn <= 0 || targetColumn > A1.MaxColumns) {
+            if (targetRow <= 0 || targetRow > ExcelA1.MaxRows || targetColumn <= 0 || targetColumn > ExcelA1.MaxColumns) {
                 return "#REF!";
             }
 
             return (point.ColumnAbsolute ? "$" : string.Empty)
-                + A1.ColumnIndexToLetters(targetColumn)
+                + ExcelA1.ColumnIndexToLetters(targetColumn)
                 + (point.RowAbsolute ? "$" : string.Empty)
                 + targetRow.ToString(CultureInfo.InvariantCulture);
         }
 
         private static string TranslateSharedFormulaColumn(ExcelReferencePoint point, int columnOffset) {
             int targetColumn = point.ColumnAbsolute ? point.Column : point.Column + columnOffset;
-            return targetColumn <= 0 || targetColumn > A1.MaxColumns
+            return targetColumn <= 0 || targetColumn > ExcelA1.MaxColumns
                 ? "#REF!"
-                : (point.ColumnAbsolute ? "$" : string.Empty) + A1.ColumnIndexToLetters(targetColumn);
+                : (point.ColumnAbsolute ? "$" : string.Empty) + ExcelA1.ColumnIndexToLetters(targetColumn);
         }
 
         private static string TranslateSharedFormulaRow(ExcelReferencePoint point, int rowOffset) {
             int targetRow = point.RowAbsolute ? point.Row : point.Row + rowOffset;
-            return targetRow <= 0 || targetRow > A1.MaxRows
+            return targetRow <= 0 || targetRow > ExcelA1.MaxRows
                 ? "#REF!"
                 : (point.RowAbsolute ? "$" : string.Empty) + targetRow.ToString(CultureInfo.InvariantCulture);
         }

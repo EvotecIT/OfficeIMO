@@ -45,7 +45,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</g>");
         }
         builder.AppendLine("</svg>");
-        AddWarning(options, "PositionedFontSubstitution",
+        AddWarning(options, OfficeDiagnosticCodes.PositionedFontSubstitution,
             "Positioned HTML preserves source text placement and size using a browser font. Original PDF fonts are not embedded; letter shapes may differ.",
             PdfCore.PdfConversionWarningSeverity.Warning);
     }

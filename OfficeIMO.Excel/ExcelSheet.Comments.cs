@@ -127,7 +127,7 @@ namespace OfficeIMO.Excel {
 
         private void SetCommentInternal(int row, int column, CommentText commentText, string author, string? initials, bool visible, ExcelCommentAnchor? anchor = null) {
             WriteLock(() => {
-                string reference = A1.CellReference(row, column);
+                string reference = ExcelA1.CellReference(row, column);
                 string authorDisplay = NormalizeAuthor(author, initials);
 
                 var commentsPart = GetOrCreateCommentsPart();
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
                 int shapeId = NextVmlShapeId(root);
                 foreach (var item in imported) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    string reference = A1.CellReference(item.Row, item.Column);
+                    string reference = ExcelA1.CellReference(item.Row, item.Column);
                     var comment = new Comment { Reference = reference, AuthorId = authorId };
                     comment.Append(BuildCommentText(item.Text));
                     comments.CommentList.Append(comment);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Excel {
         /// <param name="author">Author name (optional).</param>
         /// <param name="initials">Author initials (optional).</param>
         public void SetComment(string a1, string text, string author = "OfficeIMO", string? initials = null) {
-            var (row, col) = A1.ParseCellRef(a1);
+            var (row, col) = ExcelA1.ParseCellRef(a1);
             if (row <= 0 || col <= 0) throw new ArgumentException($"Address '{a1}' is not a valid A1 reference.", nameof(a1));
             SetComment(row, col, text, author, initials);
         }
@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel {
         /// <param name="author">Author name (optional).</param>
         /// <param name="initials">Author initials (optional).</param>
         public void SetCommentRichText(string a1, IEnumerable<ExcelRichTextRun> runs, string author = "OfficeIMO", string? initials = null) {
-            var (row, col) = A1.ParseCellRef(a1);
+            var (row, col) = ExcelA1.ParseCellRef(a1);
             if (row <= 0 || col <= 0) throw new ArgumentException($"Address '{a1}' is not a valid A1 reference.", nameof(a1));
             SetCommentRichText(row, col, runs, author, initials);
         }
@@ -210,7 +210,7 @@ namespace OfficeIMO.Excel {
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
 
             WriteLock(() => {
-                string reference = A1.CellReference(row, column);
+                string reference = ExcelA1.CellReference(row, column);
 
                 var commentsPart = WorksheetCommentsPartRoot;
                 if (commentsPart?.Comments?.CommentList == null) {
@@ -233,7 +233,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="a1">A1 cell reference (e.g., "B5").</param>
         public void ClearComment(string a1) {
-            var (row, col) = A1.ParseCellRef(a1);
+            var (row, col) = ExcelA1.ParseCellRef(a1);
             if (row <= 0 || col <= 0) throw new ArgumentException($"Address '{a1}' is not a valid A1 reference.", nameof(a1));
             ClearComment(row, col);
         }
@@ -246,7 +246,7 @@ namespace OfficeIMO.Excel {
         public bool HasComment(int row, int column) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
-            string reference = A1.CellReference(row, column);
+            string reference = ExcelA1.CellReference(row, column);
             var commentsPart = WorksheetCommentsPartRoot;
             return commentsPart?.Comments?.CommentList?
                 .Elements<Comment>()
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
                 if (richRun.StrikethroughSpecified) properties.Append(new Strike { Val = richRun.Strikethrough });
                 if (!string.IsNullOrWhiteSpace(richRun.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(richRun.FontColor!) });
                 if (!string.IsNullOrWhiteSpace(richRun.FontName)) properties.Append(new RunFont { Val = richRun.FontName });
-                if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value });
+                if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value.ToPoints() });
                 ExcelRichTextRun.AppendFontMetadata(properties, richRun);
                 if (properties.HasChildren) {
                     run.Append(properties);
@@ -480,7 +480,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            var parsed = A1.ParseCellRef(reference!);
+            var parsed = ExcelA1.ParseCellRef(reference!);
             if (parsed.Row <= 0 || parsed.Col <= 0) {
                 return null;
             }
@@ -551,11 +551,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int FirstRow, int FirstColumn, int LastRow, int LastColumn) ParseCommentFilterRange(string a1Range) {
-            if (A1.TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2)) {
+            if (ExcelA1.TryParseRange(a1Range, out int r1, out int c1, out int r2, out int c2)) {
                 return (r1, c1, r2, c2);
             }
 
-            var cell = A1.ParseCellRef(a1Range);
+            var cell = ExcelA1.ParseCellRef(a1Range);
             if (cell.Row > 0 && cell.Col > 0) {
                 return (cell.Row, cell.Col, cell.Row, cell.Col);
             }
@@ -727,10 +727,10 @@ namespace OfficeIMO.Excel {
                 || values[2] < 0
                 || values[4] < 0
                 || values[6] < 0
-                || values[0] >= A1.MaxColumns
-                || values[4] >= A1.MaxColumns
-                || values[2] >= A1.MaxRows
-                || values[6] >= A1.MaxRows) {
+                || values[0] >= ExcelA1.MaxColumns
+                || values[4] >= ExcelA1.MaxColumns
+                || values[2] >= ExcelA1.MaxRows
+                || values[6] >= ExcelA1.MaxRows) {
                 throw new InvalidOperationException("Moving the comment would place its VML anchor outside worksheet limits.");
             }
 
@@ -798,8 +798,8 @@ namespace OfficeIMO.Excel {
                 || values[2] < 0
                 || values[4] < 0
                 || values[6] < 0
-                || values[2] >= A1.MaxRows
-                || values[6] >= A1.MaxRows) {
+                || values[2] >= ExcelA1.MaxRows
+                || values[6] >= ExcelA1.MaxRows) {
                 return false;
             }
 
@@ -828,7 +828,7 @@ namespace OfficeIMO.Excel {
             int originalFromColumn = values[0];
             int originalToColumn = values[4];
             if (placement == VmlAnchorPlacement.OneCell) {
-                ExcelReference point = ExcelReference.Parse(A1.CellReference(1, values[0] + 1));
+                ExcelReference point = ExcelReference.Parse(ExcelA1.CellReference(1, values[0] + 1));
                 ExcelReference? mapped = ExcelDocument.TransformColumnReference(
                     point,
                     firstAffectedColumn,
@@ -844,8 +844,8 @@ namespace OfficeIMO.Excel {
                 int lastSpannedColumn = values[4];
                 if (lastSpannedColumn >= firstSpannedColumn) {
                     ExcelReference span = ExcelReference.Parse(
-                        A1.CellReference(1, firstSpannedColumn) + ":" +
-                        A1.CellReference(1, lastSpannedColumn));
+                        ExcelA1.CellReference(1, firstSpannedColumn) + ":" +
+                        ExcelA1.CellReference(1, lastSpannedColumn));
                     ExcelReference? mapped = ExcelDocument.TransformColumnReference(
                         span,
                         firstAffectedColumn,
@@ -864,7 +864,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (values[0] < 0 || values[4] < 0
-                || values[0] >= A1.MaxColumns || values[4] >= A1.MaxColumns) return false;
+                || values[0] >= ExcelA1.MaxColumns || values[4] >= ExcelA1.MaxColumns) return false;
             if (values[0] == originalFromColumn && values[4] == originalToColumn) return false;
             anchor!.Value = string.Join(", ", values.Select(value => value.ToString(CultureInfo.InvariantCulture)));
             return true;

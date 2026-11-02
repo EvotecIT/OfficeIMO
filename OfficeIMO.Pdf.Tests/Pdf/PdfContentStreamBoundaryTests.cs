@@ -108,7 +108,7 @@ public sealed class PdfContentStreamBoundaryTests {
 
     [Fact]
     public void RedactionRetainsParagraphsAdjacentToTheReviewedBlockCoordinates() {
-        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Paragraph(p => p.Text("Visible before"))
             .Paragraph(p => p.Text("Secret account 123-45"))
             .Paragraph(p => p.Text("Visible after"))

@@ -20,17 +20,48 @@ internal static partial class TableDetector {
     internal const int MaximumRulingSegments = 4096;
 
     /// <summary>
+    /// Joins segments that continue one straight line, as a writer that strokes each cell's edges paints a rule one
+    /// cell at a time. A gap or an offset keeps segments apart, so a merged cell still interrupts its grid.
+    /// </summary>
+    private static List<PdfTableRuling> JoinCollinearRulings(IReadOnlyList<PdfTableRuling> rulings, PdfUnderstandingPageContext context) {
+        var joined = new List<PdfTableRuling>(rulings.Count);
+        foreach (bool horizontal in new[] { true, false }) {
+            PdfTableRuling[] ordered = rulings.Where(ruling => ruling.Horizontal == horizontal)
+                .OrderBy(ruling => horizontal ? ruling.Top : ruling.Left)
+                .ThenBy(ruling => horizontal ? ruling.Left : ruling.Bottom).ToArray();
+            int first = joined.Count;
+            foreach (PdfTableRuling ruling in ordered) {
+                context.ConsumeWork();
+                if (joined.Count > first) {
+                    PdfTableRuling last = joined[joined.Count - 1];
+                    if (horizontal && Near(last.Top, ruling.Top) && ruling.Left <= last.Right + RulingTolerance) {
+                        joined[joined.Count - 1] = new PdfTableRuling(last.Left, last.Top, Math.Max(last.Right, ruling.Right), last.Top);
+                        continue;
+                    }
+                    if (!horizontal && Near(last.Left, ruling.Left) && ruling.Bottom <= last.Top + RulingTolerance) {
+                        joined[joined.Count - 1] = new PdfTableRuling(last.Left, last.Bottom, last.Left, Math.Max(last.Top, ruling.Top));
+                        continue;
+                    }
+                }
+                joined.Add(ruling);
+            }
+        }
+        return joined;
+    }
+
+    /// <summary>
     /// Refines geometry only for an existing text table whose complete cells agree with
     /// one closed grid of full-span straight rulings. Fragmented and merged grids retain
     /// text inference. No text, source ownership, row count or column count is changed.
     /// </summary>
-    internal static bool TryRefineClosedRulingGrid(StructuredTable table,
+    internal static bool TryRefineClosedRulingGrid(PdfStructuredTable table,
         IReadOnlyList<PdfTableRuling> rulings, PdfUnderstandingPageContext context) {
         if (table.Columns.Count < 2 || table.Columns.Count > MaximumPositionedRecoveryColumns ||
             table.Rows.Count < 2 || table.Rows.Count >= MaximumRulingSegments ||
             table.SourceLines.Count != table.Rows.Count || table.SourceRuns.Count == 0 ||
             string.Equals(table.Kind, "leaders", StringComparison.Ordinal)) return false;
 
+        rulings = JoinCollinearRulings(rulings, context);
         var horizontalGroups = new List<List<PdfTableRuling>>();
         foreach (PdfTableRuling ruling in rulings) {
             context.ConsumeWork();
@@ -122,7 +153,7 @@ internal static partial class TableDetector {
         return true;
     }
 
-    private static bool CellsAgreeWithGrid(StructuredTable table, double[] x, double[] y,
+    private static bool CellsAgreeWithGrid(PdfStructuredTable table, double[] x, double[] y,
         PdfUnderstandingPageContext context) {
         var splits = x.Skip(1).Take(x.Length - 2).ToList();
         var owned = new HashSet<PdfTextSpan>();

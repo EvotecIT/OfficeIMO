@@ -18,12 +18,12 @@ public partial class PdfInspectorTests {
 
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Size(PageSizes.A4);
+                page.Size(PdfPageSizes.A4);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page."))));
             });
 
             compose.Page(page => {
-                page.Size(new PageSize(792, 612));
+                page.Size(new PdfPageSize(OfficeIMO.OfficeLength.Points(792),OfficeIMO.OfficeLength.Points(612)));
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Landscape page."))));
             });
         });

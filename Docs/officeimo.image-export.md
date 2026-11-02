@@ -26,43 +26,36 @@ External renderers are allowed only as optional test references. They are not pa
 ## Typical Use
 
 ```csharp
-OfficeImageExportResult preview = presentation.Slides[0]
-    .ToImage()
-    .AtDpi(144)
-    .WithPolicy(policy => policy.RequireNoOmissions = true)
-    .OnFileConflict(OfficeImageExportFileConflictPolicy.CreateUnique)
-    .AsPng()
-    .Save("preview");
+OfficeConversionReport preview = presentation.Slides[0].SaveAsImage("preview.png",
+    new PowerPointImageExportOptions {
+        TargetDpi = 144,
+        FailOnLoss = true,
+        FileConflictPolicy = OfficeImageExportFileConflictPolicy.CreateUnique,
+        Format = OfficeImageExportFormat.Png
+    });
 
-Console.WriteLine(preview.SavedPath);
-Console.WriteLine($"{preview.Width}x{preview.Height} at {preview.DpiX:0.#} DPI");
+Console.WriteLine(preview.OutputPath);
 ```
 
-For a production batch, stream or save payload-free metadata instead of retaining every encoded image:
+For a production batch, save without retaining earlier encoded image payloads:
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-
-OfficeImageExportBatchSaveResult saved = await document
-    .ToImages()
-    .ForPrint(300)
-    .WithBatchLimits(
-        maximumOutputCount: 500,
-        maximumTotalRasterPixels: 250_000_000,
-        maximumTotalEncodedBytes: 512L * 1024 * 1024)
-    .WithMaximumConcurrency(4)
-    .WithProgress(new Progress<OfficeImageExportProgress>(progress =>
-        Console.WriteLine($"{progress.Stage}: {progress.CompletedCount}")))
-    .OnFileConflict(OfficeImageExportFileConflictPolicy.FailIfExists)
-    .SaveFilesAsync("pages", cancellation.Token);
-
-saved.Report.Require(new OfficeImageExportPolicy {
-    RequireNoFailures = true,
-    RequireNoOmissions = true
-});
+OfficeConversionReport saved = await document.SaveAsImagesAsync("pages",
+    new ExcelImageExportOptions {
+        TargetDpi = 300,
+        MaximumOutputCount = 500,
+        MaximumTotalRasterPixels = 250_000_000,
+        MaximumTotalEncodedBytes = 512L * 1024 * 1024,
+        MaximumDegreeOfParallelism = 4,
+        Progress = new Progress<OfficeImageExportProgress>(progress =>
+            Console.WriteLine($"{progress.Stage}: {progress.CompletedCount}")),
+        FileConflictPolicy = OfficeImageExportFileConflictPolicy.FailIfExists,
+        FailOnLoss = true
+    }, cancellation.Token);
 ```
 
-Use `WithFont(...)` or `WithFonts(...)` when typography must not depend on the machine's installed fonts. A missing requested face produces `IMAGE_FONT_SUBSTITUTED`; it can be promoted to a hard failure through `FailOnDiagnosticCodes`.
+Add TrueType faces to `options.Fonts` when typography must not depend on installed fonts. A missing requested face reports `font-family-substitution`; `FailOnLoss` rejects the diagnosed approximation. Word uses `WordImageExportOptions` from the `OfficeIMO.Word.Pdf` package, Excel uses `ExcelImageExportOptions`, and PowerPoint uses `PowerPointImageExportOptions`. Tier 2 adapters retain their source-specific selection and rendering APIs.
 
 ## Source Bridges
 
@@ -72,18 +65,18 @@ The direct bridges retain the source conversion evidence:
 IReadOnlyList<OfficeImageExportResult> slides =
     odp.ExportImages(OfficeImageExportFormat.Png);
 
-OfficeImageExportBatchSaveResult chapters = await epub
-    .ToImages()
-    .Paged()
-    .AtDpi(144)
-    .AsPng()
-    .SaveFilesAsync("chapters");
+OfficeConversionReport chapters = await epub.SaveAsImagesAsync("chapters",
+    new EpubImageExportOptions {
+        Mode = HtmlRenderMode.Paged,
+        TargetDpi = 144,
+        Format = OfficeImageExportFormat.Png
+    });
 
-OfficeImageExportResult message = await email
-    .ToImage()
-    .Continuous()
-    .AsPng()
-    .ExportAsync();
+OfficeConversionResult<byte[]> message = await email.ToImageAsync(
+    new EmailImageExportOptions {
+        Mode = HtmlRenderMode.Continuous,
+        Format = OfficeImageExportFormat.Png
+    });
 ```
 
 Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the best result. Email resolves allowed CID/content-location MIME resources through the HTML resource pipeline. ODT/ODS/ODP diagnostics are attached to the resulting Word/Excel/PowerPoint image diagnostics.

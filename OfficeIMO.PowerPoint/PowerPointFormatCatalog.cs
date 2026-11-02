@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml;
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>Machine-readable catalog of PowerPoint formats supported or classified by OfficeIMO.</summary>
-public static class PowerPointFormatCatalog {
+internal static class PowerPointFormatCatalog {
     private static readonly IReadOnlyList<OfficeFormatDescriptor> Formats = Array.AsReadOnly(new[] {
         new OfficeFormatDescriptor("PowerPoint.Ppt", ".ppt", OfficeDocumentFamily.PowerPoint, OfficeDocumentKind.Document,
             OfficeFormatGeneration.Legacy, OfficeFormatEncoding.CompoundBinary, macroEnabled: true),
@@ -52,7 +52,7 @@ public static class PowerPointFormatCatalog {
 
     internal static OfficeFormatDescriptor GetDescriptor(PowerPointFileFormat format, string? path = null) {
         if (TryGetByExtension(path, out OfficeFormatDescriptor? descriptor)
-            && (PowerPointPresentation.IsLegacyBinaryFormat(format))
+            && (PowerPointDocument.IsLegacyBinaryFormat(format))
                 == (descriptor!.Generation == OfficeFormatGeneration.Legacy)) {
             return descriptor;
         }

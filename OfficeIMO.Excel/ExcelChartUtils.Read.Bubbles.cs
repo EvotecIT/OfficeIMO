@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel {
                 categories ??= x.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 string name = TryReadSeriesName(item, sheet, out string? resolved) && !string.IsNullOrWhiteSpace(resolved)
                     ? resolved! : "Series " + (series.Count + 1).ToString(CultureInfo.InvariantCulture);
-                series.Add(new ExcelChartSeries(name, y, x, ExcelChartType.Bubble, axisGroup)
+                series.Add(new ExcelChartSeries(name, y, x, OfficeChartType.Bubble, axisGroup)
                     .WithImageExportStyle(null, null, null, null, true, false, null, null, null, null)
                     .WithBubbleSizes(sizes));
             }

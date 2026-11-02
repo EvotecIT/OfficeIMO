@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlDelAndInsRoundTripAsSemanticTags() {
             const string html = "<p>Changed <del>old</del> to <ins>new</ins>.</p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             string roundTrip = doc.ToHtml();
 
@@ -20,12 +20,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlMarkRoundTripsAsSemanticTag() {
             const string html = "<p>Please <mark>review</mark> this.</p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             string roundTrip = doc.ToHtml();
 
             Assert.Contains("<mark>review</mark>", roundTrip, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("background-color", roundTrip, StringComparison.OrdinalIgnoreCase);
+            var body = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(roundTrip).Body!.InnerHtml;
+            Assert.DoesNotContain("background-color", body, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

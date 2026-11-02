@@ -208,7 +208,7 @@ operations from the [upstream writer comparison](https://github.com/GabrielMarqu
 Each timed invocation creates a `MemoryStream` with a 4 MiB capacity, writes the
 four-column header and all prepared records, fully finalizes the package, and
 returns its length. Record preparation is outside measurements. OfficeIMO calls
-its ordinary `ExcelDocument.WriteRows` API with default options; ExcelReader calls
+`ExcelDocument.CreateWriter(...).WriteTable(...)` with default options; ExcelReader calls
 its default `XlsxWorkbookWriter` API and awaits finalization.
 
 The defaults produce different package sizes and metadata. OfficeIMO writes
@@ -355,15 +355,14 @@ the original raw API comparisons perform different string-materialization work.
 
 ## Writer options and native binary formats
 
-`SharedStringWriterBenchmarks` selects shared strings in both ordinary XLSX
-writers. `CompactWriterBenchmarks` uses the public `IncludeCellReferences = false`
+`CompactWriterBenchmarks` uses the public `IncludeCellReferences = false`
 option and retains the original inline-string peer writer and its write-prefetch
 variant. The ordinary `WriterBenchmarks` case continues to use default options.
 OfficeIMO's coordinate option omits data-row coordinates; the header retains its
 one row and four cell references. Setup checks the actual selected string and
 coordinate policies, every field, date styles, package CRCs, and relationships.
 
-`NativeWriterBenchmarks` compares XLSB using OfficeIMO's normal `Create`, `AddWorksheet`,
+`NativeWriterBenchmarks` compares XLSB using OfficeIMO's normal `Create`, `AddSheet`,
 `InsertObjects`, and native `Save` APIs. Model construction and saving are both
 inside the measured operation. The list of source records is prepared outside
 measurement for both libraries. XLSB preserves the upstream four-cell row buffer
@@ -413,7 +412,7 @@ cell-value checks through ExcelReader and Sylvan.
 
 ```powershell
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --validate-write-options
-dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*SharedStringWriterBenchmarks*' '*CompactWriterBenchmarks*' '*NativeWriterBenchmarks*' '*ConfiguredXlsbWriterBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/writer-options-dry --noOverwrite
+dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -- --filter '*CompactWriterBenchmarks*' '*NativeWriterBenchmarks*' '*ConfiguredXlsbWriterBenchmarks*' --job Dry --artifacts ./Ignore/Benchmarks/writer-options-dry --noOverwrite
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --validate-native-xlsb-controls
 dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.Benchmarks.csproj -p:OfficeIMOBenchmarkNewApis=true -- --filter '*NativeXlsbWarmSaveControlBenchmarks*' '*NativeXlsbFirstSaveControlBenchmarks*' --artifacts ./Ignore/Benchmarks/native-save-controls --noOverwrite
 ```

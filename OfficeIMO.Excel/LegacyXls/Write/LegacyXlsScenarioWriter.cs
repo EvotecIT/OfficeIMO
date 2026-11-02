@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             string normalizedReference = reference!.Replace("$", string.Empty);
             if (normalizedReference.Contains("!", StringComparison.Ordinal)
                 || normalizedReference.Contains(":", StringComparison.Ordinal)
-                || !A1.TryParseCellReferenceFast(normalizedReference, out int row, out int column)) {
+                || !ExcelA1.TryParseCellReferenceFast(normalizedReference, out int row, out int column)) {
                 reason = "worksheet scenario cell references";
                 return false;
             }
@@ -283,11 +283,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static bool TryParseReference(string reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
-            if (A1.TryParseRange(reference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
+            if (ExcelA1.TryParseRange(reference, out firstRow, out firstColumn, out lastRow, out lastColumn)) {
                 return true;
             }
 
-            if (!A1.TryParseCellReferenceFast(reference, out firstRow, out firstColumn)) {
+            if (!ExcelA1.TryParseCellReferenceFast(reference, out firstRow, out firstColumn)) {
                 lastRow = lastColumn = 0;
                 return false;
             }

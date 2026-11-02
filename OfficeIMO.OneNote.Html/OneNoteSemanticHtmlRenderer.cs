@@ -9,22 +9,26 @@ using System.Net;
 namespace OfficeIMO.OneNote.Html;
 
 internal static class OneNoteSemanticHtmlRenderer {
-    internal static MarkdownDoc CreateDocument(OneNoteSection section, OneNoteMarkdownOptions options) {
+    internal static MarkdownDocument CreateDocument(OneNoteSection section, OneNoteMarkdownOptions options) {
         var html = new StringBuilder(4096);
         html.Append("<article class=\"officeimo-onenote-semantic\">");
         AppendHeading(html, options.HeadingLevel, Name(section.Name, "OneNote section"));
         foreach (OneNotePage page in section.Pages) AppendPageWithRelated(html, page, Math.Min(6, options.HeadingLevel + 1), null, options, 0);
         html.Append("</article>");
-        return MarkdownDoc.Create().Add(new GeneratedHtmlBlock(html.ToString()));
+        var document = MarkdownDocument.Create();
+        document.Add(new GeneratedHtmlBlock(html.ToString()));
+        return document;
     }
 
-    internal static MarkdownDoc CreateDocument(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
+    internal static MarkdownDocument CreateDocument(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
         var html = new StringBuilder(4096);
         html.Append("<article class=\"officeimo-onenote-semantic\">");
         AppendHeading(html, options.HeadingLevel, Name(notebook.Name, "OneNote notebook"));
         AppendHierarchy(html, notebook.Sections, notebook.SectionGroups, Math.Min(6, options.HeadingLevel + 1), options, 0);
         html.Append("</article>");
-        return MarkdownDoc.Create().Add(new GeneratedHtmlBlock(html.ToString()));
+        var document = MarkdownDocument.Create();
+        document.Add(new GeneratedHtmlBlock(html.ToString()));
+        return document;
     }
 
     private static void AppendHierarchy(StringBuilder html, IList<OneNoteSection> sections, IList<OneNoteSectionGroup> groups,

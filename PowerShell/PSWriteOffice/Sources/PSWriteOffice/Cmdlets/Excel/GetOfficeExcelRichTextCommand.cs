@@ -62,7 +62,7 @@ public sealed class GetOfficeExcelRichTextCommand : PSCmdlet {
         using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
         var sheet = ExcelWorkbookCommandService.ResolveSheet(this, workbook.Document, ParameterSetName, Sheet, SheetIndex);
         var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-        var address = A1.CellReference(row, column);
+        var address = ExcelA1.CellReference(row, column);
         var path = string.Equals(ParameterSetName, ParameterSetPath, System.StringComparison.OrdinalIgnoreCase)
             ? Path
             : null;

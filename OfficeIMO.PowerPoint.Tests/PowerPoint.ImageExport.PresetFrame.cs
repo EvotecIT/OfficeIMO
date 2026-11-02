@@ -12,11 +12,11 @@ public partial class PowerPointImageExportTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PresetFrameFlipsAsymmetricGeometryExactlyOnce(bool flipH) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(120, 90);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
-        PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.RightTriangle, 20, 20, 80, 40);
+        PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.RightTriangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         shape.FillColor = "000000";
         shape.HorizontalFlip = flipH;
         Shape raw = Assert.IsType<Shape>(shape.Element);
@@ -44,11 +44,11 @@ public partial class PowerPointImageExportTests {
     [InlineData(true, false, 0, 0, false, true)]
     public void PresetFrameTransformsPaintTogetherWithGeometry(bool flipH, bool flipV, int gradientAngle,
         int rotation, bool rotateWithShape, bool textBox) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(120, 90);
+        using PowerPointDocument presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFFFFF";
-        PowerPointShape shape = textBox ? slide.AddTextBoxPoints("", 20, 20, 80, 40) : slide.AddRectanglePoints(20, 20, 80, 40);
+        PowerPointShape shape = textBox ? slide.AddTextBox("",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(40)) : slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         shape.HorizontalFlip = flipH;
         shape.VerticalFlip = flipV;
         shape.Rotation = rotation;

@@ -1,5 +1,7 @@
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
@@ -7,14 +9,14 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Resize and describe all report images.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Get-OfficeWord -Path .\Report.docx
+///   <code>$doc = Open-OfficeWord -Path .\Report.docx
 /// $doc |
 ///     Get-OfficeWordImage |
 ///     Set-OfficeWordImage -Width 320 -Wrap Square -Title 'Report image' -Description 'Image used in the report'
 /// $doc | Save-OfficeWord -Path .\Report-Images.docx</code>
 ///   <para>Gets OfficeIMO image objects from an open document, applies thin image metadata and layout updates, and saves the document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordImage")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordImage", DefaultParameterSetName = "Default")]
 [Alias("WordImageStyle")]
 [OutputType(typeof(WordImage))]
 public sealed class SetOfficeWordImageCommand : PSCmdlet
@@ -23,11 +25,11 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
     public WordImage Image { get; set; } = null!;
 
-    /// <summary>Image width in points.</summary>
-    [Parameter] public double? Width { get; set; }
+    /// <summary>Image width; numbers mean points and unit suffixes are accepted.</summary>
+    [Parameter, OfficeLengthTransformation] public OfficeLength? Width { get; set; }
 
-    /// <summary>Image height in points.</summary>
-    [Parameter] public double? Height { get; set; }
+    /// <summary>Image height; numbers mean points and unit suffixes are accepted.</summary>
+    [Parameter, OfficeLengthTransformation] public OfficeLength? Height { get; set; }
 
     /// <summary>Text wrapping mode.</summary>
     [Parameter] public WordImageTextWrapping? Wrap { get; set; }
@@ -76,13 +78,16 @@ public sealed class SetOfficeWordImageCommand : PSCmdlet
             return;
         }
 
+        if (Width.HasValue && Width.Value <= OfficeLength.Zero) throw new PSArgumentOutOfRangeException(nameof(Width));
+        if (Height.HasValue && Height.Value <= OfficeLength.Zero) throw new PSArgumentOutOfRangeException(nameof(Height));
+
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Image.Width = Width;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Height))) Image.Height = Height;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Wrap))) Image.WrapText = Wrap;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropTop))) Image.CropTop = CropTop;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropBottom))) Image.CropBottom = CropBottom;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropLeft))) Image.CropLeft = CropLeft;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropRight))) Image.CropRight = CropRight;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropTop))) Image.CropTopRatio = ((double?)(CropTop)) / 100000D;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropBottom))) Image.CropBottomRatio = ((double?)(CropBottom)) / 100000D;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropLeft))) Image.CropLeftRatio = ((double?)(CropLeft)) / 100000D;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(CropRight))) Image.CropRightRatio = ((double?)(CropRight)) / 100000D;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Rotation))) Image.Rotation = Rotation;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Opacity))) Image.FixedOpacity = Opacity;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(HorizontalFlip))) Image.HorizontalFlip = HorizontalFlip;

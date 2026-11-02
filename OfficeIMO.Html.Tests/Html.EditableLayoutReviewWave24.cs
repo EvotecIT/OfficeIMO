@@ -21,7 +21,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
             + "<div style='position:absolute;left:24px;top:20px;width:180px;height:70px'>First-page region</div>"
             + "<section style='break-before:page'><p>Later page</p></section>";
 
-        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.Value;
 
         Assert.Empty(document.TextBoxes);
@@ -109,11 +109,11 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         limits.MaxAbsoluteGeometry = 50D;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions {
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
-        using PowerPointPresentation presentation = result.Value;
+        using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
         Assert.DoesNotContain(slide.TextBoxes, box => box.Text == "Rejected flow");
@@ -133,15 +133,15 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new HtmlToWordOptions {
+        var options = new WordHtmlImportOptions {
             HttpClient = httpClient,
-            ImageProcessing = ImageProcessingMode.Embed
+            ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
         const string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img alt='Remote region' src='https://images.example.test/region.png'></div>";
 
         HtmlToWordResult result = await HtmlConversionDocument.Parse(html)
-            .ToWordDocumentResultAsync(options);
+            .ConvertToWordWithEvidenceAsync(options);
         using WordDocument document = result.Value;
 
         Assert.Empty(document.TextBoxes);

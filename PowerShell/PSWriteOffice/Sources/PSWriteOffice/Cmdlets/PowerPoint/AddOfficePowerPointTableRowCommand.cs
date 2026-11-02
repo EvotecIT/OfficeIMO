@@ -19,41 +19,40 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example>
 ///   <summary>Find a table and append a row.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table |
-///     Add-OfficePowerPointTableRow -Values 'Latency', 'Ready'</code>
+///   <code>Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table |
+///     Add-OfficePowerPointTableRow -Value 'Latency', 'Ready'</code>
 ///   <para>Accepts a PowerPoint table or table shape metadata and writes the supplied values into the new row.</para>
 /// </example>
 /// <example>
 ///   <summary>Insert a row above the first data row using a template row.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$shape = Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table | Select-Object -First 1
-/// $shape | Add-OfficePowerPointTableRow -Index 1 -TemplateRowIndex 1 -Values ([ordered]@{
+///   <code>$shape = Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table | Select-Object -First 1
+/// $shape | Add-OfficePowerPointTableRow -Position 2 -TemplateRow 2 -Value ([ordered]@{
 ///     Metric = 'Documentation'
 ///     State  = 'Ready'
 /// })</code>
-///   <para>Resolves the table from shape metadata, inserts a formatted row at index 1, and maps values across cells.</para>
+///   <para>Resolves the table from shape metadata, inserts a formatted row at position 2, and maps values across cells.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointTableRow")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointTableRow", DefaultParameterSetName = "Table")]
 [OutputType(typeof(PowerPointTableRow))]
 public sealed class AddOfficePowerPointTableRowCommand : PSCmdlet
 {
-    /// <summary>PowerPoint table or table shape info returned by <c>Find-OfficePowerPointShape</c> or <c>Get-OfficePowerPointShape</c>.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    /// <summary>PowerPoint table or table shape info returned by <c>Get-OfficePowerPointShape</c>.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "Table")]
     public object InputObject { get; set; } = null!;
 
     /// <summary>Values to write into the new row. Arrays, dictionaries, and objects are expanded across cells.</summary>
     [Parameter(Position = 1)]
-    [Alias("Data", "Values")]
     [AllowNull]
     public object? Value { get; set; }
 
-    /// <summary>Optional zero-based template row index to clone. Defaults to the last existing row.</summary>
-    [Parameter]
-    public int? TemplateRowIndex { get; set; }
+    /// <summary>Optional one-based template row to clone. Defaults to the last existing row.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int? TemplateRow { get; set; }
 
-    /// <summary>Optional zero-based index where the row should be inserted. Defaults to appending at the end.</summary>
-    [Parameter]
-    public int? Index { get; set; }
+    /// <summary>Optional one-based position where the row should be inserted. Defaults to appending at the end.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int? Position { get; set; }
 
     /// <summary>Emit the created row for additional OfficeIMO-level edits.</summary>
     [Parameter]
@@ -63,6 +62,10 @@ public sealed class AddOfficePowerPointTableRowCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var table = ResolveTable(InputObject);
+        if (TemplateRow.HasValue && TemplateRow.Value > table.Rows)
+            throw new PSArgumentOutOfRangeException(nameof(TemplateRow), TemplateRow, $"Table contains {table.Rows} rows.");
+        if (Position.HasValue && Position.Value - 1 > table.Rows)
+            throw new PSArgumentOutOfRangeException(nameof(Position), Position, $"Insert position must be between 1 and {table.Rows + 1}.");
         var values = ExpandValues(Value);
         if (table.Rows > 0)
         {
@@ -72,13 +75,13 @@ public sealed class AddOfficePowerPointTableRowCommand : PSCmdlet
         PowerPointTableRow row;
         if (table.Rows == 0)
         {
-            table.AddRow(Index);
+            table.AddRow(Position - 1);
             row = table.GetRow(0);
         }
         else
         {
-            var templateRowIndex = TemplateRowIndex ?? table.Rows - 1;
-            row = table.AddRowFromTemplate(templateRowIndex, Index, clearText: true);
+            var templateRowIndex = TemplateRow.HasValue ? TemplateRow.Value - 1 : table.Rows - 1;
+            row = table.AddRowFromTemplate(templateRowIndex, Position - 1, clearText: true);
         }
 
         var occupiedColumns = new bool[row.Cells.Count];

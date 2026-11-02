@@ -33,20 +33,20 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static void SaveMarkdownPreview(string markdownPath, string pdfPath) {
-        var document = MarkdownDoc.Load(markdownPath);
-        document.SaveAsPdf(pdfPath, new MarkdownToPdfOptions {
+        var document = MarkdownDocument.Load(markdownPath);
+        document.SaveAsPdf(pdfPath, new MarkdownPdfExportOptions {
             Theme = MarkdownVisualTheme.Report().WithColorScheme(MarkdownColorSchemeKind.Blue)
         });
     }
 
     private static void CreateMarkdownExamples(string output) {
         string folder = CreateExampleFolder(output, "markdown-technical-guide");
-        MarkdownDoc document = MarkdownDoc.Create()
+        MarkdownDocument document = MarkdownDocument.Create()
             .H1("A repeatable document workflow")
             .P("A compact technical guide authored with the Markdown builder.")
             .H2("1. Describe the document")
             .P("Keep data, document construction, and delivery as separate steps.")
-            .Code("csharp", "var report = MarkdownDoc.Create()\n    .H1(\"Weekly delivery\")\n    .P(\"Generated from application data.\");")
+            .Code("csharp", "var report = MarkdownDocument.Create()\n    .H1(\"Weekly delivery\")\n    .P(\"Generated from application data.\");")
             .H2("2. Check the output")
             .Table(table => table.Headers("Check", "Purpose")
                 .Row("Source text", "Keep an editable, portable input")

@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing.Binary;
 /// <summary>
 /// Describes an OfficeArt File BLIP Store Entry and its bounded embedded or delayed image payload.
 /// </summary>
-public sealed class OfficeArtBlipStoreEntry {
+internal sealed class OfficeArtBlipStoreEntry {
     private readonly byte[] _imageBytes;
     private readonly bool _isImagePayloadTruncated;
 

@@ -109,8 +109,8 @@ public sealed class AddOfficePdfCanvasTextCommand : PSWriteOffice.Cmdlets.Office
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var context = PdfCanvasDslContext.Require(this);
-        var width = Width ?? context.Page.Width - X;
-        var height = Height ?? context.Page.Height - Y;
+        var width = Width ?? context.Page.Width.ToPoints() - X;
+        var height = Height ?? context.Page.Height.ToPoints() - Y;
         if (width <= 0 || height <= 0) {
             throw new PSArgumentException(
                 "The text area must remain inside the page. Adjust -X/-Y or provide positive -Width/-Height values.");
@@ -122,14 +122,14 @@ public sealed class AddOfficePdfCanvasTextCommand : PSWriteOffice.Cmdlets.Office
 
         context.Canvas.Text(
             runs,
-            X,
-            Y,
-            width,
-            height,
+            global::OfficeIMO.OfficeLength.Points(X),
+            global::OfficeIMO.OfficeLength.Points(Y),
+            global::OfficeIMO.OfficeLength.Points(width),
+            global::OfficeIMO.OfficeLength.Points(height),
             PdfCommandUtilities.ParseColor(Color),
             Align,
-            FontSize,
-            LineHeight);
+            ((double?)(FontSize) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null),
+            LineHeight.HasValue ? global::OfficeIMO.OfficeLength.Points(LineHeight.Value) : (global::OfficeIMO.OfficeLength?)null);
         WritePassThru(context.Page);
     }
 

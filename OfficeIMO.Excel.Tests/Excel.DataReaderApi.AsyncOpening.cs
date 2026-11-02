@@ -18,13 +18,17 @@ public partial class Excel {
         // XLSB also applies this budget to decompressed parts. The prefix alone
         // exceeds the budget, so successful opening proves only remaining bytes are read.
         long inputBudget = workbook.Length * 2L;
+        if (format == ExcelFileFormat.Xlsb) {
+            using var package = new System.IO.Compression.ZipArchive(new MemoryStream(workbook));
+            inputBudget = Math.Max(inputBudget, package.Entries.Sum(entry => entry.Length));
+        }
         int prefixLength = checked((int)inputBudget + 17);
         byte[] prefixed = new byte[workbook.Length + prefixLength];
         Array.Copy(workbook, 0, prefixed, prefixLength, workbook.Length);
         using var source = new AsyncOpeningReadStream(prefixed, seekable, startPosition: prefixLength);
-        using (ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
+        using (ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(
             source,
-            new ExcelReadOptions {
+            new ExcelReaderOptions {
                 SheetName = "Data",
                 MaxInputBytes = inputBudget
             })) {
@@ -49,7 +53,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.AsyncOpen.{Guid.NewGuid():N}.{format.ToString().ToLowerInvariant()}");
         try {
             File.WriteAllBytes(path, CreateAsyncOpeningWorkbook(format));
-            using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(path);
+            using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(path);
             using (var exclusive = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
                 Assert.True(exclusive.Length > 0);
             }
@@ -70,9 +74,9 @@ public partial class Excel {
     public async Task AsyncOpeningRejectsOverLimitInputWithoutClosingSource(bool seekable) {
         byte[] workbook = CreateAsyncOpeningWorkbook(ExcelFileFormat.Xlsx);
         using var source = new AsyncOpeningReadStream(workbook, seekable);
-        var error = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenDataReaderAsync(
-            source, new ExcelReadOptions { MaxInputBytes = workbook.Length - 1 }));
-        Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReadOptions.MaxInputBytes), error.LimitName); Assert.Equal(workbook.Length - 1, error.Maximum);
+        var error = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() => ExcelDocument.OpenReaderAsync(
+            source, new ExcelReaderOptions { MaxInputBytes = workbook.Length - 1 }));
+        Assert.Equal("excel", error.Owner); Assert.Equal(nameof(ExcelReaderOptions.MaxInputBytes), error.LimitName); Assert.Equal(workbook.Length - 1, error.Maximum);
         Assert.True(source.CanRead);
         if (seekable) Assert.Equal(0, source.Position);
     }
@@ -84,10 +88,10 @@ public partial class Excel {
         using var cancellation = new CancellationTokenSource();
         using var source = new AsyncOpeningReadStream(CreateAsyncOpeningWorkbook(ExcelFileFormat.Xlsx), seekable: true);
         source.BeforeRead = () => { if (source.AsyncReads == 2) cancellation.Cancel(); };
-        var options = new ExcelReadOptions {
+        var options = new ExcelReaderOptions {
             CancellationToken = optionsToken ? cancellation.Token : default
         };
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExcelDocument.OpenDataReaderAsync(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExcelDocument.OpenReaderAsync(
             source, options, optionsToken ? default : cancellation.Token));
         Assert.True(source.CanRead);
         Assert.Equal(0, source.Position);
@@ -100,9 +104,9 @@ public partial class Excel {
     public async Task AsyncOpeningRetainsBothTokensForReaderLifetime(bool optionsToken) {
         using var cancellation = new CancellationTokenSource();
         using var source = new AsyncOpeningReadStream(CreateAsyncOpeningWorkbook(ExcelFileFormat.Xlsx), seekable: true);
-        using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
+        using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(
             source,
-            new ExcelReadOptions { CancellationToken = optionsToken ? cancellation.Token : default },
+            new ExcelReaderOptions { CancellationToken = optionsToken ? cancellation.Token : default },
             optionsToken ? default : cancellation.Token);
         cancellation.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => reader.Read());
@@ -113,12 +117,12 @@ public partial class Excel {
     public async Task AsyncOpeningRestoresSeekableSourceAfterReadOrParseFailure() {
         using var failedRead = new AsyncOpeningReadStream(new byte[256], seekable: true, startPosition: 7);
         failedRead.BeforeRead = () => { if (failedRead.AsyncReads == 2) throw new IOException("Source read failed."); };
-        await Assert.ThrowsAsync<IOException>(() => ExcelDocument.OpenDataReaderAsync(failedRead));
+        await Assert.ThrowsAsync<IOException>(() => ExcelDocument.OpenReaderAsync(failedRead));
         Assert.Equal(7, failedRead.Position);
         Assert.True(failedRead.CanRead);
 
         using var invalidWorkbook = new AsyncOpeningReadStream(new byte[32], seekable: true, startPosition: 7);
-        await Assert.ThrowsAnyAsync<Exception>(() => ExcelDocument.OpenDataReaderAsync(invalidWorkbook));
+        await Assert.ThrowsAnyAsync<Exception>(() => ExcelDocument.OpenReaderAsync(invalidWorkbook));
         Assert.Equal(7, invalidWorkbook.Position);
         Assert.True(invalidWorkbook.CanRead);
     }
@@ -128,12 +132,12 @@ public partial class Excel {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         using var source = new AsyncOpeningReadStream(CreateAsyncOpeningWorkbook(ExcelFileFormat.Xlsx), seekable: true);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExcelDocument.OpenDataReaderAsync(
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ExcelDocument.OpenReaderAsync(
             source, cancellationToken: cancellation.Token));
         Assert.Equal(0, source.AsyncReads);
-        await Assert.ThrowsAsync<ArgumentNullException>(() => ExcelDocument.OpenDataReaderAsync((Stream)null!));
-        await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.OpenDataReaderAsync(" "));
-        await Assert.ThrowsAsync<NotSupportedException>(() => ExcelDocument.OpenDataReaderAsync("input.csv"));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => ExcelDocument.OpenReaderAsync((Stream)null!));
+        await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.OpenReaderAsync(" "));
+        await Assert.ThrowsAsync<NotSupportedException>(() => ExcelDocument.OpenReaderAsync("input.csv"));
     }
 
     [Fact]
@@ -142,8 +146,8 @@ public partial class Excel {
         using var source = new AsyncOpeningReadStream(CreateAsyncOpeningWorkbook(ExcelFileFormat.Xlsx), seekable: true) {
             ReadGate = gate.Task
         };
-        var options = new ExcelReadOptions { SheetName = "Data" };
-        Task<ExcelWorkbookDataReader> opening = ExcelDocument.OpenDataReaderAsync(source, options);
+        var options = new ExcelReaderOptions { SheetName = "Data" };
+        Task<ExcelWorkbookDataReader> opening = ExcelDocument.OpenReaderAsync(source, options);
         Assert.False(opening.IsCompleted);
         options.SheetName = "Missing";
         options.MaxInputBytes = 1;
@@ -158,12 +162,12 @@ public partial class Excel {
 
     private static byte[] CreateAsyncOpeningWorkbook(ExcelFileFormat format) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(1, 2, "Id");
         sheet.CellValue(2, 1, "Alpha");
         sheet.CellValue(2, 2, 42);
-        ExcelSheet next = document.AddWorksheet("Next");
+        ExcelSheet next = document.AddSheet("Next");
         next.CellValue(1, 1, "Name");
         next.CellValue(2, 1, "Beta");
         return document.ToBytes(format);

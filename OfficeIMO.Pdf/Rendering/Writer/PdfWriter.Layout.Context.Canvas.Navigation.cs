@@ -6,7 +6,7 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderCanvasOutline(PdfCanvasOutlineItem item) {
             EnsurePage();
-            OfficePoint point = _canvasEffectToPage.TransformPoint(new OfficePoint(item.X, currentOpts.PageHeight - item.Y));
+            OfficePoint point = _canvasEffectToPage.TransformPoint(new OfficePoint(item.X, currentOpts.PageHeight.ToPoints() - item.Y));
             currentPage!.Bookmarks.Add(new PageBookmark {
                 Level = item.Level,
                 Title = item.Title,
@@ -21,7 +21,7 @@ internal static partial class PdfWriter {
         private void RenderCanvasNamedDestination(PdfCanvasNamedDestinationItem item) {
             EnsurePage();
             OfficePoint point = _canvasEffectToPage.TransformPoint(
-                new OfficePoint(item.X, currentOpts.PageHeight - item.Y));
+                new OfficePoint(item.X, currentOpts.PageHeight.ToPoints() - item.Y));
             currentPage!.NamedDestinations.Add(new PageNamedDestination { Name = item.Name, X = point.X, Y = point.Y, StructureElement = _canvasStructureParentElement });
         }
 

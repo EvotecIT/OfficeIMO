@@ -3,33 +3,39 @@ using System.Threading.Tasks;
 using OfficeIMO.Ocr;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfCanvasLogicalTextPrecisionTests {
     [Theory]
-    [InlineData(.2214321D, false)]
-    [InlineData(.0044321D, false)]
-    [InlineData(.2214321D, true)]
-    [InlineData(.0044321D, true)]
-    public void BoundedActualText_FractionalHeightPreservesAuthoredAdvance(double height, bool embedded) {
-        var options = new PdfOptions { CompressContentStreams = false };
+    [InlineData(2812L, .22141732283464566D, false, false)]
+    [InlineData(56L, .004409448818897638D, false, false)]
+    [InlineData(2812L, .22141732283464566D, true, false)]
+    [InlineData(56L, .004409448818897638D, true, false)]
+    [InlineData(2812L, .22141732283464566D, true, true)]
+    [InlineData(56L, .004409448818897638D, true, true)]
+    public void BoundedActualText_FractionalHeightPreservesAuthoredAdvance(long heightEmus, double expectedHeight, bool embedded, bool customProvider) {
+        var options = new PdfCreateOptions { CompressContentStreams = false };
+        var provider = new ManagedTextShapingTestAssets.RecordingProvider();
+        if (customProvider) options.SetTextShapingProvider(provider);
         if (embedded) {
             string path = Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf");
             Assert.True(File.Exists(path));
             options.UseFontFamily(new PdfEmbeddedFontFamily("Fractional carrier", File.ReadAllBytes(path)));
         }
         byte[] bytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.ActualText("Logical marker", 10D, 20D, 50D, height,
-                paint => paint.Text("PaintOnly", 10D, 20D, 50D, 12D)))
-            .ToBytes();
+            .Canvas(canvas => canvas.ActualText("Logical marker", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Emus(heightEmus),
+                paint => paint.Text("PaintOnly", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D))))
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(bytes).Pages);
         PdfTextSpan span = Assert.Single(page.GetTextSpans());
         Assert.Equal("Logical marker", span.Text);
         Assert.Equal(50D, span.Advance, 2);
-        Assert.Equal(height, span.FontSize, 6);
+        Assert.Equal(expectedHeight, span.FontSize, 6);
         Assert.Equal(10D, span.X, 3);
+        if (customProvider) Assert.DoesNotContain(provider.Requests, request => string.IsNullOrWhiteSpace(request.Text));
     }
 
     [Theory]
@@ -43,7 +49,7 @@ public class PdfCanvasLogicalTextPrecisionTests {
                 Region = new OcrRegion { X = 10D, Y = 20D, Width = 50D, Height = height }
             } }
         }));
-        byte[] source = PdfDocument.Create(document => document.Page(page => page.Size(300D, 300D))).ToBytes();
+        byte[] source = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(300D)))).ToBytes();
         PdfSearchableOcrResult result = await PdfDocument.Load(source).MakeSearchableAsync(engine);
         Assert.Equal(1, result.AddedWordCount);
         Assert.Equal(height, Assert.Single(result.WrittenWords[1]).Height, 6);

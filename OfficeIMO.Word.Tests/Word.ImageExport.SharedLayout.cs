@@ -21,7 +21,7 @@ public sealed class WordSharedPageLayoutTests {
     [InlineData("native-word-report.docx", OfficeImageExportFormat.Svg)]
     public void NativeFixturesUseExactlyThePdfPageScenes(string fixture, OfficeImageExportFormat format) {
         using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "WordLayoutFixtures", fixture));
-        var expected = document.ToPdfDocumentResult().ExportImages(format, new PdfImageExportOptions { Scale = .25D });
+        var expected = document.ConvertToPdfWithEvidence().ExportImages(format, new PdfImageExportOptions { Scale = .25D });
         var actual = document.ExportImages(format, new WordImageExportOptions { Scale = .25D });
         Assert.Equal(expected.Count, actual.Count);
         for (int index = 0; index < actual.Count; index++) Assert.Equal(expected[index].Bytes, actual[index].Bytes);
@@ -34,7 +34,7 @@ public sealed class WordSharedPageLayoutTests {
     public void WordImagesMatchPdfPagesIncludingStylesTablesAndOverflow(OfficeImageExportFormat format) {
         using WordDocument document = CreateDocument();
         var imageOptions = new WordImageExportOptions { Scale = .5D };
-        var expected = document.ToPdfDocumentResult().ExportImages(format, new PdfImageExportOptions { Scale = .5D });
+        var expected = document.ConvertToPdfWithEvidence().ExportImages(format, new PdfImageExportOptions { Scale = .5D });
         var actual = document.ExportImages(format, imageOptions);
         Assert.True(actual.Count > 1);
         Assert.Equal(expected.Count, actual.Count);
@@ -43,7 +43,7 @@ public sealed class WordSharedPageLayoutTests {
             Assert.Equal(expected[index].Height, actual[index].Height);
             Assert.Equal(expected[index].Bytes, actual[index].Bytes);
         }
-        using var pdf = new MemoryStream(document.ToPdfBytes());
+        using var pdf = new MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var read = PdfReadDocument.Open(pdf);
         var snapshots = document.CreateVisualSnapshots();
         Assert.Equal(read.Pages.Count, document.GetEstimatedImagePageCount());
@@ -64,7 +64,7 @@ public sealed class WordSharedPageLayoutTests {
         using WordDocument document = CreateDocument();
         var options = new WordImageExportOptions { PageIndex = 1, PageCount = 1, Scale = .3D };
         var page = Assert.Single(document.ExportImages(OfficeImageExportFormat.Png, options));
-        Assert.Equal(page.Bytes, document.ToPng(options));
+        Assert.Equal(page.Bytes, document.ToImage(options));
         var single = document.ExportImage(OfficeImageExportFormat.Png, options);
         AssertWordIdentity(single, 2, 0, 1);
         AssertWordIdentity(page, 2, 0, 1);
@@ -76,18 +76,36 @@ public sealed class WordSharedPageLayoutTests {
         Assert.Equal(2, selected.Count);
         for (int index = 0; index < selected.Count; index++) AssertWordIdentity(selected[index], index + 2, index, 2);
         Assert.Equal(1, Assert.Single(document.CreateVisualSnapshots(options)).PageIndex);
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPng(new WordImageExportOptions { PageIndex = 999 }));
+        options.PageSelection = PdfPageSelection.From(3, 1, 3);
+        options.MaximumOutputCount = 3;
+        WordImageExportOptions batchOptions = options.Clone();
+        options.PageSelection = PdfPageSelection.From(2);
+        var ordered = document.ExportImages(OfficeImageExportFormat.Svg, batchOptions);
+        var expected = document.ConvertToPdfWithEvidence().ExportImages(OfficeImageExportFormat.Svg,
+            new PdfImageExportOptions { Scale = .3D }, PdfPageSelection.From(3, 1, 3));
+        Assert.Equal(expected.Select(image => image.Bytes), ordered.Select(image => image.Bytes), ByteArrayComparer.Instance);
+        for (int index = 0; index < ordered.Count; index++)
+            AssertWordIdentity(ordered[index], new[] { 3, 1, 3 }[index], index, 3);
+        Assert.Equal(new[] { 2, 0, 2 }, document.CreateVisualSnapshots(batchOptions).Select(snapshot => snapshot.PageIndex));
+        AssertWordIdentity(document.ExportImage(OfficeImageExportFormat.Svg, batchOptions), 2, 0, 1);
+        Assert.Equal(1, document.CreateVisualSnapshot(batchOptions).PageIndex);
+        batchOptions.MaximumOutputCount = 2;
+        delivered.Clear();
+        Assert.Throws<OfficeImageExportBatchLimitException>(() => document.ExportImages(
+            OfficeImageExportFormat.Svg, delivered.Add, batchOptions));
+        Assert.Empty(delivered);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToImage(new WordImageExportOptions { PageIndex = 999 }));
     }
 
     [Fact]
     public void SharedLayoutHonorsConversionSettingsAndClonesThem() {
         using WordDocument document = CreateDocument();
         var options = new WordImageExportOptions {
-            LayoutOptions = new WordToPdfOptions { PageSize = new OfficeIMO.Pdf.PageSize(400, 500), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }
+            LayoutOptions = new WordPdfExportOptions { PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)), ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }
         };
         WordImageExportOptions clone = options.Clone();
-        options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PageSize(700, 800);
-        var expected = document.ToPdfDocumentResult(clone.LayoutOptions).ExportImages(OfficeImageExportFormat.Svg);
+        options.LayoutOptions.PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(700),OfficeIMO.OfficeLength.Points(800));
+        var expected = document.ConvertToPdfWithEvidence(clone.LayoutOptions).ExportImages(OfficeImageExportFormat.Svg);
         var actual = document.ExportImages(OfficeImageExportFormat.Svg, clone);
         Assert.Equal(expected.Select(page => page.Bytes), actual.Select(page => page.Bytes), ByteArrayComparer.Instance);
         Assert.Equal(400D, document.CreateVisualSnapshot(clone).Width);
@@ -97,11 +115,11 @@ public sealed class WordSharedPageLayoutTests {
     public void SharedConversionReportsOmissionsAndStrictImagesRejectThem() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Visible text before the unsupported chart.");
-        var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A" },
-            new[] { new OfficeChartSeries("Values", new[] { 1D }) }));
+        var chart = document.AddChart(OfficeChartType.Pie,new OfficeChartData(new[] { "A" },
+            new[] { new OfficeSeries("Values", new[] { 1D }) }));
         chart.ChartPart!.ChartSpace!.RemoveAllChildren();
-        var conversion = document.ToPdfDocumentResult();
-        Assert.Contains(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported"
+        var conversion = document.ConvertToPdfWithEvidence();
+        Assert.Contains(conversion.Warnings, warning => warning.Code == "native-body-chart-unsupported"
             && warning.LossKind == OfficeConversionLossKind.Omission);
         var options = new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };
         Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Png, options));

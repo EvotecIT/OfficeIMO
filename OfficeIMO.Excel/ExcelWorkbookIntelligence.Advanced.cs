@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel {
     /// Comment and threaded-comment awareness report.
     /// </summary>
     public sealed class ExcelWorkbookCommentReport {
-        internal ExcelWorkbookCommentReport(IReadOnlyList<ExcelCommentRecord> comments, IReadOnlyList<ExcelThreadedCommentSnapshot> threadedComments, IReadOnlyList<ExcelWorkbookDiagnosticIssue> issues) {
+        internal ExcelWorkbookCommentReport(IReadOnlyList<ExcelCommentRecord> comments, IReadOnlyList<ExcelThreadedCommentInfo> threadedComments, IReadOnlyList<ExcelWorkbookDiagnosticIssue> issues) {
             Comments = comments;
             ThreadedComments = threadedComments;
             Issues = issues;
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelCommentRecord> Comments { get; }
 
         /// <summary>Threaded comments preserved in the workbook package.</summary>
-        public IReadOnlyList<ExcelThreadedCommentSnapshot> ThreadedComments { get; }
+        public IReadOnlyList<ExcelThreadedCommentInfo> ThreadedComments { get; }
 
         /// <summary>Comment metadata issues, such as missing authors or empty comment text.</summary>
         public IReadOnlyList<ExcelWorkbookDiagnosticIssue> Issues { get; }
@@ -322,8 +322,8 @@ namespace OfficeIMO.Excel {
             var differences = new List<ExcelWorkbookDifference>();
             var otherSheets = other.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
             bool compareSnapshots = options.CompareTables || options.CompareWorksheetMetadata || options.CompareComments;
-            ExcelWorkbookSnapshot? leftSnapshot = compareSnapshots ? CreateInspectionSnapshot() : null;
-            ExcelWorkbookSnapshot? rightSnapshot = compareSnapshots ? other.CreateInspectionSnapshot() : null;
+            ExcelWorkbookInfo? leftSnapshot = compareSnapshots ? Inspect() : null;
+            ExcelWorkbookInfo? rightSnapshot = compareSnapshots ? other.Inspect() : null;
 
             foreach (ExcelSheet sheet in Sheets) {
                 if (!otherSheets.TryGetValue(sheet.Name, out ExcelSheet? otherSheet)) {
@@ -376,8 +376,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            var threaded = CreateInspectionSnapshot().Worksheets.SelectMany(sheet => sheet.ThreadedComments).ToList();
-            foreach (ExcelThreadedCommentSnapshot comment in threaded) {
+            var threaded = Inspect().Worksheets.SelectMany(sheet => sheet.ThreadedComments).ToList();
+            foreach (ExcelThreadedCommentInfo comment in threaded) {
                 if (string.IsNullOrWhiteSpace(comment.Author)) {
                     issues.Add(new ExcelWorkbookDiagnosticIssue("ThreadedComment", ExcelFindingSeverity.Warning, "Threaded comment has no resolved author.", comment.SheetName, comment.CellReference));
                 }
@@ -458,9 +458,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void CompareSheetSnapshots(ExcelWorkbookSnapshot leftSnapshot, ExcelWorkbookSnapshot rightSnapshot, string sheetName, ICollection<ExcelWorkbookDifference> differences, int maxDifferences, ExcelWorkbookDiffOptions options) {
-            ExcelWorksheetSnapshot? left = leftSnapshot.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase));
-            ExcelWorksheetSnapshot? right = rightSnapshot.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+        private static void CompareSheetSnapshots(ExcelWorkbookInfo leftSnapshot, ExcelWorkbookInfo rightSnapshot, string sheetName, ICollection<ExcelWorkbookDifference> differences, int maxDifferences, ExcelWorkbookDiffOptions options) {
+            ExcelWorksheetInfo? left = leftSnapshot.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase));
+            ExcelWorksheetInfo? right = rightSnapshot.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase));
             if (left == null || right == null) return;
 
             if (options.CompareTables) {
@@ -473,7 +473,7 @@ namespace OfficeIMO.Excel {
                 CompareKeyed(left.Validations.Select(validation => $"{validation.Type}|{validation.Operator}|{string.Join(",", validation.A1Ranges)}"), right.Validations.Select(validation => $"{validation.Type}|{validation.Operator}|{string.Join(",", validation.A1Ranges)}"), "DataValidation", sheetName, differences, maxDifferences);
             }
             if (options.CompareComments) {
-                CompareKeyed(left.Cells.Where(cell => cell.Comment != null).Select(cell => $"{A1.CellReference(cell.Row, cell.Column)}|{cell.Comment!.Author}|{cell.Comment.Text}"), right.Cells.Where(cell => cell.Comment != null).Select(cell => $"{A1.CellReference(cell.Row, cell.Column)}|{cell.Comment!.Author}|{cell.Comment.Text}"), "Comment", sheetName, differences, maxDifferences);
+                CompareKeyed(left.Cells.Where(cell => cell.Comment != null).Select(cell => $"{ExcelA1.CellReference(cell.Row, cell.Column)}|{cell.Comment!.Author}|{cell.Comment.Text}"), right.Cells.Where(cell => cell.Comment != null).Select(cell => $"{ExcelA1.CellReference(cell.Row, cell.Column)}|{cell.Comment!.Author}|{cell.Comment.Text}"), "Comment", sheetName, differences, maxDifferences);
                 CompareKeyed(left.ThreadedComments.Select(comment => $"{comment.CellReference}|{comment.Author}|{comment.Text}|{comment.Done}"), right.ThreadedComments.Select(comment => $"{comment.CellReference}|{comment.Author}|{comment.Text}|{comment.Done}"), "ThreadedComment", sheetName, differences, maxDifferences);
             }
         }
@@ -537,10 +537,10 @@ namespace OfficeIMO.Excel {
                 connection.Add(new XElement(main + "dbPr",
                     new XAttribute("connection", "Provider=Microsoft.Mashup.OleDb.1;Data Source=$Workbook$;Location=" + name + ";Extended Properties=\"\""),
                     new XAttribute("command", commandText),
-                    new XAttribute("commandType", "8")));
+                    new XAttribute("commandType", "4")));
             }
 
-            return new XDocument(new XElement(main + "connections", new XAttribute("count", "1"), connection)).ToString(SaveOptions.DisableFormatting);
+            return new XDocument(new XElement(main + "connections", connection)).ToString(SaveOptions.DisableFormatting);
         }
 
         private static string NormalizeQueryTableName(string? queryTableName, string connectionName) {

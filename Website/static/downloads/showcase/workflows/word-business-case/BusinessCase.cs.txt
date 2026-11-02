@@ -5,8 +5,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class BusinessCase {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
-            document.Settings.FontFamily = "Carlito";
-            document.Settings.FontSize = 11;
+            document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             document.BuiltinDocumentProperties.Title = "Business case: service intake";
             document.AddParagraph("Business case: service intake").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("NORTHWIND / INVESTMENT REVIEW / ILLUSTRATIVE ESTIMATE");
@@ -24,18 +23,17 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             for (int row = 0; row < rows.Length; row++) {
                 for (int column = 0; column < 4; column++) {
                     var cell = table.Rows[row].Cells[column];
-                    cell.MarginTopCentimeters = 0.14;
-                    cell.MarginBottomCentimeters = 0.14;
-                    cell.MarginLeftCentimeters = 0.16;
-                    cell.MarginRightCentimeters = 0.16;
+                    cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.14D);
+                    cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.14D);
+                    cell.MarginLeft = global::OfficeIMO.OfficeLength.Centimeters(0.16D);
+                    cell.MarginRight = global::OfficeIMO.OfficeLength.Centimeters(0.16D);
                     cell.ShadingFillColorHex = row == 0 ? "17365D" : row % 2 == 0 ? "F1F5F9" : "FFFFFF";
                     var paragraph = cell.Paragraphs[0];
                     paragraph.Text = rows[row][column];
                     paragraph.Bold = row == 0;
                     paragraph.ColorHex = row == 0 ? "FFFFFF" : "243247";
-                    paragraph.FontFamily = "Carlito";
-                    paragraph.FontSize = 10;
-                    paragraph.LineSpacingAfterPoints = 2;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(2D);
                 }
             }
             document.AddParagraph("Recommendation and sensitivity").Style = WordParagraphStyles.Heading2;
@@ -46,18 +44,18 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             actions.AddItem("Operations: measure triage time before and during the pilot.");
             actions.AddItem("Sponsor: review results before committing to a wider rollout.");
             foreach (var paragraph in document.Paragraphs) {
-                paragraph.FontFamily = "Carlito";
                 bool title = paragraph.Style == WordParagraphStyles.Heading1;
                 bool heading = paragraph.Style == WordParagraphStyles.Heading2;
-                paragraph.FontSize = title ? 26 : heading ? 15 : 11;
-                paragraph.LineSpacingBeforePoints = heading ? 14 : 0;
-                paragraph.LineSpacingAfterPoints = title ? 14 : heading ? 8 : 7;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(title ? 26 : heading ? 15 : 11);
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(heading ? 14 : 0);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(title ? 14 : heading ? 8 : 7);
                 if (title || heading) {
                     paragraph.ColorHex = "17365D";
                     paragraph.Bold = true;
                     paragraph.KeepWithNext = true;
                 }
             }
+            WorkflowFooter.Add(document, "Business case: service intake");
             document.Save();
         }
     }

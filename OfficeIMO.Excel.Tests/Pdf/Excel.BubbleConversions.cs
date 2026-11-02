@@ -9,6 +9,16 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public sealed partial class ExcelChartBubbleSnapshotTests {
+    /// <summary>
+    /// The 480 px chart anchored at D8 is wider than a Letter page at 100 %, so it would
+    /// continue on a second page. A wide page keeps each bubble painted once.
+    /// </summary>
+    private static ExcelPdfExportOptions WideBubblePage(ExcelPdfExportOptions? options = null) {
+        options ??= new ExcelPdfExportOptions();
+        options.PageSize = new PdfCore.PdfPageSize(OfficeLength.Points(900), OfficeLength.Points(700));
+        return options;
+    }
+
     [Theory]
     [InlineData(false, 100)]
     [InlineData(true, 100)]
@@ -26,13 +36,13 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         OfficeColor color = OfficeColor.Parse(snapshot.Data.Series[0].SeriesColorArgb!);
         double ratio = width ? 0.25D : 0.5D;
 
-        var pdf = document.ToPdfDocumentResult();
-        Assert.DoesNotContain(pdf.Warnings, warning => warning.Code == "WorksheetChart" || warning.Code == "chart-approximation");
+        var pdf = document.ConvertToPdfWithEvidence(WideBubblePage());
+        Assert.DoesNotContain(pdf.Warnings, warning => warning.Code == "worksheet-chart" || warning.Code == "chart-approximation");
         double[] diameters = PdfBubbleDiameters(pdf.ToBytes(), color);
         Assert.Equal(2, diameters.Length);
         Assert.InRange(diameters[0] / diameters[1], ratio - 0.002D, ratio + 0.002D);
 
-        var flow = document.ToPdfDocumentResult(new ExcelToPdfOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable });
+        var flow = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable });
         double[] flowDiameters = PdfBubbleDiameters(flow.ToBytes(), color);
         Assert.Equal(2, flowDiameters.Length);
         Assert.InRange(flowDiameters[0] / flowDiameters[1], ratio - 0.002D, ratio + 0.002D);
@@ -41,12 +51,12 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated);
         AssertRasterBubbleRatio(png.Bytes, color, ratio);
         // Exercise the worksheet PNG path as well as standalone chart export.
-        AssertRasterBubbleRatio(document.Sheets[0].Range("A1:M28").ToPng(), color, ratio);
+        AssertRasterBubbleRatio(document.Sheets[0].Range("A1:M28").ToImage(), color, ratio);
 
         // Compare scale to the same input at 100%, independently in PDF and raster output.
         if (scale == 200) {
             native.GetFirstChild<C.BubbleScale>()!.Val = 100U;
-            double[] normal = PdfBubbleDiameters(document.ToPdfBytes(), color);
+            double[] normal = PdfBubbleDiameters(document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), color);
             Assert.InRange(diameters[1] / normal[1], 1.999D, 2.001D);
             double[] normalRaster = RasterBubbleDiameters(chart.ExportImage(OfficeImageExportFormat.Png).Bytes, color);
             double[] enlargedRaster = RasterBubbleDiameters(png.Bytes, color);
@@ -69,7 +79,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.Equal(-4D, snapshot.Data.Series[0].BubbleSizes![0]);
         Assert.Equal(show, snapshot.ShowNegativeBubbles);
         OfficeColor color = OfficeColor.Parse(snapshot.Data.Series[0].SeriesColorArgb!);
-        var pdf = document.ToPdfDocumentResult();
+        var pdf = document.ConvertToPdfWithEvidence(WideBubblePage());
         Assert.Single(PdfBubbleDiameters(pdf.ToBytes(), color));
         Assert.Equal(show, pdf.Warnings.Any(warning => warning.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported));
         Assert.All(pdf.Warnings.Where(warning => warning.Code == ExcelImageExportDiagnosticCodes.ChartBubbleNegativeSizesUnsupported),
@@ -92,14 +102,14 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.True(chart.TryGetSnapshot(out var snapshot));
         var colors = snapshot.Data.Series.Select(series => OfficeColor.Parse(series.SeriesColorArgb!)).ToArray();
         Assert.NotEqual(colors[0], colors[1]);
-        byte[] pdf = document.ToPdfBytes();
+        byte[] pdf = document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         byte[] png = chart.ExportImage(OfficeImageExportFormat.Png).Bytes;
         foreach (OfficeColor color in colors) {
             Assert.Equal(2, PdfBubbleDiameters(pdf, color).Length);
             Assert.Equal(2, RasterBubbleDiameters(png, color).Length);
         }
         var palette = new[] { OfficeColor.Parse("008080"), OfficeColor.Parse("A000A0") };
-        byte[] overridden = document.ToPdfBytes(new ExcelToPdfOptions { ChartStyle = new OfficeChartStyle(palette: palette) });
+        byte[] overridden = document.ToPdf(WideBubblePage(new ExcelPdfExportOptions { ChartStyle = new OfficeChartStyle(palette: palette) })).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         foreach (OfficeColor color in palette) Assert.Equal(2, PdfBubbleDiameters(overridden, color).Length);
     }
 
@@ -119,7 +129,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         if (printArea) document.SetPrintArea(sheet, "B2:C3");
         Assert.True(chart.TryGetSnapshot(out var snapshot));
         OfficeColor color = OfficeColor.Parse(snapshot.Data.Series[0].SeriesColorArgb!);
-        Assert.Equal(printArea ? 0 : 2, PdfBubbleDiameters(document.ToPdfBytes(), color).Length);
+        Assert.Equal(printArea ? 0 : 2, PdfBubbleDiameters(document.ToPdf(WideBubblePage()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), color).Length);
     }
 
     [Fact]
@@ -128,14 +138,16 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         CreateLiteralChart(document, false);
         document.Sheets[0].CellValue(1000, 1, "Far source");
         document.Sheets[0].CellValue(1001, 3, "Tail");
-        byte[] bytes = document.ToPdfBytes(new ExcelToPdfOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable });
+        byte[] bytes = document.ToPdf(new ExcelPdfExportOptions { WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var read = UglyToad.PdfPig.PdfDocument.Open(bytes);
         Assert.Single(read.GetPages());
         Assert.Contains("Tail", read.GetPage(1).Text, StringComparison.Ordinal);
         // Canvas geometry must also retain those distant cells within the physical page.
-        using var canvas = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes());
-        var page = canvas.GetPage(1);
-        Assert.Contains("Tail", page.Text, StringComparison.Ordinal);
+        // At 100 % the chart and the distant cells print on their own pages; the blank
+        // rows between them produce no pages.
+        using var canvas = UglyToad.PdfPig.PdfDocument.Open(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        Assert.InRange(canvas.NumberOfPages, 1, 4);
+        var page = Assert.Single(canvas.GetPages(), candidate => candidate.Text.Contains("Tail", StringComparison.Ordinal));
         Assert.All(page.Letters, letter => {
             Assert.InRange(letter.GlyphRectangle.Bottom, 0D, page.Height);
             Assert.InRange(letter.GlyphRectangle.Top, 0D, page.Height);
@@ -154,7 +166,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         Assert.Equal(100D, snapshot.BubbleScalePercent);
         Assert.Equal(OfficeChartBubbleSizeMode.Area, snapshot.BubbleSizeMode);
         Assert.Equal(2, chart.ExportImage(OfficeImageExportFormat.Png).Diagnostics.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated));
-        Assert.Equal(2, document.ToPdfDocumentResult().Warnings.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated));
+        Assert.Equal(2, document.ConvertToPdfWithEvidence().Warnings.Count(item => item.Code == ExcelImageExportDiagnosticCodes.ChartBubbleSettingsApproximated));
     }
 
     private static ExcelChart CreateConversionBubble(ExcelDocument document) {
@@ -170,7 +182,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     }
 
     private static double[] PdfBubbleDiameters(byte[] bytes, OfficeColor color) =>
-        PdfCore.PdfReadDocument.Open(bytes).Pages.SelectMany(page => page.GetIdentityVisualPrimitives())
+        PdfCore.PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages.SelectMany(page => page.GetIdentityVisualPrimitives())
             .Where(primitive => primitive.Kind == PdfCore.PdfPageVisualPrimitiveKind.Path && primitive.FillColor == color &&
                 primitive.Width > 2D && Math.Abs(primitive.Width - primitive.Height) < 0.05D)
             .Select(primitive => primitive.Width).OrderBy(value => value).ToArray();

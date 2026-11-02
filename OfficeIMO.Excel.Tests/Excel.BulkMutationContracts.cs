@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_wrapping_preserves_distinct_alignment_and_format_flags(string route) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Alignment");
+            ExcelSheet sheet = document.AddSheet("Alignment");
             sheet.CellValue(1, 1, "First");
             sheet.CellValue(2, 1, "Second");
             sheet.CellBold(1, 1);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             }
 
             sheet.Batch(target => {
-                if (route == "range") target.WrapCells(1, 2, 1);
+                if (route == "range") target.WrapCells(1,2,1);
                 else for (int row = 1; row <= 2; row++) {
                     if (route == "newline") target.CellValue(row, 1, "First\nSecond");
                     else if (route == "richtext") target.CellAt(row, 1).SetRichText(new ExcelRichTextRun("First"), new ExcelRichTextRun("\nSecond"));
@@ -65,8 +65,8 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_nested_cross_sheet_styles_save_once_and_survive_a_callback_failure() {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            document.AddWorksheet("First").CellValue(1, 1, "Original");
-            document.AddWorksheet("Second").CellValue(1, 1, "Other");
+            document.AddSheet("First").CellValue(1, 1, "Original");
+            document.AddSheet("Second").CellValue(1, 1, "Other");
             document.Save(stream);
             ExcelSheet first = document.Sheets[0];
             ExcelSheet second = document.Sheets[1];
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 target.CellValue(1, 1, "Changed");
                 second.Batch(other => {
                     other.CellBold(1, 1);
-                    other.WrapCells(1, 1, 1);
+                    other.WrapCells(1,1,1);
                 });
                 throw new InvalidOperationException("Callback failed after editing");
             }));
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 document.SheetCachingEnabled = sheetCaching;
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "First");
@@ -148,7 +148,8 @@ namespace OfficeIMO.Tests {
         public async Task BulkMutation_validated_fast_save_checks_encoded_output_before_destination_changes(bool asynchronous) {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
-            ExcelSheet sheet = document.AddWorksheet("Validated");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            ExcelSheet sheet = document.AddSheet("Validated");
             sheet.CellValue(1, 1, "First");
             using var valid = new MemoryStream();
             var options = new ExcelSaveOptions { ValidateOpenXml = true };
@@ -177,7 +178,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_rollback_preserves_pending_comment_payloads_and_discards_failed_edits() {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Rollback");
+            ExcelSheet sheet = document.AddSheet("Rollback");
             sheet.CellValue(1, 1, "Value");
             sheet.SetComment(1, 1, "Before transaction");
             Assert.Throws<InvalidOperationException>(() => sheet.ApplyTransactionalMutation(_ => {
@@ -201,7 +202,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_number_format_ids_follow_imported_ids_in_every_style_scope(string scope) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Number formats");
+            ExcelSheet sheet = document.AddSheet("Number formats");
             sheet.CellValue(1, 1, 12);
             sheet.CellBold(1, 1);
             Stylesheet styles = document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
@@ -222,8 +223,8 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_named_style_redefinition_invalidates_cached_base_formats_and_derivations(bool nested) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Named style");
-            ExcelSheet other = document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Named style");
+            ExcelSheet other = document.AddSheet("Other");
             sheet.CellBold(1, 1);
             sheet.CellItalic(1, 2);
             sheet.DefineNamedStyle("Input", 1, 1);
@@ -236,7 +237,7 @@ namespace OfficeIMO.Tests {
             });
             document.Save(stream);
             using var reopened = ExcelDocument.Load(stream);
-            ExcelCellStyleSnapshot applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
+            ExcelCellStyleInfo applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
             Assert.True(applied.Italic);
             Assert.False(applied.Bold);
             Assert.True(applied.WrapText);
@@ -248,7 +249,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_successive_imported_xlsb_formula_edits_mark_the_workbook_dirty(bool sheetCaching) {
             using var seedStream = new MemoryStream();
             using (var seed = ExcelDocument.Create(new MemoryStream())) {
-                seed.AddWorksheet("Native").CellValue(1, 1, 1);
+                seed.AddSheet("Native").CellValue(1, 1, 1);
                 seed.Save(seedStream, ExcelFileFormat.Xlsb);
             }
             using var document = ExcelDocument.Load(seedStream);
@@ -267,7 +268,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_native_xls_and_structural_planning_observe_pending_comment_drawings_inside_batch() {
             using var native = new MemoryStream();
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Native comments");
+                ExcelSheet sheet = document.AddSheet("Native comments");
                 sheet.Batch(target => {
                     target.CellValue(1, 1, "Move with note");
                     target.SetComment(1, 1, "Pending note");
@@ -285,7 +286,7 @@ namespace OfficeIMO.Tests {
         [InlineData("id")]
         public void BulkMutation_validated_save_rejects_missing_required_sheet_metadata_without_replacing_destination(string missing) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Invalid").CellValue(1, 1, "Value");
+            document.AddSheet("Invalid").CellValue(1, 1, "Value");
             Sheet sheet = document.OpenXmlDocument.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single();
             if (missing == "name") sheet.Name = null;
             else sheet.SheetId = null;

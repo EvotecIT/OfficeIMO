@@ -62,7 +62,7 @@ public sealed class HtmlImportTests {
         Assert.Empty(fragment.ChildNodes);
         Assert.Equal(3, original.ChildNodes.Count);
         Assert.Equal("Lead<b>Bold</b>Tail", target.QuerySelector("main")!.InnerHtml);
-        Assert.Contains("Lead**Bold**Tail", HtmlConversionDocument.FromDocument(target).ToMarkdown());
+        Assert.Contains("Lead**Bold**Tail", HtmlConversionDocument.FromDocument(target).ToMarkdown().ToMarkdown());
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class HtmlImportTests {
         var edited = destination.Edit(document => document.QuerySelector("main")!.AppendChild(document.ImportNode(source.Document.QuerySelector("p")!)));
         Assert.Equal("Source", source.Document.Body!.TextContent);
         Assert.Equal("Target", destination.Document.Body!.TextContent);
-        Assert.Contains("Source", edited.ToMarkdown());
+        Assert.Contains("Source", edited.ToMarkdown().ToMarkdown());
         Assert.True(edited.Document.IsReadOnly);
     }
 

@@ -36,8 +36,8 @@ public partial class HtmlOfficeAdapters {
         });
         using ExcelDocument workbook = result.RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets, candidate => candidate.Name == "Service levels");
-        Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out ExcelCellValueSnapshot? term));
-        Assert.True(sheet.TryGetCellValueSnapshot(2, 2, out ExcelCellValueSnapshot? definition));
+        Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? term));
+        Assert.True(sheet.TryGetCellValueSnapshot(2, 2, out ExcelNativeCellValueInfo? definition));
         Assert.Equal("Basic water service level", term!.Text);
         Assert.Equal("Collection time is at most 30 minutes.", definition!.Text);
     }
@@ -54,7 +54,7 @@ public partial class HtmlOfficeAdapters {
             Mode = HtmlImportMode.Generic
         });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         byte[] bytes = artifact.ToArray();
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(bytes), false)) {
             WorksheetPart worksheetPart = Assert.Single(package.WorkbookPart!.WorksheetParts);
@@ -84,7 +84,7 @@ public partial class HtmlOfficeAdapters {
 
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using SpreadsheetDocument package = SpreadsheetDocument.Open(artifact, false);
         WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
         Cell[] cells = worksheet.Worksheet.Descendants<Cell>().ToArray();
@@ -103,7 +103,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using SpreadsheetDocument package = SpreadsheetDocument.Open(artifact, false);
         WorksheetPart worksheet = Assert.Single(package.WorkbookPart!.WorksheetParts);
         string[] references = worksheet.Worksheet.Descendants<Cell>()
@@ -135,10 +135,10 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = result.RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets, candidate => candidate.Name == "Spanned levels");
         Assert.Equal(2, result.MergedRanges);
-        Assert.True(sheet.TryGetCellValueSnapshot(1, 3, out ExcelCellValueSnapshot? heading));
+        Assert.True(sheet.TryGetCellValueSnapshot(1, 3, out ExcelNativeCellValueInfo? heading));
         Assert.Equal("Definition", heading!.Text);
-        Assert.True(sheet.TryGetCellValueSnapshot(3, 2, out ExcelCellValueSnapshot? term));
-        Assert.True(sheet.TryGetCellValueSnapshot(3, 3, out ExcelCellValueSnapshot? definition));
+        Assert.True(sheet.TryGetCellValueSnapshot(3, 2, out ExcelNativeCellValueInfo? term));
+        Assert.True(sheet.TryGetCellValueSnapshot(3, 3, out ExcelNativeCellValueInfo? definition));
         Assert.Equal("Limited", term!.Text);
         Assert.Equal("Over 30 minutes", definition!.Text);
     }

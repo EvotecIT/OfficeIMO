@@ -45,16 +45,16 @@ public sealed class TabularCommandTests {
         string workbookPath = Path.Combine(directory, "metadata" + workbookExtension);
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Inventory");
+                ExcelSheet sheet = document.AddSheet("Inventory");
                 sheet.CellAt(1, 1).SetValue("Alpha");
                 sheet.CellAt(2, 1).SetValue("Beta");
                 sheet.CellAt(3, 1).SetValue("Gamma");
                 document.Save(workbookPath);
             }
 
-            IReadOnlyList<string> names = ExcelDocument.GetSheetNames(
+            IReadOnlyList<string> names = SheetNames(
                 workbookPath,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     MaxSharedStringItems = 1,
                     MaxSharedStringCharacters = 1,
                     MaxSharedStringItemCharacters = 1
@@ -72,33 +72,33 @@ public sealed class TabularCommandTests {
         string workbookPath = Path.Combine(directory, "limits.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                document.AddWorksheet("First");
-                document.AddWorksheet("Second");
+                document.AddSheet("First");
+                document.AddSheet("Second");
                 document.Save(workbookPath);
             }
 
             OfficeInspectionResourceLimitException countError = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { MaxWorksheets = 1 }));
+                    new ExcelReaderOptions { MaxWorksheets = 1 }));
             Assert.Equal("excel", countError.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxWorksheets), countError.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxWorksheets), countError.LimitName);
             Assert.Equal(1, countError.Maximum);
 
             OfficeInspectionResourceLimitException partError = Assert.Throws<OfficeInspectionResourceLimitException>(() =>
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { MaxMetadataPartBytes = 32 }));
+                    new ExcelReaderOptions { MaxMetadataPartBytes = 32 }));
             Assert.Equal("excel", partError.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxMetadataPartBytes), partError.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxMetadataPartBytes), partError.LimitName);
             Assert.Equal(32, partError.Maximum);
 
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
             Assert.ThrowsAny<OperationCanceledException>(() =>
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { CancellationToken = cancellation.Token }));
+                    new ExcelReaderOptions { CancellationToken = cancellation.Token }));
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -110,7 +110,7 @@ public sealed class TabularCommandTests {
         string workbookPath = Path.Combine(directory, "encoded-target.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                document.AddWorksheet("Encoded Target");
+                document.AddSheet("Encoded Target");
                 document.Save(workbookPath);
             }
 
@@ -135,7 +135,7 @@ public sealed class TabularCommandTests {
 
             Assert.Equal(
                 new[] { "Encoded Target" },
-                ExcelDocument.GetSheetNames(workbookPath));
+                SheetNames(workbookPath));
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -148,7 +148,7 @@ public sealed class TabularCommandTests {
         const int MetadataLimit = 2 * 1024;
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Inventory");
+                ExcelSheet sheet = document.AddSheet("Inventory");
                 for (int row = 1; row <= 500; row++) {
                     sheet.CellAt(row, 1).SetValue("Value " + row);
                 }
@@ -162,9 +162,9 @@ public sealed class TabularCommandTests {
 
             Assert.Equal(
                 new[] { "Inventory" },
-                ExcelDocument.GetSheetNames(
+                SheetNames(
                     workbookPath,
-                    new ExcelReadOptions { MaxMetadataPartBytes = MetadataLimit }));
+                    new ExcelReaderOptions { MaxMetadataPartBytes = MetadataLimit }));
         } finally {
             Directory.Delete(directory, recursive: true);
         }
@@ -347,7 +347,7 @@ public sealed class TabularCommandTests {
         string directory = CreateTestDirectory();
         string inputPath = Path.Combine(directory, "locked.xlsx");
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             document.Save(inputPath);
         }
 
@@ -415,8 +415,8 @@ public sealed class TabularCommandTests {
         string directory = CreateTestDirectory();
         string workbookPath = Path.Combine(directory, "broken-first-sheet.xlsx");
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("BrokenData");
-            document.AddWorksheet("MetadataOnly");
+            document.AddSheet("BrokenData");
+            document.AddSheet("MetadataOnly");
             document.Save(workbookPath);
         }
         using (ZipArchive archive = ZipFile.Open(workbookPath, ZipArchiveMode.Update)) {
@@ -493,7 +493,7 @@ public sealed class TabularCommandTests {
         string directory = CreateTestDirectory();
         string inputPath = Path.Combine(directory, "input.xlsx");
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             document.Save(inputPath);
         }
 
@@ -516,6 +516,11 @@ public sealed class TabularCommandTests {
         } finally {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    private static IReadOnlyList<string> SheetNames(string path, ExcelReaderOptions? options = null) {
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path, options);
+        return reader.SheetNames;
     }
 
     private static string CreateTestDirectory() {

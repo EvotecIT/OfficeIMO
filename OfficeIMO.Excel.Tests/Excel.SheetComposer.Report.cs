@@ -4,11 +4,12 @@ using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
-using OfficeIMO.Excel.Fluent;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelSheetComposerReportTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelSheetComposerReportTests
+    {
         private static string GetCellText(SpreadsheetDocument doc, WorksheetPart ws, string a1)
         {
             var cell = ws.Worksheet.Descendants<Cell>().FirstOrDefault(c => c.CellReference != null && c.CellReference.Value == a1);
@@ -24,28 +25,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ComposerColumnSizingRejectsAQualifierThatWouldRetargetAnotherSheet() {
+        public void ComposerColumnSizingRejectsAQualifierThatWouldRetargetAnotherSheet()
+        {
             using ExcelDocument document = ExcelDocument.Create();
-            var composer = new SheetComposer(document, "Data");
-
-            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                composer.ApplyColumnSizing("'Other'!A1:B2", _ => { }));
-
+            var composer = document.AddSheet("Data", ExcelSheetNameValidationMode.Sanitize).Report();
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => composer.ApplyColumnSizing("'Other'!A1:B2", _ =>
+            {
+            }));
             Assert.Contains("must not qualify", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
-        public void Composer_Callout_WritesTitleAndBody() {
+        public void Composer_Callout_WritesTitleAndBody()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(filePath))
             {
-                doc.Compose("Summary", c =>
                 {
-                    c.Title("Report");
-                    c.Callout("warning", "Heads up", "This is a caution.");
-                    c.Paragraph("After callout");
-                    c.Finish();
-                });
+                    var reportBuilder1 = doc.AddSheet("Summary", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder1).Title("Report");
+                    (reportBuilder1).Callout(OfficeCalloutKind.Warning, "Heads up", "This is a caution.");
+                    (reportBuilder1).Paragraph("After callout");
+                    (reportBuilder1).Finish();
+                }
+
                 doc.Save();
             }
 
@@ -58,25 +61,23 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("This is a caution.", GetCellText(ss, ws, "A4"));
                 Assert.Equal("After callout", GetCellText(ss, ws, "A6"));
             }
+
             File.Delete(filePath);
         }
 
         [Fact]
-        public void Composer_PropertiesGrid_WritesKeyValuePairs() {
+        public void Composer_PropertiesGrid_WritesKeyValuePairs()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(filePath))
             {
-                doc.Compose("Details", c =>
                 {
-                    c.Section("Meta");
-                    c.PropertiesGrid(new (string, object?)[]
-                    {
-                        ("Name", "Alice"),
-                        ("Score", 95),
-                        ("Status", "OK")
-                    }, columns: 2);
-                    c.Finish();
-                });
+                    var reportBuilder2 = doc.AddSheet("Details", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder2).Section("Meta");
+                    (reportBuilder2).PropertiesGrid(new (string, object? )[] { ("Name", "Alice"), ("Score", 95), ("Status", "OK") }, columns: 2);
+                    (reportBuilder2).Finish();
+                }
+
                 doc.Save();
             }
 
@@ -93,35 +94,32 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Status", GetCellText(ss, ws, "A3"));
                 Assert.Equal("OK", GetCellText(ss, ws, "B3"));
             }
+
             File.Delete(filePath);
         }
 
         [Fact]
-        public void Composer_LayoutHelpers_ReadOnlyListsDoNotSnapshotEnumerate() {
+        public void Composer_LayoutHelpers_ReadOnlyListsDoNotSnapshotEnumerate()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var properties = new ThrowOnEnumerateReadOnlyList<(string Key, object? Value)>(
-                ("Name", "Alice"),
-                ("Score", 95),
-                ("Status", "OK"));
-            var kpis = new ThrowOnEnumerateReadOnlyList<(string Label, object? Value)>(
-                ("Total", 2),
-                ("Errors", 0));
-            var urls = new ThrowOnEnumerateReadOnlyList<string>(
-                "https://example.com",
-                "https://evotec.xyz");
-
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Details", c => {
-                    c.PropertiesGrid(properties, columns: 2);
-                    c.KpiRow(kpis, perRow: 2);
-                    c.References(urls);
-                    c.Finish(autoFitColumns: false);
-                });
+            var properties = new ThrowOnEnumerateReadOnlyList<(string Key, object? Value)>(("Name", "Alice"), ("Score", 95), ("Status", "OK"));
+            var kpis = new ThrowOnEnumerateReadOnlyList<(string Label, object? Value)>(("Total", 2), ("Errors", 0));
+            var urls = new ThrowOnEnumerateReadOnlyList<string>("https://example.com", "https://evotec.xyz");
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder3 = doc.AddSheet("Details", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder3).PropertiesGrid(properties, columns: 2);
+                    (reportBuilder3).KpiRow(kpis, perRow: 2);
+                    (reportBuilder3).References(urls);
+                    (reportBuilder3).Finish(autoFitColumns: false);
+                }
 
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var ws = ss.WorkbookPart!.WorksheetParts.First();
                 Assert.Equal("Name", GetCellText(ss, ws, "A1"));
                 Assert.Equal("Alice", GetCellText(ss, ws, "B1"));
@@ -135,22 +133,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ReadOnlyListDoesNotSnapshotEnumerate() {
+        public void Composer_TableFrom_ReadOnlyListDoesNotSnapshotEnumerate()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new ThrowOnEnumerateReadOnlyList<ComposerTableRow>(
-                new ComposerTableRow("Alpha", 10),
-                new ComposerTableRow("Beta", 20));
-
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.TableFrom(rows, title: "Scores");
-                    c.Finish(autoFitColumns: false);
-                });
+            var rows = new ThrowOnEnumerateReadOnlyList<ComposerTableRow>(new ComposerTableRow("Alpha", 10), new ComposerTableRow("Beta", 20));
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder4 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder4).AddTable(rows, title: "Scores");
+                    (reportBuilder4).Finish(autoFitColumns: false);
+                }
 
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var ws = ss.WorkbookPart!.WorksheetParts.First();
                 Assert.True(ws.TableDefinitionParts.Any());
                 Assert.Equal("Alpha", GetCellText(ss, ws, "A3"));
@@ -161,24 +160,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_ColumnTableFrom_ReadOnlyListDoesNotSnapshotEnumerate() {
+        public void Composer_ColumnTableFrom_ReadOnlyListDoesNotSnapshotEnumerate()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new ThrowOnEnumerateReadOnlyList<ComposerTableRow>(
-                new ComposerTableRow("Alpha", 10),
-                new ComposerTableRow("Beta", 20));
-
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.Columns(2, columns => {
-                        columns[0].TableFrom(rows, title: "Scores");
+            var rows = new ThrowOnEnumerateReadOnlyList<ComposerTableRow>(new ComposerTableRow("Alpha", 10), new ComposerTableRow("Beta", 20));
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder5 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder5).Columns(2, columns =>
+                    {
+                        columns[0].AddTable(rows, title: "Scores");
                     });
-                    c.Finish(autoFitColumns: false);
-                });
+                    (reportBuilder5).Finish(autoFitColumns: false);
+                }
 
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var ws = ss.WorkbookPart!.WorksheetParts.First();
                 Assert.True(ws.TableDefinitionParts.Any());
                 Assert.Equal("Alpha", GetCellText(ss, ws, "A3"));
@@ -189,31 +190,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_AppliesTableVisualStyleFlags() {
+        public void Composer_TableFrom_AppliesTableVisualStyleFlags()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new[] {
+            var rows = new[]
+            {
                 new ComposerTableRow("Alpha", 10),
                 new ComposerTableRow("Beta", 20)
             };
-
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.TableFrom(
-                        rows,
-                        title: "Scores",
-                        visuals: options => {
-                            options.ShowFirstColumn = true;
-                            options.ShowLastColumn = true;
-                            options.ShowRowStripes = false;
-                            options.ShowColumnStripes = true;
-                        });
-                    c.Finish(autoFitColumns: false);
-                });
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder6 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder6).AddTable(rows, title: "Scores", visuals: options =>
+                    {
+                        options.ShowFirstColumn = true;
+                        options.ShowLastColumn = true;
+                        options.ShowRowStripes = false;
+                        options.ShowColumnStripes = true;
+                    });
+                    (reportBuilder6).Finish(autoFitColumns: false);
+                }
 
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var tablePart = Assert.Single(ss.WorkbookPart!.WorksheetParts.First().TableDefinitionParts);
                 Assert.NotNull(tablePart.Table);
                 var styleInfo = Assert.IsType<TableStyleInfo>(tablePart.Table!.TableStyleInfo);
@@ -227,24 +230,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_LeavesHeaderAppearanceToTheTableStyle() {
+        public void Composer_TableFrom_LeavesHeaderAppearanceToTheTableStyle()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new[] { new ComposerTableRow("Alpha", 10) };
+            var rows = new[]
+            {
+                new ComposerTableRow("Alpha", 10)
+            };
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder7 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder7).AddTable(rows, style: ExcelTableStyle.TableStyleMedium9);
+                    (reportBuilder7).Finish(autoFitColumns: false);
+                }
 
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.TableFrom(rows, style: ExcelTableStyle.TableStyleMedium9);
-                    c.Finish(autoFitColumns: false);
-                });
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
-                var headerCells = worksheet.Descendants<Cell>()
-                    .Where(cell => cell.CellReference?.Value == "A1" || cell.CellReference?.Value == "B1")
-                    .ToList();
-
+                var headerCells = worksheet.Descendants<Cell>().Where(cell => cell.CellReference?.Value == "A1" || cell.CellReference?.Value == "B1").ToList();
                 Assert.Equal(2, headerCells.Count);
                 Assert.All(headerCells, cell => Assert.Null(cell.StyleIndex));
             }
@@ -253,19 +260,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_PreservesAdAsAHeaderAcronym() {
+        public void Composer_TableFrom_PreservesAdAsAHeaderAcronym()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new[] { new AdStateComposerTableRow("Enabled") };
+            var rows = new[]
+            {
+                new AdStateComposerTableRow("Enabled")
+            };
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder8 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder8).AddTable(rows);
+                    (reportBuilder8).Finish(autoFitColumns: false);
+                }
 
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.TableFrom(rows);
-                    c.Finish(autoFitColumns: false);
-                });
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var worksheet = ss.WorkbookPart!.WorksheetParts.First();
                 Assert.Equal("AD State", GetCellText(ss, worksheet, "A1"));
             }
@@ -274,26 +288,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_ColumnTableFrom_LeavesHeaderAppearanceToTheTableStyle() {
+        public void Composer_ColumnTableFrom_LeavesHeaderAppearanceToTheTableStyle()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new[] { new ComposerTableRow("Alpha", 10) };
-
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.Columns(2, columns => {
-                        columns[0].TableFrom(rows, style: ExcelTableStyle.TableStyleMedium4);
+            var rows = new[]
+            {
+                new ComposerTableRow("Alpha", 10)
+            };
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder9 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder9).Columns(2, columns =>
+                    {
+                        columns[0].AddTable(rows, style: ExcelTableStyle.TableStyleMedium4);
                     });
-                    c.Finish(autoFitColumns: false);
-                });
+                    (reportBuilder9).Finish(autoFitColumns: false);
+                }
+
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
-                var headerCells = worksheet.Descendants<Cell>()
-                    .Where(cell => cell.CellReference?.Value == "A1" || cell.CellReference?.Value == "B1")
-                    .ToList();
-
+                var headerCells = worksheet.Descendants<Cell>().Where(cell => cell.CellReference?.Value == "A1" || cell.CellReference?.Value == "B1").ToList();
                 Assert.Equal(2, headerCells.Count);
                 Assert.All(headerCells, cell => Assert.Null(cell.StyleIndex));
             }
@@ -306,13 +325,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                doc.AddWorksheet("Data").Cell(1, 1, "Value");
+                doc.AddSheet("Data").Cell(1, 1, "Value");
                 doc.AddTableOfContents(sheetName: "Index", styled: true);
                 doc.Save();
             }
 
             using (var ss = SpreadsheetDocument.Open(filePath, false)) {
-                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var worksheet = Excel.GetWorksheetPartByName(ss, "Index").Worksheet;
                 var headerCells = worksheet.Descendants<Cell>()
                     .Where(cell => cell.CellReference?.Value == "A3" || cell.CellReference?.Value == "B3")
                     .ToList();
@@ -334,7 +353,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var ss = SpreadsheetDocument.Open(filePath, false)) {
-                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var worksheet = Excel.GetWorksheetPartByName(ss, "Index").Worksheet;
                 var headerCells = worksheet.Descendants<Cell>()
                     .Where(cell => cell.CellReference?.Value == "A3" || cell.CellReference?.Value == "B3")
                     .ToList();
@@ -344,8 +363,8 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument doc = ExcelDocument.Load(filePath)) {
-                ExcelCellStyleSnapshot firstHeader = doc.Sheets[0].GetCellStyle(3, 1);
-                ExcelCellStyleSnapshot secondHeader = doc.Sheets[0].GetCellStyle(3, 2);
+                ExcelCellStyleInfo firstHeader = doc.Sheets[0].GetCellStyle(3, 1);
+                ExcelCellStyleInfo secondHeader = doc.Sheets[0].GetCellStyle(3, 2);
                 Assert.True(firstHeader.Bold);
                 Assert.True(secondHeader.Bold);
                 Assert.EndsWith("F2F2F2", firstHeader.FillColorArgb, StringComparison.OrdinalIgnoreCase);
@@ -356,19 +375,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgResolvesBuiltInHeaderStyle() {
+        public void Composer_TableFrom_ManagedSvgResolvesBuiltInHeaderStyle()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder10 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder10).Sheet;
+                (reportBuilder10).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                (reportBuilder10).Finish(autoFitColumns: false);
+            }
 
-            string svg = report!.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report!.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             string accentArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(4U));
             string expectedAccent = accentArgb.Substring(accentArgb.Length - 6);
-
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
@@ -380,18 +400,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderStyle() {
+        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderStyle()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder11 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder11).Sheet;
+                (reportBuilder11).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                (reportBuilder11).Finish(autoFitColumns: false);
+            }
+
             report!.Range("A1").SetFillColor("C00000").SetFontColor("FFFF00");
-
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
@@ -403,18 +424,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgKeepsTableBoldWhenOnlyDirectFillIsSet() {
+        public void Composer_TableFrom_ManagedSvgKeepsTableBoldWhenOnlyDirectFillIsSet()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder12 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder12).Sheet;
+                (reportBuilder12).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                (reportBuilder12).Finish(autoFitColumns: false);
+            }
+
             report!.Range("A1").SetFillColor("C00000");
-
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
@@ -426,19 +448,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderGradientFill() {
+        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderGradientFill()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder13 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder13).Sheet;
+                (reportBuilder13).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
+                (reportBuilder13).Finish(autoFitColumns: false);
+            }
+
             report!.CellAt(1, 1).SetGradientFill("C00000", "00A000", 45D);
-
-            ExcelRangeVisualSnapshot snapshot = report.Range("A1:B2").CreateVisualSnapshot();
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.Equal("FFC00000", header.Style.FillGradientStartColorArgb);
             Assert.Equal("FF00A000", header.Style.FillGradientEndColorArgb);
@@ -449,39 +472,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgProjectsLightTableHeaderBorder() {
+        public void Composer_TableFrom_ManagedSvgProjectsLightTableHeaderBorder()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder14 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder14).Sheet;
+                (reportBuilder14).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
+                (reportBuilder14).Finish(autoFitColumns: false);
+            }
 
-            ExcelRangeVisualSnapshot snapshot = report!.Range("A1:B2").CreateVisualSnapshot();
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRangeVisualInfo snapshot = report!.Range("A1:B2").CreateVisualSnapshot();
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             string borderArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(0U, -0.35D));
             string expectedBorder = borderArgb.Substring(borderArgb.Length - 6);
-
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.Equal(expectedBorder, header.Style.Border?.Bottom?.ColorArgb, ignoreCase: true);
             Assert.Contains($"stroke=\"#{expectedBorder}\"", svg, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderBorder() {
+        public void Composer_TableFrom_ManagedSvgPreservesDirectHeaderBorder()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder15 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder15).Sheet;
+                (reportBuilder15).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
+                (reportBuilder15).Finish(autoFitColumns: false);
+            }
+
             report!.CellAt(1, 1).SetBorder(ExcelBorderStyle.Double, "C00000");
-
-            ExcelRangeVisualSnapshot snapshot = report.Range("A1:B2").CreateVisualSnapshot();
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.Equal("double", header.Style.Border?.Bottom?.Style);
             Assert.Equal("FFC00000", header.Style.Border?.Bottom?.ColorArgb);
@@ -490,7 +515,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void TableHeaderVisualStyleResolver_PreservesDirectPatternFill() {
-            var directStyle = new ExcelCellStyleSnapshot {
+            var directStyle = new ExcelCellStyleInfo {
                 StyleIndex = 1U,
                 FillPatternType = "darkGrid",
                 FillPatternForegroundColorArgb = "FFC00000",
@@ -498,7 +523,7 @@ namespace OfficeIMO.Tests {
             };
             var tableStyle = new ExcelTableHeaderVisualStyle("FF4472C4", "FFFFFFFF", bold: true, borderColorArgb: "FF4472C4");
 
-            ExcelCellStyleSnapshot resolved = ExcelTableHeaderVisualStyleResolver.Apply(directStyle, tableStyle);
+            ExcelCellStyleInfo resolved = ExcelTableHeaderVisualStyleResolver.Apply(directStyle, tableStyle);
 
             Assert.Equal("darkGrid", resolved.FillPatternType);
             Assert.Equal("FFC00000", resolved.FillPatternForegroundColorArgb);
@@ -506,17 +531,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_TableFrom_ManagedSvgPreservesNonBoldDarkHeaderContract() {
+        public void Composer_TableFrom_ManagedSvgPreservesNonBoldDarkHeaderContract()
+        {
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
-            doc.Compose("Report", c => {
-                report = c.Sheet;
-                c.TableFrom(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleDark8);
-                c.Finish(autoFitColumns: false);
-            });
+            {
+                var reportBuilder16 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                report = (reportBuilder16).Sheet;
+                (reportBuilder16).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleDark8);
+                (reportBuilder16).Finish(autoFitColumns: false);
+            }
 
-            string svg = report!.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            string svg = System.Text.Encoding.UTF8.GetString(report!.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
@@ -527,25 +553,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Composer_ColumnTableFrom_SummarizeOverflowPreservesMoreColumn() {
+        public void Composer_ColumnTableFrom_SummarizeOverflowPreservesMoreColumn()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-            var rows = new[] {
+            var rows = new[]
+            {
                 new WideComposerTableRow("Alpha", 10, 5, 7),
                 new WideComposerTableRow("Beta", 20, 6, 8)
             };
-
-            using (var doc = ExcelDocument.Create(filePath)) {
-                doc.Compose("Report", c => {
-                    c.Columns(2, columns => {
-                        columns[0].TableFrom(rows, title: "Wide");
-                    }, columnWidth: 2, overflow: OverflowMode.Summarize);
-                    c.Finish(autoFitColumns: false);
-                });
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                {
+                    var reportBuilder17 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    (reportBuilder17).Columns(2, columns =>
+                    {
+                        columns[0].AddTable(rows, title: "Wide");
+                    }, columnWidth: 2, overflow: ExcelReportOverflowMode.Summarize);
+                    (reportBuilder17).Finish(autoFitColumns: false);
+                }
 
                 doc.Save();
             }
 
-            using (var ss = SpreadsheetDocument.Open(filePath, false)) {
+            using (var ss = SpreadsheetDocument.Open(filePath, false))
+            {
                 var ws = ss.WorkbookPart!.WorksheetParts.First();
                 Assert.True(ws.TableDefinitionParts.Any());
                 Assert.Equal("Metric A", GetCellText(ss, ws, "A2"));

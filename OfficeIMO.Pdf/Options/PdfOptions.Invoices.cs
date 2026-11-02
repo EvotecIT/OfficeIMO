@@ -1,14 +1,14 @@
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     /// <summary>
     /// Attaches a snapshot of an invoice document using the existing Factur-X PDF/A-3 groundwork.
     /// This does not render invoice content or certify agreement between visible content and XML.
     /// The profile is inferred from the XML unless explicitly supplied; conflicting declarations are rejected.
     /// The caller must still validate the resulting PDF and invoice together.
     /// </summary>
-    public PdfOptions UseFacturXDocument(
+    public PdfCreateOptions UseFacturXDocument(
         PdfCiiInvoiceDocument invoice,
         string? conformanceLevel = null,
         string version = "1.0",

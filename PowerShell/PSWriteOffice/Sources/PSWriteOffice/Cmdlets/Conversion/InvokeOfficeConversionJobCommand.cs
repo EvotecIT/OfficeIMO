@@ -1,16 +1,15 @@
+using OfficeIMO;
 using System;
 using System.IO;
 using System.Management.Automation;
 using System.Threading.Tasks;
 using PSWriteOffice.Services;
-#if !FRAMEWORK
 using OfficeIMO.Workflows;
-#endif
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 /// <summary>Plans or runs a saved conversion job through the same runner as Studio and the CLI.</summary>
-/// <para>Requires PowerShell 7.4 or newer. Plan performs no output or checkpoint writes. Execution revalidates current inputs and retains completed artifacts after a partial failure or cancellation. Password environment references are resolved only for execution; values are not written to the job or reports.</para>
+/// <para>Plan performs no output or checkpoint writes. Execution revalidates current inputs and retains completed artifacts after a partial failure or cancellation. Password environment references are resolved only for execution; values are not written to the job or reports.</para>
 /// <example>
 ///   <summary>Inspect selected files, destinations and prerequisites before executing a saved job.</summary>
 ///   <code>Invoke-OfficeConversionJob -Path ./monthly.officejob.json -Plan
@@ -21,9 +20,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <code>Invoke-OfficeConversionJob -Path ./monthly.officejob.json -RetryFailed -ErrorAction Stop</code>
 /// </example>
 [Cmdlet(VerbsLifecycle.Invoke, "OfficeConversionJob", SupportsShouldProcess = true)]
-#if !FRAMEWORK
-[OutputType(typeof(OfficeConversionBatchResult), typeof(OfficeConversionBatchItemResult), typeof(OfficeConversionJobPlan))]
-#endif
+[OutputType(typeof(OfficeBatchSummary), typeof(OfficeBatchItemReport), typeof(OfficeBatchPlan))]
 public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
     /// <summary>Literal saved-job JSON path. Relative paths in the job resolve against this file's folder.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -56,21 +53,17 @@ public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
 
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
-#if FRAMEWORK
-        await Task.CompletedTask;
-        throw new PlatformNotSupportedException("Saved conversion jobs require PowerShell 7.4 or newer.");
-#else
         if (ReportPath is not null && string.IsNullOrWhiteSpace(ReportPath))
             throw new ArgumentException("Specify a non-empty run-report path.", nameof(ReportPath));
         string jobPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
         string baseDirectory = System.IO.Path.GetDirectoryName(jobPath)!;
-        OfficeConversionJob job = OfficeConversionJobSerializer.ReadFile(jobPath);
+        OfficeBatchOptions job = OfficeBatchOptions.Load(jobPath);
         if (RetryFailed.IsPresent) job.RetryFailed = true;
-        var runner = OfficeWorkflowCommandUtilities.CreateRunner();
+        OfficeWorkflowCommandUtilities.RegisterConversions();
         if (Plan.IsPresent) {
             if (!string.IsNullOrWhiteSpace(ReportPath))
                 throw new ArgumentException("Plan does not write a run report. Use ReportPath when executing the job.");
-            var plan = await OfficeConversionJobRunner.PlanAsync(job, baseDirectory, runner, cancellationToken: CancelToken);
+            var plan = await OfficeConverter.PlanAsync(job, cancellationToken: CancelToken);
             SetSummary(plan);
             WriteObject(plan);
             if (!plan.CanRun && !(AllowEmpty.IsPresent && plan.Selected == 0 && plan.Failed == 0))
@@ -78,37 +71,28 @@ public sealed class InvokeOfficeConversionJobCommand : AsyncPSCmdlet {
                     "OfficeConversionJobPlanInvalid", ErrorCategory.InvalidResult, plan));
             return;
         }
-        string outputDirectory = System.IO.Path.GetFullPath(job.OutputDirectory, baseDirectory);
+        string outputDirectory = job.OutputDirectory;
         if (!ShouldProcess(outputDirectory, "Run saved conversion job")) return;
-        var runtime = new OfficeConversionJobRuntimeOptions { ResolveEnvironmentVariable = Environment.GetEnvironmentVariable };
-        OfficeConversionJobRunReport? report = null;
-        OfficeConversionBatchResult result;
-        if (string.IsNullOrWhiteSpace(ReportPath)) {
-            result = await OfficeConversionJobRunner.RunAsync(job, baseDirectory, runner, runtime, new BatchProgress(this), CancelToken);
-        } else {
-            string reportPath = OfficeFileCommandUtilities.ResolvePath(this, ReportPath);
-            report = await OfficeConversionJobRunner.RunRecordedAsync(job, jobPath, reportPath, runner,
-                runtime, new BatchProgress(this), CancelToken, allowEmpty: AllowEmpty.IsPresent);
-            result = report.Batch?.Summary ?? throw new InvalidOperationException("The run report has no conversion result.");
-        }
+        job.ResolveEnvironmentVariable = Environment.GetEnvironmentVariable;
+        job.AllowEmpty |= AllowEmpty.IsPresent;
+        job.ReportPath = string.IsNullOrWhiteSpace(ReportPath) ? null : OfficeFileCommandUtilities.ResolvePath(this, ReportPath);
+        OfficeBatchReport report = await OfficeConverter.ConvertAsync(job, new BatchProgress(this), CancelToken);
+        OfficeBatchSummary result = report.Summary;
         WriteProgress(new ProgressRecord(1, "Run conversion job", "Finished") { RecordType = ProgressRecordType.Completed });
         OfficeWorkflowCommandUtilities.WriteSavedJobOutcome(this, result, report, SummaryVariable, AllowEmpty.IsPresent, ItemResults.IsPresent);
-#endif
     }
 
     private void SetSummary(object result) {
         if (!string.IsNullOrWhiteSpace(SummaryVariable)) SessionState.PSVariable.Set(SummaryVariable, result);
     }
 
-#if !FRAMEWORK
-    private sealed class BatchProgress(InvokeOfficeConversionJobCommand command) : IProgress<OfficeConversionBatchItemResult> {
+    private sealed class BatchProgress(InvokeOfficeConversionJobCommand command) : IProgress<OfficeBatchItemReport> {
         private int _processed;
-        public void Report(OfficeConversionBatchItemResult item) {
+        public void Report(OfficeBatchItemReport item) {
             if (command.ItemResults.IsPresent) command.WriteObject(item);
             int processed = System.Threading.Interlocked.Increment(ref _processed);
             if (processed == 1 || processed % 100 == 0)
                 command.WriteProgress(new ProgressRecord(1, "Run conversion job", $"Processed {processed} files"));
         }
     }
-#endif
 }

@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtChildAnchor = 0xF00F;
         private const ushort OfficeArtClientAnchor = 0xF010;
 
-        internal static bool CanWritePresentation(PowerPointPresentation presentation) {
+        internal static bool CanWriteDocument(PowerPointDocument presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             return TryBuildModifiedPersistObjects(presentation, out _, out _,
                     out _)
@@ -41,7 +41,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         .PropertySets, out _);
         }
 
-        internal static bool TryWritePresentation(PowerPointPresentation presentation, out byte[] bytes) {
+        internal static bool TryWriteDocument(PowerPointDocument presentation, out byte[] bytes) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             bytes = Array.Empty<byte>();
             if (!TryBuildModifiedPersistObjects(presentation,
@@ -378,10 +378,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static LegacyPptBounds GetBounds(PowerPointShape shape) {
-            int left = ToMasterUnits(shape.Left);
-            int top = ToMasterUnits(shape.Top);
-            int width = Math.Max(0, ToMasterUnits(shape.Width));
-            int height = Math.Max(0, ToMasterUnits(shape.Height));
+            int left = ToMasterUnits(shape.Left.ToEmus());
+            int top = ToMasterUnits(shape.Top.ToEmus());
+            int width = Math.Max(0, ToMasterUnits(shape.Width.ToEmus()));
+            int height = Math.Max(0, ToMasterUnits(shape.Height.ToEmus()));
             return new LegacyPptBounds(left, top, width, height);
         }
 

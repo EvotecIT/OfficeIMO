@@ -16,10 +16,14 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// Get-OfficePdfCompliance -Path $path -Profile PdfA3B</code>
 ///   <para>Applies OfficeIMO.Pdf compliance groundwork during composition, saves the PDF, then inspects the saved file.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfCompliance")]
+[Cmdlet(VerbsCommon.Set, "OfficePdfCompliance", DefaultParameterSetName = "Context")]
 [Alias("PdfCompliance")]
 public sealed class SetOfficePdfComplianceCommand : PSCmdlet
 {
+    /// <summary>Live generated PDF; omission uses the enclosing creation block.</summary>
+    [Parameter(ValueFromPipeline = true), ValidateNotNull]
+    public PdfDocument? Document { get; set; }
+
     /// <summary>Requested generated PDF compliance profile.</summary>
     [Parameter(Mandatory = true)]
     public PdfComplianceProfile Profile { get; set; }
@@ -40,10 +44,10 @@ public sealed class SetOfficePdfComplianceCommand : PSCmdlet
         {
             if (Groundwork.IsPresent) ApplyGroundwork(options);
             else options.RequireCompliance(Profile);
-        });
+        }, Document);
     }
 
-    private void ApplyGroundwork(PdfOptions options)
+    private void ApplyGroundwork(PdfCreateOptions options)
     {
         switch (Profile)
         {

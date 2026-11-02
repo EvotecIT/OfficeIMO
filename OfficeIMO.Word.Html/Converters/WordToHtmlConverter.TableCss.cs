@@ -60,6 +60,53 @@ namespace OfficeIMO.Word.Html {
                 StringComparison.Ordinal);
         }
 
+        private static readonly HashSet<string> KnownMonospaceFonts = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "Consolas", "Courier", "Courier New", "Lucida Console", "Lucida Sans Typewriter", "Menlo", "Monaco",
+            "SF Mono", "SFMono-Regular", "DejaVu Sans Mono", "Liberation Mono", "Cousine", "Inconsolata",
+            "Source Code Pro", "Fira Code", "Fira Mono", "Cascadia Mono", "Cascadia Code", "JetBrains Mono",
+            "Roboto Mono", "Ubuntu Mono", "Noto Sans Mono", "Andale Mono", "monospace"
+        };
+
+        private static bool[] ResolveNumericColumns(WordTable table, int headerRowCount) {
+            static string CellText(WordTableCell cell) => string.Concat(cell._tableCell.Descendants<Text>().Select(value => value.Text)).Trim();
+            // A first row of labels is a header even when Word does not mark it as one.
+            if (headerRowCount == 0 && table.Rows.Count > 1
+                && table.Rows[0].Cells.All(cell => !global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(CellText(cell)))) {
+                headerRowCount = 1;
+            }
+            if (table.Rows.Count <= headerRowCount) return Array.Empty<bool>();
+            int columns = table.Rows.Max(row => row.Cells.Count);
+            var numeric = new bool[columns];
+            for (int column = 0; column < columns; column++) {
+                bool any = false;
+                bool all = true;
+                for (int rowIndex = headerRowCount; rowIndex < table.Rows.Count && all; rowIndex++) {
+                    var cells = table.Rows[rowIndex].Cells;
+                    if (column >= cells.Count) continue;
+                    string text = CellText(cells[column]);
+                    if (text.Length == 0) continue;
+                    any = true;
+                    all = global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(text);
+                }
+                numeric[column] = any && all;
+            }
+            return numeric;
+        }
+
+        // A monospace run is code unless monospace is simply the document's own default font.
+        private static bool IsInlineCodeRun(WordParagraph run, string? documentFont) =>
+            IsMonospaceFontFamily(run.FontFamily)
+            && !string.Equals(run.FontFamily, documentFont, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>Recognises monospace families by name, independent of the fonts installed on this machine.</summary>
+        internal static bool IsMonospaceFontFamily(string? family) {
+            if (string.IsNullOrWhiteSpace(family)) return false;
+            string name = family!.Trim().Trim('"', '\'');
+            return KnownMonospaceFonts.Contains(name)
+                || name.IndexOf(" Mono", StringComparison.OrdinalIgnoreCase) >= 0
+                || name.EndsWith("Mono", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsFollowedByContinuingListParagraph(
             IReadOnlyList<WordElement> elements,
             int tableIndex) {
@@ -81,31 +128,35 @@ namespace OfficeIMO.Word.Html {
         }
 
 
-            string? GetWidthCss(TableWidthUnitValues? type, int? width) {
-                if (type == null || width == null) {
-                    return null;
-                }
-
-                if (type == TableWidthUnitValues.Pct) {
-                    return $"{FormatCssNumber(width.Value / 50.0)}%";
-                }
-
-                if (type == TableWidthUnitValues.Dxa) {
-                    double points = width.Value / 20.0;
-                    double pixels = points * 96 / 72;
-                    return $"{Math.Round(pixels)}px";
-                }
-
+            string? GetWidthCss(WordTableWidth? width) {
+                if (width?.PercentValue is double percent) return $"{FormatCssNumber(percent)}%";
+                if (width?.LengthValue is { } length) return $"{FormatCssNumber(length.ToPixels())}px";
+                if (width?.Kind == WordTableWidthKind.Auto) return "auto";
                 return null;
+            }
+
+            // A fixed Word width is a share of the page's text column. Expressing it as a share of
+            // the HTML body keeps the table's proportions instead of pinning it to a narrow pixel width.
+            string? GetTopLevelTableWidthCss(WordTable table) {
+                if (table.Width?.LengthValue is not { } length || length <= OfficeLength.Zero) {
+                    return GetWidthCss(table.Width);
+                }
+
+                WordSection? section = table.Document.Sections.FirstOrDefault();
+                double pageWidth = section?.PageSettings.Width?.ToPoints() ?? 612D;
+                double textWidth = pageWidth - (section?.Margins.Left?.ToPoints() ?? 72D) - (section?.Margins.Right?.ToPoints() ?? 72D);
+                if (textWidth <= 0D) return GetWidthCss(table.Width);
+                double percent = Math.Min(100D, length.ToPoints() * 100D / textWidth);
+                return $"{FormatCssNumber(percent)}%";
             }
 
             string? GetTableCellSpacingCss(WordTable table) {
                 var cellSpacing = table.StyleDetails?.CellSpacing;
-                if (cellSpacing == null || cellSpacing.Value <= 0) {
+                if (cellSpacing == null || cellSpacing.Value <= global::OfficeIMO.OfficeLength.Zero) {
                     return null;
                 }
 
-                return FormatTwips(cellSpacing.Value);
+                return FormatTwips(checked((int)cellSpacing.Value.ToTwips()));
             }
 
             void AppendColumnGroup(IDocument htmlDoc, IElement tableElement, WordTable table) {
@@ -115,9 +166,9 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 var colGroup = CreateOutputElement(htmlDoc, "colgroup");
-                foreach (var (type, width) in columns) {
+                foreach (var width in columns) {
                     var col = CreateOutputElement(htmlDoc, "col");
-                    var widthCss = GetWidthCss(type, width);
+                    var widthCss = GetWidthCss(width);
                     if (!string.IsNullOrEmpty(widthCss)) {
                         SetOutputAttribute(col, "style", $"width:{widthCss}", "TableColumn:style");
                     }
@@ -126,14 +177,14 @@ namespace OfficeIMO.Word.Html {
                 tableElement.AppendChild(colGroup);
             }
 
-            List<(TableWidthUnitValues? Type, int Width)> GetColumnWidths(WordTable table) {
+            List<WordTableWidth?> GetColumnWidths(WordTable table) {
                 if (table.Rows.Count == 0) {
-                    return new List<(TableWidthUnitValues? Type, int Width)>();
+                    return new List<WordTableWidth?>();
                 }
 
                 var gridColumns = GetGridColumnWidths(table);
                 var firstRow = table.Rows[0];
-                var columns = new List<(TableWidthUnitValues? Type, int Width)>();
+                var columns = new List<WordTableWidth?>();
                 foreach (var cell in firstRow.Cells) {
                     if (cell.HorizontalMerge == WordCellMerge.Continue || cell.VerticalMerge == WordCellMerge.Continue) {
                         return gridColumns;
@@ -141,11 +192,11 @@ namespace OfficeIMO.Word.Html {
                     if (cell.HorizontalMerge == WordCellMerge.Restart || cell.VerticalMerge == WordCellMerge.Restart) {
                         return gridColumns;
                     }
-                    if (cell.WidthType == null || cell.Width == null || GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width) == null) {
+                    if (cell.Width == null || GetWidthCss(cell.Width) == null) {
                         return gridColumns;
                     }
 
-                    columns.Add((cell.WidthType?.ToOpenXml(), cell.Width.Value));
+                    columns.Add(cell.Width);
                 }
 
                 if (columns.Count > 0) {
@@ -155,11 +206,11 @@ namespace OfficeIMO.Word.Html {
                 return gridColumns;
             }
 
-            List<(TableWidthUnitValues? Type, int Width)> GetGridColumnWidths(WordTable table) {
+            List<WordTableWidth?> GetGridColumnWidths(WordTable table) {
                 var gridWidths = table.GridColumnWidth;
                 return gridWidths.Count > 0
-                    ? gridWidths.Select(width => ((TableWidthUnitValues?)TableWidthUnitValues.Dxa, width)).ToList()
-                    : new List<(TableWidthUnitValues? Type, int Width)>();
+                    ? gridWidths.Select(width => (WordTableWidth?)WordTableWidth.Length(width)).ToList()
+                    : new List<WordTableWidth?>();
             }
 
             static string FormatCssNumber(double value) {
@@ -243,10 +294,10 @@ namespace OfficeIMO.Word.Html {
                     return styles;
                 }
 
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, b.BottomSize);
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, WordBorderLengths.ToSize(b.LeftSize));
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, WordBorderLengths.ToSize(b.RightSize));
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, WordBorderLengths.ToSize(b.TopSize));
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, WordBorderLengths.ToSize(b.BottomSize));
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;
@@ -277,10 +328,11 @@ namespace OfficeIMO.Word.Html {
                 var b = p.Borders;
                 if (b == null) return styles;
 
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, b.BottomSize);
+                // Keep native eighth-point quantization before rounding the CSS pixel width.
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, WordBorderLengths.ToSize(b.LeftSize));
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, WordBorderLengths.ToSize(b.RightSize));
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, WordBorderLengths.ToSize(b.TopSize));
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, WordBorderLengths.ToSize(b.BottomSize));
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;

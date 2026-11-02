@@ -9,9 +9,9 @@ schema: 2.0.0
 Saves a native OpenDocument model with entry-level preservation diagnostics.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Save-OfficeOpenDocument [-Path] <string> -Document <OdfDocument> [-Options <OdfSaveOptions>] [-FailOnLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeOpenDocument [[-Path] <string>] -Document <OdfDocument> [-Options <OdfSaveOptions>] [-FailOnLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,8 @@ Saves a native OpenDocument model with entry-level preservation diagnostics.
 
 ### EXAMPLE 1
 ```powershell
-Save-OfficeOpenDocument -Path 'C:\Path' -Document 'Value'
+$document = New-OfficeOpenDocument -Path ./Proposal.odt
+Save-OfficeOpenDocument -Document $document
 ```
 
 
@@ -32,7 +33,7 @@ OpenDocument model to save.
 
 ```yaml
 Type: OdfDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +49,7 @@ Throw when source entries cannot be preserved losslessly.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +65,7 @@ Optional package save and preservation settings.
 
 ```yaml
 Type: OdfSaveOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +81,7 @@ Emit the save result, including preservation diagnostics.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -92,15 +93,15 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Destination path.
+Destination path; defaults to the document's associated save path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: False

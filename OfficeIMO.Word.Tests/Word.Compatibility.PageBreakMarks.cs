@@ -65,12 +65,12 @@ public partial class Word {
     public void LegacyDoc_PageBreakMarkDefaultProjectsTheLegacyLayoutIntoDocx() {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("Plain Word97 document");
-        byte[] bytes = source.ToBytes(WordFileFormat.Doc);
+        byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.Equal(0x00C1, BitConverter.ToUInt16(ReadCompoundStream(bytes, "WordDocument"), 2));
         using WordDocument loaded = WordDocument.Load(new MemoryStream(bytes));
         Assert.True(loaded.CompatibilitySettings.SplitPageBreakAndParagraphMark);
         Assert.Equal(WordCompatibilityMode.Word2003, loaded.CompatibilitySettings.CompatibilityMode);
-        using WordDocument docx = WordDocument.Load(new MemoryStream(loaded.ToBytes(WordFileFormat.Docx)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(loaded.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         Assert.True(docx.CompatibilitySettings.SplitPageBreakAndParagraphMark);
         Assert.Equal(WordCompatibilityMode.Word2003, docx.CompatibilitySettings.CompatibilityMode);
     }
@@ -83,9 +83,9 @@ public partial class Word {
         source.AddParagraph("Preserved content");
         source.CompatibilitySettings.CompatibilityMode = mode;
         source.CompatibilitySettings.SplitPageBreakAndParagraphMark = false;
-        var error = Assert.Throws<NotSupportedException>(() => source.ToBytes(WordFileFormat.Doc));
+        var error = Assert.Throws<NotSupportedException>(() => source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Contains("Save as DOCX", error.Message);
-        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(WordFileFormat.Docx)));
+        using WordDocument docx = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx })));
         Assert.False(docx.CompatibilitySettings.SplitPageBreakAndParagraphMark);
         Assert.Equal(mode, docx.CompatibilitySettings.CompatibilityMode);
         Assert.Equal("Preserved content", Assert.Single(docx.Paragraphs).Text);

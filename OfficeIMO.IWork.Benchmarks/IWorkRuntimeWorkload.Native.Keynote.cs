@@ -48,8 +48,8 @@ public sealed partial class IWorkRuntimeWorkload {
     }
 
     private void ValidateNativeKeynoteOutput(Stream saved) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(saved);
-        if (presentation.Slides.Count != _units || presentation.SlideSize.WidthPoints != 1024 || presentation.SlideSize.HeightPoints != 768
+        using PowerPointDocument presentation = PowerPointDocument.Load(saved);
+        if (presentation.Slides.Count != _units || presentation.SlideSize.Width.ToPoints() != 1024 || presentation.SlideSize.Height.ToPoints() != 768
             || presentation.ValidateDocument().Count != 0)
             throw new InvalidDataException("Native PPTX structure differs.");
         for (int i = 0; i < presentation.Slides.Count; i++) {
@@ -62,7 +62,7 @@ public sealed partial class IWorkRuntimeWorkload {
                 throw new InvalidDataException("Native PPTX text, notes, order or background differs.");
             for (int box = 0; box < boxes.Length; box++) {
                 var geometry = boxes[box];
-                ValidateNativeKeynoteGeometry(box, geometry.LeftPoints, geometry.TopPoints, geometry.WidthPoints, geometry.HeightPoints);
+                ValidateNativeKeynoteGeometry(box, geometry.Left.ToPoints(), geometry.Top.ToPoints(), geometry.Width.ToPoints(), geometry.Height.ToPoints());
                 if (geometry.Rotation.GetValueOrDefault() != 0 || geometry.HorizontalFlip.GetValueOrDefault()
                     || geometry.VerticalFlip.GetValueOrDefault())
                     throw new InvalidDataException("Native PPTX frame rotation or flip differs.");

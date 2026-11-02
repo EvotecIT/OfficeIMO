@@ -1,6 +1,6 @@
 namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>Provides the compact, user-facing outcome of a legacy DOC import.</summary>
-    public sealed class LegacyDocImportSummary : IOfficeConversionReport {
+    internal sealed class LegacyDocImportSummary : IOfficeConversionReport {
         internal LegacyDocImportSummary(LegacyDocLoadResult result) {
             ParagraphCount = result.LegacyDocument.Paragraphs.Count;
             DiagnosticCount = result.Diagnostics.Count;

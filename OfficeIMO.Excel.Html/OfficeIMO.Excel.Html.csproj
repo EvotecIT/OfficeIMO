@@ -51,4 +51,7 @@
 
   <ItemGroup>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\OfficeIMO.SharedSource\Charts\OfficeChartTypeName.cs" Link="SharedSource\Charts\OfficeChartTypeName.cs" />
+  </ItemGroup>
 </Project>

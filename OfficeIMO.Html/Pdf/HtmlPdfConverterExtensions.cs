@@ -7,35 +7,8 @@ namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Converts a parsed OfficeIMO HTML source document through the shared HTML render scene.</summary>
 public static partial class HtmlPdfConverterExtensions {
-    /// <summary>Converts a parsed HTML document to PDF bytes.</summary>
-    public static byte[] ToPdfBytes(this HtmlConversionDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        return HtmlPdfRenderedConverter.ConvertToBytes(document, Normalize(options), cancellationToken);
-    }
-
-    /// <summary>Asynchronously resolves HTML resources and converts a parsed HTML document to PDF bytes.</summary>
-    public static async Task<byte[]> ToPdfBytesAsync(
-        this HtmlConversionDocument document,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        return await HtmlPdfRenderedConverter.ConvertToBytesAsync(
-            document, Normalize(options), cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>Converts a parsed HTML document to the first-party PDF document model.</summary>
-    public static PdfCore.PdfDocument ToPdfDocument(this HtmlConversionDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) =>
-        document.ToPdfDocumentResult(options, cancellationToken).Value;
-
-    /// <summary>Asynchronously converts a parsed HTML document to the first-party PDF document model.</summary>
-    public static async Task<PdfCore.PdfDocument> ToPdfDocumentAsync(
-        this HtmlConversionDocument document,
-        HtmlToPdfOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        (await document.ToPdfDocumentResultAsync(options, cancellationToken).ConfigureAwait(false)).Value;
-
     /// <summary>Converts a parsed HTML document to PDF plus an immutable diagnostics snapshot.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this HtmlConversionDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+    internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this HtmlConversionDocument document, HtmlToPdfOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlPdfRenderResult rendered = HtmlPdfRenderedConverter.Convert(
@@ -45,7 +18,7 @@ public static partial class HtmlPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously converts a parsed HTML document to PDF plus an immutable diagnostics snapshot.</summary>
-    public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfDocumentResultAsync(
+    internal static async Task<PdfCore.PdfDocumentConversionResult> ConvertToPdfWithEvidenceAsync(
         this HtmlConversionDocument document,
         HtmlToPdfOptions? options = null,
         CancellationToken cancellationToken = default) {

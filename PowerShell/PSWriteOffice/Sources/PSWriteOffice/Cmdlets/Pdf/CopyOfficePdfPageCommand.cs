@@ -51,7 +51,7 @@ public sealed class CopyOfficePdfPageCommand : PSWriteOffice.Cmdlets.OfficeMutat
         PdfDocument.Load(
                 PdfCommandUtilities.ResolvePath(this, Path),
                 PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-            .Pages.Extract(PageRange).Save(outputPath).RequireSuccess();
+            .Pages.Extract(PageRange).Save(outputPath);
         WritePassThru(new FileInfo(outputPath));
     }
 }

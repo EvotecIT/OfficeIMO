@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ArrayText");
+                    ExcelSheet sheet = document.AddSheet("ArrayText");
                     sheet.CellValue(1, 2, "AB");
                     sheet.SetArrayFormula("B1:B2", "CONCATENATE(\"A\",\"B\")");
                     sheet.CellValue(2, 2, "AB");
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ArrayDates");
+                    ExcelSheet sheet = document.AddSheet("ArrayDates");
                     sheet.CellValue(1, 2, "2026-01-02T00:00:00");
                     sheet.SetArrayFormula("B1:B2", "DATE(2026,1,2)");
                     sheet.CellValue(2, 2, "2026-01-02T00:00:00");
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ArrayBoolean");
+                    ExcelSheet sheet = document.AddSheet("ArrayBoolean");
                     sheet.CellValue(1, 2, true);
                     sheet.SetArrayFormula("B1:B2", "A1=1");
                     sheet.CellValue(2, 2, false);
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ArrayErrors");
+                    ExcelSheet sheet = document.AddSheet("ArrayErrors");
                     sheet.CellValue(1, 2, "#N/A");
                     sheet.SetArrayFormula("B1:B2", "NA()");
                     sheet.CellValue(2, 2, "#N/A");

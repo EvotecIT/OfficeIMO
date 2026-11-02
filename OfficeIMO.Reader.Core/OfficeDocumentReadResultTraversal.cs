@@ -26,6 +26,12 @@ public static partial class OfficeDocumentReadResultExtensions {
         return OfficeDocumentModelTraversal.Blocks(document);
     }
 
+    /// <summary>Enumerates document and chunk visual projections using the Reader's canonical duplicate handling.</summary>
+    public static IEnumerable<ReaderVisual> EnumerateVisuals(this OfficeDocumentReadResult document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        return OfficeDocumentModelTraversal.Visuals(document);
+    }
+
     /// <summary>
     /// Enumerates tables from document, page and chunk projections using the Reader's canonical duplicate handling.
     /// Page-only tables inherit missing location information from their page. Results may refer to source model objects.

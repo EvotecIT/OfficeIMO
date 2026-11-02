@@ -88,7 +88,7 @@ public sealed class PdfConversionReportTests {
 
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Word.Pdf",
-            "NativeFontFamilySubstituted",
+            "font-family-substitution",
             "word:font[Calibri]",
             "Calibri was substituted."));
         Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
@@ -109,7 +109,7 @@ public sealed class PdfConversionReportTests {
 
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Word.Pdf",
-            "NativeFontFamilySlotExhausted",
+            "native-font-family-slot-exhausted",
             "word:font[FourthFamily]",
             "The standard font slots were exhausted and another mapped family was used."));
         Assert.Equal(PdfConversionFidelityStatus.FaithfulWithSubstitutions, report.FidelityStatus);
@@ -186,7 +186,7 @@ public sealed class PdfConversionReportTests {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Html.Pdf",
-            "StylesheetResourceRejectedByPolicy",
+            "stylesheet-resource-rejected-by-policy",
             "html:head/link[1]",
             "Stylesheet was blocked by the configured resource policy."));
 
@@ -206,7 +206,7 @@ public sealed class PdfConversionReportTests {
         Assert.Equal(1, summary.TotalCount);
         Assert.Equal(1, summary.WarningCount);
         Assert.Equal(1, summary.ConverterCounts["OfficeIMO.Html.Pdf"]);
-        Assert.Equal(1, summary.CodeCounts["StylesheetResourceRejectedByPolicy"]);
+        Assert.Equal(1, summary.CodeCounts["stylesheet-resource-rejected-by-policy"]);
         Assert.False(summary.CodeCounts.ContainsKey("LaterWarning"));
         Assert.Contains("Summary snapshot proof", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
@@ -235,7 +235,7 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_FailedSerializationPreservesRecordedDiagnostics() {
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
             report);
@@ -365,7 +365,7 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_LosslessProofCapturesSerializationDiagnostics() {
         var report = new PdfConversionReport();
-        var pdfOptions = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+        var pdfOptions = new PdfCreateOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create(pdfOptions).Paragraph(paragraph => paragraph.Text("مرحبا")),
             report);
@@ -431,7 +431,7 @@ public sealed class PdfConversionReportTests {
             AppContext.BaseDirectory,
             "Typography",
             "NotoSansArabic-Regular.ttf"));
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
             .SetTextShapingMode(PdfTextShapingMode.UnicodeScalar)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Strict Arabic");
@@ -460,9 +460,9 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesRequiredPageSize() {
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 320,
-                    PageHeight = 240
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(240)
                 })
                 .Paragraph(paragraph => paragraph.Text("Page geometry proof")),
             new PdfConversionReport());
@@ -525,9 +525,9 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofReportsPageSizeMismatch() {
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create(new PdfOptions {
-                    PageWidth = 320,
-                    PageHeight = 240
+            PdfDocument.Create(new PdfCreateOptions {
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(240)
                 })
                 .Paragraph(paragraph => paragraph.Text("Page size mismatch proof")),
             new PdfConversionReport());
@@ -581,12 +581,12 @@ public sealed class PdfConversionReportTests {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Html.Pdf",
-            "StylesheetResourceRejectedByPolicy",
+            "stylesheet-resource-rejected-by-policy",
             "html:head/link[1]",
             "Stylesheet was blocked by the configured resource policy."));
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Html.Pdf",
-            "UnsupportedCssDeclaration",
+            "unsupported-css-declaration",
             "html:style[1]",
             "CSS declaration was ignored."));
 
@@ -596,8 +596,8 @@ public sealed class PdfConversionReportTests {
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
             .RequireTextMarkers("Accepted degradation proof")
-            .RequireWarningCodes("StylesheetResourceRejectedByPolicy", "UnsupportedCssDeclaration")
-            .AcceptWarningCodes("StylesheetResourceRejectedByPolicy", "UnsupportedCssDeclaration")
+            .RequireWarningCodes("stylesheet-resource-rejected-by-policy", "unsupported-css-declaration")
+            .AcceptWarningCodes("stylesheet-resource-rejected-by-policy", "unsupported-css-declaration")
             .RequireNoUnexpectedWarningCodes());
 
         Assert.True(proof.IsSatisfied, proof.Summary);
@@ -636,7 +636,7 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesLogicalSignals() {
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CreateOutlineFromHeadings = true,
             IncludePageLabels = true,
             PageNumberStyle = PdfPageNumberStyle.UpperRoman,

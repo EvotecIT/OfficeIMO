@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using OfficeIMO.Email;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
@@ -15,7 +16,7 @@ public static partial class EmailEvidenceWorkflow {
         EmailEvidenceOptions options, CancellationToken token,
         Func<IEnumerable<EmailEvidenceDiagnostic>>? finalDiagnostics = null) {
         var html = new StringBuilder("<main><h1>Email evidence</h1><p>Readable projection; signatures and protected content have not been verified or decrypted.</p>");
-        var markdown = MarkdownDoc.Create().H1("Email evidence").P("Readable projection; signatures and protected content have not been verified or decrypted.");
+        var markdown = MarkdownDocument.Create().H1("Email evidence").P("Readable projection; signatures and protected content have not been verified or decrypted.");
         AppendLiteral("Source fingerprint", fingerprintKind + ": " + fingerprint);
         AppendLiteral("Graph coverage", graphComplete ? "Complete within the selected graph scope" : "Incomplete: graph bounds or read failures omitted evidence");
         var messages = new List<EmailEvidenceMessage>();
@@ -29,7 +30,7 @@ public static partial class EmailEvidenceWorkflow {
             var attachments = document.Attachments.Select((attachment, index) => new EmailEvidenceAttachment(index,
                 ClipNullable(attachment.FileName), ClipNullable(attachment.ContentType), attachment.Length, attachment.IsInline,
                 attachment.EmbeddedDocument != null || attachment.MapiAttachMethod == 5, attachment.Content == null ? null :
-                    Convert.ToHexString(SHA256.HashData(attachment.Content)).ToLowerInvariant())).ToArray();
+                    OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(attachment.Content)).ToLowerInvariant())).ToArray();
             string recipients(EmailRecipientKind kind) => Clip(string.Join(", ", document.Recipients.Where(value => value.Kind == kind)
                 .Select(value => Clip(value.Address.ToString())).Take(1000)));
             var message = new EmailEvidenceMessage(id, ClipNullable(document.Subject), ClipNullable(document.From?.ToString()),
@@ -55,7 +56,7 @@ public static partial class EmailEvidenceWorkflow {
         EnsureBounds(reportHtml.Length, reportMarkdown.Length);
         byte[]? pdf = null;
         if (options.IncludePdf) {
-            var conversion = HtmlConversionDocument.Parse(reportHtml).ToPdfDocumentResult(new HtmlToPdfOptions {
+            var conversion = HtmlConversionDocument.Parse(reportHtml).ConvertToPdfWithEvidence(new HtmlToPdfOptions {
                 MaxInputCharacters = options.MaxReportCharacters, MaxPageCount = options.MaxPdfPages
             }, token);
             pdf = conversion.ToBytes(token);

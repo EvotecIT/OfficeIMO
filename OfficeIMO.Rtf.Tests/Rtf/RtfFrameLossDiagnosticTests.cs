@@ -61,7 +61,7 @@ public class RtfFrameLossDiagnosticTests {
         framed.SetStyle(7).AddText("FRAMEDMARKER");
         string original = source.ToRtf();
 
-        PdfCore.PdfDocumentConversionResult direct = source.ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult direct = source.ConvertToPdfWithEvidence();
         PdfCore.PdfConversionWarning directWarning = Assert.Single(direct.Warnings,
             warning => warning.Code == "ParagraphFrameFlattened");
         Assert.Equal(OfficeConversionLossKind.Approximation, directWarning.LossKind);
@@ -99,7 +99,7 @@ public class RtfFrameLossDiagnosticTests {
         Assert.True(bridge.HasLoss);
         Assert.Throws<RtfConversionLossException>(() => bridge.RequireNoLoss());
         using var output = new MemoryStream();
-        PdfCore.PdfSaveResult saved = word.ToPdfDocumentResult().WithSourceConversionReport(bridge.Report).Save(output);
+        PdfCore.PdfSaveResult saved = word.ConvertToPdfWithEvidence().WithSourceConversionReport(bridge.Report).Save(output);
         Assert.True(saved.Succeeded);
         Assert.True(saved.HasLoss);
         Assert.Contains(saved.FidelityDiagnostics, diagnostic => diagnostic.Code == "RtfWordParagraphFramesFlattened" &&
@@ -124,14 +124,14 @@ public class RtfFrameLossDiagnosticTests {
         var options = new RtfToPdfOptions();
         for (int index = 0; index < 2; index++) {
             using var output = new MemoryStream();
-            PdfCore.PdfSaveResult saved = source.SaveAsPdf(output, options);
+            PdfCore.PdfSaveResult saved = source.ConvertToPdfWithEvidence(options).Save(output);
             Assert.Single(saved.Warnings, warning => warning.Code == "ParagraphFrameFlattened");
             Assert.True(saved.HasLoss);
             Assert.Contains("FRAMEDMARKER", PdfCore.PdfReadDocument.Open(output.ToArray()).ExtractText(), StringComparison.Ordinal);
         }
         RtfDocument plain = RtfDocument.Create();
         plain.AddParagraph("PLAINMARKER");
-        Assert.DoesNotContain(plain.ToPdfDocumentResult(options).Warnings, warning => warning.Code == "ParagraphFrameFlattened");
+        Assert.DoesNotContain(plain.ConvertToPdfWithEvidence(options).Warnings, warning => warning.Code == "ParagraphFrameFlattened");
         using WordDocument word = plain.ToWordDocumentResult().RequireNoLoss();
     }
 
@@ -142,9 +142,9 @@ public class RtfFrameLossDiagnosticTests {
         source.AddHeader(RtfHeaderFooterKind.FirstHeader).AddParagraph("INACTIVE").Frame.WidthTwips = 3600;
         source.AddHeader().AddParagraph("SKIPPED").Frame.WidthTwips = 3600;
 
-        Assert.DoesNotContain(source.ToPdfDocumentResult(new RtfToPdfOptions { IncludeHeaderFooters = false }).Warnings,
+        Assert.DoesNotContain(source.ConvertToPdfWithEvidence(new RtfToPdfOptions { IncludeHeaderFooters = false }).Warnings,
             warning => warning.Code == "ParagraphFrameFlattened");
-        Assert.Single(source.ToPdfDocumentResult().Warnings, warning => warning.Code == "ParagraphFrameFlattened");
+        Assert.Single(source.ConvertToPdfWithEvidence().Warnings, warning => warning.Code == "ParagraphFrameFlattened");
     }
 
     [Theory]

@@ -7,14 +7,14 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>Analyzes a file-to-file Excel conversion without creating or changing an artifact.</summary>
-    public static ExcelDocumentConversionReport AnalyzeConversion(
+    internal static ExcelDocumentConversionReport AnalyzeConversion(
         string sourcePath,
         string destinationPath,
         ExcelDocumentConversionOptions? options = null) =>
         AnalyzeConversionAsync(sourcePath, destinationPath, options).GetAwaiter().GetResult();
 
     /// <summary>Asynchronously analyzes a file-to-file Excel conversion without creating or changing an artifact.</summary>
-    public static async Task<ExcelDocumentConversionReport> AnalyzeConversionAsync(
+    internal static async Task<ExcelDocumentConversionReport> AnalyzeConversionAsync(
         string sourcePath,
         string destinationPath,
         ExcelDocumentConversionOptions? options = null,

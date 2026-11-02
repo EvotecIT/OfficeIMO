@@ -52,7 +52,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Placeholder for a custom paragraph style.
         /// </summary>
-        Custom
+        Custom,
+        /// <summary>The document title style.</summary>
+        Title,
+        /// <summary>The document subtitle style.</summary>
+        Subtitle
     }
 
     /// <summary>
@@ -193,16 +197,18 @@ namespace OfficeIMO.Word {
             }
             return style switch {
                 WordParagraphStyles.Normal => StyleNormal,
-                WordParagraphStyles.Heading1 => StyleHeading1,
-                WordParagraphStyles.Heading2 => StyleHeading2,
-                WordParagraphStyles.Heading3 => StyleHeading3,
-                WordParagraphStyles.Heading4 => StyleHeading4,
-                WordParagraphStyles.Heading5 => StyleHeading5,
-                WordParagraphStyles.Heading6 => StyleHeading6,
+                WordParagraphStyles.Heading1 => WordThemeDefaults.CreateHeading(1),
+                WordParagraphStyles.Heading2 => WordThemeDefaults.CreateHeading(2),
+                WordParagraphStyles.Heading3 => WordThemeDefaults.CreateHeading(3),
+                WordParagraphStyles.Heading4 => WordThemeDefaults.CreateHeading(4),
+                WordParagraphStyles.Heading5 => WordThemeDefaults.CreateHeading(5),
+                WordParagraphStyles.Heading6 => WordThemeDefaults.CreateHeading(6),
                 WordParagraphStyles.Heading7 => StyleHeading7,
                 WordParagraphStyles.Heading8 => StyleHeading8,
                 WordParagraphStyles.Heading9 => StyleHeading9,
                 WordParagraphStyles.ListParagraph => StyleListParagraph,
+                WordParagraphStyles.Title => WordThemeDefaults.CreateTitle(),
+                WordParagraphStyles.Subtitle => WordThemeDefaults.CreateSubtitle(),
                 WordParagraphStyles.Custom => null,
                 _ => throw new ArgumentOutOfRangeException(nameof(style)),
             };
@@ -224,6 +230,8 @@ namespace OfficeIMO.Word {
                 case WordParagraphStyles.Heading8: return "Heading8";
                 case WordParagraphStyles.Heading9: return "Heading9";
                 case WordParagraphStyles.ListParagraph: return "ListParagraph";
+                case WordParagraphStyles.Title: return "Title";
+                case WordParagraphStyles.Subtitle: return "Subtitle";
                 case WordParagraphStyles.Custom: return "Custom";
             }
 
@@ -246,6 +254,8 @@ namespace OfficeIMO.Word {
                 "Heading8" => WordParagraphStyles.Heading8,
                 "Heading9" => WordParagraphStyles.Heading9,
                 "ListParagraph" => WordParagraphStyles.ListParagraph,
+                "Title" => WordParagraphStyles.Title,
+                "Subtitle" => WordParagraphStyles.Subtitle,
                 _ => WordParagraphStyles.Custom,
             };
         }
@@ -277,318 +287,6 @@ namespace OfficeIMO.Word {
 
                 style1.Append(styleName1);
                 style1.Append(primaryStyle1);
-                return style1;
-            }
-        }
-        private static Style StyleHeading1 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading1" };
-                StyleName styleName1 = new StyleName() { Val = "heading 1" };
-                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading1Char" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() { Val = "00973C6F" };
-
-                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
-                KeepNext keepNext1 = new KeepNext();
-                KeepLines keepLines1 = new KeepLines();
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "240", After = "0" };
-                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 0 };
-
-                styleParagraphProperties1.Append(keepNext1);
-                styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(spacingBetweenLines1);
-                styleParagraphProperties1.Append(outlineLevel1);
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
-                FontSize fontSize1 = new FontSize() { Val = "32" };
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "32" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(color1);
-                styleRunProperties1.Append(fontSize1);
-                styleRunProperties1.Append(fontSizeComplexScript1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(nextParagraphStyle1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(primaryStyle1);
-                style1.Append(rsid1);
-                style1.Append(styleParagraphProperties1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-        private static Style StyleHeading2 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading2" };
-                StyleName styleName1 = new StyleName() { Val = "heading 2" };
-                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading2Char" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
-                PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() { Val = "00973C6F" };
-
-                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
-                KeepNext keepNext1 = new KeepNext();
-                KeepLines keepLines1 = new KeepLines();
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
-                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 1 };
-
-                styleParagraphProperties1.Append(keepNext1);
-                styleParagraphProperties1.Append(keepLines1);
-                styleParagraphProperties1.Append(spacingBetweenLines1);
-                styleParagraphProperties1.Append(outlineLevel1);
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
-                FontSize fontSize1 = new FontSize() { Val = "26" };
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "26" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(color1);
-                styleRunProperties1.Append(fontSize1);
-                styleRunProperties1.Append(fontSizeComplexScript1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(nextParagraphStyle1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(unhideWhenUsed1);
-                style1.Append(primaryStyle1);
-                style1.Append(rsid1);
-                style1.Append(styleParagraphProperties1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-        private static Style StyleHeading3 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading3" };
-                StyleName styleName1 = new StyleName() { Val = "heading 3" };
-                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading3Char" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
-                PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
-
-                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
-                KeepNext keepNext1 = new KeepNext();
-                KeepLines keepLines1 = new KeepLines();
-
-                //NumberingProperties numberingProperties1 = new NumberingProperties();
-                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 2};
-                //NumberingId numberingId1 = new NumberingId() {Val = 4};
-
-                //numberingProperties1.Append(numberingLevelReference1);
-                //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
-                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 2 };
-
-                styleParagraphProperties1.Append(keepNext1);
-                styleParagraphProperties1.Append(keepLines1);
-                //styleParagraphProperties1.Append(numberingProperties1);
-                styleParagraphProperties1.Append(spacingBetweenLines1);
-                styleParagraphProperties1.Append(outlineLevel1);
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Color color1 = new Color() { Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F" };
-                FontSize fontSize1 = new FontSize() { Val = "24" };
-                FontSizeComplexScript fontSizeComplexScript1 = new FontSizeComplexScript() { Val = "24" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(color1);
-                styleRunProperties1.Append(fontSize1);
-                styleRunProperties1.Append(fontSizeComplexScript1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(nextParagraphStyle1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(unhideWhenUsed1);
-                style1.Append(primaryStyle1);
-                style1.Append(rsid1);
-                style1.Append(styleParagraphProperties1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-        private static Style StyleHeading4 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading4" };
-                StyleName styleName1 = new StyleName() { Val = "heading 4" };
-                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading4Char" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
-                PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
-
-                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
-                KeepNext keepNext1 = new KeepNext();
-                KeepLines keepLines1 = new KeepLines();
-
-                //NumberingProperties numberingProperties1 = new NumberingProperties();
-                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 3};
-                //NumberingId numberingId1 = new NumberingId() {Val = 4};
-
-                //numberingProperties1.Append(numberingLevelReference1);
-                //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
-                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 3 };
-
-                styleParagraphProperties1.Append(keepNext1);
-                styleParagraphProperties1.Append(keepLines1);
-                //styleParagraphProperties1.Append(numberingProperties1);
-                styleParagraphProperties1.Append(spacingBetweenLines1);
-                styleParagraphProperties1.Append(outlineLevel1);
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Italic italic1 = new Italic();
-                ItalicComplexScript italicComplexScript1 = new ItalicComplexScript();
-                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(italic1);
-                styleRunProperties1.Append(italicComplexScript1);
-                styleRunProperties1.Append(color1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(nextParagraphStyle1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(unhideWhenUsed1);
-                style1.Append(primaryStyle1);
-                style1.Append(rsid1);
-                style1.Append(styleParagraphProperties1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-        private static Style StyleHeading5 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading5" };
-                StyleName styleName1 = new StyleName() { Val = "heading 5" };
-                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading5Char" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
-                PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
-
-                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
-                KeepNext keepNext1 = new KeepNext();
-                KeepLines keepLines1 = new KeepLines();
-
-                //NumberingProperties numberingProperties1 = new NumberingProperties();
-                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 4};
-                //NumberingId numberingId1 = new NumberingId() {Val = 4};
-
-                //numberingProperties1.Append(numberingLevelReference1);
-                //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
-                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 4 };
-
-                styleParagraphProperties1.Append(keepNext1);
-                styleParagraphProperties1.Append(keepLines1);
-                //styleParagraphProperties1.Append(numberingProperties1);
-                styleParagraphProperties1.Append(spacingBetweenLines1);
-                styleParagraphProperties1.Append(outlineLevel1);
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Color color1 = new Color() { Val = "2F5496", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "BF" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(color1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(nextParagraphStyle1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(unhideWhenUsed1);
-                style1.Append(primaryStyle1);
-                style1.Append(rsid1);
-                style1.Append(styleParagraphProperties1);
-                style1.Append(styleRunProperties1);
-                return style1;
-            }
-        }
-        private static Style StyleHeading6 {
-            get {
-                Style style1 = new Style() { Type = StyleValues.Paragraph, StyleId = "Heading6" };
-                StyleName styleName1 = new StyleName() { Val = "heading 6" };
-                BasedOn basedOn1 = new BasedOn() { Val = "Normal" };
-                NextParagraphStyle nextParagraphStyle1 = new NextParagraphStyle() { Val = "Normal" };
-                LinkedStyle linkedStyle1 = new LinkedStyle() { Val = "Heading6Char" };
-                UIPriority uIPriority1 = new UIPriority() { Val = 9 };
-                SemiHidden semiHidden1 = new SemiHidden();
-                UnhideWhenUsed unhideWhenUsed1 = new UnhideWhenUsed();
-                PrimaryStyle primaryStyle1 = new PrimaryStyle();
-                Rsid rsid1 = new Rsid() { Val = "00700ED2" };
-
-                StyleParagraphProperties styleParagraphProperties1 = new StyleParagraphProperties();
-                KeepNext keepNext1 = new KeepNext();
-                KeepLines keepLines1 = new KeepLines();
-
-                //NumberingProperties numberingProperties1 = new NumberingProperties();
-                //NumberingLevelReference numberingLevelReference1 = new NumberingLevelReference() {Val = 5};
-                //NumberingId numberingId1 = new NumberingId() {Val = 4};
-
-                //numberingProperties1.Append(numberingLevelReference1);
-                //numberingProperties1.Append(numberingId1);
-                SpacingBetweenLines spacingBetweenLines1 = new SpacingBetweenLines() { Before = "40", After = "0" };
-                OutlineLevel outlineLevel1 = new OutlineLevel() { Val = 5 };
-
-                styleParagraphProperties1.Append(keepNext1);
-                styleParagraphProperties1.Append(keepLines1);
-                //styleParagraphProperties1.Append(numberingProperties1);
-                styleParagraphProperties1.Append(spacingBetweenLines1);
-                styleParagraphProperties1.Append(outlineLevel1);
-
-                StyleRunProperties styleRunProperties1 = new StyleRunProperties();
-                RunFonts runFonts1 = new RunFonts() { AsciiTheme = ThemeFontValues.MajorHighAnsi, HighAnsiTheme = ThemeFontValues.MajorHighAnsi, EastAsiaTheme = ThemeFontValues.MajorEastAsia, ComplexScriptTheme = ThemeFontValues.MajorBidi };
-                Color color1 = new Color() { Val = "1F3763", ThemeColor = ThemeColorValues.Accent1, ThemeShade = "7F" };
-
-                styleRunProperties1.Append(runFonts1);
-                styleRunProperties1.Append(color1);
-
-                style1.Append(styleName1);
-                style1.Append(basedOn1);
-                style1.Append(nextParagraphStyle1);
-                style1.Append(linkedStyle1);
-                style1.Append(uIPriority1);
-                style1.Append(semiHidden1);
-                style1.Append(unhideWhenUsed1);
-                style1.Append(primaryStyle1);
-                style1.Append(rsid1);
-                style1.Append(styleParagraphProperties1);
-                style1.Append(styleRunProperties1);
                 return style1;
             }
         }

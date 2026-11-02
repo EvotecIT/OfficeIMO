@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.SpreadsheetXml;
 
 internal static class SpreadsheetXmlMetadata {
     internal static void ReadCell(XElement source, ExcelSheet sheet, int row, int column, SpreadsheetXmlContext context) {
-        string reference = A1.CellReference(row, column);
+        string reference = ExcelA1.CellReference(row, column);
         if ((string?)source.Attribute(Ss + "HRef") is string link) {
             string? tooltip = (string?)source.Attribute(X + "HRefScreenTip");
             if (link.StartsWith("#", StringComparison.Ordinal)) sheet.AddInternalHyperlinkReference(reference, link.Substring(1), style: false, normalizeLocation: false, tooltip: tooltip);

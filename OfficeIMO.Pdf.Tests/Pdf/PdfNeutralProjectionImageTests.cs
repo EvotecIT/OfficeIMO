@@ -18,9 +18,9 @@ public sealed class PdfNeutralProjectionImageTests {
             Blocks = new[] { new OfficeDocumentModelBlock { Kind = "paragraph", Text = "Searchable source content" } },
             Assets = new[] { new OfficeDocumentModelAsset { Id = "diagram", Kind = "preview-png", PayloadBytes = png } }
         };
-        var pdfOptions = new PdfOptions {
-            PageWidth = pageWidth, PageHeight = pageHeight,
-            MarginLeft = margin, MarginRight = margin, MarginTop = margin, MarginBottom = margin
+        var pdfOptions = new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(margin), MarginRight = global::OfficeIMO.OfficeLength.Points(margin), MarginTop = global::OfficeIMO.OfficeLength.Points(margin), MarginBottom = global::OfficeIMO.OfficeLength.Points(margin)
         };
 
         byte[] bytes = source.ToPdfDocumentResult(new PdfProjectionOptions {
@@ -40,8 +40,8 @@ public sealed class PdfNeutralProjectionImageTests {
         Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? image));
         Assert.Equal(OfficeColor.Red, image!.GetPixel(width / 2, height / 2));
         Assert.Contains("Searchable source content", read.ExtractText());
-        Assert.Equal(pageWidth, pdfOptions.PageWidth);
-        Assert.Equal(margin, pdfOptions.MarginLeft);
+        Assert.Equal(pageWidth, pdfOptions.PageWidth.ToPoints());
+        Assert.Equal(margin, pdfOptions.MarginLeft.ToPoints());
     }
 
     [Theory]

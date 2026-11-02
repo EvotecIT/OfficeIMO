@@ -10,30 +10,44 @@ internal static partial class RtfSemanticReader {
             if (table == null) return new[] { new RtfFont(0, "Calibri") };
 
             var fonts = new List<RtfFont>();
-            foreach (RtfGroup fontGroup in table.Children.OfType<RtfGroup>()) {
-                FontTableEntry entry = ReadFontTableEntry(fontGroup, ansiCodePage, unicodeSkipCount);
-                if (entry.Id.HasValue && !string.IsNullOrWhiteSpace(entry.Name)) {
-                    fonts.Add(new RtfFont(entry.Id.Value, entry.Name) {
-                        Family = entry.Family,
-                        Charset = entry.Charset,
-                        Pitch = entry.Pitch,
-                        CodePage = entry.CodePage,
-                        Bias = entry.Bias,
-                        AlternateName = EmptyToNull(entry.AlternateName ?? string.Empty),
-                        Panose = EmptyToNull(entry.Panose ?? string.Empty),
-                        NonTaggedName = EmptyToNull(entry.NonTaggedName ?? string.Empty),
-                        Embedding = entry.Embedding
-                    });
+            // Word writes each font in its own group. Cocoa writes them directly in the table, each ended by a semicolon.
+            var ungrouped = new List<RtfNode>();
+            foreach (RtfNode node in table.Children) {
+                if (node is RtfGroup fontGroup && ungrouped.Count == 0) {
+                    AddFontTableEntry(fonts, fontGroup.Children, ansiCodePage, unicodeSkipCount);
+                } else if (ungrouped.Count > 0 || node is RtfControlWord { Name: "f" }) {
+                    ungrouped.Add(node);
+                    if (node is RtfText text && text.Text.IndexOf(';') >= 0) {
+                        AddFontTableEntry(fonts, ungrouped, ansiCodePage, unicodeSkipCount);
+                        ungrouped.Clear();
+                    }
                 }
             }
+            if (ungrouped.Count > 0) AddFontTableEntry(fonts, ungrouped, ansiCodePage, unicodeSkipCount);
 
             return fonts.Count == 0 ? new[] { new RtfFont(0, "Calibri") } : fonts;
         }
 
-        private static FontTableEntry ReadFontTableEntry(RtfGroup fontGroup, int ansiCodePage, int unicodeSkipCount) {
+        private static void AddFontTableEntry(List<RtfFont> fonts, IEnumerable<RtfNode> nodes, int ansiCodePage, int unicodeSkipCount) {
+            FontTableEntry entry = ReadFontTableEntry(nodes, ansiCodePage, unicodeSkipCount);
+            if (!entry.Id.HasValue || string.IsNullOrWhiteSpace(entry.Name)) return;
+            fonts.Add(new RtfFont(entry.Id.Value, entry.Name) {
+                Family = entry.Family,
+                Charset = entry.Charset,
+                Pitch = entry.Pitch,
+                CodePage = entry.CodePage,
+                Bias = entry.Bias,
+                AlternateName = EmptyToNull(entry.AlternateName ?? string.Empty),
+                Panose = EmptyToNull(entry.Panose ?? string.Empty),
+                NonTaggedName = EmptyToNull(entry.NonTaggedName ?? string.Empty),
+                Embedding = entry.Embedding
+            });
+        }
+
+        private static FontTableEntry ReadFontTableEntry(IEnumerable<RtfNode> nodes, int ansiCodePage, int unicodeSkipCount) {
             var entry = new FontTableEntry();
 
-            foreach (RtfNode node in fontGroup.Children) {
+            foreach (RtfNode node in nodes) {
                 if (node is RtfControlWord control) {
                     ApplyFontTableControl(control, entry);
                 } else if (node is RtfGroup childGroup) {
@@ -41,7 +55,7 @@ internal static partial class RtfSemanticReader {
                 }
             }
 
-            entry.Name = CollectDirectPlainText(fontGroup.Children, ansiCodePage, unicodeSkipCount).Trim().TrimEnd(';').Trim();
+            entry.Name = CollectDirectPlainText(nodes, ansiCodePage, unicodeSkipCount).Trim().TrimEnd(';').Trim();
             return entry;
         }
 

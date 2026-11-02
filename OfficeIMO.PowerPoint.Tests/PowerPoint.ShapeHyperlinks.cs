@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class PowerPointShapeHyperlinkTests {
     [Fact]
     public void Shape_internal_slide_hyperlink_can_be_assigned_from_its_getter() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide source = presentation.AddSlide();
         PowerPointTextBox shape = source.AddTextBox("Open target");
         PowerPointSlide target = presentation.AddSlide();
@@ -24,7 +24,7 @@ public sealed class PowerPointShapeHyperlinkTests {
 
     [Fact]
     public void Text_run_internal_slide_hyperlink_can_be_assigned_from_its_getter() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide source = presentation.AddSlide();
         PowerPointTextRun run = source.AddTextBox("Open target")
             .Paragraphs.Single().Runs.Single();
@@ -40,7 +40,7 @@ public sealed class PowerPointShapeHyperlinkTests {
 
     [Fact]
     public void Replacing_or_clearing_click_link_preserves_relationship_used_by_hover_link() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox shape = slide.AddTextBox("Linked");
         shape.SetHyperlink(new Uri("https://example.test/shared"));
@@ -74,7 +74,7 @@ public sealed class PowerPointShapeHyperlinkTests {
     [InlineData(true)]
     public void Replacing_or_clearing_internal_slide_hyperlinks_removes_unused_part_relationships(
         bool replaceWithExternalLink) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointSlide source = presentation.AddSlide();
         PowerPointTextBox shape = source.AddTextBox("Linked");
         PowerPointSlide target = presentation.AddSlide();

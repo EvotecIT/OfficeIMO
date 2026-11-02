@@ -58,15 +58,15 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
         string html = "<img alt='Positioned picture' src='" + image
             + "' style='position:absolute;left:20px;top:10px;width:40px;height:20px'>";
 
-        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ToWordDocumentResult();
+        HtmlToWordResult wordResult = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument word = wordResult.Value;
         HtmlToRtfResult rtfResult = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html)
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
-        using PowerPointPresentation presentation = powerPointResult.Value;
+            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Contains(wordResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
         Assert.Contains(rtfResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);

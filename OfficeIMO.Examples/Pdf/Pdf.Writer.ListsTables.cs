@@ -10,67 +10,51 @@ namespace OfficeIMO.Examples.Pdf {
                 new [] { "Item", "Qty", "Unit", "Total", "Notes" },
                 new [] { "Monitoring seats", "25", "$4.50", "$112.50", "Monthly report-ready subscription line." },
                 new [] { "Security review", "1", "$250.00", "$250.00", "Includes a short executive summary and remediation list." },
-                new [] { "Documentation pack", "3", "$35.00", "$105.00", "Generated attachments for PSWriteOffice hand-off." },
+                new [] { "Documentation pack", "3", "$35.00", "$105.00", "Generated attachments for the monthly report." },
                 new [] { "Total", "", "", "$467.50", "Ready for approval." }
             };
 
-            var style = new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(32, 76, 120),
-                HeaderTextColor = PdfColor.White,
-                TextColor = PdfColor.FromRgb(31, 41, 55),
-                FooterFill = PdfColor.FromRgb(232, 241, 248),
-                FooterTextColor = PdfColor.FromRgb(25, 55, 85),
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(210, 218, 226),
-                BorderWidth = 0.5,
-                CellPaddingX = 6,
-                CellPaddingY = 5,
-                HeaderRowCount = 1,
-                FooterRowCount = 1,
-                Caption = "Table 1. Example line items",
-                CaptionColor = PdfColor.FromRgb(80, 90, 100),
-                CaptionFontSize = 8.5,
-                CaptionSpacingAfter = 5,
-                SpacingBefore = 6,
-                SpacingAfter = 14,
-                RightAlignNumeric = true,
-                Alignments = new List<PdfColumnAlign> {
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = OfficeLength.Points(6);
+            style.CellPaddingY = OfficeLength.Points(5);
+            style.CellPaddingTop = OfficeLength.Points(5);
+            style.CellPaddingBottom = OfficeLength.Points(5);
+            style.HeaderRowCount = 1;
+            style.FooterRowCount = 1;
+            style.Caption = "Table 1. Example line items";
+            style.CaptionFontSize = OfficeLength.Points(8.5);
+            style.CaptionSpacingAfter = OfficeLength.Points(5);
+            style.SpacingBefore = OfficeLength.Points(6);
+            style.SpacingAfter = OfficeLength.Points(14);
+            style.RightAlignNumeric = true;
+            style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Left
-                },
-                ColumnWidthPoints = new List<double?> { 110, 38, 58, 68, 170 },
-                AutoFitColumns = false
-            };
+                };
+            style.ColumnWidthWeights = new List<double> { 110, 38, 58, 68, 170 };
+            style.AutoFitColumns = false;
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lists and Tables", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Lists and Tables", PdfAlign.Left)
                 .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
                 .Bullets(new[] {
                     "Report-friendly list spacing",
                     "Right-aligned quantities and amounts",
                     "Footer row that remains visually distinct"
-                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
+                }, PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
                 .Numbered(new[] {
                     "Collect line items.",
                     "Render the table with stable column widths.",
-                    "Review the generated PDF through the raster gate."
-                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
+                    "Review the saved PDF before sharing it."
+                }, PdfAlign.Left, OfficeColor.FromRgb(55, 65, 81))
                 .Table(rows, PdfAlign.Left, style)
-                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), new PdfOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
+                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
                     HeaderFormat = "OfficeIMO.Pdf lists and tables",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true
                 })

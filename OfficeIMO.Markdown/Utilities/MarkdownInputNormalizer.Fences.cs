@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownInputNormalizer {
+internal static partial class MarkdownInputNormalizer {
     private static string NormalizeCompactFenceBodyBoundaries(string input) {
         if (string.IsNullOrEmpty(input)) {
             return input ?? string.Empty;

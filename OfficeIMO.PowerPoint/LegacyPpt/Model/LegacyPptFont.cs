@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one font entry from a binary PowerPoint document font collection.</summary>
-    public sealed class LegacyPptFont {
+    internal sealed class LegacyPptFont {
         internal LegacyPptFont(ushort index, string typeface, byte characterSet,
             bool isEmbeddedSubset, bool isRaster, bool isDevice, bool isTrueType,
             bool disableSubstitution, byte pitchAndFamily, bool hasEmbeddedData) {

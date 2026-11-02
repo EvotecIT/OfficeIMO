@@ -11,12 +11,12 @@ namespace OfficeIMO.CSV;
 /// <summary>Typed projections over a materialized CSV document.</summary>
 public static class CsvMappingExtensions {
     /// <summary>
-    /// Projects rows by matching CSV headers to writable public properties.
+    /// Projects rows by matching CSV headers to public properties and their constructor parameters.
     /// Matching is case-insensitive and also ignores spaces and punctuation.
     /// </summary>
     public static IEnumerable<T> RowsAs<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        this CsvDocument document) where T : new() {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        this CsvDocument document) {
         if (document is null) throw new ArgumentNullException(nameof(document));
         return EnumerateAutomatic<T>(document);
     }
@@ -45,14 +45,14 @@ public static class CsvMappingExtensions {
     }
 
     /// <summary>
-    /// Projects rows in bounded parallel batches by matching CSV headers to writable public properties.
+    /// Projects rows in bounded parallel batches by matching CSV headers to public properties and their constructor parameters.
     /// Results retain source order.
     /// </summary>
     public static IEnumerable<T> RowsAsParallel<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         this CsvDocument document,
         ParallelRowMappingOptions? options = null,
-        CancellationToken cancellationToken = default) where T : new() {
+        CancellationToken cancellationToken = default) {
         if (document is null) throw new ArgumentNullException(nameof(document));
         return EnumerateParallelAutomatic<T>(document, options, cancellationToken);
     }
@@ -86,8 +86,8 @@ public static class CsvMappingExtensions {
     }
 
     private static IEnumerable<T> EnumerateAutomatic<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
-        CsvDocument document) where T : new() {
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
+        CsvDocument document) {
         AutomaticRowMappingPlan<T> plan = AutomaticRowMappingPlan<T>.Create(document.Header);
         foreach (CsvRow row in document.AsEnumerable()) {
             yield return plan.MapRow(
@@ -122,10 +122,10 @@ public static class CsvMappingExtensions {
     }
 
     private static IEnumerable<T> EnumerateParallelAutomatic<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         CsvDocument document,
         ParallelRowMappingOptions? options,
-        CancellationToken cancellationToken) where T : new() {
+        CancellationToken cancellationToken) {
         using DbDataReader reader = document.CreateDataReader();
         foreach (T row in reader.RowsAsParallel<T>(options, cancellationToken)) yield return row;
     }

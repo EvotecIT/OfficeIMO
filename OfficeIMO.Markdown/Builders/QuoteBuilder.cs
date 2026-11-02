@@ -3,29 +3,29 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Builder for block quotes supporting raw lines or nested blocks.
 /// </summary>
-public sealed class QuoteBuilder {
+public sealed class MarkdownQuoteBuilder {
     private readonly System.Collections.Generic.List<Entry> _entries = new();
 
     /// <summary>Adds a raw text line to the quote.</summary>
-    public QuoteBuilder Line(string text) {
+    public MarkdownQuoteBuilder Line(string text) {
         _entries.Add(new Entry(text ?? string.Empty));
         return this;
     }
 
     /// <summary>Adds multiple raw lines to the quote.</summary>
-    public QuoteBuilder Lines(System.Collections.Generic.IEnumerable<string> lines) {
+    public MarkdownQuoteBuilder Lines(System.Collections.Generic.IEnumerable<string> lines) {
         if (lines == null) return this;
         foreach (var line in lines) Line(line ?? string.Empty);
         return this;
     }
 
     /// <summary>Adds a paragraph with the specified text.</summary>
-    public QuoteBuilder P(string text) {
+    public MarkdownQuoteBuilder P(string text) {
         return Block(new ParagraphBlock(new InlineSequence().Text(text ?? string.Empty)));
     }
 
     /// <summary>Adds a paragraph built via <see cref="MarkdownParagraphBuilder"/>.</summary>
-    public QuoteBuilder P(System.Action<MarkdownParagraphBuilder> build) {
+    public MarkdownQuoteBuilder P(System.Action<MarkdownParagraphBuilder> build) {
         if (build == null) return this;
         MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
         build(builder);
@@ -33,15 +33,15 @@ public sealed class QuoteBuilder {
     }
 
     /// <summary>Adds a nested block quote.</summary>
-    public QuoteBuilder Quote(System.Action<QuoteBuilder> build) {
+    public MarkdownQuoteBuilder Quote(System.Action<MarkdownQuoteBuilder> build) {
         if (build == null) return this;
-        QuoteBuilder nested = new QuoteBuilder();
+        MarkdownQuoteBuilder nested = new MarkdownQuoteBuilder();
         build(nested);
         return Block(nested.Build());
     }
 
     /// <summary>Adds an arbitrary markdown block inside the quote.</summary>
-    public QuoteBuilder Block(IMarkdownBlock block) {
+    public MarkdownQuoteBuilder Block(IMarkdownBlock block) {
         if (block == null) throw new System.ArgumentNullException(nameof(block));
         _entries.Add(new Entry(block));
         return this;

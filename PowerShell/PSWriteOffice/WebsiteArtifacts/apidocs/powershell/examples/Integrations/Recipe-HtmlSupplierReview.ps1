@@ -62,28 +62,28 @@ $xlsx = Join-Path $OutputDirectory 'SupplierOffers.xlsx'
 
 New-OfficeWord -Path $docx {
     WordHeader -Type Default { WordParagraph -Text 'PROCUREMENT / OFFER REVIEW' }
-    WordFooter -Type Default { WordPageNumber -IncludeTotalPages }
+    WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
-        WordText 'Supplier offer review' -Bold -FontSize 26 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
+        WordText 'Supplier offer review' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 10
-        WordText "$($offers.Count) offers / $itemCount items" -Bold -FontSize 16 -Color '166534'
+        Set-OfficeWordParagraph -SpacingAfter 10
+        WordText "$($offers.Count) offers / $itemCount items" -Bold -Size 16 -Color '166534'
     }
     WordParagraph -Text 'Compare price and delivery together. The workbook retains numeric values for your own calculations.'
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Offers received' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Offers received' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters = 0.14; $_.MarginBottomCentimeters = 0.14
-        $_.MarginLeftCentimeters = 0.16; $_.MarginRightCentimeters = 0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.14); $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16); $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Before choosing an offer' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Before choosing an offer' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Bulleted {
         WordListItem -Text 'Confirm stock, quote expiry and the required delivery date.'
@@ -91,19 +91,19 @@ New-OfficeWord -Path $docx {
         WordListItem -Text 'Record the purchasing decision and its owner in the editable document.'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 12
-        WordText 'Input contract: Item, Supplier, UnitPriceUsd and LeadDays. The bundled HTML contains synthetic data.' -FontSize 10 -Color '475569'
+        Set-OfficeWordParagraph -SpacingBefore 12
+        WordText 'Input contract: Item, Supplier, UnitPriceUsd and LeadDays. The bundled HTML contains synthetic data.' -Size 10 -Color '475569'
     }
 }
 Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
 
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Offers' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Supplier offers / USD per unit'
         ExcelRow -Row 1 -Height 30 -Bold $true -FontName 'Carlito'
         ExcelCell -Address A2 -Value 'Editable numeric values; freight and tax excluded.'
-        ExcelTable -InputObject $offers -StartRow 4 -TableName SupplierOffers -TableStyle TableStyleMedium2 -AutoFit
+        ExcelTable -InputObject $offers -StartRow 4 -Name SupplierOffers -TableStyle TableStyleMedium2 -AutoFit
         for ($row = 5; $row -lt 5 + $offers.Count; $row++) {
             # Keep each quote's decimal places visible rather than rounding every price to cents.
             $priceText = $offers[$row - 5].UnitPriceUsd.ToString($priceTextFormat, [Globalization.CultureInfo]::InvariantCulture)
@@ -115,7 +115,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelColumn -Column 2 -Width 22
         ExcelColumn -Column 3 -AutoFit
         ExcelColumn -Column 4 -Width 16
-        ExcelFreeze -TopRows 4
+        ExcelSheetView -FreezeRows 4
     }
 }
 Get-Item -LiteralPath $docx, $pdf, $xlsx | Select-Object Name, Length

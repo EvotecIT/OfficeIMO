@@ -137,33 +137,33 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static IReadOnlyDictionary<string, string> BuildHashes(
             ExcelDocument document,
             ISet<string>? sourceSheetNames = null) {
-            ExcelWorkbookSnapshot snapshot = document.CreateInspectionSnapshot(new ExcelReadOptions { UseCachedFormulaResult = true, TreatDatesUsingNumberFormat = true });
+            ExcelWorkbookInfo snapshot = document.Inspect(new ExcelReaderOptions { UseCachedFormulaResult = true, TreatDatesUsingNumberFormat = true });
             var result = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (ExcelWorksheetSnapshot sheet in snapshot.Worksheets) {
+            foreach (ExcelWorksheetInfo sheet in snapshot.Worksheets) {
                 if (IsGeneratedChartDataSheet(sheet, sourceSheetNames)) continue;
                 ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(candidate =>
                     string.Equals(candidate.Name, sheet.Name, StringComparison.OrdinalIgnoreCase));
                 result[$"sheet/{sheet.Name}"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}|{sheet.TabColorArgb}"));
-                foreach (ExcelCellSnapshot cell in sheet.Cells) {
+                foreach (ExcelCellInfo cell in sheet.Cells) {
                     result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}"));
                 }
-                foreach (ExcelRowSnapshot row in sheet.Rows) {
-                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/row/{row.Index}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{row.Height}|{row.Hidden}|{row.OutlineLevel}"));
+                foreach (ExcelRowInfo row in sheet.Rows) {
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/row/{row.Index}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{(row.Height?.PhysicalLength?.ToPoints())}|{row.Hidden}|{row.OutlineLevel}"));
                 }
-                foreach (ExcelColumnSnapshot column in sheet.Columns) {
-                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{column.Width}|{column.Hidden}|{column.OutlineLevel}"));
+                foreach (ExcelColumnInfo column in sheet.Columns) {
+                    result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}")] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{(column.Width?.CharacterCount)}|{column.Hidden}|{column.OutlineLevel}"));
                 }
                 for (int validationIndex = 0; validationIndex < sheet.Validations.Count; validationIndex++) {
-                    ExcelDataValidationSnapshot validation = sheet.Validations[validationIndex];
+                    ExcelDataValidationInspectionInfo validation = sheet.Validations[validationIndex];
                     result[GoogleWorkspaceCheckpointFormat.Format($"sheet/{sheet.Name}/validation/{validationIndex}")] = Hash(
                         $"{validation.Type}|{validation.Operator}|{validation.AllowBlank}|{validation.Formula1}|{validation.Formula2}|{string.Join("~", validation.A1Ranges)}");
                 }
-                foreach (ExcelMergedRangeSnapshot merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
-                foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}"));
+                foreach (ExcelMergedRangeInfo merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
+                foreach (ExcelTableInspectionInfo table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash(GoogleWorkspaceCheckpointFormat.Format($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}"));
                 AddConditionalFormatHashes(result, sheet.Name, sourceSheet);
                 AddFilterHashes(result, sheet);
             }
-            foreach (ExcelNamedRangeSnapshot name in snapshot.NamedRanges) {
+            foreach (ExcelNamedRangeInspectionInfo name in snapshot.NamedRanges) {
                 string path = string.IsNullOrWhiteSpace(name.SheetName)
                     ? $"name/{name.Name}"
                     : $"name/sheet/{name.SheetName}/{name.Name}";
@@ -173,7 +173,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static bool IsGeneratedChartDataSheet(
-            ExcelWorksheetSnapshot sheet,
+            ExcelWorksheetInfo sheet,
             ISet<string>? sourceSheetNames) {
             if (sourceSheetNames == null || sourceSheetNames.Contains(sheet.Name) || !sheet.Hidden || sheet.ShowGridlines) {
                 return false;
@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 }
             }
 
-            ExcelCellSnapshot? firstCell = sheet.Cells.FirstOrDefault(cell => cell.Row == 1 && cell.Column == 1);
+            ExcelCellInfo? firstCell = sheet.Cells.FirstOrDefault(cell => cell.Row == 1 && cell.Column == 1);
             string? header = firstCell?.Value?.ToString();
             return string.Equals(header, "Category", StringComparison.Ordinal)
                 || string.Equals(header, "X", StringComparison.Ordinal);
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
         }
 
-        private static void AddFilterHashes(IDictionary<string, string> result, ExcelWorksheetSnapshot sheet) {
+        private static void AddFilterHashes(IDictionary<string, string> result, ExcelWorksheetInfo sheet) {
             bool multipleFilterNoticeAdded = false;
             bool customFilterNoticeAdded = false;
             IReadOnlyList<GoogleSheetsRequest> requests = GoogleSheetsBatchCompiler.BuildFilterRequests(
@@ -248,24 +248,24 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return GoogleWorkspaceCheckpointFormat.Format($"{a1Range}|{startRowIndex}|{endRowIndexExclusive}|{startColumnIndex}|{endColumnIndexExclusive}|{criteriaFingerprint}");
         }
 
-        private static string StyleFingerprint(ExcelCellStyleSnapshot? style) {
+        private static string StyleFingerprint(ExcelCellStyleInfo? style) {
             if (style == null) return string.Empty;
-            return GoogleWorkspaceCheckpointFormat.Format($"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}");
+            return GoogleWorkspaceCheckpointFormat.Format($"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize?.ToPoints()}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}");
         }
 
-        private static string BorderFingerprint(ExcelCellBorderSnapshot? border) {
+        private static string BorderFingerprint(ExcelCellBorderInfo? border) {
             if (border == null) return string.Empty;
             return $"{BorderSideFingerprint(border.Left)}|{BorderSideFingerprint(border.Right)}|{BorderSideFingerprint(border.Top)}|{BorderSideFingerprint(border.Bottom)}";
         }
 
-        private static string BorderSideFingerprint(ExcelBorderSideSnapshot? side) =>
+        private static string BorderSideFingerprint(ExcelBorderSideInfo? side) =>
             side == null ? string.Empty : $"{side.Style}|{side.ColorArgb}";
 
-        private static string HyperlinkFingerprint(ExcelHyperlinkSnapshot? hyperlink) =>
+        private static string HyperlinkFingerprint(ExcelHyperlinkInfo? hyperlink) =>
             hyperlink == null ? string.Empty : $"{hyperlink.IsExternal}|{hyperlink.Target}";
 
         private static string RichTextFingerprint(IReadOnlyList<ExcelRichTextRun> runs) => string.Join("~", runs.Select(run =>
-            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize}|{run.FontColor}")));
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize?.ToPoints()}|{run.FontColor}")));
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();

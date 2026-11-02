@@ -35,7 +35,7 @@ namespace OfficeIMO.Word {
                         fullPath, options.Inspection, inspectionBudget);
                     var findings = CollectInspectionFindings(info);
                     if (!findings.Any(finding => finding.State == WordSignatureValidationState.Failed)) {
-                        findings.Add(Finding("MacroValidationSnapshotFailed", WordSignatureValidationState.Failed,
+                        findings.Add(Finding("macro-validation-snapshot-failed", WordSignatureValidationState.Failed,
                             "A bounded immutable validation snapshot could not be created. " + exception.Message));
                     }
                     return Result(info, dependencies.Platform.IsWindows,
@@ -71,16 +71,16 @@ namespace OfficeIMO.Word {
                     WordSignatureValidationState.NotChecked, findings, options);
             }
             if (!dependencies.Platform.IsWindows) {
-                findings.Add(Finding("MacroSigningPlatformUnsupported", WordSignatureValidationState.Unsupported,
+                findings.Add(Finding("macro-signing-platform-unsupported", WordSignatureValidationState.Unsupported,
                     "Native VBA content-binding validation requires Windows and Microsoft's registered Office SIP."));
                 return Result(info, false, WordSignatureValidationState.Unsupported, findings, options);
             }
             if (!dependencies.Platform.TryGetSubjectInterfacePackage(snapshotPath, out _, out string sipDetail)) {
-                findings.Add(Finding("MicrosoftOfficeSipUnavailable", WordSignatureValidationState.Unsupported, sipDetail));
+                findings.Add(Finding("microsoft-office-sip-unavailable", WordSignatureValidationState.Unsupported, sipDetail));
                 return Result(info, false, WordSignatureValidationState.Unsupported, findings, options);
             }
             if (options.RequireV3Signature && !info.HasV3Signature) {
-                findings.Add(Finding("MacroV3SignatureRequired", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-v3-signature-required", WordSignatureValidationState.Failed,
                     "The current V3 VBA signature profile is required by policy."));
                 return Result(info, true, WordSignatureValidationState.NotChecked, findings, options);
             }
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word {
             byte[]? expectedDigest = selected?.SignedContentDigest;
             if (selected == null || string.IsNullOrWhiteSpace(selected.SignedContentDigestAlgorithmOid) ||
                 expectedDigest == null) {
-                findings.Add(Finding("MacroSignedContentDigestMissing", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-signed-content-digest-missing", WordSignatureValidationState.Failed,
                     "The selected VBA signature does not contain a decodable Authenticode subject digest.",
                     selected?.Profile));
                 return Result(info, true, WordSignatureValidationState.NotChecked, findings, options);
@@ -97,16 +97,16 @@ namespace OfficeIMO.Word {
             WordMacroProjectContentBindingResult binding = dependencies.Platform.ValidateContentBinding(
                 snapshotPath, selected.SignedContentDigestAlgorithmOid!, expectedDigest);
             if (!binding.IsSupported) {
-                findings.Add(Finding("MacroContentBindingUnsupported", WordSignatureValidationState.Unsupported,
+                findings.Add(Finding("macro-content-binding-unsupported", WordSignatureValidationState.Unsupported,
                     binding.Detail, selected.Profile));
                 return Result(info, false, WordSignatureValidationState.Unsupported, findings, options);
             }
             if (!binding.IsValid) {
-                findings.Add(Finding("MacroContentBindingInvalid", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-content-binding-invalid", WordSignatureValidationState.Failed,
                     binding.Detail, selected.Profile));
                 return Result(info, true, WordSignatureValidationState.Failed, findings, options);
             }
-            findings.Add(Finding("MacroContentBindingValid", WordSignatureValidationState.Passed,
+            findings.Add(Finding("macro-content-binding-valid", WordSignatureValidationState.Passed,
                 binding.Detail, selected.Profile));
             return Result(info, true, WordSignatureValidationState.Passed, findings, options);
         }
@@ -145,34 +145,34 @@ namespace OfficeIMO.Word {
             findings.AddRange(sourceInfo.Findings);
             if (!sourceInfo.IsMacroEnabledFormat || !sourceInfo.HasMacroProject ||
                 string.IsNullOrWhiteSpace(sourceInfo.MacroProjectSha256)) {
-                findings.Add(Finding("MacroProjectSigningPreflightFailed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-project-signing-preflight-failed", WordSignatureValidationState.Failed,
                     "VBA signing requires a readable saved DOCM or DOTM package containing a bounded VBA project."));
                 return SigningResult(fullPath, dependencies.Platform.IsWindows, false, false, null, findings);
             }
             if (!TryNormalizeThumbprint(certificateThumbprint, out string thumbprint, out string thumbprintDetail)) {
-                findings.Add(Finding("CertificateThumbprintInvalid", WordSignatureValidationState.Failed, thumbprintDetail));
+                findings.Add(Finding("certificate-thumbprint-invalid", WordSignatureValidationState.Failed, thumbprintDetail));
                 return SigningResult(fullPath, dependencies.Platform.IsWindows, false, false, null, findings);
             }
             if (options.TimestampAuthorityUrl != null && !IsHttpTimestampUrl(options.TimestampAuthorityUrl)) {
-                findings.Add(Finding("TimestampAuthorityUrlInvalid", WordSignatureValidationState.Failed,
+                findings.Add(Finding("timestamp-authority-url-invalid", WordSignatureValidationState.Failed,
                     "The RFC 3161 timestamp-authority URL must be an absolute HTTP or HTTPS URL."));
                 return SigningResult(fullPath, dependencies.Platform.IsWindows, false, false, null, findings);
             }
             if (!dependencies.Platform.IsWindows) {
-                findings.Add(Finding("MacroSigningPlatformUnsupported", WordSignatureValidationState.Unsupported,
+                findings.Add(Finding("macro-signing-platform-unsupported", WordSignatureValidationState.Unsupported,
                     "VBA signature creation requires Windows, SignTool, and Microsoft's registered Office SIP."));
                 return SigningResult(fullPath, false, false, false, null, findings);
             }
             if (!TryResolveSignTool(options.SignToolPath, out string signTool, out string signToolDetail)) {
-                findings.Add(Finding("SignToolUnavailable", WordSignatureValidationState.Unsupported, signToolDetail));
+                findings.Add(Finding("sign-tool-unavailable", WordSignatureValidationState.Unsupported, signToolDetail));
                 return SigningResult(fullPath, false, false, false, null, findings);
             }
             if (!TryResolveClearSignatureTool(options.OfficeSipsDirectory, out string clearTool, out string clearDetail)) {
-                findings.Add(Finding("OfficeSignatureClearToolUnavailable", WordSignatureValidationState.Unsupported, clearDetail));
+                findings.Add(Finding("office-signature-clear-tool-unavailable", WordSignatureValidationState.Unsupported, clearDetail));
                 return SigningResult(fullPath, false, false, false, null, findings);
             }
             if (!dependencies.Platform.TryGetSubjectInterfacePackage(fullPath, out _, out string sipDetail)) {
-                findings.Add(Finding("MicrosoftOfficeSipUnavailable", WordSignatureValidationState.Unsupported, sipDetail));
+                findings.Add(Finding("microsoft-office-sip-unavailable", WordSignatureValidationState.Unsupported, sipDetail));
                 return SigningResult(fullPath, false, false, false, null, findings);
             }
 
@@ -205,7 +205,7 @@ namespace OfficeIMO.Word {
                     !stagingPreflight.HasMacroProject ||
                     !string.Equals(sourceInfo.MacroProjectSha256, stagingPreflight.MacroProjectSha256,
                         StringComparison.OrdinalIgnoreCase)) {
-                    findings.Add(Finding("MacroSigningStagingPreflightFailed", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signing-staging-preflight-failed", WordSignatureValidationState.Failed,
                         "The exact bounded staging snapshot changed or failed package-security inspection before native signing tools were invoked."));
                     return SigningResult(fullPath, true, false, false, null, findings);
                 }
@@ -215,13 +215,13 @@ namespace OfficeIMO.Word {
                 WordSignatureInfo existingPackageSignatures = InspectPackageSignatures(stagingPath);
                 if (existingPackageSignatures.HasSignatures &&
                     options.ExistingPackageSignaturePolicy != WordSignedDocumentSavePolicy.AllowSignatureInvalidation) {
-                    findings.Add(Finding("ExistingPackageSignatureInvalidationBlocked", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("existing-package-signature-invalidation-blocked", WordSignatureValidationState.Failed,
                         "VBA signing was blocked because changing VBA signature relationships would invalidate existing OPC package signatures. " +
                         "Set ExistingPackageSignaturePolicy to AllowSignatureInvalidation only when the package will be re-signed afterward."));
                     return SigningResult(fullPath, dependencies.Platform.IsWindows, false, false, null, findings);
                 }
                 if (existingPackageSignatures.HasSignatures) {
-                    findings.Add(Finding("ExistingPackageSignaturesWillBeInvalidated", WordSignatureValidationState.NotChecked,
+                    findings.Add(Finding("existing-package-signatures-will-be-invalidated", WordSignatureValidationState.NotChecked,
                         "Existing OPC package signatures are permitted to become invalid; sign the VBA project first and the OPC package last."));
                 }
                 WordMacroProjectToolResult clear = dependencies.Runner.Run(
@@ -229,7 +229,7 @@ namespace OfficeIMO.Word {
                     options.ToolTimeout,
                     options.MaxToolOutputCharacters);
                 if (!clear.Succeeded) {
-                    findings.Add(ToolFailure("MacroSignatureClearFailed", "offclearsig", clear));
+                    findings.Add(ToolFailure("macro-signature-clear-failed", "offclearsig", clear));
                     return SigningResult(fullPath, ToolWasAvailable(clear), false, false, null, findings);
                 }
 
@@ -290,7 +290,7 @@ namespace OfficeIMO.Word {
                         validationSnapshotPath,
                         options.Inspection.PackageSecurity.MaxPackageBytes),
                     StringComparison.Ordinal)) {
-                    findings.Add(Finding("MacroValidatedSnapshotChanged", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-validated-snapshot-changed", WordSignatureValidationState.Failed,
                         "The bounded VBA validation snapshot changed during policy validation; the original file was not replaced."));
                     return SigningResult(fullPath, true, false, false, stagedValidation, findings);
                 }
@@ -300,12 +300,12 @@ namespace OfficeIMO.Word {
                 bool preserved = string.Equals(sourceInfo.MacroProjectSha256, stagedInfo.MacroProjectSha256,
                     StringComparison.OrdinalIgnoreCase);
                 if (!preserved) {
-                    findings.Add(Finding("MacroProjectChangedDuringSigning", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-project-changed-during-signing", WordSignatureValidationState.Failed,
                         "The encoded VBA project changed while signatures were staged; the original file was not replaced."));
                     return SigningResult(fullPath, true, false, false, stagedValidation, findings);
                 }
                 if (!HasAllProfiles(stagedInfo)) {
-                    findings.Add(Finding("MacroSignatureProfilesIncomplete", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signature-profiles-incomplete", WordSignatureValidationState.Failed,
                         "Signing did not produce the required legacy, agile, and V3 VBA signature parts."));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
@@ -314,7 +314,7 @@ namespace OfficeIMO.Word {
                         finding.State == WordSignatureValidationState.Failed &&
                         finding.Profile.HasValue);
                 if (rejectedProfileFinding != null) {
-                    findings.Add(Finding("MacroSignatureProfilePolicyFailed", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signature-profile-policy-failed", WordSignatureValidationState.Failed,
                         "The completed " + rejectedProfileFinding.Profile!.Value +
                         " VBA signature profile had failed inspection or policy evidence.",
                         rejectedProfileFinding.Profile));
@@ -324,14 +324,14 @@ namespace OfficeIMO.Word {
                     .OrderBy(signature => signature.Profile)
                     .FirstOrDefault(signature => !ProfileAccepted(signature, options));
                 if (rejectedProfile != null) {
-                    findings.Add(Finding("MacroSignatureProfilePolicyFailed", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signature-profile-policy-failed", WordSignatureValidationState.Failed,
                         "The completed " + rejectedProfile.Profile +
                         " VBA signature did not satisfy CMS, certificate, revocation, and timestamp policy.",
                         rejectedProfile.Profile));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
                 if (!stagedValidation.IsValidUnderPolicy) {
-                    findings.Add(Finding("MacroSignatureReadbackFailed", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("macro-signature-readback-failed", WordSignatureValidationState.Failed,
                         "The completed V3 VBA signature did not satisfy content-binding and certificate policy."));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
@@ -352,7 +352,7 @@ namespace OfficeIMO.Word {
                             options.Inspection.PackageSecurity.MaxPackageBytes),
                         StringComparison.Ordinal))) {
                     stagingPath = string.Empty;
-                    findings.Add(Finding("SourcePackageChangedDuringSigning", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("source-package-changed-during-signing", WordSignatureValidationState.Failed,
                         "The source document changed while native signing tools were running; the newer source was preserved and the staged signature was discarded."));
                     return SigningResult(fullPath, true, false, true, stagedValidation, findings);
                 }
@@ -363,11 +363,11 @@ namespace OfficeIMO.Word {
                     stagedValidation.Findings) {
                     IsValidUnderPolicy = stagedValidation.IsValidUnderPolicy
                 };
-                findings.Add(Finding("MacroProjectSignatureCommitted", WordSignatureValidationState.Passed,
+                findings.Add(Finding("macro-project-signature-committed", WordSignatureValidationState.Passed,
                     "The signed package was atomically committed after preservation and policy validation."));
                 return SigningResult(fullPath, true, true, true, committedValidation, findings);
             } catch (Exception exception) when (IsSigningException(exception)) {
-                findings.Add(Finding("MacroProjectSigningFailed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("macro-project-signing-failed", WordSignatureValidationState.Failed,
                     "VBA signing failed before atomic commit. " + exception.Message));
                 return SigningResult(fullPath, true, false, false, null, findings);
             } finally {
@@ -433,7 +433,7 @@ namespace OfficeIMO.Word {
             ICollection<WordMacroProjectSignatureFinding> findings) {
             if (!info.IsMacroEnabledFormat || !info.HasMacroProject) return false;
             if (!info.HasSignatures) {
-                findings.Add(Finding("MacroSignatureNotPresent", WordSignatureValidationState.NotPresent,
+                findings.Add(Finding("macro-signature-not-present", WordSignatureValidationState.NotPresent,
                     "The VBA project does not contain a signature part."));
                 return false;
             }

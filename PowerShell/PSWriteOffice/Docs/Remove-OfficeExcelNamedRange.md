@@ -26,7 +26,7 @@ Removes a workbook or sheet-scoped Excel named range.
 
 ### EXAMPLE 1
 ```powershell
-PS> $workbook = Get-OfficeExcel -Path .\Report.xlsx
+PS> $workbook = Open-OfficeExcel -Path .\Report.xlsx
 $removed = $workbook | Remove-OfficeExcelNamedRange -Sheet Data -Name OldCriteria -PassThru
 Save-OfficeExcel -Document $workbook
 ```

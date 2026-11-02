@@ -15,9 +15,9 @@ public partial class PdfStamperTests {
 
         byte[] stamped = PdfStamper.StampText(stream, "STREAM-STAMP", new PdfTextStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 700,
-            FontSize = 14
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(700),
+            FontSize = global::OfficeIMO.OfficeLength.Points(14)
         });
 
         var read = PdfReadDocument.Open(stamped);
@@ -49,9 +49,9 @@ public partial class PdfStamperTests {
 
             PdfStamper.StampText(inputPath, outputPath, "PATH-STAMP", new PdfTextStampOptions {
                 PageNumbers = new[] { 1 },
-                X = 80,
-                Y = 650,
-                FontSize = 14
+                X = global::OfficeIMO.OfficeLength.Points(80),
+                Y = global::OfficeIMO.OfficeLength.Points(650),
+                FontSize = global::OfficeIMO.OfficeLength.Points(14)
             });
 
             Assert.True(File.Exists(outputPath));
@@ -77,9 +77,9 @@ public partial class PdfStamperTests {
 
             byte[] textStamped = PdfStamper.StampTextToBytes(inputPath, "PATH-BYTES-STAMP", new PdfTextStampOptions {
                 PageNumbers = new[] { 1 },
-                X = 80,
-                Y = 650,
-                FontSize = 14
+                X = global::OfficeIMO.OfficeLength.Points(80),
+                Y = global::OfficeIMO.OfficeLength.Points(650),
+                FontSize = global::OfficeIMO.OfficeLength.Points(14)
             });
 
             var stampedRead = PdfReadDocument.Open(textStamped);
@@ -91,10 +91,10 @@ public partial class PdfStamperTests {
 
             byte[] imageStamped = PdfStamper.StampImageToBytes(inputPath, CreateMinimalRgbPng(), new PdfImageStampOptions {
                 PageNumbers = new[] { 2 },
-                X = 72,
-                Y = 650,
-                Width = 24,
-                Height = 24
+                X = global::OfficeIMO.OfficeLength.Points(72),
+                Y = global::OfficeIMO.OfficeLength.Points(650),
+                Width = global::OfficeIMO.OfficeLength.Points(24),
+                Height = global::OfficeIMO.OfficeLength.Points(24)
             });
 
             string imageStampedContent = Encoding.ASCII.GetString(imageStamped);
@@ -103,8 +103,8 @@ public partial class PdfStamperTests {
 
             using var imageStream = CreatePrefixedStream(CreateMinimalRgbPng());
             byte[] imageWatermarked = PdfStamper.WatermarkImageToBytes(inputPath, imageStream, new PdfImageStampOptions {
-                Width = 32,
-                Height = 32
+                Width = global::OfficeIMO.OfficeLength.Points(32),
+                Height = global::OfficeIMO.OfficeLength.Points(32)
             });
 
             string imageWatermarkedContent = Encoding.ASCII.GetString(imageWatermarked);
@@ -130,9 +130,9 @@ public partial class PdfStamperTests {
             using var textOutput = CreateOutputStream(out int textPrefixLength);
             PdfStamper.StampText(inputPath, textOutput, "PATH-STREAM-STAMP", new PdfTextStampOptions {
                 PageNumbers = new[] { 1 },
-                X = 80,
-                Y = 650,
-                FontSize = 14
+                X = global::OfficeIMO.OfficeLength.Points(80),
+                Y = global::OfficeIMO.OfficeLength.Points(650),
+                FontSize = global::OfficeIMO.OfficeLength.Points(14)
             });
 
             byte[] textStamped = GetOutputPayload(textOutput, textPrefixLength);
@@ -149,10 +149,10 @@ public partial class PdfStamperTests {
             using var imageOutput = CreateOutputStream(out int imagePrefixLength);
             PdfStamper.StampImage(inputPath, imageOutput, CreateMinimalRgbPng(), new PdfImageStampOptions {
                 PageNumbers = new[] { 2 },
-                X = 72,
-                Y = 650,
-                Width = 24,
-                Height = 24
+                X = global::OfficeIMO.OfficeLength.Points(72),
+                Y = global::OfficeIMO.OfficeLength.Points(650),
+                Width = global::OfficeIMO.OfficeLength.Points(24),
+                Height = global::OfficeIMO.OfficeLength.Points(24)
             });
 
             string imageStampedContent = Encoding.ASCII.GetString(GetOutputPayload(imageOutput, imagePrefixLength));
@@ -162,8 +162,8 @@ public partial class PdfStamperTests {
             using var imageStream = CreatePrefixedStream(CreateMinimalRgbPng());
             using var imageWatermarkOutput = CreateOutputStream(out int imageWatermarkPrefixLength);
             PdfStamper.WatermarkImage(inputPath, imageWatermarkOutput, imageStream, new PdfImageStampOptions {
-                Width = 32,
-                Height = 32
+                Width = global::OfficeIMO.OfficeLength.Points(32),
+                Height = global::OfficeIMO.OfficeLength.Points(32)
             });
 
             string imageWatermarkedContent = Encoding.ASCII.GetString(GetOutputPayload(imageWatermarkOutput, imageWatermarkPrefixLength));
@@ -187,9 +187,9 @@ public partial class PdfStamperTests {
 
             PdfStamper.StampText(stream, outputPath, "STREAM-PATH-STAMP", new PdfTextStampOptions {
                 PageNumbers = new[] { 2 },
-                X = 80,
-                Y = 650,
-                FontSize = 14
+                X = global::OfficeIMO.OfficeLength.Points(80),
+                Y = global::OfficeIMO.OfficeLength.Points(650),
+                FontSize = global::OfficeIMO.OfficeLength.Points(14)
             });
 
             Assert.True(File.Exists(outputPath));
@@ -210,9 +210,9 @@ public partial class PdfStamperTests {
 
         PdfStamper.StampText(source, output, "OUTPUT-STAMP", new PdfTextStampOptions {
             PageNumbers = new[] { 1 },
-            X = 72,
-            Y = 700,
-            FontSize = 14
+            X = global::OfficeIMO.OfficeLength.Points(72),
+            Y = global::OfficeIMO.OfficeLength.Points(700),
+            FontSize = global::OfficeIMO.OfficeLength.Points(14)
         });
 
         byte[] stamped = GetOutputPayload(output, prefixLength);

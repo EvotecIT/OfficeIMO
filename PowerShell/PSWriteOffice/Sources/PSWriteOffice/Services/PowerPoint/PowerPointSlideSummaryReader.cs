@@ -8,15 +8,18 @@ namespace PSWriteOffice.Services.PowerPoint;
 public sealed class PowerPointSlideSummaryInfo
 {
     /// <summary>The slide the summary belongs to.</summary>
-    public PowerPointSlide Slide { get; set; } = null!;
+    public PowerPointSlide? Slide { get; set; }
 
-    /// <summary>Zero-based slide index when known.</summary>
+    /// <summary>The inspected source file; null for a live document.</summary>
+    public string? Path { get; set; }
+
+    /// <summary>One-based slide position when known.</summary>
     public int SlideIndex { get; set; } = -1;
 
-    /// <summary>Zero-based master index when known.</summary>
+    /// <summary>One-based master position when known.</summary>
     public int MasterIndex { get; set; } = -1;
 
-    /// <summary>Zero-based layout index when known.</summary>
+    /// <summary>One-based layout position when known.</summary>
     public int LayoutIndex { get; set; } = -1;
 
     /// <summary>Slide layout name when known.</summary>
@@ -25,7 +28,7 @@ public sealed class PowerPointSlideSummaryInfo
     /// <summary>Slide layout type when known.</summary>
     public string? LayoutType { get; set; }
 
-    /// <summary>Resolved title text.</summary>
+    /// <summary>Resolved title with physical line breaks normalized to spaces.</summary>
     public string? Title { get; set; }
 
     /// <summary>Whether the slide already has speaker notes.</summary>
@@ -58,7 +61,7 @@ public sealed class PowerPointSlideSummaryInfo
 
 internal static class PowerPointSlideSummaryReader
 {
-    public static PowerPointSlideSummaryInfo Read(PowerPointSlide slide, int slideIndex)
+    public static PowerPointSlideSummaryInfo Read(PowerPointSlide slide, int slideIndex, string? path = null)
     {
         if (slide == null)
         {
@@ -70,13 +73,14 @@ internal static class PowerPointSlideSummaryReader
 
         return new PowerPointSlideSummaryInfo
         {
-            Slide = slide,
-            SlideIndex = slideIndex,
-            MasterIndex = layout?.MasterIndex ?? -1,
-            LayoutIndex = slide.LayoutIndex,
+            Slide = path == null ? slide : null,
+            Path = path,
+            SlideIndex = slideIndex + 1,
+            MasterIndex = layout.HasValue ? layout.Value.MasterIndex + 1 : -1,
+            LayoutIndex = slide.LayoutIndex + 1,
             LayoutName = layout?.Name,
             LayoutType = layout?.Type?.ToString(),
-            Title = ResolveTitle(slide),
+            Title = TitleLine(ResolveTitle(slide)),
             HasNotes = notes.HasNotes,
             NotesText = notes.Text,
             ShapeCount = slide.Shapes.Count,
@@ -107,4 +111,7 @@ internal static class PowerPointSlideSummaryReader
             .Select(textBox => textBox.Text)
             .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text));
     }
+    private static string? TitleLine(string? text) => text == null ? null : string.Join(" ",
+        text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n').Select(line => line.Trim()).Where(line => line.Length > 0));
+
 }

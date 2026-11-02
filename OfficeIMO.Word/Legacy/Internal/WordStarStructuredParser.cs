@@ -126,7 +126,7 @@ internal sealed class WordStarStructuredParser {
                     _model.Resources.Add(new LegacyWordResource("Graphics", payloadText));
                     _model.InertContent |= OfficeLegacyInertContentKind.ExternalLinks;
                     if (++_graphicsReferenceCount == 1) {
-                        _model.Findings.Add(LegacyWordAdapterBase.InertFinding("WORDSTAR_GRAPHICS_REFERENCE_INERT", "Images", "One or more WordStar graphics references were recorded but were not resolved or loaded; the total is available in metadata."));
+                        _model.Findings.Add(LegacyWordAdapterBase.InertFinding("wordstar-graphics-reference-inert", "Images", "One or more WordStar graphics references were recorded but were not resolved or loaded; the total is available in metadata."));
                     }
                 }
                 break;
@@ -144,12 +144,12 @@ internal sealed class WordStarStructuredParser {
             case 0x02:
             case 0x15:
                 if (Increment(_partialSequenceCounts, type) == 1) {
-                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_SEQUENCE_PARTIAL", "Formatting", $"WordStar sequence type 0x{type:X2} was validated but is not projected by this profile; its total is available in metadata."));
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-sequence-partial", "Formatting", $"WordStar sequence type 0x{type:X2} was validated but is not projected by this profile; its total is available in metadata."));
                 }
                 break;
             default:
                 if (Increment(_unsupportedSequenceCounts, type) == 1) {
-                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_SEQUENCE_UNSUPPORTED", "Structure", $"WordStar sequence type 0x{type:X2} was kept inert and omitted; its total is available in metadata."));
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-sequence-unsupported", "Structure", $"WordStar sequence type 0x{type:X2} was kept inert and omitted; its total is available in metadata."));
                 }
                 break;
         }
@@ -186,14 +186,14 @@ internal sealed class WordStarStructuredParser {
     private void AddNote(LegacyWordNoteKind kind, string text) {
         if (string.IsNullOrWhiteSpace(text)) {
             if (++_emptyNoteCount == 1) {
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_NOTE_EMPTY_OMITTED", "Notes", "One or more structurally valid WordStar note records had no recoverable text and were omitted; the total is available in metadata."));
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-note-empty-omitted", "Notes", "One or more structurally valid WordStar note records had no recoverable text and were omitted; the total is available in metadata."));
             }
             return;
         }
         ConsumeItem("note");
         ConsumeText(text.Length);
         _model.Notes.Add(new LegacyWordNote(kind, text));
-        if (_model.Notes.Count == 1) _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_NOTE_ANCHOR_APPROXIMATED", "Notes", "WordStar note text was recovered, but its exact source anchor was unavailable; conversion appends a labeled note paragraph."));
+        if (_model.Notes.Count == 1) _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-note-anchor-approximated", "Notes", "WordStar note text was recovered, but its exact source anchor was unavailable; conversion appends a labeled note paragraph."));
     }
 
     private void AppendSoftBreak() {
@@ -238,7 +238,7 @@ internal sealed class WordStarStructuredParser {
             paragraph.IsList = true;
             RemoveRunPrefix(paragraph.Runs, 2);
             if (++_inferredListCount == 1) {
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_LIST_INFERRED", "Lists", "One or more bullet-list items were inferred from leading text markers because WordStar stores them as document text; the total is available in metadata."));
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-list-inferred", "Lists", "One or more bullet-list items were inferred from leading text markers because WordStar stores them as document text; the total is available in metadata."));
             }
         }
         _model.Paragraphs.Add(paragraph);
@@ -289,7 +289,7 @@ internal sealed class WordStarStructuredParser {
             default:
                 _unknownDotCommandCount++;
                 if (_unknownDotCommandCount == 1) {
-                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_DOT_COMMAND", "Layout", "One or more unrecognized WordStar dot commands were kept inert and omitted; the total is available in metadata."));
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-dot-command", "Layout", "One or more unrecognized WordStar dot commands were kept inert and omitted; the total is available in metadata."));
                 }
                 return true;
         }
@@ -297,13 +297,13 @@ internal sealed class WordStarStructuredParser {
 
     private void RecordUnsupportedControl(byte value) {
         if (Increment(_unsupportedControlCounts, value) == 1 && _unsupportedControlCounts.Count == 1) {
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_CONTROL_UNSUPPORTED", "Structure", "One or more unsupported WordStar standalone control bytes were omitted; per-control totals are available in metadata."));
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-control-unsupported", "Structure", "One or more unsupported WordStar standalone control bytes were omitted; per-control totals are available in metadata."));
         }
     }
 
     private void RecordHeaderFooterMetadataOnly() {
         if (++_headerFooterMetadataOnlyCount == 1) {
-            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_HEADER_FOOTER_METADATA_ONLY", "Layout", "WordStar header and footer dot commands were retained as metadata but are not projected into document header/footer parts; the total is available in metadata."));
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("wordstar-header-footer-metadata-only", "Layout", "WordStar header and footer dot commands were retained as metadata but are not projected into document header/footer parts; the total is available in metadata."));
         }
     }
 

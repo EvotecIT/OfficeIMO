@@ -9,19 +9,14 @@ schema: 2.0.0
 Adds a chart to a PowerPoint slide.
 
 ## SYNTAX
-### Default (Default)
+### Sample (Default)
 ```powershell
-Add-OfficePowerPointChart [-Slide <PowerPointSlide>] [-Type <PowerPointChartType>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Title <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointChart [-Slide <PowerPointSlideSelector>] [-Type <OfficeChartType>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-Title <string>] [-PassThru] [<CommonParameters>]
 ```
 
-### Categorical
+### InputObject
 ```powershell
-Add-OfficePowerPointChart -InputObject <Object[]> -CategoryProperty <string> -SeriesProperty <string[]> [-Slide <PowerPointSlide>] [-Type <PowerPointChartType>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Title <string>] [-PassThru] [<CommonParameters>]
-```
-
-### Scatter
-```powershell
-Add-OfficePowerPointChart -InputObject <Object[]> -XProperty <string> -YProperty <string[]> [-Slide <PowerPointSlide>] [-Type <PowerPointChartType>] [-X <double>] [-Y <double>] [-Width <double>] [-Height <double>] [-Title <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointChart -InputObject <Object[]> -Category <string> -Value <string[]> [-Slide <PowerPointSlideSelector>] [-Type <OfficeChartType>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Column <Int32>] [-Span <Int32>] [-Title <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,8 +31,8 @@ PS> $rows = @(
     [pscustomobject]@{ Month = 'Feb'; Sales = 55; Profit = 13 }
 )
 New-OfficePowerPoint -Path .\Examples\Documents\PowerPointChart.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Add-OfficePowerPointChart -Slide $slide -InputObject $rows -CategoryProperty Month -SeriesProperty Sales,Profit -Title 'Monthly performance'
+    $slide = Add-OfficePowerPointSlide -PassThru
+    Add-OfficePowerPointChart -Slide $slide -InputObject $rows -Category Month -Value Sales,Profit -Title 'Monthly performance'
 }
 ```
 
@@ -50,8 +45,8 @@ PS> $rows = @(
     [pscustomobject]@{ Quarter = 2; Revenue = 34 }
 )
 New-OfficePowerPoint -Path .\Examples\Documents\PowerPointScatter.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -XProperty Quarter -YProperty Revenue -Title 'Revenue trend'
+    $slide = Add-OfficePowerPointSlide -PassThru
+    Add-OfficePowerPointChart -Slide $slide -Type Scatter -InputObject $rows -Category Quarter -Value Revenue -Title 'Revenue trend'
 }
 ```
 
@@ -59,12 +54,12 @@ Creates a scatter chart using Quarter on the X axis and Revenue on the Y axis.
 
 ## PARAMETERS
 
-### -CategoryProperty
-Property name used for category labels on standard charts.
+### -Category
+Property used for category labels, or numeric X values on scatter charts.
 
 ```yaml
 Type: String
-Parameter Sets: Categorical
+Parameter Sets: InputObject
 Aliases: None
 Possible values:
 
@@ -75,12 +70,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Height
-Chart height in points.
+### -Column
+One-based start column in the native twelve-column grid; explicit X overrides it.
 
 ```yaml
-Type: Double
-Parameter Sets: Default, Categorical, Scatter
+Type: Int32
+Parameter Sets: Sample, InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Height
+Chart height; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
@@ -96,14 +107,14 @@ Source objects used to build chart data.
 
 ```yaml
 Type: Object[]
-Parameter Sets: Categorical, Scatter
-Aliases: Data
+Parameter Sets: InputObject
+Aliases: None
 Possible values:
 
 Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -112,27 +123,11 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Default, Categorical, Scatter
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
 Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SeriesProperty
-Property names used as numeric series on standard charts.
-
-```yaml
-Type: String[]
-Parameter Sets: Categorical
-Aliases: None
-Possible values:
-
-Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -143,15 +138,31 @@ Accept wildcard characters: False
 Target slide that will receive the chart (optional inside DSL).
 
 ```yaml
-Type: PowerPointSlide
-Parameter Sets: Default, Categorical, Scatter
+Type: PowerPointSlideSelector
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Span
+Number of grid columns; defaults to twelve, and explicit Width overrides it.
+
+```yaml
+Type: Int32
+Parameter Sets: Sample, InputObject
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -160,7 +171,7 @@ Optional chart title.
 
 ```yaml
 Type: String
-Parameter Sets: Default, Categorical, Scatter
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
@@ -175,10 +186,10 @@ Accept wildcard characters: False
 Chart type to create.
 
 ```yaml
-Type: PowerPointChartType
-Parameter Sets: Default, Categorical, Scatter
+Type: OfficeChartType
+Parameter Sets: Sample, InputObject
 Aliases: None
-Possible values: ClusteredColumn, Line, Pie, Doughnut, Scatter
+Possible values: ColumnClustered, Column, ColumnStacked, ColumnStacked100, BarClustered, Bar, BarStacked, BarStacked100, Line, LineStacked, LineStacked100, Area, AreaStacked, AreaStacked100, Scatter, Radar, Pie, Doughnut, Bubble, Column3DClustered, Column3DStacked, Column3DStacked100, Bar3DClustered, Bar3DStacked, Bar3DStacked100, Line3D, Area3D, Area3DStacked, Area3DStacked100, Pie3D, PieOfPie, BarOfPie, Stock, Surface, SurfaceWireframe, SurfaceContour, Funnel, Waterfall, BoxWhisker, Treemap, SurfaceContourWireframe, Sunburst
 
 Required: False
 Position: named
@@ -187,12 +198,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Width
-Chart width in points.
+### -Value
+Properties used as numeric series, or Y series on scatter charts.
 
 ```yaml
-Type: Double
-Parameter Sets: Default, Categorical, Scatter
+Type: String[]
+Parameter Sets: InputObject
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Width
+Chart width; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
@@ -204,31 +231,15 @@ Accept wildcard characters: False
 ```
 
 ### -X
-Left offset in points from the slide origin.
+Left offset from the slide origin; numbers mean points.
 
 ```yaml
-Type: Double
-Parameter Sets: Default, Categorical, Scatter
+Type: OfficeLength
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
 Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -XProperty
-Property name used for the X axis on scatter charts.
-
-```yaml
-Type: String
-Parameter Sets: Scatter
-Aliases: None
-Possible values:
-
-Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -236,31 +247,15 @@ Accept wildcard characters: False
 ```
 
 ### -Y
-Top offset in points from the slide origin.
+Top offset from the slide origin; numbers mean points.
 
 ```yaml
-Type: Double
-Parameter Sets: Default, Categorical, Scatter
+Type: OfficeLength
+Parameter Sets: Sample, InputObject
 Aliases: None
 Possible values:
 
 Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -YProperty
-Property names used as numeric Y series on scatter charts.
-
-```yaml
-Type: String[]
-Parameter Sets: Scatter
-Aliases: None
-Possible values:
-
-Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -272,7 +267,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
+- `System.Object[]`
 
 ## OUTPUTS
 

@@ -7,13 +7,14 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class InventoryReorder {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        var sheet = document.AddWorksheet("Reorder");
-        sheet.SetColumnWidth(1, 30);
-        for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 15);
-        sheet.SetColumnWidth(7, 19);
+        var sheet = document.AddSheet("Reorder");
+        // Widths sized to the content so the whole plan prints on one page.
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
+        for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10));
+        sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(13));
         sheet.MergeRange("A1:G1");
         sheet.Cell(1, 1, "Inventory replenishment plan");
-        sheet.CellFontSize(1, 1, 20); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20)); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:G2"); sheet.Cell(2, 1, "Illustrative stock snapshot / quantities and unit costs are editable");
         string[] headers = { "Item", "On hand", "Target", "Stock gap", "Order qty", "Unit cost", "Order cost" };
         for (int column = 1; column <= 7; column++) sheet.Cell(4, column, headers[column - 1]);

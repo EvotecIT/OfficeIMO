@@ -16,114 +16,114 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
 
                 document.Sections[0].Borders.LeftStyle = WordBorderStyle.BabyPacifier;
-                document.Sections[0].Borders.LeftColor = OfficeIMO.Drawing.OfficeColor.Aqua;
-                document.Sections[0].Borders.LeftSpace = 10;
-                document.Sections[0].Borders.LeftSize = 24;
+                document.Sections[0].Borders.LeftColor = OfficeIMO.OfficeColor.Aqua;
+                document.Sections[0].Borders.LeftSpace = OfficeLength.Points(10);
+                document.Sections[0].Borders.LeftSize = OfficeLength.Points(3);
 
                 document.Sections[0].Borders.RightStyle = WordBorderStyle.BirdsFlight;
-                document.Sections[0].Borders.RightColor = OfficeIMO.Drawing.OfficeColor.Red;
+                document.Sections[0].Borders.RightColor = OfficeIMO.OfficeColor.Red;
 
                 document.Sections[0].Borders.TopStyle = WordBorderStyle.SharksTeeth;
-                document.Sections[0].Borders.TopColor = OfficeIMO.Drawing.OfficeColor.GreenYellow;
+                document.Sections[0].Borders.TopColor = OfficeIMO.OfficeColor.GreenYellow;
 
                 document.Sections[0].Borders.BottomStyle = WordBorderStyle.Thick;
-                document.Sections[0].Borders.BottomColor = OfficeIMO.Drawing.OfficeColor.Blue;
-                document.Sections[0].Borders.BottomSpace = 15;
-                document.Sections[0].Borders.BottomSize = 18;
+                document.Sections[0].Borders.BottomColor = OfficeIMO.OfficeColor.Blue;
+                document.Sections[0].Borders.BottomSpace = OfficeLength.Points(15);
+                document.Sections[0].Borders.BottomSize = OfficeLength.Points(2.25);
 
 
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
-                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Aqua.ToRgbHex());
-                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace);
-                Assert.Equal(24U, document.Sections[0].Borders.LeftSize);
+                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
+                Assert.Equal(OfficeLength.Points(10), document.Sections[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(3), document.Sections[0].Borders.LeftSize);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
-                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.RightSpace == null);
                 Assert.True(document.Sections[0].Borders.RightSize == null);
 
                 Assert.True(document.Sections[0].Borders.TopStyle == WordBorderStyle.SharksTeeth);
-                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.TopSpace == null);
                 Assert.True(document.Sections[0].Borders.TopSize == null);
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
-                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
-                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace);
-                Assert.Equal(18U, document.Sections[0].Borders.BottomSize);
+                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                Assert.Equal(OfficeLength.Points(15), document.Sections[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(2.25), document.Sections[0].Borders.BottomSize);
 
 
                 document.AddSection();
 
                 document.Sections[1].Borders.LeftStyle = WordBorderStyle.BabyRattle;
-                document.Sections[1].Borders.LeftColor = OfficeIMO.Drawing.OfficeColor.LightYellow;
+                document.Sections[1].Borders.LeftColor = OfficeIMO.OfficeColor.LightYellow;
                 document.Sections[1].Borders.LeftShadow = true;
                 document.Sections[1].Borders.LeftFrame = true;
 
 
                 document.Sections[1].Borders.RightStyle = WordBorderStyle.ChainLink;
-                document.Sections[1].Borders.RightColor = OfficeIMO.Drawing.OfficeColor.GreenYellow;
+                document.Sections[1].Borders.RightColor = OfficeIMO.OfficeColor.GreenYellow;
                 document.Sections[1].Borders.RightShadow = true;
                 document.Sections[1].Borders.RightFrame = false;
 
                 document.Sections[1].Borders.TopStyle = WordBorderStyle.Dashed;
-                document.Sections[1].Borders.TopColor = OfficeIMO.Drawing.OfficeColor.OrangeRed;
+                document.Sections[1].Borders.TopColor = OfficeIMO.OfficeColor.OrangeRed;
 
                 document.Sections[1].Borders.BottomStyle = WordBorderStyle.DashSmallGap;
-                document.Sections[1].Borders.BottomColor = OfficeIMO.Drawing.OfficeColor.DarkOliveGreen;
+                document.Sections[1].Borders.BottomColor = OfficeIMO.OfficeColor.DarkOliveGreen;
                 document.Sections[1].Borders.BottomShadow = false;
 
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
-                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Aqua.ToRgbHex());
-                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace);
-                Assert.Equal(24U, document.Sections[0].Borders.LeftSize);
+                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
+                Assert.Equal(OfficeLength.Points(10), document.Sections[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(3), document.Sections[0].Borders.LeftSize);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
-                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.RightSpace == null);
                 Assert.True(document.Sections[0].Borders.RightSize == null);
 
                 Assert.True(document.Sections[0].Borders.TopStyle == WordBorderStyle.SharksTeeth);
-                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.TopSpace == null);
                 Assert.True(document.Sections[0].Borders.TopSize == null);
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
-                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
-                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace);
-                Assert.Equal(18U, document.Sections[0].Borders.BottomSize);
+                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                Assert.Equal(OfficeLength.Points(15), document.Sections[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(2.25), document.Sections[0].Borders.BottomSize);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == WordBorderStyle.BabyRattle);
-                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.LightYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.LeftShadow == true);
                 Assert.True(document.Sections[1].Borders.LeftFrame == true);
 
                 Assert.True(document.Sections[1].Borders.RightStyle == WordBorderStyle.ChainLink);
-                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.RightShadow == true);
                 Assert.True(document.Sections[1].Borders.RightFrame == false);
 
                 Assert.True(document.Sections[1].Borders.TopStyle == WordBorderStyle.Dashed);
-                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.TopShadow == null);
                 Assert.True(document.Sections[1].Borders.TopFrame == null);
 
                 Assert.True(document.Sections[1].Borders.BottomStyle == WordBorderStyle.DashSmallGap);
-                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkOliveGreen.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkOliveGreen.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.BottomShadow == false);
                 Assert.True(document.Sections[1].Borders.BottomFrame == null);
 
                 Assert.True(document.Borders.LeftStyle == WordBorderStyle.BabyPacifier);
-                Assert.True(document.Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Aqua.ToRgbHex());
+                Assert.True(document.Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
                 Assert.True(document.Borders.RightStyle == WordBorderStyle.BirdsFlight);
-                Assert.True(document.Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex());
+                Assert.True(document.Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
                 Assert.True(document.Borders.TopStyle == WordBorderStyle.SharksTeeth);
-                Assert.True(document.Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Borders.BottomStyle == WordBorderStyle.Thick);
-                Assert.True(document.Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
+                Assert.True(document.Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
 
 
                 document.Save();
@@ -132,72 +132,72 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithBorders.docx"))) {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
-                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Aqua.ToRgbHex());
-                Assert.Equal(10U, document.Sections[0].Borders.LeftSpace);
-                Assert.Equal(24U, document.Sections[0].Borders.LeftSize);
+                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
+                Assert.Equal(OfficeLength.Points(10), document.Sections[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(3), document.Sections[0].Borders.LeftSize);
 
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
-                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.RightSpace == null);
                 Assert.True(document.Sections[0].Borders.RightSize == null);
 
                 Assert.True(document.Sections[0].Borders.TopStyle == WordBorderStyle.SharksTeeth);
-                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.TopSpace == null);
                 Assert.True(document.Sections[0].Borders.TopSize == null);
 
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
-                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
-                Assert.Equal(15U, document.Sections[0].Borders.BottomSpace);
-                Assert.Equal(18U, document.Sections[0].Borders.BottomSize);
+                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                Assert.Equal(OfficeLength.Points(15), document.Sections[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(2.25), document.Sections[0].Borders.BottomSize);
 
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == WordBorderStyle.BabyRattle);
-                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.LightYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.RightStyle == WordBorderStyle.ChainLink);
-                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.TopStyle == WordBorderStyle.Dashed);
-                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.BottomStyle == WordBorderStyle.DashSmallGap);
-                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkOliveGreen.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkOliveGreen.ToRgbHex());
 
 
                 document.AddSection();
                 document.Sections[2].Borders.LeftStyle = WordBorderStyle.DotDash;
-                document.Sections[2].Borders.LeftColor = OfficeIMO.Drawing.OfficeColor.OrangeRed;
+                document.Sections[2].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
                 document.Sections[2].Borders.RightStyle = WordBorderStyle.DotDotDash;
-                document.Sections[2].Borders.RightColor = OfficeIMO.Drawing.OfficeColor.Goldenrod;
+                document.Sections[2].Borders.RightColor = OfficeIMO.OfficeColor.Goldenrod;
                 document.Sections[2].Borders.TopStyle = WordBorderStyle.DashDotStroked;
-                document.Sections[2].Borders.TopColor = OfficeIMO.Drawing.OfficeColor.DarkKhaki;
+                document.Sections[2].Borders.TopColor = OfficeIMO.OfficeColor.DarkKhaki;
                 document.Sections[2].Borders.BottomStyle = WordBorderStyle.BasicWhiteDashes;
-                document.Sections[2].Borders.BottomColor = OfficeIMO.Drawing.OfficeColor.LightSkyBlue;
+                document.Sections[2].Borders.BottomColor = OfficeIMO.OfficeColor.LightSkyBlue;
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
-                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Aqua.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
-                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.TopStyle == WordBorderStyle.SharksTeeth);
-                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
-                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == WordBorderStyle.BabyRattle);
-                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.LightYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.RightStyle == WordBorderStyle.ChainLink);
-                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.TopStyle == WordBorderStyle.Dashed);
-                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.BottomStyle == WordBorderStyle.DashSmallGap);
-                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkOliveGreen.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkOliveGreen.ToRgbHex());
 
                 Assert.True(document.Sections[2].Borders.LeftStyle == WordBorderStyle.DotDash);
-                Assert.True(document.Sections[2].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[2].Borders.RightStyle == WordBorderStyle.DotDotDash);
-                Assert.True(document.Sections[2].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Goldenrod.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Goldenrod.ToRgbHex());
                 Assert.True(document.Sections[2].Borders.TopStyle == WordBorderStyle.DashDotStroked);
-                Assert.True(document.Sections[2].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkKhaki.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkKhaki.ToRgbHex());
                 Assert.True(document.Sections[2].Borders.BottomStyle == WordBorderStyle.BasicWhiteDashes);
-                Assert.True(document.Sections[2].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightSkyBlue.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.LightSkyBlue.ToRgbHex());
 
                 document.Save();
             }
@@ -205,64 +205,64 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithBorders.docx"))) {
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.BabyPacifier);
-                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Aqua.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.Aqua.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.BirdsFlight);
-                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Red.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Red.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.TopStyle == WordBorderStyle.SharksTeeth);
-                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.Thick);
-                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.Blue.ToRgbHex());
 
                 Assert.True(document.Sections[1].Borders.LeftStyle == WordBorderStyle.BabyRattle);
-                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.LightYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.RightStyle == WordBorderStyle.ChainLink);
-                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.GreenYellow.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.GreenYellow.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.TopStyle == WordBorderStyle.Dashed);
-                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[1].Borders.BottomStyle == WordBorderStyle.DashSmallGap);
-                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkOliveGreen.ToRgbHex());
+                Assert.True(document.Sections[1].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkOliveGreen.ToRgbHex());
 
                 Assert.True(document.Sections[2].Borders.LeftStyle == WordBorderStyle.DotDash);
-                Assert.True(document.Sections[2].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[2].Borders.RightStyle == WordBorderStyle.DotDotDash);
-                Assert.True(document.Sections[2].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Goldenrod.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Goldenrod.ToRgbHex());
                 Assert.True(document.Sections[2].Borders.TopStyle == WordBorderStyle.DashDotStroked);
-                Assert.True(document.Sections[2].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkKhaki.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkKhaki.ToRgbHex());
                 Assert.True(document.Sections[2].Borders.BottomStyle == WordBorderStyle.BasicWhiteDashes);
-                Assert.True(document.Sections[2].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightSkyBlue.ToRgbHex());
+                Assert.True(document.Sections[2].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.LightSkyBlue.ToRgbHex());
 
                 document.Borders.LeftStyle = WordBorderStyle.DotDash;
-                document.Borders.LeftColor = OfficeIMO.Drawing.OfficeColor.OrangeRed;
+                document.Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
                 document.Borders.RightStyle = WordBorderStyle.DotDotDash;
-                document.Borders.RightColor = OfficeIMO.Drawing.OfficeColor.Goldenrod;
+                document.Borders.RightColor = OfficeIMO.OfficeColor.Goldenrod;
                 document.Borders.TopStyle = WordBorderStyle.DashDotStroked;
-                document.Borders.TopColor = OfficeIMO.Drawing.OfficeColor.DarkKhaki;
+                document.Borders.TopColor = OfficeIMO.OfficeColor.DarkKhaki;
                 document.Borders.BottomStyle = WordBorderStyle.BasicWhiteDashes;
-                document.Borders.BottomColor = OfficeIMO.Drawing.OfficeColor.LightSkyBlue;
+                document.Borders.BottomColor = OfficeIMO.OfficeColor.LightSkyBlue;
 
                 Assert.True(document.Sections[0].Borders.LeftStyle == WordBorderStyle.DotDash);
-                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.LeftColor.ToRgbHex() == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.RightStyle == WordBorderStyle.DotDotDash);
-                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.Goldenrod.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColor.ToRgbHex() == OfficeIMO.OfficeColor.Goldenrod.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.TopStyle == WordBorderStyle.DashDotStroked);
-                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.DarkKhaki.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColor.ToRgbHex() == OfficeIMO.OfficeColor.DarkKhaki.ToRgbHex());
                 Assert.True(document.Sections[0].Borders.BottomStyle == WordBorderStyle.BasicWhiteDashes);
-                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.Drawing.OfficeColor.LightSkyBlue.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.BottomColor.ToRgbHex() == OfficeIMO.OfficeColor.LightSkyBlue.ToRgbHex());
 
-                Assert.True(document.Sections[0].Borders.LeftColorHex == OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex());
-                Assert.True(document.Sections[0].Borders.RightColorHex == OfficeIMO.Drawing.OfficeColor.Goldenrod.ToRgbHex());
-                Assert.True(document.Sections[0].Borders.TopColorHex == OfficeIMO.Drawing.OfficeColor.DarkKhaki.ToRgbHex());
-                Assert.True(document.Sections[0].Borders.BottomColorHex == OfficeIMO.Drawing.OfficeColor.LightSkyBlue.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.LeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColorHex == OfficeIMO.OfficeColor.Goldenrod.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColorHex == OfficeIMO.OfficeColor.DarkKhaki.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.BottomColorHex == OfficeIMO.OfficeColor.LightSkyBlue.ToRgbHex());
 
-                document.Borders.LeftColorHex = OfficeIMO.Drawing.OfficeColor.Yellow.ToRgbHex();
-                document.Borders.RightColorHex = OfficeIMO.Drawing.OfficeColor.DarkOliveGreen.ToRgbHex();
-                document.Borders.TopColorHex = OfficeIMO.Drawing.OfficeColor.LightSkyBlue.ToRgbHex();
-                document.Borders.BottomColorHex = OfficeIMO.Drawing.OfficeColor.Beige.ToRgbHex();
+                document.Borders.LeftColorHex = OfficeIMO.OfficeColor.Yellow.ToRgbHex();
+                document.Borders.RightColorHex = OfficeIMO.OfficeColor.DarkOliveGreen.ToRgbHex();
+                document.Borders.TopColorHex = OfficeIMO.OfficeColor.LightSkyBlue.ToRgbHex();
+                document.Borders.BottomColorHex = OfficeIMO.OfficeColor.Beige.ToRgbHex();
 
-                Assert.True(document.Sections[0].Borders.LeftColorHex == OfficeIMO.Drawing.OfficeColor.Yellow.ToRgbHex());
-                Assert.True(document.Sections[0].Borders.RightColorHex == OfficeIMO.Drawing.OfficeColor.DarkOliveGreen.ToRgbHex());
-                Assert.True(document.Sections[0].Borders.TopColorHex == OfficeIMO.Drawing.OfficeColor.LightSkyBlue.ToRgbHex());
-                Assert.True(document.Sections[0].Borders.BottomColorHex == OfficeIMO.Drawing.OfficeColor.Beige.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.LeftColorHex == OfficeIMO.OfficeColor.Yellow.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.RightColorHex == OfficeIMO.OfficeColor.DarkOliveGreen.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.TopColorHex == OfficeIMO.OfficeColor.LightSkyBlue.ToRgbHex());
+                Assert.True(document.Sections[0].Borders.BottomColorHex == OfficeIMO.OfficeColor.Beige.ToRgbHex());
 
                 document.Save();
             }

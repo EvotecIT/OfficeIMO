@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private int? _orderedListNumberId;
 
-        private void ProcessList(IElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private void ProcessList(IElement element, WordDocument doc, WordSection section, WordHtmlImportOptions options,
             Stack<WordList> listStack, WordTableCell? cell, TextFormatting formatting, WordHeaderFooter? headerFooter) {
             bool ordered = element.TagName.Equals("ol", System.StringComparison.OrdinalIgnoreCase);
             int parentDepth = listStack.Count;
@@ -257,11 +257,11 @@ namespace OfficeIMO.Word.Html {
 
             var level = list.Numbering.Levels[levelIndex];
             if (TryGetTwipsAttribute(element, "data-left-indent-twips", out var leftIndentTwips)) {
-                level.IndentationLeft = leftIndentTwips;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points((leftIndentTwips) / 20D);
             }
 
             if (TryGetTwipsAttribute(element, "data-hanging-indent-twips", out var hangingIndentTwips)) {
-                level.IndentationHanging = hangingIndentTwips;
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points((hangingIndentTwips) / 20D);
             }
         }
 
@@ -362,7 +362,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private WordParagraph ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+        private WordParagraph ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, WordHtmlImportOptions options,
             Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter,
             WordParagraph? insertionAnchor) {
             var list = listStack.Peek();

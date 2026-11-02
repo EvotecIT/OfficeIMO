@@ -1,21 +1,21 @@
 {
   "schemaVersion": 1,
   "moduleName": "PSWriteOffice",
-  "moduleVersion": "3.5.2",
-  "sourceCommit": "0c6eff89066d5af0f09be696bc2ae94ae0963cee",
-  "packageSourceCommit": "0c6eff89066d5af0f09be696bc2ae94ae0963cee",
+  "moduleVersion": "3.5.3",
+  "sourceCommit": "e18316ebaee4f069f2c25ea99012f28b1e07071a",
+  "packageSourceCommit": "e18316ebaee4f069f2c25ea99012f28b1e07071a",
   "components": {
     "manifest": {
-      "bytes": 26018,
-      "sha256": "0d598d38e635f591a22746eb9cf98c99587c91094f27df85ecd01ca9aa8eef19"
+      "bytes": 23966,
+      "sha256": "7b6f06d61f37ed45760c963ae21854ebeb7f5394d89a16bca6358854c4f27b5e"
     },
     "help": {
-      "bytes": 11647977,
-      "sha256": "94c2b2a79c18c5ab26c4067044ea61788f940a9d7e30d3296da0919908bb86e2"
+      "bytes": 12022322,
+      "sha256": "1a883f98746bcc73ef1c289f1f9a1598bb13318164a054548a2fab5b222429d6"
     },
     "metadata": {
-      "bytes": 249784,
-      "sha256": "a41015213deda907ab785a73eab3768233056b7a923350f8513a698c482128d4"
+      "bytes": 234081,
+      "sha256": "b00933dde471387fff25f372d16d7e1cbfd6c8fcbc49b320a7cbb6ec43aa22dc"
     }
   }
 }

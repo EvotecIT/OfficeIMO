@@ -33,7 +33,10 @@ public class PdfOfficeDefaultFontPolicyTests {
     [InlineData("Arial", "Liberation Sans", true)]
     [InlineData("Times New Roman", "Liberation Serif", true)]
     [InlineData("Courier New", "Liberation Mono", true)]
-    [InlineData("Aptos", "Inter", false)]
+    [InlineData("Aptos", "Calibri", false)]
+    [InlineData("Carlito", "Calibri", true)]
+    [InlineData("Caladea", "Cambria", true)]
+    [InlineData("Poppins", "Aptos", false)]
     public void MissingOfficeFamilies_UseInstalledSubstitutesWithoutHidingTheirIdentity(string source, string firstSubstitute, bool compatible) {
         string[] substitutes = OfficeDocumentFontSubstitutions.Enumerate(source).ToArray();
         Assert.Equal(firstSubstitute, substitutes[0]);
@@ -44,7 +47,7 @@ public class PdfOfficeDefaultFontPolicyTests {
         string? expected = new[] { source }.Concat(substitutes)
             .FirstOrDefault(candidate => PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report);
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report);
         Assert.Equal(expected != null, options.TryRegisterNamedOfficeFontFamily(source, out string? registered));
         Assert.Equal(expected, registered);
         if (expected == null) return;
@@ -70,8 +73,8 @@ public class PdfOfficeDefaultFontPolicyTests {
     [Fact]
     public void BalancedDefaults_AllowInstalledDocumentFontsWithoutGrantingFileOrNetworkAccess() {
         foreach (PdfResourcePolicy policy in new[] {
-            PdfResourcePolicy.CreateDefault(), new WordToPdfOptions().ResourcePolicy,
-            new PowerPointToPdfOptions().ResourcePolicy
+            PdfResourcePolicy.CreateDefault(), new WordPdfExportOptions().ResourcePolicy,
+            new PowerPointPdfExportOptions().ResourcePolicy
         }) {
             Assert.True(policy.AllowSystemFontEmbedding);
             Assert.True(policy.AllowDocumentFontEmbedding);
@@ -88,15 +91,15 @@ public class PdfOfficeDefaultFontPolicyTests {
         using WordDocument word = WordDocument.Create();
         word.Settings.FontFamily = "Arial";
         word.AddParagraph("Arial proof").FontFamily = "Arial";
-        PdfDocumentConversionResult wordResult = word.ToPdfDocumentResult(new WordToPdfOptions { ResourcePolicy = policy });
+        PdfDocumentConversionResult wordResult = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { ResourcePolicy = policy });
         AssertFontSelection(wordResult.ToBytes(), wordResult.Report, portable);
 
         using var stream = new MemoryStream();
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-        PowerPointTextBox text = presentation.AddSlide().AddTextBoxPoints("Arial proof", 20, 20, 300, 60);
+        using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+        PowerPointTextBox text = presentation.AddSlide().AddTextBox("Arial proof",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
         text.FontName = "Arial";
-        text.FontSize = 16;
-        PdfDocumentConversionResult slidesResult = presentation.ToPdfDocumentResult(new PowerPointToPdfOptions { ResourcePolicy = policy });
+        text.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+        PdfDocumentConversionResult slidesResult = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { ResourcePolicy = policy });
         AssertFontSelection(slidesResult.ToBytes(), slidesResult.Report, portable);
     }
 
@@ -109,7 +112,7 @@ public class PdfOfficeDefaultFontPolicyTests {
         byte[] font = File.ReadAllBytes(Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont()));
         var family = new PdfEmbeddedFontFamily("Cost Proof", font);
         var report = new PdfConversionReport();
-        var options = new PdfOptions { CompressEmbeddedFonts = compress }.ReportDiagnosticsTo(report);
+        var options = new PdfCreateOptions { CompressEmbeddedFonts = compress }.ReportDiagnosticsTo(report);
         if (named) options.RegisterNamedFontFamily(family);
         else options.RegisterFontFamily(PdfStandardFont.Helvetica, family);
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => {
@@ -135,7 +138,7 @@ public class PdfOfficeDefaultFontPolicyTests {
     public void EmbeddedCffCost_MatchesActualCompressedOrUncompressedPayload(bool compress) {
         byte[] font = File.ReadAllBytes(Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()));
         var report = new PdfConversionReport();
-        var options = new PdfOptions { CompressEmbeddedFonts = compress }.ReportDiagnosticsTo(report);
+        var options = new PdfCreateOptions { CompressEmbeddedFonts = compress }.ReportDiagnosticsTo(report);
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("CFF Cost Proof", font));
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.FontFamily("CFF Cost Proof").Text("CFF proof")).ToBytes();

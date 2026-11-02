@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint;
 /// <summary>
 /// Formats PowerPoint automatic-numbering values as their displayed markers.
 /// </summary>
-public static class PowerPointNumberingFormatter {
+internal static class PowerPointNumberingFormatter {
     private const string ArabicAlphabet =
         "ابتثجحخدذرزسشصضطظعغفقكلمنهوي";
     private const string ArabicAbjadAlphabet =

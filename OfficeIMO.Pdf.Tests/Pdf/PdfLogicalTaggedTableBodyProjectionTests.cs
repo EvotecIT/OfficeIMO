@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.Word;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
@@ -15,28 +16,28 @@ public sealed class PdfLogicalTaggedTableBodyProjectionTests {
     [InlineData(150D, false)]
     [InlineData(150D, true)]
     public void TaggedTableBesideListBodyPreservesProseAndEmitsEachCellOnce(double bodyX, bool irregularColumns) {
-        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EnableTaggedPdfCatalogMarkers())
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.List, list => list
                 .Structure(PdfCanvasStructureRole.ListItem, item => item
-                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", bodyX, 90D, 20D, 16D))
+                    .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("1.", global::OfficeIMO.OfficeLength.Points(bodyX), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(16D)))
                     .Structure(PdfCanvasStructureRole.ListBody, body => body
-                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Unique body", bodyX, 110D, 100D, 16D))
+                        .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph.Text("Unique body", global::OfficeIMO.OfficeLength.Points(bodyX), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(16D)))
                         .Structure(PdfCanvasStructureRole.Table, table => table
                             .Structure(PdfCanvasStructureRole.TableRow, row => row
-                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 250D, 110D, 80D, 16D))
-                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 360D, 110D, 80D, 16D)))
+                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", global::OfficeIMO.OfficeLength.Points(250D), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                                .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))
                             .Structure(PdfCanvasStructureRole.TableRow, row => row
-                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", irregularColumns ? 280D : 250D, 130D, 80D, 16D))
-                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", irregularColumns ? 330D : 360D, 130D, 80D, 16D))))))))
+                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", global::OfficeIMO.OfficeLength.Points(irregularColumns ? 280D : 250D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                                .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", global::OfficeIMO.OfficeLength.Points(irregularColumns ? 330D : 360D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))))))))
             .ToBytes();
-        PdfDocument document = PdfDocument.Load(bytes);
-        var options = new PdfReadOptions { Profile = PdfReadProfile.Structured };
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(bytes));
+        var options = new PdfLoadOptions { Profile = PdfReadProfile.Structured };
         PdfDocumentReadResult read = document.Read(options);
-        using OfficeIMO.Word.WordDocument word = read.ToWordDocument();
+        using OfficeIMO.Word.WordDocument word = (read.ConvertToWordWithEvidence()).Value;
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
         string[] projections = {
             read.Text,
-            read.ToMarkdown(),
+            read.ExtractMarkdown(),
             read.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic }),
             package.MainDocumentPart!.Document!.InnerText,
             document.Reader.Text()

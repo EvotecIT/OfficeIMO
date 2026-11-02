@@ -56,13 +56,13 @@ namespace OfficeIMO.Tests {
                 reads++;
                 return arguments[0];
             });
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             for (int row = 1; row <= 1024; row++) {
                 int key = searchMode == 2 ? row : 1025 - row;
                 source.CellFormula(row, 1, $"PROBE({key})");
                 source.CellValue(row, 2, key * 10);
             }
-            var report = document.AddWorksheet("Report");
+            var report = document.AddSheet("Report");
             report.CellFormula(1, 1, $"XLOOKUP(777,Source!A1:A1024,Source!B1:B1024,,, {searchMode})");
             Assert.Equal(1, report.RecalculateSupportedFormulas());
             AssertFormulaCache(report, 1, 1, "7770");
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XMATCH(\"A-2\",A1:A2,0,2)")]
         public void FormulaEvaluator_UnqualifiedOrderedTextDoesNotBecomeMissingMatch(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Ordering");
+            var sheet = document.AddSheet("Ordering");
             sheet.CellValue(1, 1, "A1");
             sheet.CellValue(2, 1, "A3");
             sheet.CellValue(1, 4, 42d);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static ExcelSheet CreateLookupModeSheet(ExcelDocument document) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             int[] ascending = { 10, 20, 20, 30, 40, 50 };
             string[] labels = { "ten", "first20", "last20", "thirty", "forty", "fifty" };
             string[] keys = { "Alpha", "Alpine", "Beta", "B?ta", "B*ta", "~tail" };

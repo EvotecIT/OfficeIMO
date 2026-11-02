@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using OfficeIMO.Pdf;
@@ -34,9 +35,10 @@ public sealed class GeneralConversionCmdletTests {
                 """);
             var items = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
-            Assert.Equal(OfficeWorkflowStatus.Completed, Assert.IsType<OfficeConversionBatchItemResult>(Assert.Single(items).BaseObject).Status);
-            var single = Assert.IsType<OfficeWorkflowResult>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("single")).BaseObject);
-            Assert.True(single.Succeeded);
+            Assert.Equal(OfficeBatchItemStatus.Completed, Assert.IsType<OfficeBatchItemReport>(Assert.Single(items).BaseObject).Status);
+            var single = Assert.IsType<OfficeConversionReport>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("single")).BaseObject);
+            Assert.Equal("Pdf", single.Target);
+            Assert.True(single.ItemsWritten > 0);
             Assert.Contains("# Literal text", PdfDocument.Load(output).Read().Text);
             byte[] original = File.ReadAllBytes(output);
             shell.Commands.Clear();

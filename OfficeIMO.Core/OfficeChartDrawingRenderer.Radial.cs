@@ -6,11 +6,11 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
     private static bool HasRenderableOutsideRadialLabel(OfficeChartLayout layout,
-        IReadOnlyList<string> categories, IReadOnlyList<(OfficeChartSeries Series, int SourceIndex)> series) {
+        IReadOnlyList<string> categories, IReadOnlyList<(OfficeSeries Series, int SourceIndex)> series) {
         if (!layout.ShowDataLabels || layout.DataLabelPosition != OfficeChartDataLabelPosition.OutsideEnd)
             return false;
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            (OfficeChartSeries values, int sourceIndex) = series[seriesIndex];
+            (OfficeSeries values, int sourceIndex) = series[seriesIndex];
             for (int point = 0; point < categories.Count; point++) {
                 if (!ShouldShowDataLabel(layout, sourceIndex, point) ||
                     !TryGetSeriesValue(values, point, out double value) ||
@@ -44,7 +44,7 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddPieSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, bool doughnut, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
-        IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
+        IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
             return;
         }
@@ -54,7 +54,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        OfficeChartSeries values = series[0];
+        OfficeSeries values = series[0];
         double total = GetPositiveSeriesNormalizedTotal(values, categories.Count, out double scale);
 
         if (total <= 0D) {
@@ -159,8 +159,8 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddDoughnutSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
-        IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        var renderableSeries = new List<(OfficeChartSeries Series, int SourceIndex)>();
+        IReadOnlyList<OfficeSeries> series = snapshot.Data.Series;
+        var renderableSeries = new List<(OfficeSeries Series, int SourceIndex)>();
         for (int s = 0; s < series.Count; s++) {
             if (GetPositiveSeriesNormalizedTotal(series[s], categories.Count, out _) > 0D) {
                 renderableSeries.Add((series[s], s));
@@ -174,7 +174,7 @@ public static partial class OfficeChartDrawingRenderer {
         double topCategoryLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetCategoryLegendBandHeight(categories, width - 16D, layout)
             : 0D;
-        OfficeChartSeries? legendSeries = GetCategoryLegendSeries(renderableSeries.ConvertAll(item => item.Series));
+        OfficeSeries? legendSeries = GetCategoryLegendSeries(renderableSeries.ConvertAll(item => item.Series));
         IReadOnlyList<OfficeColor?>? legendPointColors = legendSeries == null ? null : GetCategoryPointColors(style, legendSeries, categories.Count);
         IReadOnlyList<OfficeChartPointStyle?>? legendPointStyles = legendSeries?.PointStyles;
         if (topCategoryLegendHeight > 0D) {
@@ -210,7 +210,7 @@ public static partial class OfficeChartDrawingRenderer {
         double holeRadius = radius * snapshot.RadialLayout.DoughnutHolePercent / 100D;
         double ringThickness = (radius - holeRadius) / renderableSeries.Count;
         for (int s = 0; s < renderableSeries.Count; s++) {
-            OfficeChartSeries values = renderableSeries[s].Series;
+            OfficeSeries values = renderableSeries[s].Series;
             int sourceSeriesIndex = renderableSeries[s].SourceIndex;
             double outerRadius = holeRadius + (s + 1) * ringThickness;
             double innerRadius = holeRadius + s * ringThickness;
@@ -283,7 +283,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartStyle style,
         OfficeColor labelColor,
         string category,
-        OfficeChartSeries series,
+        OfficeSeries series,
         double value,
         double total,
         double centerX,
@@ -319,7 +319,7 @@ public static partial class OfficeChartDrawingRenderer {
         return luminance < 0.52D ? OfficeColor.White : OfficeColor.Black;
     }
 
-    private static double GetPositiveSeriesNormalizedTotal(OfficeChartSeries values, int categoryCount,
+    private static double GetPositiveSeriesNormalizedTotal(OfficeSeries values, int categoryCount,
         out double scale) {
         scale = 0D;
         for (int i = 0; i < categoryCount; i++)
@@ -337,7 +337,7 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
-    private static int GetMaximumRenderableExplosion(OfficeChartSeries series, int categoryCount) {
+    private static int GetMaximumRenderableExplosion(OfficeSeries series, int categoryCount) {
         if (series.PointExplosions == null) return 0;
         int maximum = 0;
         for (int index = 0; index < categoryCount; index++)

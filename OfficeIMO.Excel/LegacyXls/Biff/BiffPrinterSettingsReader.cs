@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (record.Payload.Length < 2) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-PLS-SHORT",
+                    "xls-biff-pls-short",
                     "The Pls printer settings record is shorter than expected.",
                     sheetName: sheetName,
                     recordOffset: record.Offset,
@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             if (reserved != 0) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
-                    "XLS-BIFF-PLS-RESERVED-VALUE-UNEXPECTED",
+                    "xls-biff-pls-reserved-value-unexpected",
                     $"The Pls printer settings record contains unexpected reserved value {reserved}.",
                     sheetName: sheetName,
                     recordOffset: record.Offset,

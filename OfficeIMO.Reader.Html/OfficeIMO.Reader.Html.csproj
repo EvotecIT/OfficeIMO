@@ -30,10 +30,6 @@
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
   <ItemGroup>
     <None Include="README.md">
       <Pack>True</Pack>
@@ -54,5 +50,8 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Chm" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Email" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 </Project>

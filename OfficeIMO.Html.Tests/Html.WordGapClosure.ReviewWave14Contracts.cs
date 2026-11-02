@@ -13,7 +13,7 @@ public partial class HtmlWordGapClosure {
             <body>before<img src="data:image/png;base64,{ValidPng}" alt="Inline">after</body>
         """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph before = Assert.Single(
             document.Paragraphs,
             candidate => candidate.Text == "before");
@@ -32,7 +32,7 @@ public partial class HtmlWordGapClosure {
             <p><span style="background-color:rgba(255,0,0,0)">transparent</span><span style="background-color:rgba(255,0,0,0.5)">half</span></p>
             """;
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument();
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph transparent = Assert.Single(
             document.Paragraphs,
             run => run.Text == "transparent");
@@ -53,10 +53,10 @@ public partial class HtmlWordGapClosure {
         run._runProperties!.Shading!.Val = ShadingPatternValues.Percent50;
         run._runProperties.Shading.Color = "FF0000";
 
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
         Assert.Contains("background-color:#800080", html, StringComparison.OrdinalIgnoreCase);
-        AssertRenderedWordBackgrounds(document, OfficeIMO.Drawing.OfficeColor.FromRgb(128, 0, 128));
+        AssertRenderedWordBackgrounds(document, OfficeIMO.OfficeColor.FromRgb(128, 0, 128));
     }
 
     [Fact]
@@ -69,18 +69,18 @@ public partial class HtmlWordGapClosure {
             <p style="margin-inline-start:1pc">pc</p>
             <p style="margin-inline-start:1q">q</p>
             """;
-        var options = new HtmlToWordOptions {
-            UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error,
+        var options = new WordHtmlImportOptions {
+            UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error,
         };
 
-        using WordDocument document = HtmlConversionDocument.Parse(html).ToWordDocument(options);
+        using WordDocument document = HtmlConversionDocument.Parse(html).ToWord(options);
 
-        Assert.Equal(240, FindParagraph(document, "rem").IndentationBefore);
-        Assert.Equal(1440, FindParagraph(document, "in").LineSpacingBefore);
-        Assert.Equal(567, FindParagraph(document, "cm").IndentationBefore);
-        Assert.Equal(57, FindParagraph(document, "mm").IndentationBefore);
-        Assert.Equal(240, FindParagraph(document, "pc").IndentationBefore);
-        Assert.Equal(14, FindParagraph(document, "q").IndentationBefore);
+        Assert.Equal(240, checked((int?)(FindParagraph(document, "rem").IndentationBefore?.ToTwips())));
+        Assert.Equal(1440, checked((int?)(FindParagraph(document, "in").LineSpacingBefore?.ToTwips())));
+        Assert.Equal(567, checked((int?)(FindParagraph(document, "cm").IndentationBefore?.ToTwips())));
+        Assert.Equal(57, checked((int?)(FindParagraph(document, "mm").IndentationBefore?.ToTwips())));
+        Assert.Equal(240, checked((int?)(FindParagraph(document, "pc").IndentationBefore?.ToTwips())));
+        Assert.Equal(14, checked((int?)(FindParagraph(document, "q").IndentationBefore?.ToTwips())));
     }
 
     private static WordParagraph FindParagraph(WordDocument document, string text) =>

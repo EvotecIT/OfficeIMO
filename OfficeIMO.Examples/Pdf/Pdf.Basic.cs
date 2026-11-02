@@ -7,8 +7,8 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "HelloWorld.OfficeIMO.Pdf.pdf");
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("OfficeIMO.Pdf — Hello World")
-                .Paragraph(p => p.Text("This PDF was generated with zero external dependencies using standard PDF fonts."))
-                .Paragraph(p => p.Text("The layout uses simple vertical flow and Helvetica for readable default wrapping."))))
+                .Paragraph(p => p.Text("This PDF uses the selected theme for fonts, spacing and page margins."))
+                .Paragraph(p => p.Text("Text flows across the available page width, and the document embeds its resolved default font."))))
                 .Meta(title: "Hello PDF", author: "OfficeIMO")
                 .Save(path);
 

@@ -27,27 +27,27 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         internal static byte[] CreateFixture(double bodyHeight, double padding, double lineAdvance) {
-            var options = new PdfOptions {
-                PageWidth = 200D, PageHeight = bodyHeight + 40D, DefaultFontSize = 10D,
-                MarginLeft = 20D, MarginRight = 20D, MarginTop = 20D, MarginBottom = 20D
+            var options = new PdfCreateOptions { BackgroundColor = null,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(bodyHeight + 40D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             };
             var paragraphStyle = new PdfParagraphStyle {
-                FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, WidowControl = false,
+                FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false,
                 LineSpacing = PdfLineSpacing.Multiple(lineAdvance / 10D).WithFontLineBoxBaseline(1.4D)
             };
             var firstStyle = new PdfPanelStyle {
-                PaddingX = 0D, PaddingY = 0D, PaddingBottomOverride = padding,
-                SpacingBefore = 0D, SpacingAfter = 0D, BorderContinuesWithNext = true,
-                Background = PdfColor.FromRgb(255, 255, 0), BorderColor = PdfColor.Black
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), PaddingBottomOverride = padding,
+                SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), BorderContinuesWithNext = true,
+                Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), BorderColor = global::OfficeIMO.OfficeColor.Black
             };
             var nextStyle = new PdfPanelStyle {
-                PaddingX = 0D, PaddingY = 0D, SpacingBefore = 0D, SpacingAfter = 0D,
+                PaddingX = global::OfficeIMO.OfficeLength.Points(0D), PaddingY = global::OfficeIMO.OfficeLength.Points(0D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 FrameStartPaddingTopOverride = 0D, KeepTogether = true
             };
             return PdfDocument.Create(options)
                 .Panel(panel => panel.Paragraph(p => p.Text("First"), style: paragraphStyle), firstStyle)
                 .Panel(panel => panel.Paragraph(p => p.Text("Next"), style: new PdfParagraphStyle {
-                    FontSize = 10D, SpacingBefore = 0D, SpacingAfter = 0D, LineSpacing = PdfLineSpacing.Exactly(10D)
+                    FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D))
                 }), nextStyle).ToBytes();
         }
     }

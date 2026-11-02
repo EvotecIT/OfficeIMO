@@ -27,7 +27,7 @@ public sealed partial class BookProject {
         } catch (XmlException error) {
             throw new ArgumentException("Supply a well-formed XHTML fragment without declarations or external entities.", nameof(text), error);
         }
-        if (string.IsNullOrWhiteSpace(fragment.Value)) throw new ArgumentException("ONIX XHTML requires nonblank textual content.", nameof(text));
+        if ((fragment.Value == null || string.IsNullOrWhiteSpace(fragment.Value))) throw new ArgumentException("ONIX XHTML requires nonblank textual content.", nameof(text));
         XNamespace ns = OnixNamespace;
         foreach (var element in fragment.Descendants()) {
             cancellationToken.ThrowIfCancellationRequested();

@@ -5,7 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Examples.Utils;
 using OfficeIMO.Word;
 using V = DocumentFormat.OpenXml.Vml;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Shapes {
@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with ellipse shape that contains text");
             string filePath = System.IO.Path.Combine(folderPath, "ShapeWithText.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
+                document.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), Color.Red, Color.Blue);
                 document.Save();
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {

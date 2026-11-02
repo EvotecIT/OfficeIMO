@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     internal const int MaximumNamedFontFamilies = 64;
 
     /// <summary>
@@ -28,7 +28,7 @@ public sealed partial class PdfOptions {
     /// Registers a reusable embedded family under its authored family name. Named families do not
     /// consume Helvetica, Times, or Courier compatibility slots and may be used together on one page.
     /// </summary>
-    public PdfOptions RegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
+    public PdfCreateOptions RegisterNamedFontFamily(PdfEmbeddedFontFamily fontFamily) {
         Guard.NotNull(fontFamily, nameof(fontFamily));
         ReleaseRenderingProfileFontOwnership(fontFamily.FamilyName);
         if (!TryRegisterNamedFontFamily(fontFamily)) {
@@ -97,7 +97,7 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Removes every embedded named family and its parsed program cache.</summary>
-    public PdfOptions ClearNamedFontFamilies() {
+    public PdfCreateOptions ClearNamedFontFamilies() {
         _namedFontFamilies?.Clear();
         _namedFallbackPlanBindings?.Clear();
         _namedFontPrograms?.Clear();
@@ -319,7 +319,7 @@ public sealed partial class PdfOptions {
             faceName = "Regular";
         }
 
-        fontName = BuildFontFamilyFaceName(family.FamilyName, faceName);
+        fontName = family.UsesProgramFontNames ? null : BuildFontFamilyFaceName(family.FamilyName, faceName);
         return true;
     }
 

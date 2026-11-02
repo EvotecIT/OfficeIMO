@@ -27,7 +27,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
         string[] before = CaptureEndnoteContinuationXml(document);
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(EndnoteContinuationOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
         string[]? firstSerialization = null;
 
         for (int serialization = 0; serialization < 2; serialization++) {
@@ -80,7 +80,7 @@ public partial class Word {
         ConfigureEndnoteContinuationStories(source);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string[] before = CaptureEndnoteContinuationXml(document);
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(EndnoteContinuationOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
 
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
@@ -117,7 +117,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
         string[] before = CaptureEndnoteContinuationXml(document);
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(EndnoteContinuationOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
 
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
@@ -132,9 +132,9 @@ public partial class Word {
             AssertEndnoteContinuationDestinations(document, bytes, pdf, new[] { first[0], second[0] });
         }
 
-        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "NativeEndnoteContinuationApproximated");
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "native-endnote-continuation-approximated");
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
-        Assert.Contains(result.Warnings, item => item.Code == "NativeEndnoteContentApproximated");
+        Assert.Contains(result.Warnings, item => item.Code == "native-endnote-content-approximated");
         Assert.True(result.HasLoss);
         Assert.True(result.Report.HasLoss);
         Assert.Equal(PdfConversionFidelityStatus.Degraded, result.Report.FidelityStatus);
@@ -159,7 +159,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         Assert.Empty(document.ValidateDocument());
         string[] before = CaptureEndnoteContinuationXml(document);
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(EndnoteContinuationOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(EndnoteContinuationOptions());
 
         for (int serialization = 0; serialization < 2; serialization++) {
             byte[] bytes = result.ToBytes();
@@ -229,10 +229,10 @@ public partial class Word {
             new W.SpacingBetweenLines { Before = "0", After = spacingAfter, Line = "240", LineRule = W.LineSpacingRuleValues.Exact }),
         new W.Run(new W.RunProperties(new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "20" }), new W.Text(text)));
 
-    private static WordToPdfOptions EndnoteContinuationOptions() => new() {
+    private static WordPdfExportOptions EndnoteContinuationOptions() => new() {
         IncludePageNumbers = false,
-        PageSize = new PageSize(400, 500),
-        Margins = PageMargins.Uniform(40),
+        PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+        Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)),
         ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
     };
 
@@ -243,7 +243,7 @@ public partial class Word {
     }
 
     private static void AssertNoEndnoteContinuationApproximation(PdfDocumentConversionResult result) =>
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "NativeEndnoteContinuationApproximated" or "NativeEndnoteContentApproximated");
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code is "native-endnote-continuation-approximated" or "native-endnote-content-approximated");
 
     private static string EndnoteContinuationCompact(string text) => Regex.Replace(text, @"\s+", string.Empty);
 

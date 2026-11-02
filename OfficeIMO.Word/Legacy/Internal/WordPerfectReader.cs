@@ -68,7 +68,7 @@ internal sealed partial class WordPerfectReader {
         if (reader._version == 6 && U16(data, 14) >= 24) {
             int declared = I32(data, 20);
             if (declared >= offset && declared <= data.Length) end = declared;
-            else reader.Loss("WORDPERFECT_FILE_SIZE", "Structure", "The stored file size is inconsistent; records were bounded by the actual input length.");
+            else reader.Loss("wordperfect-file-size", "Structure", "The stored file size is inconsistent; records were bounded by the actual input length.");
         }
         reader.ReadText(offset, end);
         reader.FinishParagraph();
@@ -156,9 +156,9 @@ internal sealed partial class WordPerfectReader {
     }
 
     private bool ChangeSection() {
-        if (_story != null) { Loss("WORDPERFECT_STORY_LAYOUT", "Layout", "Page geometry inside a running story or note was not applied to the document."); return false; }
+        if (_story != null) { Loss("wordperfect-story-layout", "Layout", "Page geometry inside a running story or note was not applied to the document."); return false; }
         FinishParagraph();
-        if (_table != null) { Loss("WORDPERFECT_TABLE_LAYOUT", "Layout", "A page-setting change inside a table was not applied."); return false; }
+        if (_table != null) { Loss("wordperfect-table-layout", "Layout", "A page-setting change inside a table was not applied."); return false; }
         if (_section.Blocks.Count == 0) return true;
         _budget.Item();
         _section = _section.CopySettings();
@@ -171,7 +171,7 @@ internal sealed partial class WordPerfectReader {
     private void Attribute(byte attribute, bool enabled) {
         if ((attribute & 0x80) != 0) return; // Nested same-attribute codes explicitly marked ignored by the producer.
         int value = attribute & 0x3f;
-        if (value >= 32) { Loss("WORDPERFECT_ATTRIBUTE", "Formatting", "An unknown character attribute was omitted."); return; }
+        if (value >= 32) { Loss("wordperfect-attribute", "Formatting", "An unknown character attribute was omitted."); return; }
         if (enabled) _attributes |= 1u << value;
         else _attributes &= ~(1u << value);
         if (value != 5 && value != 6 && value != 8 && value != 11 && value != 12 && value != 13 && value != 14)
@@ -184,7 +184,7 @@ internal sealed partial class WordPerfectReader {
             2 => WordParagraphAlignment.Center, 3 => WordParagraphAlignment.Right,
             _ => (WordParagraphAlignment?)null
         };
-        if (!_alignment.HasValue) Loss("WORDPERFECT_JUSTIFICATION", "Formatting", "An unsupported justification mode was omitted.");
+        if (!_alignment.HasValue) Loss("wordperfect-justification", "Formatting", "An unsupported justification mode was omitted.");
         if (_paragraph != null) _paragraph.Alignment = _alignment;
     }
 
@@ -193,7 +193,7 @@ internal sealed partial class WordPerfectReader {
         if (_table != null) throw new InvalidDataException("Nested WordPerfect tables are outside the qualified profile.");
         FinishParagraph(); _budget.Item();
         _table = new LegacyWordTable(); _section.Blocks.Add(_table);
-        Loss("WORDPERFECT_TABLE_APPEARANCE", "Table", "Table text, grid and column widths are recovered; source border, fill and advanced cell formatting are not fully projected.");
+        Loss("wordperfect-table-appearance", "Table", "Table text, grid and column widths are recovered; source border, fill and advanced cell formatting are not fully projected.");
     }
 
     private void BeginRow(bool createCell = true) {
@@ -235,11 +235,11 @@ internal sealed partial class WordPerfectReader {
 
     private void FontSize(double size) {
         _fontSize = size > 0 ? size : (double?)null;
-        if (!_fontSize.HasValue) Loss("WORDPERFECT_FONT_SIZE", "Formatting", "A source font has no positive point size.");
+        if (!_fontSize.HasValue) Loss("wordperfect-font-size", "Formatting", "A source font has no positive point size.");
     }
 
     private void SetStory(int slot, int occurrenceBits, List<LegacyWordParagraph> paragraphs) {
-        if (slot > 3) { Loss("WORDPERFECT_WATERMARK", "Layout", "A watermark or fancy-border story was not projected."); return; }
+        if (slot > 3) { Loss("wordperfect-watermark", "Layout", "A watermark or fancy-border story was not projected."); return; }
         if (!ChangeSection()) return;
         _section.HeadersAndFooters.RemoveAll(story => story.Slot == slot);
         if (occurrenceBits == 0) return;

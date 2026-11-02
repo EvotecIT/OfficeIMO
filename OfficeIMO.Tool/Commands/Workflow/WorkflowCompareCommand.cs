@@ -37,8 +37,8 @@ internal static class WorkflowCompareCommand {
                 InputPath = Path.GetFullPath(inputs[0]), ComparisonPath = Path.GetFullPath(inputs[1]), OutputPath = Path.GetFullPath(destination),
                 ComparisonExpectedPages = expected.Selector(), ComparisonActualPages = actual.Selector(),
                 PdfPassword = expected.Password(), ComparisonPdfPassword = actual.Password(),
-                Limits = new OfficeWorkflowLimits { MaximumInputBytes = expected.MaximumInputBytes, MaximumOutputBytes = 96L * 1024 * 1024 },
-                ConflictPolicy = overwrite ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
+                Limits = new OfficeOperationLimits { MaximumInputBytes = expected.MaximumInputBytes, MaximumOutputBytes = 96L * 1024 * 1024 },
+                ConflictPolicy = overwrite ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail
             }, cancellationToken: token).ConfigureAwait(false);
         } catch (AgentUsageException exception) { throw new WorkflowUsageException(exception.Message); }
         foreach (var diagnostic in result.Diagnostics) await error.WriteLineAsync(diagnostic.Code + ": " + diagnostic.Message).ConfigureAwait(false);

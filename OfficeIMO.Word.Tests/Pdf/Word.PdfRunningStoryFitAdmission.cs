@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             using WordDocument document = CreateJoinedParagraphDocument();
             WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
             WordParagraph paragraph = story.AddParagraph("Small ");
-            paragraph.FontSize = 8;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             if (largeRun) {
-                paragraph.AddText("Large").FontSize = 800;
+                paragraph.AddText("Large").FontSize = global::OfficeIMO.OfficeLength.Points(800);
             } else {
                 paragraph.AddText(string.Concat(Enumerable.Repeat("ALPHA BETA ", 600)));
             }
@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OrdinaryRunningStoriesReserveTheOppositePhysicalFrame(bool footer, bool oppositeTable) {
             using WordDocument document = CreateJoinedParagraphDocument();
             document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-            document.Sections[0].Margins.Top = document.Sections[0].Margins.Bottom = 1440;
-            document.Sections[0].Margins.HeaderDistance = document.Sections[0].Margins.FooterDistance = 720;
+            document.Sections[0].Margins.Top = document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+            document.Sections[0].Margins.HeaderDistance = document.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
             WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
             WordParagraph paragraph = story.AddParagraph("STORY");
             paragraph._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
@@ -83,13 +83,13 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OrdinaryRunningHeaderRetainsRoomForTheFirstBodyLine(bool afterPageBreak) {
             using WordDocument document = CreateJoinedParagraphDocument();
             document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-            document.Sections[0].Margins.Bottom = 1440;
-            document.Sections[0].Margins.HeaderDistance = 720;
+            document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+            document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
             WordParagraph header = document.HeaderDefaultOrCreate.AddParagraph("HEADER");
             header._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                 Before = "0", After = "0", Line = "13000", LineRule = W.LineSpacingRuleValues.Exact });
             if (afterPageBreak) document.AddParagraph("FIRST").AddBreak(WordBreakType.Page);
-            document.AddParagraph("BODY").FontSize = 40;
+            document.AddParagraph("BODY").FontSize = global::OfficeIMO.OfficeLength.Points(40);
 
             using var pdf = OpenJoinedParagraphPdf(document);
             Assert.Equal(afterPageBreak ? 2 : 1, pdf.NumberOfPages);

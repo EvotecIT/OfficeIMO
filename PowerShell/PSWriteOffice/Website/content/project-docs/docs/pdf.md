@@ -50,7 +50,7 @@ This enables a safer pipeline:
 
 ## Document operations
 
-- combine and separate files with `Join-OfficePdf` and `Split-OfficePdf`;
+- combine and separate files with `Join-OfficePdf` and `Split-OfficeDocument`;
 - copy, move, and remove pages;
 - import and export XFDF annotations;
 - flatten annotations or forms deliberately;

@@ -1,10 +1,10 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool TryConsumeStandaloneGenericAttributeBlock(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (!ShouldConsumeStandaloneGenericAttributeBlock(lines, lineIndex, options, state)
             || state.PendingGenericAttributeBlock != null
@@ -54,7 +54,7 @@ public static partial class MarkdownReader {
     private static bool ShouldConsumeStandaloneGenericAttributeBlock(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) =>
         ShouldParseBlockGenericAttributes(options, state)
         || IsQuoteStandaloneAttributeBeforeSupportedBlock(lines, lineIndex, options, state);
@@ -62,7 +62,7 @@ public static partial class MarkdownReader {
     private static bool IsQuoteStandaloneAttributeBeforeSupportedBlock(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (options?.GenericAttributes != true
             || state?.SuppressBlockGenericAttributes != true
@@ -88,7 +88,7 @@ public static partial class MarkdownReader {
     private static bool IsQuoteStandaloneAttributeSupportedBlock(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         var line = lines[lineIndex];
         return (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _))
@@ -98,7 +98,7 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryApplyPendingGenericAttributeBlock(
-        MarkdownDoc document,
+        MarkdownDocument document,
         int firstNewBlockIndex,
         int blockStartLine,
         MarkdownReaderState state,
@@ -195,7 +195,7 @@ public static partial class MarkdownReader {
     private static bool HasFollowingSupportedStandaloneAttributeTarget(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         for (int i = lineIndex + 1; i < lines.Length; i++) {
             if (string.IsNullOrWhiteSpace(lines[i])) {
                 continue;
@@ -289,7 +289,7 @@ public static partial class MarkdownReader {
     private static bool IsStandaloneAttributeReferenceDefinitionParagraphTarget(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options) =>
+        MarkdownLoadOptions options) =>
         options?.GenericAttributes == true
         && TryParseReferenceLinkDefinition(lines, lineIndex, options, out _, out _, out _, out _);
 
@@ -312,7 +312,7 @@ public static partial class MarkdownReader {
     private static bool IsReferenceDefinitionAfterStandaloneGenericAttribute(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options) {
+        MarkdownLoadOptions options) {
         if (options?.GenericAttributes != true
             || lines == null
             || lineIndex <= 0
@@ -332,7 +332,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsStandaloneAttributeFootnoteDefinitionTarget(string line, MarkdownReaderOptions options) {
+    private static bool IsStandaloneAttributeFootnoteDefinitionTarget(string line, MarkdownLoadOptions options) {
         if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {
             return false;
         }

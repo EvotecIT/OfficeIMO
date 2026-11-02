@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -293,9 +294,9 @@ public sealed partial class WordPdfInlineContentControlTests {
         referenceParagraph._paragraph.Append(firstRun.CloneNode(true), secondRun.CloneNode(true));
         AddText(referenceParagraph, " TAIL", 10);
         AddText(reference.AddParagraph(), "FOLLOW", 10);
-        var options = new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new PdfCore.PageSize(220, 400),
-            Margins = new PdfCore.PageMargins(24, 24, 24, 24)
+        var options = new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(400)),
+            Margins = new PdfCore.PdfPageMargins(OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24),OfficeIMO.OfficeLength.Points(24))
         };
         byte[] bytes = ConvertSavedDocument(source, options);
         using PdfPigDocument pdf = OpenVisiblePdf(bytes);
@@ -338,10 +339,8 @@ public sealed partial class WordPdfInlineContentControlTests {
         });
         if (inTable) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = tableWidth;
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
-            table.ColumnWidth = new List<int> { tableWidth };
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(tableWidth) * 635)));
+            table.ColumnWidth = new List<int> { tableWidth }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else paragraph = document.AddParagraph();
         paragraph._paragraph.RemoveAllChildren();
@@ -355,12 +354,12 @@ public sealed partial class WordPdfInlineContentControlTests {
         paragraph._paragraph.Append(new W.Run(properties, new W.Text(text) { Space = SpaceProcessingModeValues.Preserve }));
     }
 
-    private static byte[] ConvertSavedDocument(WordDocument source, WordToPdfOptions? options = null) {
+    private static byte[] ConvertSavedDocument(WordDocument source, WordPdfExportOptions? options = null) {
         byte[] docx = source.ToBytes();
         using (WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(docx), false))
             Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2016).Validate(package));
         using WordDocument loaded = WordDocument.Load(new MemoryStream(docx));
-        return loaded.ToPdfBytes(options ?? new WordToPdfOptions { IncludePageNumbers = false });
+        return loaded.ToPdf(options ?? new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
     // PdfPig reads page content. Flatten a separate copy through the public PDF

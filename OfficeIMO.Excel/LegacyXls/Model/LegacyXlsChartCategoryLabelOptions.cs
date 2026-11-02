@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only CatLab axis-label metadata from a BIFF chart stream.
     /// </summary>
-    public sealed class LegacyXlsChartCategoryLabelOptions {
+    internal sealed class LegacyXlsChartCategoryLabelOptions {
         internal LegacyXlsChartCategoryLabelOptions(ushort offsetPercentage, ushort alignment, bool useAutomaticLabelCount) {
             OffsetPercentage = offsetPercentage;
             Alignment = alignment;

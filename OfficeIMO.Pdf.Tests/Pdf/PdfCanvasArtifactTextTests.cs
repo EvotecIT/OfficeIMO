@@ -11,14 +11,14 @@ public sealed class PdfCanvasArtifactTextTests {
     [InlineData(true)]
     public void ArtifactTextDoesNotRegisterLinkPaintWhileOrdinaryLinksRemainTagged(bool textBox) {
         const string uri = "https://example.test/canvas-link";
-        byte[] Render(bool artifact) => PdfDocument.Create(new PdfOptions {
+        byte[] Render(bool artifact) => PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             CompressContentStreams = false
         }).Canvas(canvas => {
             void Paint(PdfPageCanvas target) {
                 var runs = new[] { PdfTextRun.Link("CanvasLinkMarker", uri) };
-                if (textBox) target.TextBox(runs, 20D, 50D, 180D, 40D);
-                else target.Text(runs, 20D, 50D, 180D, 40D);
+                if (textBox) target.TextBox(runs, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(40D));
+                else target.Text(runs, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(40D));
             }
             if (artifact) canvas.Artifact(Paint);
             else Paint(canvas);
@@ -39,12 +39,12 @@ public sealed class PdfCanvasArtifactTextTests {
 
     [Fact]
     public void SecondaryTextPaintIsALayoutArtifactWithoutDuplicateExtraction() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             CompressContentStreams = false
         }).Canvas(canvas => canvas
-            .SuppressTextExtraction(paint => paint.Text("DuplicatePaint", 20D, 50D, 180D, 40D))
-            .Text("Meaningful", 20D, 100D, 180D, 40D)).ToBytes();
+            .SuppressTextExtraction(paint => paint.Text("DuplicatePaint", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(40D)))
+            .Text("Meaningful", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(40D))).ToBytes();
 
         string syntax = Encoding.ASCII.GetString(pdf);
         Assert.Contains("/Artifact << /Type /Layout >> BDC\n/Span << /ActualText", syntax);
@@ -64,7 +64,7 @@ public sealed class PdfCanvasArtifactTextTests {
         if (explicitlyDecorative) {
             structure.Add("decoration", new PdfCanvasSourceContent(Array.Empty<PdfCanvasStructureStep>(), 0, artifact: true));
         }
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             CompressContentStreams = false
         }).Canvas(canvas => canvas.SourceStructuredDrawing(drawing, 180D, 40D, structure)).ToBytes();

@@ -39,7 +39,7 @@ public sealed partial class MhtmlDocument {
                 string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(
                     source, HtmlDocument.BaseUri ?? BaseUri, _imageResourceUrlPolicy);
                 if (!Uri.TryCreate(resolvedSource, UriKind.Absolute, out Uri? uri)) {
-                    AddImageDiagnostic(diagnostics, "ImageResourceRejectedByPolicy",
+                    AddImageDiagnostic(diagnostics, global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy,
                         "The image source was rejected by the HTML resource URL policy.", source);
                     continue;
                 }

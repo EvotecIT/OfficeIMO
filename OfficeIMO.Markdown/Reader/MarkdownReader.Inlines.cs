@@ -1,8 +1,8 @@
 namespace OfficeIMO.Markdown;
 
 // Inline parsing helpers for MarkdownReader.
-public static partial class MarkdownReader {
-    private static InlineSequence ParseInlines(string text, MarkdownReaderOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null, TableCellHtmlMode tableCellHtmlMode = TableCellHtmlMode.Unrestricted) {
+internal static partial class MarkdownReader {
+    private static InlineSequence ParseInlines(string text, MarkdownLoadOptions options, MarkdownReaderState? state = null, MarkdownInlineSourceMap? sourceMap = null, TableCellHtmlMode tableCellHtmlMode = TableCellHtmlMode.Unrestricted) {
         InlineSequence sequence;
         bool hasRegisteredAbbreviations = options.Abbreviations && state?.Abbreviations.Count > 0;
         if (state?.CaptureSyntaxTree == false
@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
 
     private static InlineSequence ParseInlinesInternal(
         string text,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState? state,
         bool allowLinks,
         bool allowImages,
@@ -1028,7 +1028,7 @@ public static partial class MarkdownReader {
         return root;
     }
 
-    private static void ApplyGenericAttributesToInlineElements(InlineSequence? sequence, MarkdownReaderOptions options) {
+    private static void ApplyGenericAttributesToInlineElements(InlineSequence? sequence, MarkdownLoadOptions options) {
         if (sequence == null || options?.GenericAttributes != true || sequence.Nodes.Count == 0) {
             return;
         }
@@ -1301,7 +1301,7 @@ public static partial class MarkdownReader {
         return column;
     }
 
-    private static void ApplyGenericAttributesToNestedInlines(IMarkdownInline? inline, MarkdownReaderOptions options) {
+    private static void ApplyGenericAttributesToNestedInlines(IMarkdownInline? inline, MarkdownLoadOptions options) {
         if (inline is IInlineContainerMarkdownInline container && container.NestedInlines != null) {
             ApplyGenericAttributesToInlineElements(container.NestedInlines, options);
         }

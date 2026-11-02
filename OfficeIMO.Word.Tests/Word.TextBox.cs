@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
@@ -22,15 +22,15 @@ namespace OfficeIMO.Tests {
                 var textBox = document.AddTextBox("My textbox on the left");
 
                 textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox.HorizontalPositionOffsetCentimeters = 3;
+                textBox.HorizontalPositionOffset = OfficeLength.Centimeters(3);
 
-                Assert.Equal(3, document.TextBoxes[0].HorizontalPositionOffsetCentimeters ?? 0);
+                Assert.Equal(3, document.TextBoxes[0].HorizontalPositionOffset?.ToCentimeters() ?? 0);
 
                 textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
 
                 // horizontal alignment overwrites the horizontal position offset so only one will work
                 Assert.True(document.TextBoxes[0].HorizontalAlignment == WordTextBoxHorizontalAlignment.Left);
-                Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == null);
+                Assert.True(document.TextBoxes[0].HorizontalPositionOffset?.ToCentimeters() == null);
 
 
                 Assert.True(document.Paragraphs.Count == 2);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
 
                 var textBox2 = document.AddTextBox("My textbox on the right");
                 textBox2.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox2.HorizontalPositionOffsetCentimeters = 3;
+                textBox2.HorizontalPositionOffset = OfficeLength.Centimeters(3);
                 textBox2.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Right;
                 textBox2.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
 
@@ -58,15 +58,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes[1].HorizontalPositionRelativeFrom == WordHorizontalRelativePosition.Page);
 
                 // horizontal alignment overwrites the horizontal position offset so only one will work
-                Assert.True(document.TextBoxes[0].HorizontalPositionOffsetCentimeters == null);
-                Assert.True(document.TextBoxes[1].HorizontalPositionOffsetCentimeters == null);
+                Assert.True(document.TextBoxes[0].HorizontalPositionOffset?.ToCentimeters() == null);
+                Assert.True(document.TextBoxes[1].HorizontalPositionOffset?.ToCentimeters() == null);
 
                 Assert.True(document.Sections[0].TextBoxes.Count == 2);
                 Assert.True(document.Sections[0].ParagraphsTextBoxes.Count == 2);
 
-                textBox.VerticalPositionOffsetCentimeters = 3;
+                textBox.VerticalPositionOffset = OfficeLength.Centimeters(3);
 
-                Assert.Equal(3, document.TextBoxes[0].VerticalPositionOffsetCentimeters ?? 0);
+                Assert.Equal(3, document.TextBoxes[0].VerticalPositionOffset?.ToCentimeters() ?? 0);
 
                 document.Save();
 
@@ -95,11 +95,11 @@ namespace OfficeIMO.Tests {
                 var textBox3 = document.AddTextBox("My textbox in the center with borders");
                 textBox3.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox3.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
-                textBox3.VerticalPositionOffsetCentimeters = 10;
+                textBox3.VerticalPositionOffset = OfficeLength.Centimeters(10);
                 textBox3.Paragraphs[0].Borders.BottomStyle = WordBorderStyle.BasicWideOutline;
 
 
-                textBox3.Paragraphs[0].Borders.BottomSize = 10;
+                textBox3.Paragraphs[0].Borders.BottomSize = OfficeLength.Points(1.25);
                 textBox3.Paragraphs[0].Borders.BottomColor = Color.Red;
                 textBox3.Paragraphs[0].Borders.BottomShadow = false;
                 textBox3.Paragraphs[0].Borders.TopStyle = WordBorderStyle.BasicWideOutline;
@@ -118,17 +118,17 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].TextBoxes.Count == 1);
 
                 Assert.Equal(WordBorderStyle.BasicWideOutline, textBox3.Paragraphs[0].Borders.BottomStyle);
-                Assert.Equal(10U, textBox3.Paragraphs[0].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(1.25), textBox3.Paragraphs[0].Borders.BottomSize);
                 Assert.Equal(Color.Red, textBox3.Paragraphs[0].Borders.BottomColor);
                 Assert.False(textBox3.Paragraphs[0].Borders.BottomShadow ?? true);
                 Assert.Equal(WordBorderStyle.BasicWideOutline, textBox3.Paragraphs[0].Borders.TopStyle);
                 Assert.Equal(WordBorderStyle.BasicWideOutline, textBox3.Paragraphs[0].Borders.LeftStyle);
                 Assert.Equal(WordBorderStyle.BasicWideOutline, textBox3.Paragraphs[0].Borders.RightStyle);
 
-                textBox3.Paragraphs[0].Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.BasicThinLines, Color.Green, 15, false);
+                textBox3.Paragraphs[0].Borders.SetBorder(WordParagraphBorderType.Left, WordBorderStyle.BasicThinLines, Color.Green, OfficeLength.Points(1.875), false);
 
                 Assert.Equal(WordBorderStyle.BasicThinLines, textBox3.Paragraphs[0].Borders.LeftStyle);
-                Assert.Equal(15U, textBox3.Paragraphs[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(1.875), textBox3.Paragraphs[0].Borders.LeftSize);
                 Assert.Equal(Color.Green, textBox3.Paragraphs[0].Borders.LeftColor);
                 Assert.False(textBox3.Paragraphs[0].Borders.LeftShadow ?? true);
 
@@ -144,19 +144,19 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.TextBoxes.Count == 1);
 
                 Assert.Equal(WordBorderStyle.BasicWideOutline, document.TextBoxes[0].Paragraphs[0].Borders.BottomStyle);
-                Assert.Equal(10U, document.TextBoxes[0].Paragraphs[0].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(1.25), document.TextBoxes[0].Paragraphs[0].Borders.BottomSize);
                 Assert.Equal(Color.Red, document.TextBoxes[0].Paragraphs[0].Borders.BottomColor);
                 Assert.False(document.TextBoxes[0].Paragraphs[0].Borders.BottomShadow ?? true);
                 Assert.Equal(WordBorderStyle.BasicWideOutline, document.TextBoxes[0].Paragraphs[0].Borders.TopStyle);
                 Assert.Equal(WordBorderStyle.BasicWideOutline, document.TextBoxes[0].Paragraphs[0].Borders.RightStyle);
 
                 Assert.Equal(WordBorderStyle.BasicThinLines, document.TextBoxes[0].Paragraphs[0].Borders.LeftStyle);
-                Assert.Equal(15U, document.TextBoxes[0].Paragraphs[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(1.875), document.TextBoxes[0].Paragraphs[0].Borders.LeftSize);
                 Assert.Equal(Color.Green, document.TextBoxes[0].Paragraphs[0].Borders.LeftColor);
                 Assert.False(document.TextBoxes[0].Paragraphs[0].Borders.LeftShadow ?? true);
 
                 Assert.Equal(WordBorderStyle.BasicThinLines, document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftStyle);
-                Assert.Equal(15U, document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(1.875), document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftSize);
                 Assert.Equal(Color.Green, document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftColor);
                 Assert.False(document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftShadow ?? true);
 
@@ -167,28 +167,28 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(WordBorder.Shadow, borders.Type);
                 Assert.Equal(WordBorderStyle.Single, borders.BottomStyle);
-                Assert.Equal(4U, borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(0.5), borders.BottomSize);
                 Assert.Null(borders.BottomColor);
                 Assert.True(borders.BottomShadow ?? false);
-                Assert.Equal(24U, borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(24), borders.BottomSpace);
 
                 Assert.Equal(WordBorderStyle.Single, borders.TopStyle);
-                Assert.Equal(4U, borders.TopSize);
+                Assert.Equal(OfficeLength.Points(0.5), borders.TopSize);
                 Assert.Null(borders.TopColor);
                 Assert.True(borders.TopShadow ?? false);
-                Assert.Equal(24U, borders.TopSpace);
+                Assert.Equal(OfficeLength.Points(24), borders.TopSpace);
 
                 Assert.Equal(WordBorderStyle.Single, borders.LeftStyle);
-                Assert.Equal(4U, borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(0.5), borders.LeftSize);
                 Assert.Null(borders.LeftColor);
                 Assert.True(borders.LeftShadow ?? false);
-                Assert.Equal(24U, borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(24), borders.LeftSpace);
 
                 Assert.Equal(WordBorderStyle.Single, borders.RightStyle);
-                Assert.Equal(4U, borders.RightSize);
+                Assert.Equal(OfficeLength.Points(0.5), borders.RightSize);
                 Assert.Null(borders.RightColor);
                 Assert.True(borders.RightShadow ?? false);
-                Assert.Equal(24U, borders.RightSpace);
+                Assert.Equal(OfficeLength.Points(24), borders.RightSpace);
 
                 var textBox1 = document.AddTextBox("My textbox in the center with borders");
 
@@ -231,28 +231,28 @@ namespace OfficeIMO.Tests {
                 document.TextBoxes[1].Paragraphs[0].Borders.Type = WordBorder.Box;
 
                 Assert.Equal(WordBorderStyle.Single, document.TextBoxes[1].Paragraphs[0].Borders.BottomStyle);
-                Assert.Equal(4U, document.TextBoxes[1].Paragraphs[0].Borders.BottomSize);
+                Assert.Equal(OfficeLength.Points(0.5), document.TextBoxes[1].Paragraphs[0].Borders.BottomSize);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.BottomColor);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.BottomShadow);
-                Assert.Equal(24U, document.TextBoxes[1].Paragraphs[0].Borders.BottomSpace);
+                Assert.Equal(OfficeLength.Points(24), document.TextBoxes[1].Paragraphs[0].Borders.BottomSpace);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.BottomFrame == null);
                 Assert.Equal(WordBorderStyle.Single, document.TextBoxes[1].Paragraphs[0].Borders.TopStyle);
-                Assert.Equal(4U, document.TextBoxes[1].Paragraphs[0].Borders.TopSize);
+                Assert.Equal(OfficeLength.Points(0.5), document.TextBoxes[1].Paragraphs[0].Borders.TopSize);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.TopColor);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.TopShadow);
-                Assert.Equal(24U, document.TextBoxes[1].Paragraphs[0].Borders.TopSpace);
+                Assert.Equal(OfficeLength.Points(24), document.TextBoxes[1].Paragraphs[0].Borders.TopSpace);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.TopFrame == null);
                 Assert.Equal(WordBorderStyle.Single, document.TextBoxes[1].Paragraphs[0].Borders.LeftStyle);
-                Assert.Equal(4U, document.TextBoxes[1].Paragraphs[0].Borders.LeftSize);
+                Assert.Equal(OfficeLength.Points(0.5), document.TextBoxes[1].Paragraphs[0].Borders.LeftSize);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.LeftColor);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.LeftShadow);
-                Assert.Equal(24U, document.TextBoxes[1].Paragraphs[0].Borders.LeftSpace);
+                Assert.Equal(OfficeLength.Points(24), document.TextBoxes[1].Paragraphs[0].Borders.LeftSpace);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.LeftFrame == null);
                 Assert.Equal(WordBorderStyle.Single, document.TextBoxes[1].Paragraphs[0].Borders.RightStyle);
-                Assert.Equal(4U, document.TextBoxes[1].Paragraphs[0].Borders.RightSize);
+                Assert.Equal(OfficeLength.Points(0.5), document.TextBoxes[1].Paragraphs[0].Borders.RightSize);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.RightColor);
                 Assert.Null(document.TextBoxes[1].Paragraphs[0].Borders.RightShadow);
-                Assert.Equal(24U, document.TextBoxes[1].Paragraphs[0].Borders.RightSpace);
+                Assert.Equal(OfficeLength.Points(24), document.TextBoxes[1].Paragraphs[0].Borders.RightSpace);
                 Assert.True(document.TextBoxes[1].Paragraphs[0].Borders.RightFrame == null);
 
                 document.Save();
@@ -310,42 +310,42 @@ namespace OfficeIMO.Tests {
                 var textBox2 = document.AddTextBox("My textbox 2 right - square", WordImageTextWrapping.Square);
                 textBox2.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox2.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
-                textBox2.VerticalPositionOffsetCentimeters = 6;
+                textBox2.VerticalPositionOffset = OfficeLength.Centimeters(6);
 
                 Assert.True(textBox2.WrapText == WordImageTextWrapping.Square);
 
                 var textBox3 = document.AddTextBox("My textbox 3 center - tight", WordImageTextWrapping.Tight);
                 textBox3.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox3.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
-                textBox3.VerticalPositionOffsetCentimeters = 6;
+                textBox3.VerticalPositionOffset = OfficeLength.Centimeters(6);
 
                 Assert.True(textBox3.WrapText == WordImageTextWrapping.Tight);
 
                 var textBox4 = document.AddTextBox("My textbox 4 left - behind text", WordImageTextWrapping.BehindText);
                 textBox4.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox4.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
-                textBox4.VerticalPositionOffsetCentimeters = 9;
+                textBox4.VerticalPositionOffset = OfficeLength.Centimeters(9);
 
                 Assert.True(textBox4.WrapText == WordImageTextWrapping.BehindText);
 
                 var textBox5 = document.AddTextBox("My textbox 5 right - in front of text", WordImageTextWrapping.InFrontOfText);
                 textBox5.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox5.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
-                textBox5.VerticalPositionOffsetCentimeters = 9;
+                textBox5.VerticalPositionOffset = OfficeLength.Centimeters(9);
 
                 Assert.True(textBox5.WrapText == WordImageTextWrapping.InFrontOfText);
 
                 var textBox6 = document.AddTextBox("My textbox 6 left - top and bottom", WordImageTextWrapping.TopAndBottom);
                 textBox6.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox6.HorizontalAlignment = WordTextBoxHorizontalAlignment.Left;
-                textBox6.VerticalPositionOffsetCentimeters = 12;
+                textBox6.VerticalPositionOffset = OfficeLength.Centimeters(12);
 
                 Assert.True(textBox6.WrapText == WordImageTextWrapping.TopAndBottom);
 
                 var textBox7 = document.AddTextBox("My textbox 7 right - through", WordImageTextWrapping.Through);
                 textBox7.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 textBox7.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
-                textBox7.VerticalPositionOffsetCentimeters = 12;
+                textBox7.VerticalPositionOffset = OfficeLength.Centimeters(12);
 
                 Assert.True(textBox7.WrapText == WordImageTextWrapping.Through);
 
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
                     var textBox2 = document.AddTextBox("My textbox - " + wrapper, wrapper);
                     textBox2.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     textBox2.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
-                    textBox2.VerticalPositionOffsetCentimeters = count;
+                    textBox2.VerticalPositionOffset = OfficeLength.Centimeters(count);
                 }
 
                 count = 0;
@@ -406,24 +406,26 @@ namespace OfficeIMO.Tests {
                 var textBox = document.AddTextBox("[Grab your reader’s attention with a great quote from the document or use this space to emphasize a key point. To place this text box anywhere on the page, just drag it.]");
 
                 textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-                textBox.HorizontalPositionOffsetCentimeters = 1.5;
+                textBox.HorizontalPositionOffset = OfficeLength.Centimeters(1.5);
                 textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
 
-                textBox.VerticalPositionOffsetCentimeters = 5;
+                textBox.VerticalPositionOffset = OfficeLength.Centimeters(5);
 
-                Assert.True(textBox.VerticalPositionOffset == 1800000);
-                Assert.True(textBox.VerticalPositionOffsetCentimeters == 5.0);
+                Assert.True(textBox.VerticalPositionOffset == OfficeLength.Emus(1800000));
+                Assert.True(textBox.VerticalPositionOffset?.ToCentimeters() == 5.0);
 
                 document.TextBoxes[0].RelativeWidthPercentage = 0;
                 document.TextBoxes[0].RelativeHeightPercentage = 0;
 
-                document.TextBoxes[0].WidthCentimeters = 10;
-                document.TextBoxes[0].HeightCentimeters = 5;
+                document.TextBoxes[0].Width = OfficeLength.Centimeters(10);
+                document.TextBoxes[0].RelativeWidthPercentage = 0;
+                document.TextBoxes[0].Height = OfficeLength.Centimeters(5);
+                document.TextBoxes[0].RelativeHeightPercentage = 0;
 
-                Assert.True(textBox.WidthCentimeters == 10.0);
-                Assert.True(textBox.HeightCentimeters == 5);
-                Assert.True(textBox.Width == 3600000);
-                Assert.True(textBox.Height == 1800000);
+                Assert.True(textBox.Width.ToCentimeters() == 10.0);
+                Assert.True(textBox.Height.ToCentimeters() == 5);
+                Assert.True(textBox.Width == OfficeLength.Emus(3600000));
+                Assert.True(textBox.Height == OfficeLength.Emus(1800000));
 
 
                 document.Save();

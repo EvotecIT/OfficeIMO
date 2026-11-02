@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
                     }
                     timestampBudget.ReserveBytes(encoded.LongLength);
                 } catch (FormatException exception) {
-                    findings.Add(Finding("TimestampMalformed", WordSignatureValidationState.Failed,
+                    findings.Add(Finding("timestamp-malformed", WordSignatureValidationState.Failed,
                         "An embedded RFC 3161 timestamp token is not valid base64: " + exception.Message,
                         signaturePartUri));
                     continue;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Word {
                         securityProvider,
                         options.MaxSignatureBytes);
                 } catch (NotSupportedException exception) {
-                    findings.Add(Finding("TimestampCanonicalizationUnsupported", WordSignatureValidationState.Unsupported,
+                    findings.Add(Finding("timestamp-canonicalization-unsupported", WordSignatureValidationState.Unsupported,
                         exception.Message, signaturePartUri));
                     continue;
                 }
@@ -205,16 +205,16 @@ namespace OfficeIMO.Word {
                 return WordSignatureValidationState.Failed;
             }
             if (declaredTokenCount > timestampResults.Count) {
-                if (findings.Any(finding => finding.Code == "TimestampMalformed")) {
-                    findings.Add(Finding("TimestampValidationFailed", WordSignatureValidationState.Failed,
+                if (findings.Any(finding => finding.Code == "timestamp-malformed")) {
+                    findings.Add(Finding("timestamp-validation-failed", WordSignatureValidationState.Failed,
                         "At least one embedded RFC 3161 timestamp token could not be decoded or validated.",
                         signaturePartUri));
                     return WordSignatureValidationState.Failed;
                 }
-                if (findings.Any(finding => finding.Code == "TimestampCanonicalizationUnsupported")) {
+                if (findings.Any(finding => finding.Code == "timestamp-canonicalization-unsupported")) {
                     return WordSignatureValidationState.Unsupported;
                 }
-                findings.Add(Finding("TimestampValidationFailed", WordSignatureValidationState.Failed,
+                findings.Add(Finding("timestamp-validation-failed", WordSignatureValidationState.Failed,
                     "At least one embedded RFC 3161 timestamp token could not be decoded or validated.",
                     signaturePartUri));
                 return WordSignatureValidationState.Failed;
@@ -227,7 +227,7 @@ namespace OfficeIMO.Word {
             bool hasClaimedTime = document.GetElementsByTagName("SignatureTime", "*").Count > 0 ||
                                   document.GetElementsByTagName("SigningTime", "*").Count > 0;
             if (hasClaimedTime) {
-                findings.Add(Finding("ClaimedSigningTimeNotTrusted", WordSignatureValidationState.NotPresent,
+                findings.Add(Finding("claimed-signing-time-not-trusted", WordSignatureValidationState.NotPresent,
                     "The signature contains a claimed signing time but no RFC 3161 timestamp-authority token.",
                     signaturePartUri));
             }

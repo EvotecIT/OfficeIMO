@@ -70,14 +70,14 @@ public sealed class PdfPaintedGlyphPreservationTests {
     [InlineData(true, ArabicVisual)]
     public void PositionedPdfOutputPreservesPaintedGlyphsAcrossFormattingCopies(bool named, string visualText) {
         byte[] data = CreateDirectionalFont();
-        var options = new PdfOptions().UseManagedTextShaping();
+        var options = new PdfCreateOptions().UseManagedTextShaping();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
-        PdfTextRun run = new PdfTextRun(visualText, fontSize: 12D, fontFamily: named ? "Painted" : null)
+        PdfTextRun run = new PdfTextRun(visualText, fontSize: global::OfficeIMO.OfficeLength.Points(12D), fontFamily: named ? "Painted" : null)
             .WithPaintedGlyphPreservation()
             .WithFeatureSettings(OfficeTextFeatureSettings.Default)
             .WithHorizontalOffset(2D)
-            .WithCharacterSpacing(.1D)
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(.1D))
             .WithHorizontalTextScaling(110D)
             .WithTextDirection(OfficeTextDirection.Auto);
         double? width = PdfWriter.MeasurePositionedText(run, options);
@@ -104,12 +104,12 @@ public sealed class PdfPaintedGlyphPreservationTests {
     [InlineData(true, ArabicVisual, true)]
     public void PreflightHonorsPaintedGlyphOwnershipAndRetainsLogicalWarnings(bool named, string text, bool preservesPaintedGlyphs) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+        var options = new PdfCreateOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
             .ReportDiagnosticsTo(report);
         byte[] data = CreateDirectionalFont();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
-        var run = new PdfTextRun(text, fontSize: 12D, fontFamily: named ? "Painted" : null)
+        var run = new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(12D), fontFamily: named ? "Painted" : null)
             .WithPaintedGlyphPreservation(preservesPaintedGlyphs);
         PdfDocument document = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
             new[] { run }, PdfCanvasTextStructureRole.Paragraph, 10D, 10D, 200D, 30D,
@@ -119,7 +119,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
         if (preservesPaintedGlyphs) report.RequireNoLoss();
         else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
 
-        Assert.NotEmpty(document.ToBytes());
+        Assert.NotEmpty(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         if (preservesPaintedGlyphs) report.RequireNoLoss();
         else Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
     }
@@ -129,7 +129,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
     [InlineData(true)]
     public void PaintedGlyphPreflightStillRejectsMissingFontGlyphs(bool named) {
         var report = new PdfConversionReport();
-        var options = new PdfOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+        var options = new PdfCreateOptions().SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
             .ReportDiagnosticsTo(report);
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A');
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));

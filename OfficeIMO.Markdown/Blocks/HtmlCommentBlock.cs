@@ -23,13 +23,15 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
 
     string IMarkdownBlock.RenderHtml() {
         var o = HtmlRenderContext.Options;
-        var handling = o?.RawHtmlHandling ?? RawHtmlHandling.Allow;
-        return handling switch {
-            RawHtmlHandling.Allow => Comment,
-            RawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Comment, o) + "</code></pre>",
-            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Comment, o),
+        var handling = o?.RawHtmlHandling ?? MarkdownRawHtmlHandling.Allow;
+        string rendered = handling switch {
+            MarkdownRawHtmlHandling.Allow => Comment,
+            MarkdownRawHtmlHandling.Escape => "<pre class=\"md-raw-html\"><code>" + HtmlTextEncoder.Encode(Comment, o) + "</code></pre>",
+            MarkdownRawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Comment, o),
             _ => string.Empty
         };
+        o?.RecordRawHtmlChange(Comment, rendered, "HtmlCommentBlock");
+        return rendered;
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {

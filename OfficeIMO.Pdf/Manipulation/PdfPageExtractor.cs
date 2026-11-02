@@ -38,7 +38,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
+    internal static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null) {
         return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null, documentFactory, CancellationToken.None);
     }
 
@@ -281,7 +281,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null, CancellationToken cancellationToken = default) {
+    internal static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 
@@ -363,7 +363,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Splits a PDF into one single-page PDF per source page, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null, CancellationToken cancellationToken = default) {
+    internal static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         var source = new ExtractionSession(pdf, options, documentFactory, cancellationToken);
         var result = new List<byte[]>(source.PageCount);
@@ -410,7 +410,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Splits a PDF into one output PDF per inclusive one-based page range, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null, CancellationToken cancellationToken = default) {
+    internal static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options, Func<PdfReadDocument>? documentFactory = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 

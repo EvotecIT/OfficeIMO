@@ -15,7 +15,7 @@ internal static partial class Html {
         var options = new HtmlToPdfOptions {
             DefaultFontFamily = "Helvetica",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
-            PdfOptions = new PdfOptions().UsePdfUa(profile, "en")
+            PdfOptions = new PdfCreateOptions().UsePdfUa(profile, "en")
                 .EmbedStandardFont(PdfStandardFont.Helvetica, regularFont, "Carlito")
                 .EmbedStandardFont(PdfStandardFont.HelveticaBold, boldFont, "Carlito Bold")
         };

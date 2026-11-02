@@ -9,7 +9,7 @@ schema: 2.0.0
 Sets the workbook date system used for numeric date serials.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeExcelDateSystem [-Document] <ExcelDocument> [-DateSystem] <string> [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Date system to use for Excel date serials.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: 1900, 1904, NineteenHundred, NineteenFour
 
@@ -49,7 +49,7 @@ Workbook to update.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Emit the workbook for further pipeline operations.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

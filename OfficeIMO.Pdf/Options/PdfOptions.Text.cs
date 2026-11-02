@@ -16,7 +16,7 @@ public enum PdfTextShapingMode {
     OpenTypeLigatures = 2
 }
 
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private string? _textShapingLanguageOverride;
 
     /// <summary>Retains an adapter's shaping language independently from PDF language metadata.</summary>
@@ -120,14 +120,14 @@ public sealed partial class PdfOptions {
     internal PdfTextShapingMode TextShapingModeSnapshot => _textShapingMode;
     internal IOfficeTextShapingProvider? TextShapingProviderSnapshot => _textShapingProvider;
 
-    internal bool HasDiagnosticsReport => _diagnosticsReport != null;
+    internal bool HasDiagnosticsReport => DiagnosticsReport != null;
 
     internal void AddTextDiagnostics(IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) {
-        if (_diagnosticsReport == null || diagnostics.Count == 0) {
+        if (DiagnosticsReport == null || diagnostics.Count == 0) {
             return;
         }
 
-        _diagnosticsReport.AddTextDiagnostics(diagnostics, _diagnosticsConverter);
+        DiagnosticsReport.AddTextDiagnostics(diagnostics, _diagnosticsConverter);
     }
 
     internal void AddTextShapingDiagnostics(IReadOnlyList<PdfTextShapingDiagnostic> diagnostics) {
@@ -147,7 +147,7 @@ public sealed partial class PdfOptions {
     }
 
     private void AddTextShapingDiagnostics(IReadOnlyList<PdfTextShapingDiagnostic> diagnostics, string? text, string? fontName, bool isOpenTypeCff, bool deferProviderCoverable) {
-        if (_diagnosticsReport == null || diagnostics.Count == 0) {
+        if (DiagnosticsReport == null || diagnostics.Count == 0) {
             return;
         }
 
@@ -162,21 +162,21 @@ public sealed partial class PdfOptions {
             }
 
             string key = diagnostic.Code + "|" + diagnostic.Source + "|" + diagnostic.Script;
-            if ((_reportedTextShapingDiagnostics ??= new HashSet<string>()).Add(key)) {
-                _diagnosticsReport.AddTextShapingDiagnostics(new[] { diagnostic }, _diagnosticsConverter);
+            if (PdfOutputDiagnosticScope.Admit("text|" + key, ref _reportedTextShapingDiagnostics)) {
+                DiagnosticsReport.AddTextShapingDiagnostics(new[] { diagnostic }, _diagnosticsConverter);
             }
         }
     }
 
     internal void AddFontDiagnostics(PdfStandardFont font, IReadOnlyList<PdfFontEmbeddingDiagnostic> diagnostics) {
-        if (_diagnosticsReport == null || diagnostics.Count == 0) {
+        if (DiagnosticsReport == null || diagnostics.Count == 0) {
             return;
         }
 
         foreach (PdfFontEmbeddingDiagnostic diagnostic in diagnostics) {
             string key = font.ToString() + "|" + diagnostic.Code + "|" + diagnostic.FontName + "|" + diagnostic.Format;
-            if ((_reportedEmbeddedFontProgramFailures ??= new HashSet<string>()).Add(key)) {
-                _diagnosticsReport.AddFontDiagnostics(new[] { diagnostic }, _diagnosticsConverter);
+            if (PdfOutputDiagnosticScope.Admit("font|" + key, ref _reportedEmbeddedFontProgramFailures)) {
+                DiagnosticsReport.AddFontDiagnostics(new[] { diagnostic }, _diagnosticsConverter);
             }
         }
     }
@@ -185,7 +185,7 @@ public sealed partial class PdfOptions {
     /// Sets or clears the callback used to provide preferred break positions for long unspaced tokens.
     /// </summary>
     /// <param name="callback">Callback returning UTF-16 break indexes for a token, or null to disable the hook.</param>
-    public PdfOptions SetTextHyphenation(PdfTextHyphenationCallback? callback) {
+    public PdfCreateOptions SetTextHyphenation(PdfTextHyphenationCallback? callback) {
         TextHyphenationCallback = callback;
         return this;
     }
@@ -195,7 +195,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="language">A supported tag such as <c>en-US</c> or <c>de-DE</c>; null uses <see cref="Language"/> at layout time.</param>
     /// <remarks>Unsupported languages produce no hyphenation. Words still wrap at Unicode line-break opportunities.</remarks>
-    public PdfOptions UseAutomaticHyphenation(string? language = null) {
+    public PdfCreateOptions UseAutomaticHyphenation(string? language = null) {
         _automaticHyphenation = true;
         _automaticHyphenationLanguage = language;
         _textHyphenationCallback = token => OfficeTextHyphenationPatterns.GetBreakpoints(token, language ?? Language);
@@ -204,7 +204,7 @@ public sealed partial class PdfOptions {
 
     /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
     /// <param name="dictionary">Dictionary whose breakpoints should be used, or null to clear hyphenation.</param>
-    public PdfOptions UseTextHyphenationDictionary(PdfHyphenationLexicon? dictionary) {
+    public PdfCreateOptions UseTextHyphenationDictionary(PdfHyphenationLexicon? dictionary) {
         TextHyphenationCallback = dictionary?.AsCallback();
         return this;
     }
@@ -213,7 +213,7 @@ public sealed partial class PdfOptions {
     /// Sets or clears the callback used to provide preferred non-hyphenating break positions for long unspaced tokens.
     /// </summary>
     /// <param name="callback">Callback returning UTF-16 break indexes for a token, or null to disable the hook.</param>
-    public PdfOptions SetTextLineBreaks(Func<string, IReadOnlyList<int>>? callback) {
+    public PdfCreateOptions SetTextLineBreaks(Func<string, IReadOnlyList<int>>? callback) {
         _textLineBreakCallback = callback;
         return this;
     }
@@ -222,7 +222,7 @@ public sealed partial class PdfOptions {
     /// Sets the dependency-free generated text shaping mode used by embedded font output.
     /// </summary>
     /// <param name="mode">Shaping mode to apply when writing generated text with embedded fonts.</param>
-    public PdfOptions SetTextShapingMode(PdfTextShapingMode mode) {
+    public PdfCreateOptions SetTextShapingMode(PdfTextShapingMode mode) {
         TextShapingMode = mode;
         return this;
     }
@@ -258,7 +258,7 @@ public sealed partial class PdfOptions {
     /// </summary>
     /// <param name="provider">Provider that returns shaped glyph runs, or <c>null</c> to use only built-in shaping.</param>
     /// <returns>The current options instance for fluent configuration.</returns>
-    public PdfOptions SetTextShapingProvider(IOfficeTextShapingProvider? provider) {
+    public PdfCreateOptions SetTextShapingProvider(IOfficeTextShapingProvider? provider) {
         TextShapingProvider = provider;
         return this;
     }
@@ -270,7 +270,7 @@ public sealed partial class PdfOptions {
     /// The provider declines scripts and font programs outside its proven managed subset, allowing the
     /// normal PDF fallback and shaping diagnostics to remain authoritative.
     /// </remarks>
-    public PdfOptions UseManagedTextShaping() {
+    public PdfCreateOptions UseManagedTextShaping() {
         TextShapingProvider = OfficeManagedTextShapingProvider.Instance;
         return this;
     }
@@ -282,7 +282,7 @@ public sealed partial class PdfOptions {
     /// <param name="converter">Converter or adapter name to place on recorded warnings.</param>
     /// <returns>The current options instance for fluent configuration.</returns>
     /// <remarks>Invalid input can still fail closed; renderable fidelity risks are recorded without suppressing the output.</remarks>
-    public PdfOptions ReportDiagnosticsTo(PdfConversionReport report, string converter = "OfficeIMO.Pdf") {
+    public PdfCreateOptions ReportDiagnosticsTo(PdfConversionReport report, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(report, nameof(report));
         _diagnosticsReport = report;
         _diagnosticsConverter = string.IsNullOrWhiteSpace(converter) ? "OfficeIMO.Pdf" : converter;
@@ -296,6 +296,7 @@ public sealed partial class PdfOptions {
     }
 
     private bool IsCoveredTextShapingDiagnostic(PdfTextShapingDiagnostic diagnostic, string? text = null, string? fontName = null, bool isOpenTypeCff = false) =>
+        IsDefaultEmbeddedFontSubstitutionDiagnostic(diagnostic, fontName) ||
         (_textShapingMode == PdfTextShapingMode.LatinLigatures &&
             diagnostic.IsCoveredByBuiltInShaping &&
             string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal)) ||

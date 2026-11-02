@@ -4,7 +4,7 @@ Builds an editable workplace-support brief from quarterly demand data.
 .DESCRIPTION
 The default CSV contains synthetic planning data. Counts, comparisons and the
 highlighted demand increase come from that CSV; the proposal is an example,
-not a service-level or quality claim. Requires PSWriteOffice 3.0.8 or newer.
+not a service-level or quality claim. Requires PSWriteOffice.
 .EXAMPLE
 ./Showcase-PowerPoint-ServiceBrief.ps1 -OutputDirectory ./ServiceBrief
 #>
@@ -17,9 +17,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-Import-Module $ModulePath -MinimumVersion 3.0.8 -ErrorAction Stop
+Import-Module $ModulePath -ErrorAction Stop
 $rows = @(Import-Csv -LiteralPath $InputCsv)
-if ($rows.Count -lt 1 -or $rows.Count -gt 6) { throw 'Supply one to six service locations for this eight-slide brief.' }
+if ($rows.Count -lt 1 -or $rows.Count -gt 6) { throw 'Supply one to six service locations for this brief.' }
 $sites = @(foreach ($row in $rows) {
     if ([string]::IsNullOrWhiteSpace($row.Site) -or [string]::IsNullOrWhiteSpace($row.Owner)) {
         throw 'Every service location needs a Site and Owner.'
@@ -102,31 +102,54 @@ $actions = @(
     [pscustomobject]@{ Action = "Review $($prioritySite.Site) demand"; Owner = $prioritySite.Owner; Review = $ReviewDate.AddDays(22).ToString('dd MMM', $culture) }
     [pscustomobject]@{ Action = 'Review pilot evidence'; Owner = 'Service owner'; Review = $ReviewDate.AddDays(36).ToString('dd MMM', $culture) }
 )
-$plan = PptDeckPlan {
-    PptPlanSection -Title 'Workplace support plan' -Subtitle "Demand review and service pilot | $dateText" -Seed 'service-cover'
-    PptPlanProcess -Title 'A controlled service transition' -Subtitle 'Agree the baseline, test the change and review the evidence.' -Steps $process -Seed 'service-transition'
-    PptPlanCardGrid -Title 'Service scope' -Subtitle 'Four service areas with explicit ownership and a common intake.' -Cards $cards -Seed 'service-scope'
-    PptPlanCardGrid -Title 'Supported locations' -Subtitle "$people people across $($sites.Count) service locations." -Cards $locationCards -Seed 'service-locations'
-    PptPlanCardGrid -Title 'What the operating model must provide' -Subtitle 'Practical acceptance criteria for the pilot.' -Cards $capabilities -Seed 'service-acceptance'
-    PptPlanCardGrid -Title 'Demand and the proposed decision' -Subtitle 'Separate the observation, proposed review and decision.' -Cards $decisions -Seed 'service-decision'
-}
-New-OfficePowerPoint -Path $path {
-    PptSlideSize -Preset Screen16x9
-    PptDesignerDeck -Plan $plan -AccentColor '#008C95' -Seed 'workplace-support' -Purpose 'workplace support planning brief' -Name 'Workplace support plan' -Eyebrow 'Workplace support' -FooterLeft $dateText -FooterRight $dataLabel -CreativeDirectionPack Boardroom -LayoutStrategy ContentFirst
-    $chartSlide = PptSlide -PassThru
-    PptTitle -Slide $chartSlide -Title 'Quarterly ticket demand'
-    PptChart -Slide $chartSlide -Type ClusteredColumn -Data $chartData -CategoryProperty Site -SeriesProperty 'Previous quarter', 'Current quarter' -Title "Tickets: $previous previous / $current current ($changeText)" -X 58 -Y 118 -Width 610 -Height 235
-    PptNotes -Slide $chartSlide -Text 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
-    $tableSlide = PptSlide -PassThru
-    PptTitle -Slide $tableSlide -Title 'Owners and review dates'
-    PptTable -Slide $tableSlide -Data $actions -X 54 -Y 120 -Width 612 -Height 200
-    PptNotes -Slide $tableSlide -Text 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
-    PptSection -Name 'Service planning' -StartSlideIndex 0
-    PptSection -Name 'Demand and actions' -StartSlideIndex 6
-    PptTransition -Slide $chartSlide -Transition PushLeft
-    Get-OfficePowerPointSlide -Index 0 | PptTransition -Transition Fade
-} -Open:$Open
+New-OfficePowerPoint -Path $path -Theme Boardroom -Accent '#008C95' -Seed 'workplace-support' `
+    -Purpose 'workplace support planning brief' -LayoutStrategy ContentFirst {
+    PowerPointFooter $dateText
+    PowerPointFooter $dataLabel -Alignment Right
+    $cover = PowerPointSlide -Title 'Workplace support plan' -Subtitle "Demand review and service pilot | $dateText" `
+        -Eyebrow 'Workplace support' -Layout Title -Seed 'service-cover' -PassThru
+    PowerPointSlide -Title 'A controlled service transition' -Subtitle 'Agree the baseline, test the change and review the evidence.' -Seed 'service-transition' {
+        foreach ($step in $process) {
+            PowerPointStep -Title $step.Title -Text $step.Body
+        }
+    }
+    PowerPointSlide -Title 'Service scope' -Subtitle 'Four service areas with explicit ownership and a common intake.' -Seed 'service-scope' {
+        foreach ($card in $cards) {
+            PowerPointCard -Title $card.Title -Items ($card.Items -split '\|') -Color $card.AccentColor
+        }
+    }
+    PowerPointSlide -Title 'Supported locations' -Subtitle "$people people across $($sites.Count) service locations." -Seed 'service-locations' {
+        foreach ($card in $locationCards) {
+            PowerPointCard -Title $card.Title -Items ($card.Items -split '\|') -Color $card.AccentColor
+        }
+    }
+    PowerPointSlide -Title 'What the operating model must provide' -Subtitle 'Practical acceptance criteria for the pilot.' -Seed 'service-acceptance' {
+        foreach ($card in $capabilities) {
+            PowerPointCard -Title $card.Title -Items ($card.Items -split '\|')
+        }
+    }
+    PowerPointSlide -Title 'Demand and the proposed decision' -Subtitle 'Separate the observation, proposed review and decision.' -Seed 'service-decision' {
+        foreach ($card in $decisions) {
+            PowerPointCard -Title $card.Title -Items ($card.Items -split '\|')
+        }
+    }
+    $chartSlide = PowerPointSlide -Title 'Quarterly ticket demand' -PassThru {
+        $chart = PowerPointChart -Type Column -InputObject $chartData -Category Site -Value 'Previous quarter', 'Current quarter' `
+            -Title "Tickets: $previous previous / $current current ($changeText)" -PassThru
+        # A zero baseline keeps small changes in ticket demand in proportion.
+        $chart.SetValueAxisScale(0, $null, $null, $null, $null, $null, $null) | Out-Null
+        PowerPointNotes 'Both series are ticket counts. A change in demand alone does not establish improved service quality or its cause.'
+    }
+    PowerPointSlide -Title 'Owners and review dates' {
+        PowerPointTable -InputObject $actions
+        PowerPointNotes 'Example actions for a proposed pilot. Agree actual owners and dates before using this brief.'
+    }
+    PowerPointSection -Name 'Service planning' -Slide $cover
+    PowerPointSection -Name 'Demand and actions' -Slide $chartSlide
+    Set-OfficePowerPointSlide -Slide $chartSlide -Transition PushLeft
+    Set-OfficePowerPointSlide -Slide $cover -Transition Fade
+} -Show:$Open
 
-$presentation = Get-OfficePowerPoint -Path $path
-try { Get-OfficePowerPointSlideSummary -Presentation $presentation | Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes }
+$presentation = Open-OfficePowerPoint -Path $path
+try { Get-OfficePowerPointSlide -Document $presentation -Summary | Select-Object SlideIndex, Title, ShapeCount, TextBoxCount, ChartCount, TableCount, HasNotes }
 finally { $presentation | Close-OfficePowerPoint }

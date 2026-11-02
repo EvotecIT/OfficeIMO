@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents an explicit legacy XLS manual page break and its affected row or column span.
     /// </summary>
-    public sealed class LegacyXlsPageBreak {
+    internal sealed class LegacyXlsPageBreak {
         /// <summary>
         /// Creates a parsed manual page break.
         /// </summary>

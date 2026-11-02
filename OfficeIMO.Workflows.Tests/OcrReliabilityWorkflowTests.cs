@@ -15,7 +15,7 @@ public sealed class OcrReliabilityWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] original = File.ReadAllBytes(source), previous = [1, 2, 3];
             File.WriteAllBytes(output, previous);
             var engine = new DelegateOcrEngine("failure", (_, _) => failure == "exception"
@@ -25,7 +25,7 @@ public sealed class OcrReliabilityWorkflowTests {
                         new OcrDiagnostic { Severity = OcrDiagnosticSeverity.Error, Code = "terminal", IsRecoverable = false }
                     ] }));
             var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
-                InputPath = source, OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPath = source, OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Replace
             }, engine);
             Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
             Assert.Null(result.OutputPath);
@@ -35,7 +35,7 @@ public sealed class OcrReliabilityWorkflowTests {
             string image = Path.Combine(root, "source.png"), text = Path.Combine(root, "output.txt");
             File.WriteAllBytes(image, OcrSessionWorkflowTests.Png()); File.WriteAllBytes(text, previous);
             var imageResult = await new OfficeWorkflowRunner().RecognizeImageAsync(new() {
-                InputPath = image, OutputPath = text, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                InputPath = image, OutputPath = text, ConflictPolicy = OfficePublicationPolicy.Replace
             }, engine);
             Assert.Equal(OfficeWorkflowStatus.Failed, imageResult.Status);
             Assert.Equal(previous, File.ReadAllBytes(text));
@@ -54,7 +54,7 @@ public sealed class OcrReliabilityWorkflowTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf"), output = Path.Combine(root, "output.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var engine = new DelegateOcrEngine("fixture", (_, _) => Task.FromResult(new OcrResult {
                 Spans = [Word("Mispelled")], Diagnostics = [new OcrDiagnostic {

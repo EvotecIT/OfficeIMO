@@ -12,7 +12,7 @@ public sealed class ExcelEncryptedSaveTests {
         if (stream) {
             using var destination = new MemoryStream();
             using (var document = ExcelDocument.Create(destination, new() { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Encrypted value"); document.SaveEncrypted(destination, password);
+                document.AddSheet("Data").CellValue(1, 1, "Encrypted value"); document.SaveEncrypted(destination, password);
             }
             destination.Position = 0;
             using var saved = ExcelDocument.LoadEncrypted(destination, password);
@@ -21,7 +21,7 @@ public sealed class ExcelEncryptedSaveTests {
             string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-Encrypted-" + Guid.NewGuid().ToString("N") + ".xlsx");
             try {
                 using (var document = ExcelDocument.Create(path, new ExcelCreateOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })) {
-                    document.AddWorksheet("Data").CellValue(1, 1, "Encrypted value"); document.SaveEncrypted(path, password);
+                    document.AddSheet("Data").CellValue(1, 1, "Encrypted value"); document.SaveEncrypted(path, password);
                 }
                 using var saved = ExcelDocument.LoadEncrypted(path, password);
                 Assert.Equal("Encrypted value", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
@@ -32,7 +32,7 @@ public sealed class ExcelEncryptedSaveTests {
     [InlineData(ExcelFileFormat.Xls)]
     [InlineData(ExcelFileFormat.Xlsb)]
     public void Encrypted_native_formats_round_trip_cells_formulas_and_password_changes(ExcelFileFormat format) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, 12.5); sheet.CellValue(2, 1, "00127"); sheet.CellValue(3, 1, true);
         sheet.CellValue(4, 1, 25d); sheet.CellFormula(4, 1, "A1*2");
         using var output = new MemoryStream(); document.SaveEncrypted(output, "test-password", format);
@@ -57,7 +57,7 @@ public sealed class ExcelEncryptedSaveTests {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-Encrypted-" + Guid.NewGuid().ToString("N") + extension);
         try {
             using (var document = ExcelDocument.Create()) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Native encrypted output"); document.SaveEncrypted(path, "test-password");
+                document.AddSheet("Data").CellValue(1, 1, "Native encrypted output"); document.SaveEncrypted(path, "test-password");
             }
             using var saved = ExcelDocument.LoadEncrypted(path, "test-password");
             Assert.Equal(format, saved.SourceFormat); Assert.Equal("Native encrypted output", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
@@ -66,7 +66,7 @@ public sealed class ExcelEncryptedSaveTests {
 
     [Fact]
     public void Unsupported_encryption_policy_does_not_touch_destinations() {
-        using var document = ExcelDocument.Create(); document.AddWorksheet("Data").CellValue(1, 1, "Keep");
+        using var document = ExcelDocument.Create(); document.AddSheet("Data").CellValue(1, 1, "Keep");
         using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
         Assert.Throws<ArgumentException>(() => document.SaveEncrypted(output, new string('x', 16), ExcelFileFormat.Xls));
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
@@ -78,7 +78,7 @@ public sealed class ExcelEncryptedSaveTests {
     public void Exporting_encrypted_to_another_stream_preserves_original_automatic_persistence() {
         using var original = new MemoryStream(); using var encrypted = new MemoryStream();
         using (var document = ExcelDocument.Create(original, new() { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })) {
-            var sheet = document.AddWorksheet("Data"); sheet.CellValue(1, 1, "Encrypted snapshot"); document.SaveEncrypted(encrypted, "test-password");
+            var sheet = document.AddSheet("Data"); sheet.CellValue(1, 1, "Encrypted snapshot"); document.SaveEncrypted(encrypted, "test-password");
             sheet.CellValue(1, 1, "Original after export");
         }
         original.Position = 0; encrypted.Position = 0;
@@ -93,7 +93,7 @@ public sealed class ExcelEncryptedSaveTests {
     public async System.Threading.Tasks.Task Later_edits_and_async_disposal_do_not_implicitly_overwrite_encryption(bool fileBacked) {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-Encrypted-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
-            using (var seed = ExcelDocument.Create()) { seed.AddWorksheet("Data").CellValue(1, 1, "Snapshot"); seed.Save(path); }
+            using (var seed = ExcelDocument.Create()) { seed.AddSheet("Data").CellValue(1, 1, "Snapshot"); seed.Save(path); }
             var options = new ExcelLoadOptions { PersistenceMode = DocumentPersistenceMode.SaveOnDispose };
             await using (var document = fileBacked ? ExcelDocument.OpenFileBacked(path, options) : ExcelDocument.Load(path, options)) {
                 document.SaveEncrypted(path, "test-password"); document.Sheets[0].CellValue(1, 1, "Unsaved edit");
@@ -121,7 +121,7 @@ public sealed class ExcelEncryptedSaveTests {
     [InlineData(ExcelFileFormat.Xls)]
     [InlineData(ExcelFileFormat.Xlsb)]
     public void Native_encrypted_materialization_is_bounded_before_destination_writes(ExcelFileFormat format) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         for (int i = 1; i <= 20; i++) sheet.CellValue(i, 1, new string((char)('A' + i), 500));
         using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
         var exception = Assert.Throws<InvalidDataException>(() => document.SaveEncrypted(output, "test-password", format,
@@ -137,7 +137,7 @@ public sealed class ExcelEncryptedSaveTests {
     public void A_flush_failure_after_encrypted_writing_never_causes_plaintext_copyback(ExcelFileFormat format) {
         using var output = new FailingFlushStream();
         using (var document = ExcelDocument.Create(output, new() { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })) {
-            document.AddWorksheet("Data").CellValue(1, 1, "Protected snapshot");
+            document.AddSheet("Data").CellValue(1, 1, "Protected snapshot");
             output.FailFlush = true;
             Assert.Throws<IOException>(() => document.SaveEncrypted(output, "test-password", format));
             output.FailFlush = false;
@@ -154,7 +154,7 @@ public sealed class ExcelEncryptedSaveTests {
     public void A_partial_encrypted_write_never_triggers_plaintext_copyback(ExcelFileFormat format) {
         using var output = new FailingFlushStream(); byte[] failedSnapshot;
         using (var document = ExcelDocument.Create(output, new() { PersistenceMode = DocumentPersistenceMode.SaveOnDispose })) {
-            document.AddWorksheet("Data").CellValue(1, 1, "Protected snapshot");
+            document.AddSheet("Data").CellValue(1, 1, "Protected snapshot");
             output.FailWrite = true;
             Assert.Throws<IOException>(() => document.SaveEncrypted(output, "test-password", format));
             output.FailWrite = false; failedSnapshot = output.ToArray();

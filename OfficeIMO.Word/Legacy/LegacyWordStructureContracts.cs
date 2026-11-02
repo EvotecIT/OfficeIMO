@@ -18,11 +18,11 @@ public abstract class LegacyWordBlockContent {
 /// <summary>Describes a recovered table. Formatting outside the qualified profile is reported as loss.</summary>
 public sealed class LegacyWordTableContent : LegacyWordBlockContent {
     internal LegacyWordTableContent(LegacyWordTable source) {
-        ColumnWidthsPoints = source.ColumnWidthsPoints.AsReadOnly();
+        ColumnWidths = source.ColumnWidthsPoints.ConvertAll(static width => global::OfficeIMO.OfficeLength.Points(width)).AsReadOnly();
         Rows = source.Rows.ConvertAll(row => new LegacyWordTableRowContent(row)).AsReadOnly();
     }
-    /// <summary>Gets explicitly recovered column widths in points.</summary>
-    public IReadOnlyList<double> ColumnWidthsPoints { get; }
+    /// <summary>Gets explicitly recovered column widths.</summary>
+    public IReadOnlyList<global::OfficeIMO.OfficeLength> ColumnWidths { get; }
     /// <summary>Gets rows in source order.</summary>
     public IReadOnlyList<LegacyWordTableRowContent> Rows { get; }
 }
@@ -88,27 +88,30 @@ public sealed class LegacyWordSectionContent {
             }
             return content;
         }).AsReadOnly();
-        PageWidthPoints = source.WidthPoints; PageHeightPoints = source.HeightPoints;
-        MarginLeftPoints = source.LeftPoints; MarginRightPoints = source.RightPoints;
-        MarginTopPoints = source.TopPoints; MarginBottomPoints = source.BottomPoints;
+        PageWidth = source.WidthPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.WidthPoints.Value) : null;
+        PageHeight = source.HeightPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.HeightPoints.Value) : null;
+        MarginLeft = source.LeftPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.LeftPoints.Value) : null;
+        MarginRight = source.RightPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.RightPoints.Value) : null;
+        MarginTop = source.TopPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.TopPoints.Value) : null;
+        MarginBottom = source.BottomPoints.HasValue ? global::OfficeIMO.OfficeLength.Points(source.BottomPoints.Value) : null;
         StartsNewPage = source.StartsNewPage;
     }
     /// <summary>Gets paragraphs and tables in source order.</summary>
     public IReadOnlyList<LegacyWordBlockContent> Blocks { get; }
     /// <summary>Gets the running stories effective in this section.</summary>
     public IReadOnlyList<LegacyWordHeaderFooterContent> HeadersAndFooters { get; }
-    /// <summary>Gets an explicitly recovered page width in points.</summary>
-    public double? PageWidthPoints { get; }
-    /// <summary>Gets an explicitly recovered page height in points.</summary>
-    public double? PageHeightPoints { get; }
-    /// <summary>Gets an explicitly recovered left margin in points.</summary>
-    public double? MarginLeftPoints { get; }
-    /// <summary>Gets an explicitly recovered right margin in points.</summary>
-    public double? MarginRightPoints { get; }
-    /// <summary>Gets an explicitly recovered top margin in points.</summary>
-    public double? MarginTopPoints { get; }
-    /// <summary>Gets an explicitly recovered bottom margin in points.</summary>
-    public double? MarginBottomPoints { get; }
+    /// <summary>Gets an explicitly recovered page width.</summary>
+    public global::OfficeIMO.OfficeLength? PageWidth { get; }
+    /// <summary>Gets an explicitly recovered page height.</summary>
+    public global::OfficeIMO.OfficeLength? PageHeight { get; }
+    /// <summary>Gets an explicitly recovered left margin.</summary>
+    public global::OfficeIMO.OfficeLength? MarginLeft { get; }
+    /// <summary>Gets an explicitly recovered right margin.</summary>
+    public global::OfficeIMO.OfficeLength? MarginRight { get; }
+    /// <summary>Gets an explicitly recovered top margin.</summary>
+    public global::OfficeIMO.OfficeLength? MarginTop { get; }
+    /// <summary>Gets an explicitly recovered bottom margin.</summary>
+    public global::OfficeIMO.OfficeLength? MarginBottom { get; }
     /// <summary>Gets whether the section begins on a new page.</summary>
     public bool StartsNewPage { get; }
 }

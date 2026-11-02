@@ -21,25 +21,25 @@ public partial class Word {
         string target = Path.Combine(_directoryWithFiles, "PdfContinuousSameColumns-" + extension + ".pdf");
         using (WordDocument document = WordDocument.Create(source)) {
             document.Sections[0].ColumnCount = 2;
-            document.Sections[0].ColumnsSpace = 400;
+            document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             AddLines("FirstSection", 10);
             var second = document.AddSection(WordSectionBreakType.Continuous);
             second.ColumnCount = 2;
-            second.ColumnsSpace = 400;
+            second.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             AddLines("NextSection", 20);
             document.Save();
 
             void AddLines(string prefix, int count) {
                 var paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, count).Select(index => prefix + index.ToString("D3"))));
-                paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-                paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+                paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;
             }
         }
         using (WordDocument document = WordDocument.Load(source)) {
-            document.SaveAsPdf(target, new WordToPdfOptions { IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400), Margins = PdfCore.PageMargins.Uniform(40) });
+            document.SaveAsPdf(target, new WordPdfExportOptions { IncludePageNumbers = false,
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40)) });
         }
         using var pdf = PdfPigDocument.Open(File.ReadAllBytes(target));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -56,17 +56,17 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             document.AddParagraph("LeftColumnMarker starts in the first Word section column.")
                 .AddBreak(WordBreakType.Column);
             document.AddParagraph("RightColumnMarker starts in the second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -91,7 +91,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
             Columns columns = section._sectionProperties.GetFirstChild<Columns>()!;
             columns.EqualWidth = false;
             columns.RemoveAllChildren<Column>();
@@ -100,16 +100,16 @@ public partial class Word {
                 new Column { Width = "4320" });
 
             WordParagraph left = document.AddParagraph("LeftMarker starts in the explicitly narrow first Word section column.");
-            left.FontFamily = "Arial"; left.FontSize = 12;
+            left.FontFamily = "Arial"; left.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             left.AddBreak(WordBreakType.Column);
             WordParagraph right = document.AddParagraph("RightMarker starts in the wider second Word section column.");
-            right.FontFamily = "Arial"; right.FontSize = 12;
+            right.FontFamily = "Arial"; right.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -135,7 +135,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
             section.HasColumnSeparator = true;
 
             document.AddParagraph("SeparatorLeftMarker starts in the first Word section column.")
@@ -143,10 +143,10 @@ public partial class Word {
             document.AddParagraph("SeparatorRightMarker starts in the second Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -169,16 +169,16 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             document.AddParagraph("AutoLeftColumnMarker starts in the first automatic Word section column.");
             document.AddParagraph("AutoRightColumnMarker starts in the second automatic Word section column.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 
@@ -203,24 +203,23 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             WordParagraph prelude = document.AddParagraph("ColumnKeepPrelude\n" + string.Join("\n", Enumerable.Range(1, 14).Select(index => "Prelude" + index)));
             WordParagraph heading = document.AddParagraph("ColumnKeepHeading").SetStyle(WordParagraphStyles.Heading2);
             WordParagraph body = document.AddParagraph("ColumnKeepBody\nSecond body line\nThird body line");
             foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
-                paragraph.FontSize = 12;
-                paragraph.LineSpacing = 400;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -245,7 +244,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             const string styleId = "AutomaticColumnStyledKeepNext";
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -263,18 +262,17 @@ public partial class Word {
             WordParagraph heading = document.AddParagraph("StyledColumnKeepHeading").SetStyleId(styleId);
             WordParagraph body = document.AddParagraph("StyledColumnKeepBody\nSecond body line\nThird body line");
             foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
-                paragraph.FontSize = 12;
-                paragraph.LineSpacing = 400;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(500, 400),
-                Margins = PdfCore.PageMargins.Uniform(40)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(500),OfficeIMO.OfficeLength.Points(400)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
             });
         }
 
@@ -299,7 +297,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText("InlineLeftColumnMarker remains before the inline Word column break.");
@@ -307,10 +305,10 @@ public partial class Word {
             paragraph.AddText("InlineRightColumnMarker starts after the inline Word column break.");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(612, 792),
-                Margins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(612),OfficeIMO.OfficeLength.Points(792)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
             });
         }
 

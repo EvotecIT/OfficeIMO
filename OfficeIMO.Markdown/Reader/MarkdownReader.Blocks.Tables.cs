@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     /// <summary>
     /// Determines whether a line is likely to be part of a markdown table. The logic follows
     /// CommonMark's relaxed table rules: when both outer pipes are present a single column is
@@ -23,7 +23,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsTable(string[] lines, int index, MarkdownReaderOptions options, MarkdownReaderState? state = null) =>
+    private static bool StartsTable(string[] lines, int index, MarkdownLoadOptions options, MarkdownReaderState? state = null) =>
         options?.Tables == true &&
         TryGetTableExtent(
             lines,
@@ -41,11 +41,11 @@ public static partial class MarkdownReader {
         out bool hasOuterPipes,
         bool allowSingleRowHeaderless = false,
         bool allowHeaderlessTables = true,
-        MarkdownReaderOptions? options = null,
+        MarkdownLoadOptions? options = null,
         bool allowMismatchedAlignmentCells = false) {
         end = start;
         hasOuterPipes = false;
-        options ??= new MarkdownReaderOptions();
+        options ??= new MarkdownLoadOptions();
         if (lines is null || start < 0 || start >= lines.Length) return false;
         if (!LooksLikeTableRow(lines[start])) return false;
         if (IsAlignmentRow(lines[start])) return false;
@@ -126,7 +126,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static TableBlock ParseTable(string[] lines, int start, int end, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static TableBlock ParseTable(string[] lines, int start, int end, MarkdownLoadOptions options, MarkdownReaderState state) {
         int headerLine = state.SourceLineOffset + start + 1;
         var cells0 = SplitTableRowWithSourceInfo(lines[start], headerLine, state);
         var table = new TableBlock();
@@ -207,7 +207,7 @@ public static partial class MarkdownReader {
         TableBlock table,
         List<TableCellSourceFragment> headerCells,
         List<List<TableCellSourceFragment>> bodyRows,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (table == null || options?.GenericAttributes != true) {
             return;
@@ -281,7 +281,7 @@ public static partial class MarkdownReader {
         return new TableCellSourceFragment(markdown ?? string.Empty, text, sourceSpan);
     }
 
-    private static List<InlineSequence> ParseTableInlineCells(IReadOnlyList<TableCellSourceFragment> cells, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static List<InlineSequence> ParseTableInlineCells(IReadOnlyList<TableCellSourceFragment> cells, MarkdownLoadOptions options, MarkdownReaderState state) {
         var parsedCells = new List<InlineSequence>(cells?.Count ?? 0);
         if (cells == null) {
             return parsedCells;
@@ -293,7 +293,7 @@ public static partial class MarkdownReader {
         return parsedCells;
     }
 
-    private static List<IReadOnlyList<InlineSequence>> ParseTableInlineRows(IReadOnlyList<IReadOnlyList<TableCellSourceFragment>> rows, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static List<IReadOnlyList<InlineSequence>> ParseTableInlineRows(IReadOnlyList<IReadOnlyList<TableCellSourceFragment>> rows, MarkdownLoadOptions options, MarkdownReaderState state) {
         var parsedRows = new List<IReadOnlyList<InlineSequence>>(rows.Count);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             var row = rows[rowIndex];
@@ -311,7 +311,7 @@ public static partial class MarkdownReader {
         return parsedRows;
     }
 
-    private static InlineSequence ParseTableCellInlines(TableCellSourceFragment cell, MarkdownReaderOptions options, MarkdownReaderState state) {
+    private static InlineSequence ParseTableCellInlines(TableCellSourceFragment cell, MarkdownLoadOptions options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(cell.Markdown)) {
             return new InlineSequence();
         }
@@ -323,7 +323,7 @@ public static partial class MarkdownReader {
     private static List<TableCell> BuildTableCells(
         IReadOnlyList<TableCellSourceFragment> cells,
         IReadOnlyList<InlineSequence> parsedCells,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         var typedCells = new List<TableCell>(cells?.Count ?? 0);
         if (cells == null) {
@@ -339,7 +339,7 @@ public static partial class MarkdownReader {
     private static List<IReadOnlyList<TableCell>> BuildTableRows(
         IReadOnlyList<IReadOnlyList<TableCellSourceFragment>> rows,
         IReadOnlyList<IReadOnlyList<InlineSequence>> parsedRows,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         var typedRows = new List<IReadOnlyList<TableCell>>(rows.Count);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
@@ -357,7 +357,7 @@ public static partial class MarkdownReader {
     private static TableCell BuildTableCell(
         TableCellSourceFragment cell,
         InlineSequence parsedCell,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (string.IsNullOrEmpty(cell.Markdown)) {
             return new TableCell() {
@@ -382,7 +382,7 @@ public static partial class MarkdownReader {
 
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren)? TryParseStructuredTableCellBlocks(
         TableCellSourceFragment cell,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state) {
         if (string.IsNullOrEmpty(cell.Markdown)) {
             return null;
@@ -527,7 +527,7 @@ public static partial class MarkdownReader {
         return dashCount > 0;
     }
 
-    private static bool LooksLikeTableBodyRow(string[] lines, int index, MarkdownReaderOptions options) {
+    private static bool LooksLikeTableBodyRow(string[] lines, int index, MarkdownLoadOptions options) {
         if (lines is null || index < 0 || index >= lines.Length) return false;
         var line = lines[index];
         if (string.IsNullOrWhiteSpace(line)) return false;
@@ -536,10 +536,10 @@ public static partial class MarkdownReader {
         return !IsTableTerminatingBlockStart(lines, index, options);
     }
 
-    private static bool IsStandaloneTableGenericAttributeLine(string? line, MarkdownReaderOptions? options) =>
+    private static bool IsStandaloneTableGenericAttributeLine(string? line, MarkdownLoadOptions? options) =>
         options?.GenericAttributes == true && IsStandaloneGenericAttributeOnlyLine(line);
 
-    private static bool IsTableTerminatingBlockStart(string[] lines, int index, MarkdownReaderOptions options) {
+    private static bool IsTableTerminatingBlockStart(string[] lines, int index, MarkdownLoadOptions options) {
         var line = lines[index] ?? string.Empty;
         if (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4) return true;
         if (options.Headings && IsAtxHeading(line, out _, out _)) return true;
@@ -571,11 +571,11 @@ public static partial class MarkdownReader {
                && trimmed[closing + 1] == ':';
     }
 
-    private static ColumnAlignment ParseAlignmentCell(string cell) {
+    private static MarkdownColumnAlignment ParseAlignmentCell(string cell) {
         var t = cell.Trim();
-        if (t.StartsWith(":")) { if (t.EndsWith(":")) return ColumnAlignment.Center; return ColumnAlignment.Left; }
-        if (t.EndsWith(":")) return ColumnAlignment.Right;
-        return ColumnAlignment.None;
+        if (t.StartsWith(":")) { if (t.EndsWith(":")) return MarkdownColumnAlignment.Center; return MarkdownColumnAlignment.Left; }
+        if (t.EndsWith(":")) return MarkdownColumnAlignment.Right;
+        return MarkdownColumnAlignment.None;
     }
 
     private static List<string> SplitTableRow(string line) {

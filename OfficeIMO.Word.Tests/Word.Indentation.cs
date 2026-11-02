@@ -15,34 +15,34 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithIndentationPoints.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Indented paragraph");
-                paragraph.IndentationBeforePoints = 10;
-                paragraph.IndentationAfterPoints = 5;
-                paragraph.IndentationFirstLinePoints = 15;
-                paragraph.IndentationHangingPoints = 2;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(10D);
+                paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(5D);
+                paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(15D);
+                paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(2D);
 
-                Assert.Equal(10, paragraph.IndentationBeforePoints);
-                Assert.Equal(5, paragraph.IndentationAfterPoints);
-                Assert.Equal(15, paragraph.IndentationFirstLinePoints);
-                Assert.Equal(2, paragraph.IndentationHangingPoints);
+                Assert.Equal(10, paragraph.IndentationBefore?.ToPoints());
+                Assert.Equal(5, paragraph.IndentationAfter?.ToPoints());
+                Assert.Equal(15, paragraph.IndentationFirstLine?.ToPoints());
+                Assert.Equal(2, paragraph.IndentationHanging?.ToPoints());
 
-                Assert.Equal(200, paragraph.IndentationBefore);
-                Assert.Equal(100, paragraph.IndentationAfter);
-                Assert.Equal(300, paragraph.IndentationFirstLine);
-                Assert.Equal(40, paragraph.IndentationHanging);
+                Assert.Equal(200, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+                Assert.Equal(100, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+                Assert.Equal(300, checked((int?)(paragraph.IndentationFirstLine?.ToTwips())));
+                Assert.Equal(40, checked((int?)(paragraph.IndentationHanging?.ToTwips())));
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var p = document.Paragraphs[0];
-                Assert.Equal(10, p.IndentationBeforePoints);
-                Assert.Equal(5, p.IndentationAfterPoints);
-                Assert.Equal(15, p.IndentationFirstLinePoints);
-                Assert.Equal(2, p.IndentationHangingPoints);
-                Assert.Equal(200, p.IndentationBefore);
-                Assert.Equal(100, p.IndentationAfter);
-                Assert.Equal(300, p.IndentationFirstLine);
-                Assert.Equal(40, p.IndentationHanging);
+                Assert.Equal(10, p.IndentationBefore?.ToPoints());
+                Assert.Equal(5, p.IndentationAfter?.ToPoints());
+                Assert.Equal(15, p.IndentationFirstLine?.ToPoints());
+                Assert.Equal(2, p.IndentationHanging?.ToPoints());
+                Assert.Equal(200, checked((int?)(p.IndentationBefore?.ToTwips())));
+                Assert.Equal(100, checked((int?)(p.IndentationAfter?.ToTwips())));
+                Assert.Equal(300, checked((int?)(p.IndentationFirstLine?.ToTwips())));
+                Assert.Equal(40, checked((int?)(p.IndentationHanging?.ToTwips())));
             }
         }
     }

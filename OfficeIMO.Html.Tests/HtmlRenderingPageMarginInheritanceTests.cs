@@ -374,7 +374,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPageMarginInheritance_LibraryFontPreparationUsesInheritedPageTypography() {
-        string? installedFamily = PdfCore.PdfOptions.DefaultDocumentFontFamilyFallback.Split(',')
+        string? installedFamily = PdfCore.PdfCreateOptions.DefaultDocumentFontFamilyFallback.Split(',')
             .Select(candidate => candidate.Trim())
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));
         // Match the existing optional installed-font integration lane. The

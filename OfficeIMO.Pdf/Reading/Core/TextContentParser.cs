@@ -142,9 +142,10 @@ internal static partial class TextContentParser {
         public bool ActualTextEmitted { get; set; }
 
         public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false,
-            bool preserveAnchorGeometry = false) {
+            bool preserveAnchorGeometry = false, bool allowExactGlyphMapping = false) {
             _actualText = actualText;
             HasActualText = actualText.HasValue;
+            _allowExactGlyphMapping = allowExactGlyphMapping;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
             Mcid = mcid;
@@ -246,6 +247,7 @@ internal static partial class TextContentParser {
         public PdfTextStateSnapshot TextState { get; }
         public bool IsArtifactContent { get; }
         public double StrokeWidth { get; }
+        public int StrokeLineCap { get; }
         public int StrokeLineJoin { get; }
         public double MiterLimit { get; }
 
@@ -268,7 +270,7 @@ internal static partial class TextContentParser {
             PdfPaintColorSelection? fillColorSelection = null,
             PdfPaintColorSelection? strokeColorSelection = null,
             PdfTextStateSnapshot? textState = null,
-            bool isArtifactContent = false, double strokeWidth = 1D, int strokeLineJoin = 0, double miterLimit = 10D, bool strokeColorResolved = true, string strokeDashIdentity = "[]:0") {
+            bool isArtifactContent = false, double strokeWidth = 1D, int strokeLineJoin = 0, double miterLimit = 10D, bool strokeColorResolved = true, string strokeDashIdentity = "[]:0", int strokeLineCap = 0) {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
@@ -291,6 +293,7 @@ internal static partial class TextContentParser {
             TextState = textState ?? PdfTextStateSnapshot.Default.WithTextRenderingMode(textRenderingMode);
             IsArtifactContent = isArtifactContent;
             StrokeWidth = strokeWidth;
+            StrokeLineCap = strokeLineCap;
             StrokeLineJoin = strokeLineJoin;
             MiterLimit = miterLimit;
         }
@@ -359,7 +362,8 @@ internal static partial class TextContentParser {
         Func<string, byte[], PdfTextDecodingEvidence>? decodingEvidenceForResource = null,
         bool mergeKernedTextArrays = true,
         Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
-        Func<string, bool>? usesTwoByteGlyphCodesForResource = null) {
+        Func<string, bool>? usesTwoByteGlyphCodesForResource = null,
+        int initialStrokeLineCap = 0) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -405,7 +409,7 @@ internal static partial class TextContentParser {
         PdfPaintColorSelection? fillColorSelection = initialFillColorSelection;
         PdfPaintColorSelection? strokeColorSelection = initialStrokeColorSelection;
         double strokeWidth = initialStrokeWidth;
-        int strokeLineCap = 0;
+        int strokeLineCap = initialStrokeLineCap;
         int strokeLineJoin = initialStrokeLineJoin;
         double miterLimit = initialMiterLimit;
         string strokeDashIdentity = initialStrokeDashIdentity;
@@ -554,7 +558,7 @@ internal static partial class TextContentParser {
                         fillColorSelection = effectiveInitialFillColorSelection;
                         strokeColorSelection = effectiveInitialStrokeColorSelection;
                         strokeWidth = initialStrokeWidth;
-                        strokeLineCap = 0;
+                        strokeLineCap = initialStrokeLineCap;
                         strokeLineJoin = initialStrokeLineJoin;
                         miterLimit = initialMiterLimit;
                         strokeDashIdentity = initialStrokeDashIdentity;
@@ -818,7 +822,9 @@ internal static partial class TextContentParser {
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
                         GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null),
-                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null));
+                        HasLogicalBoundsHint(args.Count > 0 ? args[args.Count - 1] : null),
+                        allowExactGlyphMapping: inText && args.Count == 2 && args[0] is string tag && tag == "Span" &&
+                            args[1] is PdfContentDictionary { Items.Count: 1 } && GetActiveActualTextState() == null);
                     if (markedState.HasActualText) GetActiveActualTextState()?.RejectLogicalLayoutEvidence();
                     if (onCompletedDrawingActualText != null && markedState.HasActualText) {
                         var origin = ctm.Transform(0D, 0D);
@@ -1334,7 +1340,10 @@ internal static partial class TextContentParser {
                         TryReadOutlineDash(strokeDashIdentity, strokeScale, out dash.Pattern, out dash.Phase)) {
                         if (outlineDashCache.Count < 64) outlineDashCache[dashKey] = dash;
                         span.SetOutlineStroke(ApplyTextOpacity(strokeColor, true), Math.Abs(strokeWidth) * strokeScale,
-                            dash.Pattern, dash.Phase);
+                            dash.Pattern, dash.Phase,
+                            strokeLineCap == 1 ? OfficeStrokeLineCap.Round : strokeLineCap == 2 ? OfficeStrokeLineCap.Square : OfficeStrokeLineCap.Butt,
+                            strokeLineJoin == 1 ? OfficeStrokeLineJoin.Round : strokeLineJoin == 2 ? OfficeStrokeLineJoin.Bevel : OfficeStrokeLineJoin.Miter,
+                            miterLimit);
                     }
                     double scaleEnvelope = Math.Max(Math.Abs(ctm.A) + Math.Abs(ctm.C), Math.Abs(ctm.B) + Math.Abs(ctm.D));
                     double joinEnvelope = strokeLineJoin == 0 ? Math.Max(1D, miterLimit) : 1D;
@@ -1580,6 +1589,7 @@ internal static partial class TextContentParser {
                 strokeWidth = resource.StrokeWidth ?? strokeWidth;
                 strokeLineCap = resource.StrokeLineCap.HasValue ? (int)resource.StrokeLineCap.Value : strokeLineCap;
                 strokeLineJoin = resource.StrokeLineJoin.HasValue ? (int)resource.StrokeLineJoin.Value : strokeLineJoin;
+                miterLimit = resource.StrokeMiterLimit ?? miterLimit;
                 if (resource.StrokeDashPattern is PdfStrokeDashPattern dashPattern) {
                     strokeDashIdentity = string.Join(",", dashPattern.Array.Select(static value => value.ToString("R", CultureInfo.InvariantCulture))) + ":" + dashPattern.Phase.ToString("R", CultureInfo.InvariantCulture);
                 }
@@ -1859,7 +1869,7 @@ internal static partial class TextContentParser {
         Action? cancellationCheck = null,
         PdfTextStateSnapshot? initialTextState = null,
         double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
-        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0", int initialStrokeLineCap = 0) {
         textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
@@ -1870,6 +1880,7 @@ internal static partial class TextContentParser {
         double? fillOpacity = initialFillOpacity;
         double? strokeOpacity = initialStrokeOpacity;
         double strokeWidth = initialStrokeWidth;
+        int strokeLineCap = initialStrokeLineCap;
         int strokeLineJoin = initialStrokeLineJoin;
         double miterLimit = initialMiterLimit;
         PdfTextStateSnapshot startingTextState = initialTextState ??
@@ -1926,7 +1937,7 @@ internal static partial class TextContentParser {
             string op = operation.Name;
             switch (op) {
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection, strokeWidth: strokeWidth, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit, strokeColorResolved: strokeColorResolved, strokeDashIdentity: strokeDashIdentity));
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection, strokeWidth: strokeWidth, strokeLineCap: strokeLineCap, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit, strokeColorResolved: strokeColorResolved, strokeDashIdentity: strokeDashIdentity));
                     textStateStack.Push(textState);
                     args.Clear();
                     break;
@@ -1941,6 +1952,7 @@ internal static partial class TextContentParser {
                         fillOpacity = state.FillOpacity;
                         strokeOpacity = state.StrokeOpacity;
                         strokeWidth = state.StrokeWidth;
+                        strokeLineCap = state.StrokeLineCap;
                         strokeLineJoin = state.StrokeLineJoin;
                         miterLimit = state.MiterLimit;
                         textRenderingMode = state.TextRenderingMode;
@@ -1962,6 +1974,7 @@ internal static partial class TextContentParser {
                         fillOpacity = initialFillOpacity;
                         strokeOpacity = initialStrokeOpacity;
                         strokeWidth = initialStrokeWidth;
+                        strokeLineCap = initialStrokeLineCap;
                         strokeLineJoin = initialStrokeLineJoin;
                         miterLimit = initialMiterLimit;
                         textState = startingTextState;
@@ -2128,6 +2141,7 @@ internal static partial class TextContentParser {
                     break;
                 case "d": strokeDashIdentity = BuildStrokeDashIdentity(args); args.Clear(); break;
                 case "w": if (args.Count >= 1) strokeWidth = ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "J": if (args.Count >= 1) strokeLineCap = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
                 case "j": if (args.Count >= 1) strokeLineJoin = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
                 case "M": if (args.Count >= 1) miterLimit = ToDouble(args[args.Count - 1]); args.Clear(); break;
                 case "gs":
@@ -2263,7 +2277,7 @@ internal static partial class TextContentParser {
                                 fillColorSelection,
                                 strokeColorSelection,
                                 textState: textState,
-                                isArtifactContent: HasArtifactContent(), strokeWidth: strokeWidth, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit, strokeColorResolved: strokeColorResolved, strokeDashIdentity: strokeDashIdentity));
+                                isArtifactContent: HasArtifactContent(), strokeWidth: strokeWidth, strokeLineCap: strokeLineCap, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit, strokeColorResolved: strokeColorResolved, strokeDashIdentity: strokeDashIdentity));
                         }
                     }
                     args.Clear();
@@ -2366,7 +2380,9 @@ internal static partial class TextContentParser {
             if (resource.StrokeDashPattern is PdfStrokeDashPattern dash)
                 strokeDashIdentity = string.Join(",", dash.Array.Select(static value => value.ToString("R", CultureInfo.InvariantCulture))) + ":" + dash.Phase.ToString("R", CultureInfo.InvariantCulture);
             strokeWidth = resource.StrokeWidth ?? strokeWidth;
+            strokeLineCap = resource.StrokeLineCap.HasValue ? (int)resource.StrokeLineCap.Value : strokeLineCap;
             strokeLineJoin = resource.StrokeLineJoin.HasValue ? (int)resource.StrokeLineJoin.Value : strokeLineJoin;
+            miterLimit = resource.StrokeMiterLimit ?? miterLimit;
             hasUnsupportedEffect = hasUnsupportedEffect ||
                 resource.HasUnsupportedBlendMode ||
                 resource.HasUnsupportedSoftMask ||

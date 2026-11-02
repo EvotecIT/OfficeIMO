@@ -54,7 +54,7 @@ public sealed class HtmlPdfFontCoverageTests {
         if (!sourceFont) options.PdfOptions.RegisterNamedFontFamily(
             new PdfCore.PdfEmbeddedFontFamily("Scoped", regular, bold));
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         Assert.Contains("A−B", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount >= 1);

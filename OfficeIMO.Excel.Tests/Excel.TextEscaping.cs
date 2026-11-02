@@ -20,7 +20,7 @@ public class ExcelTextEscapingTests {
         foreach (string invalid in new[] { "control\u0001", "surrogate\ud800" }) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, "placeholder");
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
             cell.CellValue = null;
@@ -46,12 +46,15 @@ public class ExcelTextEscapingTests {
         table.Columns.Add(header, typeof(string));
         foreach (string value in values) table.Rows.Add(value);
         using var stream = new MemoryStream();
-        using (var reader = table.CreateDataReader()) {
-            ExcelDocument.WriteDataReader(stream, reader, new ExcelTabularWriteOptions {
-                SheetName = "Data & '\"",
-                UseSharedStrings = sharedStrings,
-                IncludeCellReferences = cellReferences
-            });
+        if (sharedStrings) {
+            using var document = ExcelDocument.Create();
+            document.AddSheet("Data & '\"").WriteData(table);
+            document.Save(stream);
+        }
+        else {
+            using var writer = ExcelDocument.CreateWriter(stream,
+                new ExcelWriterOptions { IncludeCellReferences = cellReferences }, leaveOpen: true);
+            writer.WriteTable("Data & '\"", table);
         }
         stream.Position = 0;
         using var package = SpreadsheetDocument.Open(stream, false);
@@ -83,7 +86,8 @@ public class ExcelTextEscapingTests {
         const string value = "Start\r\nMiddle\rEnd\nTab\tUnicode Łódź 😀 &<>";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
-            var sheet = document.AddWorksheet("Text");
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
             sheet.CellValue(1, 2, "inline");
             sheet.CellValue(1, 3, "plain");
@@ -123,11 +127,9 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
-            sheet.AddChart(
-                new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
-                row: 2, column: 3, type: ExcelChartType.ColumnClustered, title: "Values");
+            sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 3, Title = "Values" });
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
         }
@@ -143,7 +145,7 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird\nFourth";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
             sheet.CellValue(1, 2, "inline");
             sheet.CellValue(1, 3, "plain");
@@ -156,9 +158,7 @@ public class ExcelTextEscapingTests {
             cells["C1"].DataType = CellValues.String;
             cells["C1"].CellValue = new CellValue(value);
             cells["D1"].DataType = CellValues.Error;
-            sheet.AddChart(
-                new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
-                row: 2, column: 3, type: ExcelChartType.ColumnClustered, title: "Values");
+            sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 3, Title = "Values" });
             sheet.MarkRequiresSavePreparation();
             document.Save(stream);
             Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -188,7 +188,7 @@ public class ExcelTextEscapingTests {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             for (int index = 0; index < 12; index++) {
-                var sheet = document.AddWorksheet("Text" + index);
+                var sheet = document.AddSheet("Text" + index);
                 sheet.CellValue(1, 1, "Sheet" + index + "\r\nLine\rEnd");
                 var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
                 cell.CellValue = null;
@@ -223,8 +223,8 @@ public class ExcelTextEscapingTests {
     public void CarriageReturnScanDoesNotMaterializeUntouchedWorksheets() {
         using var source = new MemoryStream();
         using (var created = ExcelDocument.Create(new MemoryStream())) {
-            created.AddWorksheet("Changed").CellValue(1, 1, "before");
-            created.AddWorksheet("Untouched").CellValue(1, 1, "raw");
+            created.AddSheet("Changed").CellValue(1, 1, "before");
+            created.AddSheet("Untouched").CellValue(1, 1, "raw");
             created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         }
 
@@ -254,7 +254,7 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird";
         using var source = new MemoryStream();
         using (var created = ExcelDocument.Create(new MemoryStream())) {
-            created.AddWorksheet("Text").CellValue(1, 1, value);
+            created.AddSheet("Text").CellValue(1, 1, value);
             created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         }
 

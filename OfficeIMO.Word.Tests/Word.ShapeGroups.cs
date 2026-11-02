@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordParagraph paragraph = document.AddParagraph();
                 WordShapeGroup group = paragraph.AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 72, 36) {
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(72), OfficeLength.Points(36)) {
                         FillColorHex = "#336699",
                         StrokeColorHex = "112233"
                     },
-                    new WordShapeGroupItem(WordShapeType.Ellipse, 90, 18, 54, 54) {
+                    new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(90), OfficeLength.Points(18), OfficeLength.Points(54), OfficeLength.Points(54)) {
                         FillColorHex = "F0A000"
                     }
                 });
@@ -29,12 +29,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, group.ChildCount);
                 Assert.True(paragraph.IsShapeGroup);
                 Assert.False(paragraph.IsShape);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? layout));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? layout));
                 Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Inline, layout.Placement);
                 Assert.True(layout.IsGroup);
-                Assert.Equal(144D, layout.WidthPoints, 6);
-                Assert.Equal(72D, layout.HeightPoints, 6);
+                Assert.Equal(144D, layout.Width.ToPoints(), 6);
+                Assert.Equal(72D, layout.Height.ToPoints(), 6);
                 document.Save();
             }
 
@@ -56,15 +56,15 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.Anchored.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordShapeGroup group = document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 80, 40),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
-                }, 24, 48);
-                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? layout));
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(72), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(144), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40))
+                }, OfficeLength.Points(24), OfficeLength.Points(48));
+                Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? layout));
                 Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
-                Assert.Equal(24D, layout.HorizontalOffsetPoints!.Value, 6);
-                Assert.Equal(48D, layout.VerticalOffsetPoints!.Value, 6);
+                Assert.Equal(24D, layout.HorizontalOffset!.Value.ToPoints(), 6);
+                Assert.Equal(48D, layout.VerticalOffset!.Value.ToPoints(), 6);
                 Assert.Equal(WordDrawingWrapKind.Square, layout.Wrap);
                 Assert.True(layout.IsGroup);
                 document.Save();
@@ -73,10 +73,10 @@ namespace OfficeIMO.Tests {
             using WordDocument reloaded = WordDocument.Load(filePath);
             WordShapeGroup imported = Assert.IsType<WordShapeGroup>(Assert.Single(reloaded.Paragraphs).ShapeGroup);
             Assert.Equal(3, imported.ChildCount);
-            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutSnapshot? persisted));
+            Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? persisted));
             Assert.NotNull(persisted);
             Assert.Equal(WordDrawingPlacementKind.Anchored, persisted.Placement);
-            Assert.Equal(224D, persisted.WidthPoints, 6);
+            Assert.Equal(224D, persisted.Width.ToPoints(), 6);
             Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2010)
                 .Validate(reloaded._wordprocessingDocument));
         }
@@ -85,30 +85,24 @@ namespace OfficeIMO.Tests {
         public void DrawingShapes_AllocateIdsAboveExistingPackageIdsAfterReload() {
             string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.DocumentScopedIds.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Rectangle, 40, 20);
+                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20));
                 existing._drawing!.Inline!.DocProperties!.Id = 100U;
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 20, 20),
-                    new WordShapeGroupItem(WordShapeType.Ellipse, 30, 0, 20, 20),
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(20), OfficeLength.Points(20)),
+                    new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(30), OfficeLength.Points(0), OfficeLength.Points(20), OfficeLength.Points(20)),
                 });
-                WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Diamond, 30, 30);
-                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, 30, 20, 10, 10);
+                WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Diamond, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30));
+                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10));
                 WordChart chart = document.AddChart("ID allocation");
                 chart.AddCategories(new List<string> { "A" });
-                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.Drawing.OfficeColor.Blue);
+                chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.OfficeColor.Blue);
                 document.AddSmartArt(WordSmartArtType.BasicProcess);
-                document.AddParagraph().AddImage(
-                    System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
-                    20,
-                    20);
-                document.AddParagraph().AddImage(
-                    System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"),
-                    20,
-                    20);
+                document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
+                document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
                 document.AddTextBox("Allocated text box");
                 document.AddHeadersAndFooters();
                 RequireSectionHeader(document, 0, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default)

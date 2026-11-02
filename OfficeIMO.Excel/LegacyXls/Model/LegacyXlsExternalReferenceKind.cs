@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the supporting-link category represented by a legacy XLS SupBook record.
     /// </summary>
-    public enum LegacyXlsExternalReferenceKind {
+    internal enum LegacyXlsExternalReferenceKind {
         /// <summary>
         /// The supporting-link kind could not be classified by this import phase.
         /// </summary>

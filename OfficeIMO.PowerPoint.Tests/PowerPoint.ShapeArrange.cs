@@ -15,17 +15,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape original = slide.AddRectangle(1000, 2000, 3000, 4000);
+                PowerPointAutoShape original = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
 
-                PowerPointShape duplicate = slide.DuplicateShape(original, 500, 600);
+                PowerPointShape duplicate = slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(600));
 
                 Assert.Equal(2, slide.Shapes.Count);
-                Assert.Equal(original.Width, duplicate.Width);
-                Assert.Equal(original.Height, duplicate.Height);
-                Assert.Equal(original.Left + 500, duplicate.Left);
-                Assert.Equal(original.Top + 600, duplicate.Top);
+                Assert.Equal(original.Width.ToEmus(), duplicate.Width.ToEmus());
+                Assert.Equal(original.Height.ToEmus(), duplicate.Height.ToEmus());
+                Assert.Equal(original.Left.ToEmus() + 500, duplicate.Left.ToEmus());
+                Assert.Equal(original.Top.ToEmus() + 600, duplicate.Top.ToEmus());
                 Assert.NotEqual(original.Name, duplicate.Name);
             } finally {
                 if (File.Exists(filePath)) {
@@ -39,11 +39,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1000);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 1000, 1000);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 1000, 1000);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
 
                 slide.BringForward(a);
 
@@ -64,13 +64,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(filePath);
+                using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddRectangle(0, 0, 1000, 1000);
-                slide.AddRectangle(1500, 0, 1000, 1000);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1500), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
-                PowerPointGroupShape duplicate = Assert.IsType<PowerPointGroupShape>(slide.DuplicateShape(group, 500, 500));
+                PowerPointGroupShape duplicate = Assert.IsType<PowerPointGroupShape>(slide.DuplicateShape(group, OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500)));
 
                 Assert.NotEqual(group.Name, duplicate.Name);
                 presentation.Save();
@@ -93,10 +93,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart original = slide.AddChart();
-                    PowerPointChart duplicate = Assert.IsType<PowerPointChart>(slide.DuplicateShape(original, 250000, 0));
+                    PowerPointChart duplicate = Assert.IsType<PowerPointChart>(slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(250000), OfficeIMO.OfficeLength.Emus(0)));
 
                     duplicate.UpdateData(new PowerPointChartData(
                         new[] { "Jan", "Feb" },

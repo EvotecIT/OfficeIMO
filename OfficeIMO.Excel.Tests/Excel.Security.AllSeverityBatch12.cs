@@ -43,13 +43,9 @@ namespace OfficeIMO.Tests {
 
             OfficeInspectionResourceLimitException exception = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocument.LoadAsync(
-                    new Uri("https://example.test/workbook.xlsx"),
-                    new ExcelHttpLoadOptions {
-                        HttpMessageHandler = handler,
-                        MaxBytes = workbook.Length * 2L
-                    },
-                    new ExcelLoadOptions {
-                        MaxInputBytes = workbook.Length - 1L
+                    new Uri("https://example.test/workbook.xlsx"),                    new ExcelLoadOptions {
+                        HttpMessageHandler = handler,                        MaxBytes = workbook.Length * 2L
+,                        MaxInputBytes = workbook.Length - 1L
                     }));
 
             Assert.Equal("excel", exception.Owner); Assert.Equal(nameof(ExcelLoadOptions.MaxInputBytes), exception.LimitName); Assert.Equal(workbook.Length - 1, exception.Maximum);
@@ -68,16 +64,14 @@ namespace OfficeIMO.Tests {
 
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
                 ExcelDocument.LoadAsync(
-                    new Uri("https://example.test/workbook.xlsx"),
-                    new ExcelHttpLoadOptions { HttpMessageHandler = handler },
-                    new ExcelLoadOptions { MaxInputBytes = 0 }));
+                    new Uri("https://example.test/workbook.xlsx"),                    new ExcelLoadOptions { HttpMessageHandler = handler ,MaxInputBytes = 0 }));
 
             Assert.Equal(0, requestCount);
         }
 
         private static byte[] CreateBatch12Workbook() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "safe");
+            document.AddSheet("Data").CellValue(1, 1, "safe");
             return document.ToBytes();
         }
 

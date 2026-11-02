@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("MoreConditions");
+                    ExcelSheet sheet = document.AddSheet("MoreConditions");
                     for (int row = 1; row <= 6; row++) {
                         for (int column = 1; column <= 8; column++) {
                             sheet.CellValue(row, column, row * column);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CfStop");
+                    ExcelSheet sheet = document.AddSheet("CfStop");
                     sheet.CellValue(1, 1, 1d);
                     sheet.CellValue(2, 1, 5d);
                     sheet.CellValue(3, 1, 10d);
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SingleCf");
+                    ExcelSheet sheet = document.AddSheet("SingleCf");
                     sheet.CellValue(1, 1, 3d);
                     sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan, "1");
 
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CfExpressions");
+                    ExcelSheet sheet = document.AddSheet("CfExpressions");
                     sheet.CellValue(1, 1, "Ready");
                     sheet.CellValue(2, 1, "Blocked");
                     sheet.CellValue(3, 1, "Ready");
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalCf");
+                    ExcelSheet sheet = document.AddSheet("ExternalCf");
                     sheet.CellValue(1, 1, 5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new OpenXmlConditionalFormatting(
@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalCfName");
+                    ExcelSheet sheet = document.AddSheet("ExternalCfName");
                     sheet.CellValue(1, 1, 5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new OpenXmlConditionalFormatting(
@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalCfName");
+                    ExcelSheet sheet = document.AddSheet("ExternalCfName");
                     sheet.CellValue(1, 1, 5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new OpenXmlConditionalFormatting(
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CfAggregates");
+                    ExcelSheet sheet = document.AddSheet("CfAggregates");
                     for (int row = 1; row <= 5; row++) {
                         sheet.CellValue(row, 1, row == 5 ? 2 : row);
                         sheet.CellValue(row, 2, row);
@@ -431,9 +431,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet input = document.AddWorksheet("Input");
-                    ExcelSheet firstRegion = document.AddWorksheet("Region 1");
-                    ExcelSheet secondRegion = document.AddWorksheet("Region 2");
+                    ExcelSheet input = document.AddSheet("Input");
+                    ExcelSheet firstRegion = document.AddSheet("Region 1");
+                    ExcelSheet secondRegion = document.AddSheet("Region 2");
 
                     input.CellValue(1, 1, 5d);
                     firstRegion.CellValue(1, 1, 1d);
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CfTime");
+                    ExcelSheet sheet = document.AddSheet("CfTime");
                     sheet.CellValue(1, 1, new DateTime(2026, 6, 27));
                     sheet.CellValue(2, 1, new DateTime(2026, 6, 26));
                     sheet.AddConditionalTimePeriodRule("A1:A2", timePeriod);

@@ -44,7 +44,7 @@ public sealed partial class HtmlRenderingTests {
                 .Select(glyph => glyph.UnicodeText)));
         });
 
-        PdfCore.PdfDocumentConversionResult pdf = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
         pdf.RequireNoLoss();
         PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);

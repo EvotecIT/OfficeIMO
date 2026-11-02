@@ -46,33 +46,33 @@ internal static partial class PdfWriter {
             pendingFloatingBookmarks.Clear();
         }
 
-        private PdfOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
+        private PdfCreateOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
             double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0
-                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft : currentOpts.MarginLeft;
-            double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth
-                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth - PageAnchorOptions.MarginLeft - PageAnchorOptions.MarginRight : width;
+                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft.ToPoints() : currentOpts.MarginLeft.ToPoints();
+            double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth.ToPoints()
+                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth.ToPoints() - PageAnchorOptions.MarginLeft.ToPoints() - PageAnchorOptions.MarginRight.ToPoints() : width;
             PdfAlign horizontal = position.HorizontalAlignment;
             if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
                 horizontal = horizontal == PdfAlign.Left ? PdfAlign.Right : horizontal == PdfAlign.Right ? PdfAlign.Left : horizontal;
             double alignment = horizontal == PdfAlign.Right ? available - tableWidth
                 : horizontal == PdfAlign.Center ? (available - tableWidth) / 2 : 0;
-            return left + alignment + position.HorizontalOffset;
+            return left + alignment + position.HorizontalOffset.ToPoints();
         }
 
         private double PositionTableY(PdfTablePosition position, double tableHeight) {
-            double top = position.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight
-                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageHeight - PageAnchorOptions.MarginTop : y;
+            double top = position.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight.ToPoints()
+                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageHeight.ToPoints() - PageAnchorOptions.MarginTop.ToPoints() : y;
             double bottom = position.VerticalAnchor == PdfTableAnchor.Page ? 0
-                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom : currentOpts.MarginBottom;
+                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom.ToPoints() : currentOpts.MarginBottom.ToPoints();
             PdfTableVerticalAlignment vertical = position.VerticalAlignment;
             bool evenPage = (pages.Count + 1) % 2 == 0;
             if (vertical == PdfTableVerticalAlignment.Inside) vertical = evenPage ? PdfTableVerticalAlignment.Bottom : PdfTableVerticalAlignment.Top;
             else if (vertical == PdfTableVerticalAlignment.Outside) vertical = evenPage ? PdfTableVerticalAlignment.Top : PdfTableVerticalAlignment.Bottom;
             double alignment = vertical == PdfTableVerticalAlignment.Bottom ? top - bottom - tableHeight
                 : vertical == PdfTableVerticalAlignment.Center ? (top - bottom - tableHeight) / 2 : 0;
-            return top - alignment - position.VerticalOffset;
+            return top - alignment - position.VerticalOffset.ToPoints();
         }
 
         private void AvoidFloatingTable(PdfTablePosition position, double left, double tableWidth, double height) {
@@ -82,7 +82,7 @@ internal static partial class PdfWriter {
                 foreach (var region in floatingTables) {
                     if ((position.AllowOverlap && region.AllowOverlap) || !ReferenceEquals(region.Page, currentPage) || left + tableWidth <= region.Left || left >= region.Right ||
                         y - height >= region.Top || y <= region.Bottom) continue;
-                    y = region.Bottom - position.DistanceTop;
+                    y = region.Bottom - position.DistanceTop.ToPoints();
                     moved = true;
                 }
             } while (moved);
@@ -92,9 +92,9 @@ internal static partial class PdfWriter {
             foreach (var capture in activeFloatingFlowCaptures)
                 capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
-            floatingTables.Add((currentPage, left - position.DistanceLeft,
-                left + tableWidth + position.DistanceRight, top + position.DistanceTop,
-                top - height - position.DistanceBottom, position.AllowOverlap));
+            floatingTables.Add((currentPage, left - position.DistanceLeft.ToPoints(),
+                left + tableWidth + position.DistanceRight.ToPoints(), top + position.DistanceTop.ToPoints(),
+                top - height - position.DistanceBottom.ToPoints(), position.AllowOverlap));
         }
 
         private bool HasFloatingTables => floatingTables.Any(region => ReferenceEquals(region.Page, currentPage));
@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
                 moved = false;
                 foreach (var region in floatingTables) {
                     if (!ReferenceEquals(region.Page, currentPage) || y <= region.Bottom || y - height >= region.Top ||
-                        region.Right <= currentOpts.MarginLeft || region.Left >= currentOpts.MarginLeft + width) continue;
+                        region.Right <= currentOpts.MarginLeft.ToPoints() || region.Left >= currentOpts.MarginLeft.ToPoints() + width) continue;
                     y = region.Bottom;
                     moved = true;
                 }
@@ -127,7 +127,7 @@ internal static partial class PdfWriter {
                         .Select(interval => (Left: interval.X, Right: interval.X + interval.Width)).ToList();
                 }
                 var best = intervals.OrderByDescending(interval => interval.Right - interval.Left).FirstOrDefault();
-                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize * 2))))
+                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize.ToPoints() * 2))))
                     return (best.Left, best.Right - best.Left, originalTop - top);
                 if (nextBottom >= top) break;
                 top = nextBottom;

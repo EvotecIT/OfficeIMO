@@ -111,7 +111,7 @@ public sealed class AsciiDocReferencesAndCellsTests {
         Assert.Equal("12", catalog.Targets["ref"].Label);
         Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.Code == "ADOCREF001");
         Assert.Contains(catalog.Diagnostics, diagnostic => diagnostic.Code == "ADOCREF003");
-        MarkdownDoc converted = document.ToMarkdownDocumentResult().Value;
+        MarkdownDocument converted = document.ToMarkdownDocumentResult().Value;
         string markdown = converted.ToMarkdown();
         Assert.Contains("(#ref)", markdown);
         Assert.Contains(converted.Blocks.OfType<ParagraphBlock>().First().Inlines.Nodes.OfType<LinkInline>(), link => link.Text == "[12]");

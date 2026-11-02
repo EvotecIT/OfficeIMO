@@ -97,7 +97,7 @@ internal static class PdfDiagnostics {
             estimatedSavings += group.EstimatedSavingsBytes;
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Info,
-                "DuplicateStream",
+                "duplicate-stream",
                 "Duplicate stream candidate group contains " + group.ObjectNumbers.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " objects.",
                 bytes: group.EstimatedSavingsBytes));
         }
@@ -121,7 +121,7 @@ internal static class PdfDiagnostics {
                 estimatedSavings += estimate;
                 findings.Add(new PdfDiagnosticFinding(
                     PdfDiagnosticSeverity.Info,
-                    "UncompressedStream",
+                    "uncompressed-stream",
                     "Stream has no filter and may benefit from compression.",
                     stream.ObjectNumber,
                     bytes: estimate));
@@ -130,7 +130,7 @@ internal static class PdfDiagnostics {
             if (string.Equals(stream.Subtype, "Image", StringComparison.Ordinal) && stream.Length >= LargeStreamThresholdBytes) {
                 findings.Add(new PdfDiagnosticFinding(
                     PdfDiagnosticSeverity.Info,
-                    "LargeImageStream",
+                    "large-image-stream",
                     "Large image stream may be worth reviewing for resolution or color-depth reduction.",
                     stream.ObjectNumber,
                     bytes: stream.Length));
@@ -140,7 +140,7 @@ internal static class PdfDiagnostics {
         if (!diagnostics.ObjectGraphParsed && !string.IsNullOrEmpty(diagnostics.ObjectGraphError)) {
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Warning,
-                "OptimizationLimited",
+                "optimization-limited",
                 "Optimization analysis is limited because the object graph could not be parsed: " + diagnostics.ObjectGraphError));
         }
 
@@ -202,7 +202,7 @@ internal static class PdfDiagnostics {
                     if (font.RequiresEmbeddingReview) {
                         findings.Add(new PdfDiagnosticFinding(
                             PdfDiagnosticSeverity.Warning,
-                            "FontEmbeddingReview",
+                            "font-embedding-review",
                             "Font dictionary does not expose an embedded font file.",
                             indirect.ObjectNumber));
                     }
@@ -210,7 +210,7 @@ internal static class PdfDiagnostics {
                     if (font.RequiresToUnicodeReview) {
                         findings.Add(new PdfDiagnosticFinding(
                             PdfDiagnosticSeverity.Warning,
-                            "FontToUnicodeReview",
+                            "font-to-unicode-review",
                             "Composite or identity-encoded font dictionary does not expose a /ToUnicode CMap.",
                             indirect.ObjectNumber));
                     }
@@ -219,21 +219,21 @@ internal static class PdfDiagnostics {
         } else {
             findings.Add(new PdfDiagnosticFinding(
                 preflight.ReadBlockers.Count > 0 ? PdfDiagnosticSeverity.Warning : PdfDiagnosticSeverity.Error,
-                "ObjectGraphParseFailed",
+                "object-graph-parse-failed",
                 "PDF indirect objects could not be fully parsed: " + objectGraphError));
         }
 
         if (probe.HasEncryption) {
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Warning,
-                "EncryptionDetected",
+                "encryption-detected",
                 "Encryption markers were detected. OfficeIMO.Pdf can read Standard password-encrypted PDFs with a valid password and can perform proven authenticated page, metadata, sanitization, and simple form rewrites on unsigned inputs when the required permissions are authorized; security changes require owner authorization."));
         }
 
         if (probe.HasActiveContent) {
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Warning,
-                "ActiveContentDetected",
+                "active-content-detected",
                 "Active content markers were detected. Review JavaScript, launch actions, and catalog actions before automated processing."));
         }
 
@@ -254,7 +254,7 @@ internal static class PdfDiagnostics {
         if (stream.DecodingFailed) {
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Warning,
-                "StreamDecodeFailed",
+                "stream-decode-failed",
                 "Stream decoding failed: " + (stream.DecodingError ?? "unknown error"),
                 stream.ObjectNumber,
                 bytes: stream.Length));
@@ -263,7 +263,7 @@ internal static class PdfDiagnostics {
         if (stream.Length >= LargeStreamThresholdBytes) {
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Info,
-                "LargeStream",
+                "large-stream",
                 "Large stream detected.",
                 stream.ObjectNumber,
                 bytes: stream.Length));

@@ -4,8 +4,8 @@ using System.Text;
 
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
-    private static bool IsParagraphInterruptingOrderedListLine(string line, MarkdownReaderOptions? options = null) {
+internal static partial class MarkdownReader {
+    private static bool IsParagraphInterruptingOrderedListLine(string line, MarkdownLoadOptions? options = null) {
         if (!IsOrderedListLine(line, options, out _, out int number, out string content, out _)) return false;
         return number == 1 && !string.IsNullOrWhiteSpace(content);
     }
@@ -15,7 +15,7 @@ public static partial class MarkdownReader {
                && !IsWhiteSpaceFrom(line, contentStartIndex);
     }
 
-    private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected, MarkdownReaderOptions? options = null) {
+    private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected, MarkdownLoadOptions? options = null) {
         if (collected == null || collected.Count == 0) return false;
 
         for (int i = collected.Count - 1; i >= 0; i--) {
@@ -33,7 +33,7 @@ public static partial class MarkdownReader {
         ref int nextIndex,
         int continuationIndent,
         string initialContent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool breakOnAnyOrderedListLine = false,
         List<MarkdownSourceLineSlice>? sourceLines = null,
         int absoluteLineOffset = 0,
@@ -204,7 +204,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int nextIndex,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         bool breakOnAnyOrderedListLine,
         MarkdownReaderState? state) {
         if (lines == null || nextIndex >= lines.Length) {
@@ -238,7 +238,7 @@ public static partial class MarkdownReader {
         MarkdownReaderState? state,
         int lineIndex,
         string line,
-        MarkdownReaderOptions? options = null) {
+        MarkdownLoadOptions? options = null) {
         return state?.IsMarkdigDefinitionListBody == true &&
             state.LazyQuoteContinuationLines.Contains(lineIndex) &&
             IsOrderedListLine(line, options, out _, out _, out _, out _);
@@ -270,7 +270,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryNormalizeListLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, bool breakOnAnyOrderedListLine, out string normalized) {
+    private static bool TryNormalizeListLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownLoadOptions options, bool breakOnAnyOrderedListLine, out string normalized) {
         var source = lines != null && index >= 0 && index < lines.Count ? (lines[index] ?? string.Empty) : string.Empty;
         normalized = source;
         if (string.IsNullOrWhiteSpace(source)) return false;
@@ -309,7 +309,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int index,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         NestedStandaloneGenericAttributeTarget target,
         out MarkdownAttributeSet attributes,
@@ -371,7 +371,7 @@ public static partial class MarkdownReader {
         string[] lines,
         int index,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         NestedStandaloneGenericAttributeTarget target) {
         if (lines == null || index < 0 || index >= lines.Length) {
@@ -432,7 +432,7 @@ public static partial class MarkdownReader {
         return tableLines.Count > 0 && StartsTable(tableLines.ToArray(), 0, options, state);
     }
 
-    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
+    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
         quote = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
 
@@ -512,7 +512,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static MarkdownReaderOptions GetNestedListQuoteOptions(MarkdownReaderOptions options) {
+    private static MarkdownLoadOptions GetNestedListQuoteOptions(MarkdownLoadOptions options) {
         if (!options.Callouts
             || options.CalloutTitleMode != MarkdownCalloutTitleMode.MarkdigCompatible) {
             return options;
@@ -523,7 +523,7 @@ public static partial class MarkdownReader {
         return nestedOptions;
     }
 
-    private static bool IsNestedListLineForParentItem(string line, int itemLevelAbs, int continuationIndent, MarkdownReaderOptions options) {
+    private static bool IsNestedListLineForParentItem(string line, int itemLevelAbs, int continuationIndent, MarkdownLoadOptions options) {
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
 
@@ -589,7 +589,7 @@ public static partial class MarkdownReader {
         string[] lines,
         ref int index,
         int continuationIndent,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         out CustomContainerBlock? container,
         out MarkdownSyntaxNode? syntaxNode) {
@@ -662,7 +662,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out TableBlock? table) {
+    private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out TableBlock? table) {
         table = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.Tables) return false;
@@ -731,7 +731,7 @@ public static partial class MarkdownReader {
 
     private static bool TryParseCollectedNestedBlock<TBlock>(
         List<string> lines,
-        MarkdownReaderOptions options,
+        MarkdownLoadOptions options,
         MarkdownReaderState state,
         int lineOffset,
         out TBlock? block)
@@ -748,7 +748,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryParseNestedHtmlBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out IMarkdownBlock? block) {
+    private static bool TryParseNestedHtmlBlock(string[] lines, ref int index, int continuationIndent, MarkdownLoadOptions options, MarkdownReaderState state, out IMarkdownBlock? block) {
         block = null;
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.HtmlBlocks) return false;
@@ -778,7 +778,7 @@ public static partial class MarkdownReader {
         if (collected.Count == 0) return false;
 
         int local = 0;
-        var tempDoc = MarkdownDoc.Create();
+        var tempDoc = MarkdownDocument.Create();
         var parser = new HtmlBlockParser();
         if (!parser.TryParse(collected.ToArray(), ref local, options, tempDoc, state)) return false;
         if (tempDoc.Blocks.Count != 1) return false;

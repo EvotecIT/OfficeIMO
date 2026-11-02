@@ -16,7 +16,7 @@ public static partial class ProjectReportWorkflow {
     });
     /// <summary>Creates a self-contained responsive HTML report with printable vector pages and an accessible data table.</summary>
     public static string ToHtml(ProjectView view, OfficeRenderingProfile? typography = null, CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(view);
+        if (view == null) throw new ArgumentNullException(nameof(view));
         var body = new StringBuilder("<style>").Append(ProjectReportStyles.Value)
             .Append("@page{size:").Append(view.PageWidth.ToString(CultureInfo.InvariantCulture)).Append("pt ")
             .Append(view.PageHeight.ToString(CultureInfo.InvariantCulture)).Append("pt;margin:0}</style><main class=\"project-report\"><header>");

@@ -16,7 +16,7 @@ Add-OfficeMarkdownTableOfContents [-Title <string>] [-MinLevel <int>] [-MaxLevel
 
 ### Document
 ```powershell
-Add-OfficeMarkdownTableOfContents -Document <MarkdownDoc> [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Ordered] [-TitleLevel <int>] [-PlaceAtTop] [-ForPreviousHeading] [-ForSection <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTableOfContents -Document <MarkdownDocument> [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Ordered] [-TitleLevel <int>] [-PlaceAtTop] [-ForPreviousHeading] [-ForSection <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -44,7 +44,7 @@ Inserts a generated table of contents for headings in the document.
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -205,11 +205,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

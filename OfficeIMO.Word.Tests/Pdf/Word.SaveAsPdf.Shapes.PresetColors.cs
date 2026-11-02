@@ -19,7 +19,7 @@ public partial class Word {
         string token, bool gradient, bool themeEntry, int red, int green, int blue) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Before preset shape");
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         document.AddParagraph("After preset shape");
         var preset = new A.PresetColor(new A.Alpha { Val = 45000 });
         preset.SetAttribute(new OpenXmlAttribute("val", string.Empty, token));
@@ -50,7 +50,7 @@ public partial class Word {
         outline.RemoveAllChildren();
         outline.Append(new A.SolidFill(new A.RgbColorModelHex(new A.Alpha { Val = 65000 }) { Val = "336699" }));
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using (var pdf = PdfPigDocument.Open(bytes)) {
             string text = string.Concat(pdf.GetPages().Select(page => page.Text));
             Assert.Contains("Before preset shape", text);

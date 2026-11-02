@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <code>$options = New-OfficeEmailStoreReaderOptions -ExcludeAttachmentContent -MaxAttachmentsPerItem 100
 /// Get-OfficeEmail -Path .\Message.emlx -StoreOptions $options -AsResult</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeEmailStoreReaderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeEmailStoreReaderOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailStoreReaderOptions))]
 public sealed class NewOfficeEmailStoreReaderOptionsCommand : PSCmdlet {
     /// <summary>Maximum seekable source length.</summary>

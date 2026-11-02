@@ -25,7 +25,7 @@ public class HtmlExcelReportValues {
             "<section class='officeimo-sheet' data-officeimo-sheet='Dates'><table><tr>" + cells + "</tr></table></section>")
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         string html = reopened.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
         HtmlToExcelResult roundTrip = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
@@ -33,7 +33,7 @@ public class HtmlExcelReportValues {
         foreach (ExcelDocument document in new[] { reopened, reimported }) {
             ExcelSheet sheet = Assert.Single(document.Sheets);
             for (int column = 1; column <= cases.Length; column++) {
-                ExcelCellValueSnapshot snapshot = Snapshot(sheet, 1, column);
+                ExcelNativeCellValueInfo snapshot = Snapshot(sheet, 1, column);
                 Assert.Equal(ExcelCellValueKind.DateTime, snapshot.Kind);
                 Assert.InRange(Math.Abs((snapshot.DateTimeValue!.Value - cases[column - 1].Expected).TotalMilliseconds), 0D, 1D);
             }
@@ -58,7 +58,7 @@ public class HtmlExcelReportValues {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(table).ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         for (int column = 1; column <= values.Length; column++) {
@@ -79,7 +79,7 @@ public class HtmlExcelReportValues {
         using ExcelDocument workbook = HtmlConversionDocument.Parse(
             "<section class='officeimo-sheet' data-officeimo-sheet='Dates'><table><tr>" + cells + "</tr></table></section>")
             .ToExcelDocument(new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         for (int column = 1; column <= 3; column++)
@@ -102,7 +102,7 @@ public class HtmlExcelReportValues {
             + "</tr></table>";
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         Assert.True(sheet.GetCellStyle(1, 1).Bold);
@@ -123,12 +123,12 @@ public class HtmlExcelReportValues {
     [InlineData("First\t", "Second")]
     public void SemanticRichTextPreservesWhitespaceAndRunFormatting(string first, string second) {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        source.AddWorksheet("Notes").CellAt(1, 1).SetRichText(
+        source.AddSheet("Notes").CellAt(1, 1).SetRichText(
             new ExcelRichTextRun(first) { Bold = true },
             new ExcelRichTextRun(second) { Italic = true });
         string html = source.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
         using ExcelDocument imported = HtmlConversionDocument.Parse(html).ToExcelDocument();
-        using MemoryStream artifact = imported.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(imported.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelCell cell = Assert.Single(reopened.Sheets).CellAt(1, 1);
         Assert.Equal(first + second, cell.GetValue<string>());
@@ -167,7 +167,7 @@ public class HtmlExcelReportValues {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
 
@@ -227,7 +227,7 @@ public class HtmlExcelReportValues {
                 AllowUntrustedFormulas = true
             });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
 
@@ -297,7 +297,7 @@ public class HtmlExcelReportValues {
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
-        using MemoryStream artifact = workbook.ToStream();
+        using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
 
@@ -319,8 +319,8 @@ public class HtmlExcelReportValues {
         Assert.Equal("First line\nSecond line", Snapshot(Assert.Single(workbook.Sheets), 1, 1).Text);
     }
 
-    private static ExcelCellValueSnapshot Snapshot(ExcelSheet sheet, int row, int column) {
-        Assert.True(sheet.TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? value));
+    private static ExcelNativeCellValueInfo Snapshot(ExcelSheet sheet, int row, int column) {
+        Assert.True(sheet.TryGetCellValueSnapshot(row, column, out ExcelNativeCellValueInfo? value));
         return value!;
     }
 }

@@ -16,7 +16,7 @@ public sealed class StudioRestrictedFormMetadataTests {
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, "restricted-form.pdf");
             var document = PdfDocument.Create(document => document.Content(content => content.Canvas(canvas =>
-                canvas.TextField("Name", "Ada", 72, 72, 200, 24))));
+                canvas.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24)))));
             byte[] original = document.Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.FillForms
             }).Pdf;

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes data-label display options decoded from a legacy XLS chart AttachedLabel record.
     /// </summary>
-    public sealed class LegacyXlsChartAttachedLabel {
+    internal sealed class LegacyXlsChartAttachedLabel {
         internal LegacyXlsChartAttachedLabel(ushort flags) {
             Flags = flags;
         }

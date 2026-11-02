@@ -145,8 +145,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             preview = new PowerPointPicture(source, slidePart);
-            if (preview.Left != shape.Left || preview.Top != shape.Top
-                || preview.Width != shape.Width || preview.Height != shape.Height
+            if (preview.Left.ToEmus() != shape.Left.ToEmus() || preview.Top.ToEmus() != shape.Top.ToEmus()
+                || preview.Width.ToEmus() != shape.Width.ToEmus() || preview.Height.ToEmus() != shape.Height.ToEmus()
                 || preview.Rotation != shape.Rotation
                 || preview.HorizontalFlip != shape.HorizontalFlip
                 || preview.VerticalFlip != shape.VerticalFlip) {

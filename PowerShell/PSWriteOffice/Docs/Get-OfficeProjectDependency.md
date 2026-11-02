@@ -9,7 +9,7 @@ schema: 2.0.0
 Returns project dependencies.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficeProjectDependency -Document <ProjectDocument> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project document.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

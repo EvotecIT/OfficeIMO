@@ -1,75 +1,77 @@
+using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
-using PSWriteOffice.Services;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Saves an OfficeIMO.Pdf document.</summary>
-/// <remarks>
-/// Use this command when a PDF is built in memory and saved later, or when a pipeline should continue with the saved file.
-/// The document is saved through the normal OfficeIMO.Pdf save path.
-/// </remarks>
-/// <example>
-///   <summary>Build a PDF in memory and save it later.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$pdf = New-OfficePdf { PdfHeading 'Queued report'; PdfParagraph 'Generated in memory.' }
-/// $pdf | Save-OfficePdf -Path .\QueuedReport.pdf</code>
-///   <para>Creates a PDF document object first, then saves it to disk.</para>
-/// </example>
-[Cmdlet(VerbsData.Save, "OfficePdf", SupportsShouldProcess = true)]
-[OutputType(typeof(PdfDocument))]
-public sealed class SaveOfficePdfCommand : PSCmdlet {
-    /// <summary>PDF document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+/// <summary>Saves a live PDF to its associated path or a new destination without closing it.</summary>
+/// <para>Native serialization rejects content loss unless AllowLoss is supplied. Password and OwnerPassword accept shared secure input. Security options encrypt an unencrypted output; use Protect-OfficeDocument for security changes to an already protected file.</para>
+/// <example><summary>Save to the associated destination and keep editing.</summary>
+/// <code>$pdf = New-OfficePdf -Path ./Review.pdf
+/// Add-OfficePdfParagraph -Document $pdf -Text 'Reviewed and approved'
+/// $pdf | Save-OfficePdf -PassThru
+/// Close-OfficePdf -Document $pdf</code></example>
+/// <example><summary>Restrict printing and accessibility without requiring an opening password.</summary>
+/// <code>$owner = Read-Host -AsSecureString
+/// Save-OfficePdf -Document $pdf -Path ./Restricted.pdf -OwnerPassword $owner -Permission Print,Accessibility</code></example>
+[Cmdlet(VerbsData.Save, "OfficePdf", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
+[OutputType(typeof(FileInfo))]
+public sealed class SaveOfficePdfCommand : OfficeCmdlet {
+    /// <summary>Live PDF to save.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
     public PdfDocument Document { get; set; } = null!;
 
-    /// <summary>Destination PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Optional destination; omission uses the native document's associated path.</summary>
+    [Parameter(Position = 0), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
-    /// <summary>Open the PDF after saving.</summary>
+    /// <summary>Open the saved file in its registered default application.</summary>
     [Parameter]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    public SwitchParameter Show { get; set; }
 
-    /// <summary>Emit the document for further processing.</summary>
+    /// <summary>Return the saved FileInfo.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
-    /// <summary>Password required to open the generated PDF.</summary>
+    /// <summary>Explicitly accept fidelity loss from native PDF serialization.</summary>
     [Parameter]
-    [Alias("UserPassword")]
-    public string? Password { get; set; }
+    public SwitchParameter AllowLoss { get; set; }
 
-    /// <summary>Optional owner password for the generated encrypted PDF.</summary>
-    [Parameter]
-    public string? OwnerPassword { get; set; }
+    /// <summary>Opening password for an unencrypted output; accepts secure input or warned plaintext.</summary>
+    [Parameter, OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
-    /// <summary>Raw PDF Standard security permission bit mask. Defaults to allowing all standard operations.</summary>
+    /// <summary>Owner password; without Password the PDF opens without a password and enforces permissions.</summary>
+    [Parameter, OfficePasswordTransformation]
+    public SecureString? OwnerPassword { get; set; }
+
+    /// <summary>Operations allowed to readers, expressed as native PDF permission flags.</summary>
     [Parameter]
-    [Alias("Permissions")]
-    public int? Permission { get; set; }
+    public PdfStandardPermissions Permission { get; set; } = PdfStandardPermissions.All;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var fullPath = PdfCommandUtilities.ResolvePath(this, Path);
-        if (!PdfCommandUtilities.ShouldWrite(this, fullPath, "Save PDF")) {
+        string? destination = Path ?? Document.FilePath;
+        if (string.IsNullOrWhiteSpace(destination)) {
+            InvalidArgument(new PSArgumentException("Supply Path when the document has no associated destination."), Document);
             return;
         }
-
-        PdfCommandUtilities.EnsureDirectory(fullPath);
-        var document = PdfCommandUtilities.ApplyEncryption(Document, Password, OwnerPassword, Permission);
-        document.Save(fullPath).RequireSuccess();
-
-        if (Open.IsPresent) {
-            FileOpenService.Open(fullPath);
-        }
-
-        if (PassThru.IsPresent) {
-            WriteObject(document);
-        }
+        destination = ResolveOutputPath(destination!);
+        var options = new PdfSaveOptions {
+            AllowLoss = AllowLoss.IsPresent,
+            Encryption = PdfCommandUtilities.CreateEncryption(Password, OwnerPassword, Permission,
+                MyInvocation.BoundParameters.ContainsKey(nameof(Permission)))
+        };
+        if (!ShouldProcess(destination, "Save PDF document")) return;
+        try {
+            Document.Save(destination, options);
+            if (Show) OfficeShow.Open(destination);
+            if (PassThru) WriteObject(new FileInfo(destination));
+        } catch (PipelineStoppedException) { throw; }
+        catch (Exception error) { ItemError(error, "native-save-failed", destination); }
     }
 }

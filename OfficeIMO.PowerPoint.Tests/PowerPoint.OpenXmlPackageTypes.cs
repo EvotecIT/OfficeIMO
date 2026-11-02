@@ -24,8 +24,8 @@ namespace OfficeIMO.Tests {
             string encryptedPath = GetTempPath(extension);
             byte[] vbaBytes = { 1, 3, 3, 7 };
             try {
-                using (PowerPointPresentation seed =
-                       PowerPointPresentation.Create(seedPath)) {
+                using (PowerPointDocument seed =
+                       PowerPointDocument.Create(seedPath)) {
                     seed.AddSlide().AddTitle("Package type");
                     seed.Save();
                 }
@@ -43,8 +43,8 @@ namespace OfficeIMO.Tests {
                     package.Save();
                 }
 
-                using (PowerPointPresentation presentation =
-                       PowerPointPresentation.Load(sourcePath)) {
+                using (PowerPointDocument presentation =
+                       PowerPointDocument.Load(sourcePath)) {
                     presentation.Slides[0].TextBoxes.Single().Text =
                         "Saved package type";
                     presentation.Save();
@@ -55,8 +55,8 @@ namespace OfficeIMO.Tests {
 
                 AssertPackage(sourcePath, expectedType, hasVba, vbaBytes);
                 AssertPackage(copyPath, expectedType, hasVba, vbaBytes);
-                using PowerPointPresentation decrypted =
-                    PowerPointPresentation.LoadEncrypted(encryptedPath,
+                using PowerPointDocument decrypted =
+                    PowerPointDocument.LoadEncrypted(encryptedPath,
                         "OfficeIMO-path-pass");
                 Assert.Equal(expectedType,
                     decrypted.OpenXmlDocument.DocumentType);
@@ -82,8 +82,8 @@ namespace OfficeIMO.Tests {
             byte[] vbaBytes = { 2, 4, 6, 8 };
             using MemoryStream source = CreatePackageStream(sourceType,
                 vbaBytes);
-            using PowerPointPresentation presentation =
-                PowerPointPresentation.Load(source);
+            using PowerPointDocument presentation =
+                PowerPointDocument.Load(source);
             presentation.Slides[0].TextBoxes.Single().Text =
                 "Saved to associated stream";
 
@@ -98,8 +98,8 @@ namespace OfficeIMO.Tests {
 
             using var encrypted = new MemoryStream();
             presentation.SaveEncrypted(encrypted, "OfficeIMO-stream-pass");
-            using PowerPointPresentation decrypted =
-                PowerPointPresentation.LoadEncrypted(encrypted,
+            using PowerPointDocument decrypted =
+                PowerPointDocument.LoadEncrypted(encrypted,
                     "OfficeIMO-stream-pass");
             Assert.Equal(PresentationDocumentType.Presentation,
                 decrypted.OpenXmlDocument.DocumentType);
@@ -118,8 +118,8 @@ namespace OfficeIMO.Tests {
             byte[] vbaBytes) {
             string path = GetTempPath(".pptx");
             try {
-                using (PowerPointPresentation seed =
-                       PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument seed =
+                       PowerPointDocument.Create(path)) {
                     seed.AddSlide().AddTitle("Package type");
                     seed.Save();
                 }

@@ -25,7 +25,7 @@ public sealed class MarkdownNativeDiagnostic {
         MarkdownSourceSpan? sourceSpan = null,
         MarkdownNativeBlock? block = null,
         IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null) {
-        Id = string.IsNullOrWhiteSpace(id) ? "native.diagnostic" : id.Trim();
+        Id = string.IsNullOrWhiteSpace(id) ? "native-diagnostic" : id.Trim();
         Message = message ?? string.Empty;
         Severity = severity;
         SourceSpan = sourceSpan;
@@ -63,7 +63,7 @@ public sealed class MarkdownNativeDiagnostic {
             : $"Document transform '{diagnostic.TransformName}' ran while building the native markdown projection.";
 
         return new MarkdownNativeDiagnostic(
-            "native.transform",
+            "native-transform",
             message,
             MarkdownNativeDiagnosticSeverity.Info,
             sourceSpan,

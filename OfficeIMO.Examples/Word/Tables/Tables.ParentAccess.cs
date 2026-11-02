@@ -8,12 +8,12 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
-                table.Rows[0].Height = 480;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(24D);
 
                 WordTableCell firstCell = table.Rows[0].Cells[0];
                 firstCell.Paragraphs[0].Text = "Row height:";
 
-                int? heightFromCell = firstCell.Parent.Height;
+                int? heightFromCell = checked((int?)(firstCell.Parent.Height?.ToTwips()));
                 firstCell.AddParagraph(heightFromCell?.ToString() ?? "not set");
 
                 Console.WriteLine($"Row height read from cell: {heightFromCell}");

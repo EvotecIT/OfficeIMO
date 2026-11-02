@@ -8,8 +8,8 @@ public sealed class PdfNoteStructureTests {
     public void PositionedNoteLinkRemainsInsideItsNoteBeforeFollowingText() {
         var bytes = PdfDocument.Create().TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Note, note => note
-                .Text(new[] { PdfTextRun.Link("1", "https://example.test/note") }, 20, 20, 20, 20)
-                .Text("Note body", 40, 20, 100, 20))).ToBytes();
+                .Text(new[] { PdfTextRun.Link("1", "https://example.test/note") }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20))
+                .Text("Note body", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))).ToBytes();
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
         var note = Assert.Single(tagged.StructureElements, element => element.StructureType == "Note");
         var link = Assert.Single(tagged.StructureElements, element => element.StructureType == "Link");
@@ -26,7 +26,7 @@ public sealed class PdfNoteStructureTests {
     public void WholeCellLinkRetainsInlineChildren(bool column, bool described) {
         var cells = new[] { new[] { PdfTableCell.RichTextCell(new[] {
             PdfTextRun.Normal("Before "),
-            PdfTextRun.Inline(new PdfInlineBox(12, 10, background: PdfColor.Black,
+            PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.Black,
                 alternativeText: described ? "Status" : null)),
             PdfTextRun.Normal(" after")
         }, linkUri: "https://example.test/cell") } };
@@ -63,8 +63,8 @@ public sealed class PdfNoteStructureTests {
                     : new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description"), PdfTextRun.Normal("x"), PdfTextRun.Link("B", "https://example.test", contents: "Shared description") };
         var document = PdfDocument.Create().TaggedPdfCatalogMarkers();
         if (inNote) document.Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Note,
-            note => note.Text(runs, 20, 20, 300, 20)));
-        else document.Canvas(canvas => canvas.Text(runs, 20, 20, 300, 20));
+            note => note.Text(runs, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20))));
+        else document.Canvas(canvas => canvas.Text(runs, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(20)));
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
         var root = Assert.Single(tagged.StructureElements, element => element.StructureType == "Document");
         var ordered = new List<int>();
@@ -87,7 +87,7 @@ public sealed class PdfNoteStructureTests {
         var document = PdfDocument.Create().TaggedPdfCatalogMarkers().Canvas(canvas => canvas.Text(new[] {
             PdfTextRun.Link("A", "https://example.test", contents: "Shared description"),
             PdfTextRun.Link("B", "https://example.test", contents: "Shared description")
-        }, 20, 20, 100, 20));
+        }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)));
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
         var link = Assert.Single(tagged.StructureElements, element => element.StructureType == "Link");
         Assert.Equal(2, link.MarkedContentReferenceCount);
@@ -96,9 +96,9 @@ public sealed class PdfNoteStructureTests {
 
     [Fact]
     public void SameTargetLinksInAdjacentColumnsRetainTheirOwnParagraphParents() {
-        var document = PdfDocument.Create().TaggedPdfCatalogMarkers().Row(row => row.Gap(0)
-            .FixedColumn(12, column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description") })))
-            .FixedColumn(12, column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("B", "https://example.test", contents: "Shared description") }))));
+        var document = PdfDocument.Create().TaggedPdfCatalogMarkers().Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(0))
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(12), column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description") })))
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(12), column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("B", "https://example.test", contents: "Shared description") }))));
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
         var links = tagged.StructureElements.Where(element => element.StructureType == "Link").ToArray();
         Assert.Equal(2, links.Length);
@@ -113,13 +113,13 @@ public sealed class PdfNoteStructureTests {
     [InlineData(PdfObjectSerializationMode.Buffered)]
     [InlineData(PdfObjectSerializationMode.ForwardOnly)]
     public void NotesHaveUniqueIdsResolvedByTheStructureIdTree(PdfObjectSerializationMode serialization) {
-        var document = PdfDocument.Create(new PdfOptions {
+        var document = PdfDocument.Create(new PdfCreateOptions {
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers,
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = serialization
         }).Canvas(canvas => canvas
-            .Structure(PdfCanvasStructureRole.Note, note => note.Text("First note", 20, 20, 100, 20))
-            .Structure(PdfCanvasStructureRole.Note, note => note.Text("Second note", 20, 60, 100, 20)));
+            .Structure(PdfCanvasStructureRole.Note, note => note.Text("First note", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))
+            .Structure(PdfCanvasStructureRole.Note, note => note.Text("Second note", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20))));
         var raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
         var notes = raw.Objects.Where(item => item.Value.Entries.TryGetValue("S", out var role) && role.Text == "Note").ToArray();
         Assert.Equal(2, notes.Length);

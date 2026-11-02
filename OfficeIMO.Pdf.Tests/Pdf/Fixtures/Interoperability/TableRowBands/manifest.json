@@ -1,0 +1,17 @@
+{
+  "word-themed-report.pdf": {
+    "sha256": "2228736c8b85fd17ec6b0bb4157aed54c257ef3c1048062ad22a1dbe905cf15a",
+    "producer": "OfficeIMO at c000d5ce86",
+    "sourceFile": "word-report-tables.pdf"
+  },
+  "native-wrapped-report.pdf": {
+    "sha256": "796a9bd97d8fe063f1331f294c9305725a37401dfc8ef611b86789fd90212f07",
+    "producer": "OfficeIMO at c000d5ce86",
+    "sourceFile": "Pdf.ProfessionalReport.pdf"
+  },
+  "form-layout.pdf": {
+    "sha256": "6bb070cc8173d76026ff6d96b0209593e65ab5bd120c9b5ad9b98ff570b22941",
+    "producer": "LibreOffice 26.8.1.1 (AARCH64), Writer",
+    "sourceFile": "conversions-reverse/inputs/lo/form-layout.pdf"
+  }
+}

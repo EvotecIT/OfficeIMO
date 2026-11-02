@@ -11,7 +11,9 @@ using OpenMcdf;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests {
-    public class OfficeEncryptionTests {
+    public class OfficeEncryptionTests : IDisposable {
+        private readonly string _root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-encryption-test-" + Guid.NewGuid().ToString("N"))).FullName;
+        public void Dispose() => Directory.Delete(_root, recursive: true);
         private const string Password = "OfficeIMO-Secret-123";
 
         [Fact]
@@ -62,13 +64,13 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var document = WordDocument.Create()) {
                 document.AddParagraph("Encrypted Word content");
-                document.SaveEncrypted(path, Password);
+                document.Save(path, new WordSaveOptions { Password = Password });
             }
 
             AssertEncryptedContainer(path);
             Assert.ThrowsAny<Exception>(() => WordprocessingDocument.Open(path, false).Dispose());
 
-            using var loaded = WordDocument.LoadEncrypted(path, Password);
+            using var loaded = WordDocument.Load(path, new WordLoadOptions { Password = Password });
             Assert.Contains(loaded.Paragraphs, paragraph => paragraph.Text == "Encrypted Word content");
         }
 
@@ -78,39 +80,31 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var document = WordDocument.Create()) {
                 document.AddParagraph("Encrypted Word stream content");
-                document.SaveEncrypted(encrypted, Password);
+                document.Save(encrypted, new WordSaveOptions { Password = Password });
             }
 
             AssertEncryptedContainer(encrypted);
 
             encrypted.Position = 0;
-            using var loaded = WordDocument.LoadEncrypted(encrypted, Password);
+            using var loaded = WordDocument.Load(encrypted, new WordLoadOptions { Password = Password });
             Assert.Contains(loaded.Paragraphs, paragraph => paragraph.Text == "Encrypted Word stream content");
         }
 
         [Fact]
-        public void Word_LoadEncrypted_DoesNotAttachEncryptedPathOrAllowAutoSave() {
-            string path = CreateTempPath(".docx");
-
-            using (var document = WordDocument.Create()) {
-                document.AddParagraph("Encrypted Word content");
-                document.SaveEncrypted(path, Password);
+        public void Word_PasswordLoadRetainsTheAssociatedPathAndEncryptsSubsequentSaves() {
+            string file = CreateTempPath(".docx");
+            using (var document = WordDocument.Create()) { document.AddParagraph("Original"); document.Save(file, new WordSaveOptions { Password = Password }); }
+            using (var document = WordDocument.Load(file, new WordLoadOptions { Password = Password })) {
+                Assert.Equal(file, document.FilePath);
+                document.AddParagraph("Explicit encrypted edit");
+                document.Save();
             }
-
-            using (var loaded = WordDocument.LoadEncrypted(path, Password)) {
-                Assert.True(string.IsNullOrEmpty(loaded.FilePath));
-                loaded.AddParagraph("Explicit encrypted edit");
-                Assert.Throws<InvalidOperationException>(() => loaded.Save());
-            }
-
-            Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
-                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
-            }));
-
-            using var explicitLoad = WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {
-                OpenSettings = new OfficeOpenXmlLoadSettings()
-            });
-            Assert.Equal(OfficeIMO.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
+            using (var document = WordDocument.Load(file, new WordLoadOptions { Password = Password, PersistenceMode = DocumentPersistenceMode.SaveOnDispose }))
+                document.AddParagraph("Automatic encrypted edit");
+            AssertEncryptedContainer(file);
+            using var reopened = WordDocument.Load(file, new WordLoadOptions { Password = Password });
+            Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Explicit encrypted edit");
+            Assert.Contains(reopened.Paragraphs, paragraph => paragraph.Text == "Automatic encrypted edit");
         }
 
         [Fact]
@@ -118,15 +112,15 @@ namespace OfficeIMO.Shared.Tests {
             string path = CreateTempPath(".xlsx");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Encrypted");
+                var sheet = document.AddSheet("Encrypted");
                 sheet.CellValue(1, 1, "Encrypted Excel content");
-                document.SaveEncrypted(path, Password);
+                document.Save(path, new ExcelSaveOptions { Password = Password });
             }
 
             AssertEncryptedContainer(path);
             Assert.ThrowsAny<Exception>(() => SpreadsheetDocument.Open(path, false).Dispose());
 
-            using var loaded = ExcelDocument.LoadEncrypted(path, Password);
+            using var loaded = ExcelDocument.Load(path, new ExcelLoadOptions { Password = Password });
             Assert.Equal("Encrypted", loaded.Sheets[0].Name);
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out var value));
             Assert.Equal("Encrypted Excel content", value);
@@ -137,58 +131,53 @@ namespace OfficeIMO.Shared.Tests {
             using var encrypted = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("EncryptedStream");
+                var sheet = document.AddSheet("EncryptedStream");
                 sheet.CellValue(1, 1, "Encrypted Excel stream content");
-                document.SaveEncrypted(encrypted, Password);
+                document.Save(encrypted, new ExcelSaveOptions { Password = Password });
             }
 
             AssertEncryptedContainer(encrypted);
 
             encrypted.Position = 0;
-            using var loaded = ExcelDocument.LoadEncrypted(encrypted, Password);
+            using var loaded = ExcelDocument.Load(encrypted, new ExcelLoadOptions { Password = Password });
             Assert.Equal("EncryptedStream", loaded.Sheets[0].Name);
             Assert.True(loaded.Sheets[0].TryGetCellText(1, 1, out var value));
             Assert.Equal("Encrypted Excel stream content", value);
         }
 
         [Fact]
-        public void Excel_LoadEncrypted_DoesNotAttachEncryptedPathOrAllowAutoSave() {
-            string path = CreateTempPath(".xlsx");
-
-            using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Encrypted");
-                sheet.CellValue(1, 1, "Encrypted Excel content");
-                document.SaveEncrypted(path, Password);
+        public void Excel_PasswordLoadRetainsTheAssociatedPathAndEncryptsSubsequentSaves() {
+            string file = CreateTempPath(".xlsx");
+            using (var document = ExcelDocument.Create()) { document.AddSheet("Data").CellValue(1, 1, "Original"); document.Save(file, new ExcelSaveOptions { Password = Password }); }
+            using (var document = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password })) {
+                Assert.Equal(file, document.FilePath);
+                document.Sheets[0].CellValue(2, 1, "Explicit encrypted edit");
+                document.Save();
             }
-
-            using (var loaded = ExcelDocument.LoadEncrypted(path, Password)) {
-                Assert.True(string.IsNullOrEmpty(loaded.FilePath));
-            }
-
-            Assert.Throws<NotSupportedException>(() => ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
-                PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
-            }));
-
-            using var explicitLoad = ExcelDocument.LoadEncrypted(path, Password, new ExcelLoadOptions {
-                OpenSettings = new OfficeOpenXmlLoadSettings()
-            });
-            Assert.Equal(OfficeIMO.DocumentPersistenceMode.Explicit, explicitLoad.PersistenceMode);
+            using (var document = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password, PersistenceMode = DocumentPersistenceMode.SaveOnDispose }))
+                document.Sheets[0].CellValue(3, 1, "Automatic encrypted edit");
+            AssertEncryptedContainer(file);
+            using var reopened = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password });
+            Assert.True(reopened.Sheets[0].TryGetCellText(2, 1, out string explicitText));
+            Assert.True(reopened.Sheets[0].TryGetCellText(3, 1, out string automaticText));
+            Assert.Equal("Explicit encrypted edit", explicitText);
+            Assert.Equal("Automatic encrypted edit", automaticText);
         }
 
         [Fact]
         public void PowerPoint_SaveEncrypted_And_OpenEncrypted_RoundTrips() {
             string path = CreateTempPath(".pptx");
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions())) {
+            using (var presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
-                slide.AddTextBox("Encrypted PowerPoint content", 1, 1, 4, 1);
-                presentation.SaveEncrypted(path, Password);
+                slide.AddTextBox("Encrypted PowerPoint content",global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(4),global::OfficeIMO.OfficeLength.Emus(1));
+                presentation.Save(path, new PowerPointSaveOptions { Password = Password });
             }
 
             AssertEncryptedContainer(path);
             Assert.ThrowsAny<Exception>(() => PresentationDocument.Open(path, false).Dispose());
 
-            using var loaded = PowerPointPresentation.LoadEncrypted(path, Password);
+            using var loaded = PowerPointDocument.Load(path, new PowerPointLoadOptions { Password = Password });
             Assert.Single(loaded.Slides);
         }
 
@@ -196,16 +185,16 @@ namespace OfficeIMO.Shared.Tests {
         public void PowerPoint_SaveEncryptedStream_And_OpenEncryptedStream_RoundTrips() {
             using var encrypted = new MemoryStream();
 
-            using (var presentation = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions())) {
+            using (var presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
-                slide.AddTextBox("Encrypted PowerPoint stream content", 1, 1, 4, 1);
-                presentation.SaveEncrypted(encrypted, Password);
+                slide.AddTextBox("Encrypted PowerPoint stream content",global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(4),global::OfficeIMO.OfficeLength.Emus(1));
+                presentation.Save(encrypted, new PowerPointSaveOptions { Password = Password });
             }
 
             AssertEncryptedContainer(encrypted);
 
             encrypted.Position = 0;
-            using var loaded = PowerPointPresentation.LoadEncrypted(encrypted, Password);
+            using var loaded = PowerPointDocument.Load(encrypted, new PowerPointLoadOptions { Password = Password });
             Assert.Single(loaded.Slides);
         }
 
@@ -214,11 +203,11 @@ namespace OfficeIMO.Shared.Tests {
             string path = CreateTempPath(".xlsx");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Encrypted");
-                document.SaveEncrypted(path, Password);
+                document.AddSheet("Encrypted");
+                document.Save(path, new ExcelSaveOptions { Password = Password });
             }
 
-            Assert.Throws<CryptographicException>(() => ExcelDocument.LoadEncrypted(path, "wrong-password"));
+            Assert.Throws<CryptographicException>(() => ExcelDocument.Load(path, new ExcelLoadOptions { Password = "wrong-password" }));
         }
 
         [Fact]
@@ -226,9 +215,9 @@ namespace OfficeIMO.Shared.Tests {
             string path = CreateTempPath(".xlsx");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Encrypted");
+                var sheet = document.AddSheet("Encrypted");
                 sheet.CellValue(1, 1, "Tamper target");
-                document.SaveEncrypted(path, Password);
+                document.Save(path, new ExcelSaveOptions { Password = Password });
             }
 
             // Locate the ciphertext by its compound stream name; its sector
@@ -244,11 +233,11 @@ namespace OfficeIMO.Shared.Tests {
                 root.Flush();
             }
 
-            Assert.Throws<CryptographicException>(() => ExcelDocument.LoadEncrypted(path, Password));
+            Assert.Throws<CryptographicException>(() => ExcelDocument.Load(path, new ExcelLoadOptions { Password = Password }));
         }
 
-        private static string CreateTempPath(string extension) {
-            string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N") + extension);
+        private string CreateTempPath(string extension) {
+            string path = Path.Combine(_root, Guid.NewGuid().ToString("N") + extension);
             return path;
         }
 

@@ -9,7 +9,7 @@ schema: 2.0.0
 Executes a simple mail merge against MERGEFIELD values in a Word document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Invoke-OfficeWordMailMerge [-InputObject] <Object> [-Document <WordDocument>] [-PreserveFields] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Document to update when provided explicitly.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Hashtable or object whose properties map to MERGEFIELD names.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: Data, Values
 Possible values:
 
@@ -65,7 +65,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Preserve field codes and only update displayed field text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.Benchmarks {
         private byte[] WriteReport(bool validate = false) {
             using MemoryStream stream = new MemoryStream();
             using (ExcelDocument document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 for (int column = 1; column <= Columns; column++) {
                     sheet.CellValue(1, column, "Header " + column);
                     sheet.CellAt(1, column).HeaderStyle();
@@ -47,10 +47,10 @@ namespace OfficeIMO.Excel.Benchmarks {
                 sheet.Range("A1:L" + (RowCount + 1)).CreateTable("Report", hasHeader: true, ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 sheet.Freeze(1, 0);
                 for (int column = 1; column <= Columns; column++) {
-                    sheet.SetColumnWidth(column, 18 + column);
-                    sheet.WrapCells(1, RowCount + 1, column);
+                    sheet.SetColumnWidth(column, OfficeIMO.Excel.ExcelColumnWidth.Characters(18 + column));
+                    sheet.WrapCells(1,RowCount + 1,column);
                 }
-                for (int row = 2; row <= RowCount + 1; row++) sheet.SetRowHeight(row, 42);
+                for (int row = 2; row <= RowCount + 1; row++) sheet.SetRowHeight(row, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
                 sheet.SetGridlinesVisible(false);
                 sheet.SetOrientation(OfficePageOrientation.Landscape);
                 sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);

@@ -4,7 +4,7 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Word.OpenDocument;
 
 public static partial class WordOpenDocumentConversionExtensions {
-    private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
+    private static void CopyParagraph(WordParagraphInfo source, OdtParagraph target,
         WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
         ref int hyperlinks, ref int images, ref int unsupportedImages,
         ref int bookmarks, NoteMappingStats notes) {
@@ -12,11 +12,11 @@ public static partial class WordOpenDocumentConversionExtensions {
         OdtParagraph first = target;
         target.PageBreakBefore = source.PageBreakBefore;
         ApplyWordParagraphFormatting(source, target);
-        WordInlineFieldSnapshot[] fields = source.InlineFields.OrderBy(field => field.RunIndex).ToArray();
+        WordInlineFieldInfo[] fields = source.InlineFields.OrderBy(field => field.RunIndex).ToArray();
         int fieldIndex = 0;
         for (int runIndex = 0; runIndex <= source.Runs.Count; runIndex++) {
             while (fieldIndex < fields.Length && fields[fieldIndex].RunIndex == runIndex) {
-                WordInlineFieldSnapshot field = fields[fieldIndex++];
+                WordInlineFieldInfo field = fields[fieldIndex++];
                 if (field.IsHiddenInstructionContent) continue;
                 if (TryMapWordField(field, out OdtFieldKind kind)) {
                     target.AddField(kind, field.ResultText).IsFixed = field.IsLocked;
@@ -30,7 +30,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 }
             }
             if (runIndex == source.Runs.Count) break;
-            WordRunSnapshot run = source.Runs[runIndex];
+            WordRunInfo run = source.Runs[runIndex];
             int start = 0;
             int imageIndex = 0;
             if (run.NonTextBreaks != null) {
@@ -55,14 +55,14 @@ public static partial class WordOpenDocumentConversionExtensions {
         if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { first.AddBookmark(source.BookmarkName!); bookmarks++; }
     }
 
-    private static void AppendRunSegment(WordRunSnapshot run, ref int start, int end, ref int imageIndex,
+    private static void AppendRunSegment(WordRunInfo run, ref int start, int end, ref int imageIndex,
         OdtParagraph target, WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
         ref int hyperlinks, ref int images, ref int unsupportedImages, ref bool wrote) {
         while (imageIndex < run.PositionedImages.Count && run.PositionedImages[imageIndex].Offset <= end) {
             WordPositionedImageSnapshot positioned = run.PositionedImages[imageIndex++];
             AppendText(run, run.Text.Substring(start, positioned.Offset - start), target, ref hyperlinks, ref wrote);
             start = positioned.Offset;
-            WordInlineImageSnapshot image = positioned.Image;
+            WordInlineImageInfo image = positioned.Image;
             if (options.IncludeImages && image.Bytes is { Length: > 0 } bytes) {
                 try {
                     string fileName = image.FileName ?? "image.png";
@@ -74,7 +74,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                         throw new NotSupportedException("The Word image payload is incomplete or unsupported.");
                     }
                     target.AddImage(bytes, storedFileName,
-                        OdfLength.Points(image.Width ?? 72D), OdfLength.Points(image.Height ?? 72D),
+                        OdfLength.Points(image.Width?.ToPoints() ?? 72D), OdfLength.Points(image.Height?.ToPoints() ?? 72D),
                         image.IsInline ? OdtImageAnchor.Inline : OdtImageAnchor.Paragraph);
                     images++;
                     wrote = true;
@@ -87,7 +87,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         start = end;
     }
 
-    private static void AppendText(WordRunSnapshot run, string text, OdtParagraph target, ref int hyperlinks, ref bool wrote) {
+    private static void AppendText(WordRunInfo run, string text, OdtParagraph target, ref int hyperlinks, ref bool wrote) {
         if (text.Length == 0) return;
         if (run.IsHyperlink && (!string.IsNullOrWhiteSpace(run.HyperlinkUri) || !string.IsNullOrWhiteSpace(run.HyperlinkAnchor))) {
             OdtHyperlink link = target.AddHyperlink(text, run.HyperlinkUri ?? "#" + run.HyperlinkAnchor);

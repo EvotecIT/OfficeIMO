@@ -6,7 +6,7 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Captures and verifies local identity inside the selected provider's readable access scope.</summary>
     private sealed class WorkflowSourceAccess(string location, OfficeWorkflowStreamInput source) {
         internal string Location { get; } = location;
-        internal IOfficeWorkflowPublicationGuard? SourceGuard => source.SourcePublicationGuard;
+        internal IOfficePublicationGuard? SourceGuard => source.SourcePublicationGuard;
         internal bool IsDirectoryPackage => source.SnapshotKind == OfficeWorkflowSourceSnapshotKind.DirectoryPackage;
         internal string? LocalPath { get; } = OfficeStorageIdentity.GetLocalPath(location);
         private string? _identity;
@@ -48,8 +48,8 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     /// <summary>Holds provider scopes through host authorization and both source/output separation checks.</summary>
-    private sealed class WorkflowScopedSourcePublicationGuard : IOfficeWorkflowPublicationGuard {
-        private readonly IOfficeWorkflowPublicationGuard? _host;
+    private sealed class WorkflowScopedSourcePublicationGuard : IOfficePublicationGuard {
+        private readonly IOfficePublicationGuard? _host;
         private readonly string[] _sources;
         private readonly WorkflowSourceAccess[] _accesses;
         private readonly WorkflowSourceAccess[] _localScopes;
@@ -57,7 +57,7 @@ public sealed partial class OfficeWorkflowRunner {
         private readonly OfficeWorkflowStreamOutput? _output;
         private readonly bool _allowMissingLocalSources;
 
-        internal WorkflowScopedSourcePublicationGuard(IOfficeWorkflowPublicationGuard? host, string[] sources,
+        internal WorkflowScopedSourcePublicationGuard(IOfficePublicationGuard? host, string[] sources,
             WorkflowSourceAccess[] accesses, OfficeWorkflowStreamOutput? output, bool allowMissingLocalSources = false) {
             _host = host;
             _sources = sources;
@@ -80,7 +80,7 @@ public sealed partial class OfficeWorkflowRunner {
             catch (DirectoryNotFoundException) when (allowMissing) { return null; }
         }
 
-        public async ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
+        public async Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) {
             var scopes = new List<Stream>(_localScopes.Length + 1);
             try {
                 foreach (var access in _localScopes) {
@@ -103,7 +103,7 @@ public sealed partial class OfficeWorkflowRunner {
                 // Each archive is disposed before the next one is opened, so batch size does not
                 // multiply the live in-memory transport budget.
                 foreach (var access in _accesses.Where(access => access.IsDirectoryPackage && access.LocalPath is not null)) {
-                    await using Stream package = await access.OpenReadAsync(token).ConfigureAwait(false);
+                    using Stream package = await access.OpenReadAsync(token).ConfigureAwait(false);
                 }
                 foreach (var access in _accesses) {
                     if (access.SourceGuard is { } guard && !await guard.CanPublishAsync(path, isDirectory, token).ConfigureAwait(false)) return false;

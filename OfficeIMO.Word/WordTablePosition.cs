@@ -3,8 +3,14 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
-    ///     Properties for Table Positioning
+    ///     Positions a floating table using physical lengths and anchor alignments.
     /// </summary>
+    /// <remarks>
+    /// Lengths round to whole twips, with midpoint ties away from zero. Text gaps retain
+    /// signed 16-bit storage; X and Y offsets retain signed 32-bit storage. A rounded
+    /// value outside its native range throws before XML changes. Null removes the
+    /// attribute without creating positioning properties; zero remains explicit.
+    /// </remarks>
     public class WordTablePosition {
         private readonly WordTable _table;
 
@@ -26,80 +32,92 @@ namespace OfficeIMO.Word {
         /// <summary>
         ///     Get or set Distance From Left of Table to Text
         /// </summary>
-        public short? LeftFromText {
+        public OfficeLength? LeftFromText {
             get {
-                var tableProperties = TableProperties;
-                if (tableProperties?.TablePositionProperties?.LeftFromText != null)
-                    return tableProperties.TablePositionProperties.LeftFromText;
-
-                return null;
+                var native = TableProperties?.TablePositionProperties?.LeftFromText;
+                return native != null ? OfficeLength.Emus((long)native.Value * 635) : (OfficeLength?)null;
             }
             set {
+                var native = checked((short?)(value?.ToTwips()));
+                if (!native.HasValue) {
+                    var position = TableProperties?.TablePositionProperties;
+                    if (position != null) position.LeftFromText = null;
+                    return;
+                }
+
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TablePositionProperties == null)
                     tableProperties.TablePositionProperties = new TablePositionProperties();
-
-                if (value != null) tableProperties.TablePositionProperties.LeftFromText = value;
+                tableProperties.TablePositionProperties.LeftFromText = native.Value;
             }
         }
 
         /// <summary>
         ///     Get or set Distance From Right of Table to Text
         /// </summary>
-        public short? RightFromText {
+        public OfficeLength? RightFromText {
             get {
-                var tableProperties = TableProperties;
-                if (tableProperties?.TablePositionProperties?.RightFromText != null)
-                    return tableProperties.TablePositionProperties.RightFromText;
-
-                return null;
+                var native = TableProperties?.TablePositionProperties?.RightFromText;
+                return native != null ? OfficeLength.Emus((long)native.Value * 635) : (OfficeLength?)null;
             }
             set {
+                var native = checked((short?)(value?.ToTwips()));
+                if (!native.HasValue) {
+                    var position = TableProperties?.TablePositionProperties;
+                    if (position != null) position.RightFromText = null;
+                    return;
+                }
+
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TablePositionProperties == null)
                     tableProperties.TablePositionProperties = new TablePositionProperties();
-
-                if (value != null) tableProperties.TablePositionProperties.RightFromText = value;
+                tableProperties.TablePositionProperties.RightFromText = native.Value;
             }
         }
 
         /// <summary>
         ///     Get or set Distance From Bottom of Table to Text
         /// </summary>
-        public short? BottomFromText {
+        public OfficeLength? BottomFromText {
             get {
-                var tableProperties = TableProperties;
-                if (tableProperties?.TablePositionProperties?.BottomFromText != null)
-                    return tableProperties.TablePositionProperties.BottomFromText;
-
-                return null;
+                var native = TableProperties?.TablePositionProperties?.BottomFromText;
+                return native != null ? OfficeLength.Emus((long)native.Value * 635) : (OfficeLength?)null;
             }
             set {
+                var native = checked((short?)(value?.ToTwips()));
+                if (!native.HasValue) {
+                    var position = TableProperties?.TablePositionProperties;
+                    if (position != null) position.BottomFromText = null;
+                    return;
+                }
+
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TablePositionProperties == null)
                     tableProperties.TablePositionProperties = new TablePositionProperties();
-
-                if (value != null) tableProperties.TablePositionProperties.BottomFromText = value;
+                tableProperties.TablePositionProperties.BottomFromText = native.Value;
             }
         }
 
         /// <summary>
         ///     Get or set Distance From Top of Table to Text
         /// </summary>
-        public short? TopFromText {
+        public OfficeLength? TopFromText {
             get {
-                var tableProperties = TableProperties;
-                if (tableProperties?.TablePositionProperties?.TopFromText != null)
-                    return tableProperties.TablePositionProperties.TopFromText;
-
-                return null;
+                var native = TableProperties?.TablePositionProperties?.TopFromText;
+                return native != null ? OfficeLength.Emus((long)native.Value * 635) : (OfficeLength?)null;
             }
             set {
+                var native = checked((short?)(value?.ToTwips()));
+                if (!native.HasValue) {
+                    var position = TableProperties?.TablePositionProperties;
+                    if (position != null) position.TopFromText = null;
+                    return;
+                }
+
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TablePositionProperties == null)
                     tableProperties.TablePositionProperties = new TablePositionProperties();
-
-                if (value != null) tableProperties.TablePositionProperties.TopFromText = value;
+                tableProperties.TablePositionProperties.TopFromText = native.Value;
             }
         }
 
@@ -150,48 +168,48 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        ///     Get or set Relative Vertical Alignment from Anchor
+        ///     Gets or sets the signed vertical distance from the anchor.
         /// </summary>
-        public int? TablePositionY {
+        public OfficeLength? TablePositionY {
             get {
-                var tableProperties = TableProperties;
-                if (tableProperties?.TablePositionProperties?.TablePositionY != null)
-                    return tableProperties.TablePositionProperties.TablePositionY;
-
-                return null;
+                var native = TableProperties?.TablePositionProperties?.TablePositionY;
+                return native != null ? OfficeLength.Emus((long)native.Value * 635) : (OfficeLength?)null;
             }
             set {
+                var native = checked((int?)(value?.ToTwips()));
+                if (!native.HasValue) {
+                    var position = TableProperties?.TablePositionProperties;
+                    if (position != null) position.TablePositionY = null;
+                    return;
+                }
+
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TablePositionProperties == null)
                     tableProperties.TablePositionProperties = new TablePositionProperties();
-
-                if (value != null)
-                    tableProperties.TablePositionProperties.TablePositionY = value;
-                else
-                    tableProperties.TablePositionProperties.TablePositionY = null;
+                tableProperties.TablePositionProperties.TablePositionY = native.Value;
             }
         }
 
         /// <summary>
         ///     Get or set Absolute Horizontal Distance From Anchor
         /// </summary>
-        public int? TablePositionX {
+        public OfficeLength? TablePositionX {
             get {
-                var tableProperties = TableProperties;
-                if (tableProperties?.TablePositionProperties?.TablePositionX != null)
-                    return tableProperties.TablePositionProperties.TablePositionX;
-
-                return null;
+                var native = TableProperties?.TablePositionProperties?.TablePositionX;
+                return native != null ? OfficeLength.Emus((long)native.Value * 635) : (OfficeLength?)null;
             }
             set {
+                var native = checked((int?)(value?.ToTwips()));
+                if (!native.HasValue) {
+                    var position = TableProperties?.TablePositionProperties;
+                    if (position != null) position.TablePositionX = null;
+                    return;
+                }
+
                 var tableProperties = EnsureTableProperties();
                 if (tableProperties.TablePositionProperties == null)
                     tableProperties.TablePositionProperties = new TablePositionProperties();
-
-                if (value != null)
-                    tableProperties.TablePositionProperties.TablePositionX = value;
-                else
-                    tableProperties.TablePositionProperties.TablePositionX = null;
+                tableProperties.TablePositionProperties.TablePositionX = native.Value;
             }
         }
 

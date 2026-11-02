@@ -1,6 +1,6 @@
 namespace OfficeIMO.Markdown;
 
-public static partial class MarkdownReader {
+internal static partial class MarkdownReader {
     private static bool IsAngleAutolinkStart(string text, int start) {
         if (start < 0 || start >= text.Length) return false;
         if (text[start] != '<') return false;
@@ -98,7 +98,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsWithHttp(string text, int start, MarkdownReaderOptions options, out int end) {
+    private static bool StartsWithHttp(string text, int start, MarkdownLoadOptions options, out int end) {
         end = start;
         if (start + 7 > text.Length) return false;
         // Require a boundary on the left so we don't linkify inside longer words.
@@ -117,7 +117,7 @@ public static partial class MarkdownReader {
         end = i; return end > start + 7;
     }
 
-    private static bool StartsWithWww(string text, int start, MarkdownReaderOptions options, out int end) {
+    private static bool StartsWithWww(string text, int start, MarkdownLoadOptions options, out int end) {
         end = start;
         if (start + 4 > text.Length) return false;
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
@@ -251,7 +251,7 @@ public static partial class MarkdownReader {
         return hostEnd > hostStart && text.IndexOf('_', hostStart, hostEnd - hostStart) >= 0;
     }
 
-    private static bool TryConsumeBareSchemeAutolink(string text, int start, MarkdownReaderOptions options, out int end, out string label, out string href) {
+    private static bool TryConsumeBareSchemeAutolink(string text, int start, MarkdownLoadOptions options, out int end, out string label, out string href) {
         end = start;
         label = href = string.Empty;
         if (start < 0 || start >= text.Length) return false;
@@ -315,7 +315,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool IsBareSchemePrefixEnabled(MarkdownReaderOptions options, string prefix) {
+    private static bool IsBareSchemePrefixEnabled(MarkdownLoadOptions options, string prefix) {
         if (options.AutolinkBareSchemePrefixes == null) {
             return true;
         }
@@ -329,7 +329,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool StartsWithAutolinkScheme(string text, int start, string scheme, MarkdownReaderOptions options) {
+    private static bool StartsWithAutolinkScheme(string text, int start, string scheme, MarkdownLoadOptions options) {
         if (options.AutolinkRequireLowercaseBareSchemePrefix) {
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(scheme)) return false;
             if (start < 0 || start + scheme.Length > text.Length) return false;
@@ -339,7 +339,7 @@ public static partial class MarkdownReader {
         return StartsWithOrdinalIgnoreCase(text, start, scheme);
     }
 
-    private static bool TryConsumeBareMailtoAddress(string text, int start, MarkdownReaderOptions options, out int end, out string email) {
+    private static bool TryConsumeBareMailtoAddress(string text, int start, MarkdownLoadOptions options, out int end, out string email) {
         end = start;
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
@@ -396,7 +396,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool ShouldRejectBareSchemeAfterOpeningSingleQuote(string text, int start, MarkdownReaderOptions options) {
+    private static bool ShouldRejectBareSchemeAfterOpeningSingleQuote(string text, int start, MarkdownLoadOptions options) {
         return options.AutolinkKeepTrailingQuotePunctuation
             && start > 0
             && text[start - 1] == '\'';
@@ -451,7 +451,7 @@ public static partial class MarkdownReader {
             || c == 'x' || c == 'X';
     }
 
-    private static int TrimTrailingAutolinkPunctuation(string text, int start, int rawEnd, MarkdownReaderOptions options) {
+    private static int TrimTrailingAutolinkPunctuation(string text, int start, int rawEnd, MarkdownLoadOptions options) {
         if (options.AutolinkTrimSingleTrailingPunctuationOrUnderscore) {
             return TrimSingleTrailingAutolinkPunctuationOrUnderscore(text, start, rawEnd, options);
         }
@@ -497,7 +497,7 @@ public static partial class MarkdownReader {
         return i;
     }
 
-    private static int TrimSingleTrailingAutolinkPunctuationOrUnderscore(string text, int start, int rawEnd, MarkdownReaderOptions options) {
+    private static int TrimSingleTrailingAutolinkPunctuationOrUnderscore(string text, int start, int rawEnd, MarkdownLoadOptions options) {
         int i = rawEnd;
         bool removedClosingParenthesis = false;
         bool trimmedSingleDelimiter = false;
@@ -603,7 +603,7 @@ public static partial class MarkdownReader {
         return c == '\'' || c == '"';
     }
 
-    private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownReaderOptions? options = null) {
+    private static bool HasInvalidAutolinkLeftBoundary(string text, int start, MarkdownLoadOptions? options = null) {
         if (string.IsNullOrEmpty(text) || start <= 0 || start > text.Length) return false;
 
         char previous = text[start - 1];
@@ -647,10 +647,10 @@ public static partial class MarkdownReader {
         string line = text.Substring(lineStart, lineEnd - lineStart);
         if (!StartsWithReferenceDefinitionLikeLabel(line)) return false;
 
-        return !TryParseReferenceLinkDefinition(new[] { line }, 0, new MarkdownReaderOptions(), out _, out _, out _, out _);
+        return !TryParseReferenceLinkDefinition(new[] { line }, 0, new MarkdownLoadOptions(), out _, out _, out _, out _);
     }
 
-    private static int ConsumeLiteralUrl(string text, int start, MarkdownReaderOptions options) {
+    private static int ConsumeLiteralUrl(string text, int start, MarkdownLoadOptions options) {
         int i = start;
         int parenDepth = 0;
         while (i < text.Length) {
@@ -782,7 +782,7 @@ public static partial class MarkdownReader {
         return text.IndexOf('.', hostStart, hostEnd - hostStart) >= 0;
     }
 
-    private static bool TryConsumePlainEmail(string text, int start, MarkdownReaderOptions options, out int end, out string email) {
+    private static bool TryConsumePlainEmail(string text, int start, MarkdownLoadOptions options, out int end, out string email) {
         end = start;
         email = string.Empty;
         if (start < 0 || start >= text.Length) return false;
@@ -829,7 +829,7 @@ public static partial class MarkdownReader {
         return c == '@' || c == '.' || c == '-' || c == '_' || c == '+';
     }
 
-    private static bool IsImmediatelyAfterStandaloneMailtoScheme(string text, int start, MarkdownReaderOptions options) {
+    private static bool IsImmediatelyAfterStandaloneMailtoScheme(string text, int start, MarkdownLoadOptions options) {
         if (string.IsNullOrEmpty(text) || start < 7) return false;
         if (text[start - 1] != ':') return false;
 

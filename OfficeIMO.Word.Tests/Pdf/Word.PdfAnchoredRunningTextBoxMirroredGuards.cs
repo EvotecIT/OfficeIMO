@@ -13,17 +13,17 @@ public partial class Word {
 
     [Fact]
     public void SaveAsPdf_ExplicitMarginsKeepAsymmetricMirroredRunningTextBoxQualified() =>
-        AssertStableMirroredRunningTextBoxAdmission(2880, PdfCore.PageMargins.Uniform(72D));
+        AssertStableMirroredRunningTextBoxAdmission(2880, PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72D)));
 
     private static void AssertStableMirroredRunningTextBoxAdmission(uint authoredRightMargin,
-        PdfCore.PageMargins? exportMargins) {
+        PdfCore.PdfPageMargins? exportMargins) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
         foreach (WordDocument source in new[] { document, control }) {
             source.Settings.MirrorMargins = true;
             WordSection selectingSection = source.Sections[1];
-            selectingSection.Margins.Left = 1440;
-            selectingSection.Margins.Right = authoredRightMargin;
+            selectingSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+            selectingSection.Margins.Right = global::OfficeIMO.OfficeLength.Points((authoredRightMargin) / 20D);
         }
         string[] before = AnchoredRunningStoryXml(document);
         string[] controlBefore = AnchoredRunningStoryXml(control);
@@ -31,15 +31,15 @@ public partial class Word {
             .DocumentSettingsPart!.Settings!.OuterXml;
         string controlSettingsBefore = control._wordprocessingDocument.MainDocumentPart!
             .DocumentSettingsPart!.Settings!.OuterXml;
-        WordToPdfOptions options = EmptyRunningOptions();
+        WordPdfExportOptions options = EmptyRunningOptions();
         options.Margins = exportMargins;
-        WordToPdfOptions controlOptions = EmptyRunningOptions();
+        WordPdfExportOptions controlOptions = EmptyRunningOptions();
         controlOptions.Margins = exportMargins;
 
-        var result = document.ToPdfDocumentResult(options);
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(options);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(controlOptions));
+        using var controlPdf = PdfPigDocument.Open(control.ToPdf(controlOptions).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.Equal(controlPdf.NumberOfPages, pdf.NumberOfPages);
         foreach (string token in new[] { "PREFIX", "SUFFIX" })

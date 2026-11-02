@@ -15,7 +15,7 @@ public sealed class OfficeInvoiceStorageWorkflowTests {
         byte[] original = Xml(); File.WriteAllBytes(input, original); File.WriteAllText(output, "Existing output");
         var result = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
             InputPath = input, Operation = OfficeInvoiceWorkflowOperation.EditSource, SourceEdits = new(number: "EDITED"),
-            OutputPath = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+            OutputPath = output, ConflictPolicy = OfficePublicationPolicy.Rename
         });
         Assert.True(result.Succeeded, result.Summary);
         Assert.NotEqual(output, result.OutputPath);
@@ -45,7 +45,7 @@ public sealed class OfficeInvoiceStorageWorkflowTests {
         var result = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
             InputPath = "content://invoice/source", InputStream = new("invoice.xml", _ => { reads++; return Task.FromResult<Stream>(new MemoryStream(source)); }),
             Operation = OfficeInvoiceWorkflowOperation.EditSource, SourceEdits = new(number: "EDITED"),
-            OutputPath = "content://invoice/destination", OutputStream = output, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            OutputPath = "content://invoice/destination", OutputStream = output, ConflictPolicy = OfficePublicationPolicy.Replace,
             PublicationGuard = new Guard(() => {
                 if (mode == "source-change") source = System.Text.Encoding.UTF8.GetBytes("<changed/>");
                 return mode != "denied";
@@ -106,7 +106,7 @@ public sealed class OfficeInvoiceStorageWorkflowTests {
         byte[] original = Xml(); File.WriteAllBytes(input, original);
         var collision = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
             InputPath = input, Operation = OfficeInvoiceWorkflowOperation.EditSource, SourceEdits = new(number: "EDITED"),
-            OutputPath = input, ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            OutputPath = input, ConflictPolicy = OfficePublicationPolicy.Replace
         });
         Assert.False(collision.Succeeded); Assert.Equal(original, File.ReadAllBytes(input));
         var unvalidated = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
@@ -117,8 +117,8 @@ public sealed class OfficeInvoiceStorageWorkflowTests {
         Assert.Contains(unvalidated.Workflow!.Diagnostics, d => d.Code == "INV-WORKFLOW-VALIDATOR");
     }
 
-    private sealed class Guard(Func<bool> action) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => ValueTask.FromResult(action());
+    private sealed class Guard(Func<bool> action) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) => Task.FromResult(action());
     }
     private sealed class CommitStream(Action<byte[]> commit) : MemoryStream {
         private bool _closed;

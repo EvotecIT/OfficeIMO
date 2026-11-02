@@ -123,24 +123,24 @@ namespace OfficeIMO.Excel {
         public int ColumnIndex => GetMarkerColumn() + 1;
 
         /// <summary>
-        /// Gets the image width in pixels from the drawing extent.
+        /// Gets the image width as a document length from the drawing extent.
         /// </summary>
-        public int WidthPixels => EmuToPx(GetExtentCx());
+        public OfficeLength Width => OfficeLength.Emus(GetExtentCx());
 
         /// <summary>
-        /// Gets the image height in pixels from the drawing extent.
+        /// Gets the image height as a document length from the drawing extent.
         /// </summary>
-        public int HeightPixels => EmuToPx(GetExtentCy());
+        public OfficeLength Height => OfficeLength.Emus(GetExtentCy());
 
         /// <summary>
-        /// Gets the image horizontal offset from the anchor cell origin in pixels.
+        /// Gets the image horizontal offset from the anchor cell origin as a document length.
         /// </summary>
-        public int OffsetXPixels => EmuOffsetToPx(GetMarkerColumnOffset());
+        public OfficeLength OffsetX => OfficeLength.Emus(GetMarkerColumnOffset());
 
         /// <summary>
-        /// Gets the image vertical offset from the anchor cell origin in pixels.
+        /// Gets the image vertical offset from the anchor cell origin as a document length.
         /// </summary>
-        public int OffsetYPixels => EmuOffsetToPx(GetMarkerRowOffset());
+        public OfficeLength OffsetY => OfficeLength.Emus(GetMarkerRowOffset());
 
         /// <summary>
         /// Gets whether the image is positioned with a two-cell drawing anchor.
@@ -172,37 +172,30 @@ namespace OfficeIMO.Excel {
         public int? ToColumnIndex => TryGetToMarkerColumn(out int column) ? column + 1 : null;
 
         /// <summary>
-        /// Gets the horizontal offset from the two-cell ending marker column in pixels.
+        /// Gets the horizontal offset from the two-cell ending marker column as a document length.
         /// </summary>
-        public int ToOffsetXPixels => EmuOffsetToPx(GetToMarkerColumnOffset());
+        public OfficeLength ToOffsetX => OfficeLength.Emus(GetToMarkerColumnOffset());
 
         /// <summary>
-        /// Gets the vertical offset from the two-cell ending marker row in pixels.
+        /// Gets the vertical offset from the two-cell ending marker row as a document length.
         /// </summary>
-        public int ToOffsetYPixels => EmuOffsetToPx(GetToMarkerRowOffset());
+        public OfficeLength ToOffsetY => OfficeLength.Emus(GetToMarkerRowOffset());
 
         /// <summary>
         /// Tries to read the image bounds when it is positioned by an absolute worksheet drawing anchor.
         /// </summary>
-        public bool TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out int widthPixels, out int heightPixels) {
-            xPixels = 0;
-            yPixels = 0;
-            widthPixels = 0;
-            heightPixels = 0;
-            if (_anchor is not Xdr.AbsoluteAnchor absoluteAnchor) {
-                return false;
+        public bool TryGetAbsoluteAnchorBounds(out OfficeLength x, out OfficeLength y, out OfficeLength width, out OfficeLength height) {
+            x = y = width = height = OfficeLength.Zero;
+            if (_anchor is not Xdr.AbsoluteAnchor absoluteAnchor) return false;
+            x = OfficeLength.Emus(absoluteAnchor.Position?.X?.Value ?? 0L);
+            y = OfficeLength.Emus(absoluteAnchor.Position?.Y?.Value ?? 0L);
+            width = OfficeLength.Emus(absoluteAnchor.Extent?.Cx?.Value ?? 0L);
+            height = OfficeLength.Emus(absoluteAnchor.Extent?.Cy?.Value ?? 0L);
+            if (width <= OfficeLength.Zero || height <= OfficeLength.Zero) {
+                width = Width;
+                height = Height;
             }
-
-            xPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPx(absoluteAnchor.Position?.X?.Value ?? 0L));
-            yPixels = ExcelImageExportLimits.ClampAbsoluteOffsetPixels(EmuOffsetToPx(absoluteAnchor.Position?.Y?.Value ?? 0L));
-            widthPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPx(absoluteAnchor.Extent?.Cx?.Value ?? 0L));
-            heightPixels = ExcelImageExportLimits.ClampExtentPixels(EmuToPx(absoluteAnchor.Extent?.Cy?.Value ?? 0L));
-            if (widthPixels <= 0 || heightPixels <= 0) {
-                widthPixels = WidthPixels;
-                heightPixels = HeightPixels;
-            }
-
-            return widthPixels > 0 && heightPixels > 0;
+            return width > OfficeLength.Zero && height > OfficeLength.Zero;
         }
 
         /// <summary>
@@ -210,21 +203,28 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="toRow">1-based ending row marker.</param>
         /// <param name="toColumn">1-based ending column marker.</param>
-        /// <param name="toOffsetXPixels">Horizontal offset from the ending marker column.</param>
-        /// <param name="toOffsetYPixels">Vertical offset from the ending marker row.</param>
-        public ExcelImage SetTwoCellEndingMarker(int toRow, int toColumn, int toOffsetXPixels = 0, int toOffsetYPixels = 0) {
+        /// <param name="toOffsetX">Horizontal offset from the ending marker column.</param>
+        /// <param name="toOffsetY">Vertical offset from the ending marker row.</param>
+        public ExcelImage SetTwoCellEndingMarker(int toRow, int toColumn, OfficeLength toOffsetX = default, OfficeLength toOffsetY = default) {
             if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
             if (toColumn < 1) throw new ArgumentOutOfRangeException(nameof(toColumn));
-            if (toOffsetXPixels < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetXPixels));
-            if (toOffsetYPixels < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetYPixels));
+            if (toOffsetX.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetX));
+            if (toOffsetY.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetY));
+            return SetNativeTwoCellEndingMarker(toRow, toColumn, toOffsetX, toOffsetY);
+        }
+
+        /// <summary>Restores signed native marker offsets after an importing adapter has bounded its geometry.</summary>
+        internal ExcelImage SetNativeTwoCellEndingMarker(int toRow, int toColumn, OfficeLength toOffsetX, OfficeLength toOffsetY) {
+            if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
+            if (toColumn < 1) throw new ArgumentOutOfRangeException(nameof(toColumn));
             if (_anchor is not Xdr.TwoCellAnchor anchor || anchor.ToMarker == null) {
                 throw new InvalidOperationException("Only two-cell anchored images expose an ending marker.");
             }
 
             anchor.ToMarker.RowId = new Xdr.RowId((toRow - 1).ToString(CultureInfo.InvariantCulture));
             anchor.ToMarker.ColumnId = new Xdr.ColumnId((toColumn - 1).ToString(CultureInfo.InvariantCulture));
-            anchor.ToMarker.RowOffset = new Xdr.RowOffset(PxToEmu(toOffsetYPixels).ToString(CultureInfo.InvariantCulture));
-            anchor.ToMarker.ColumnOffset = new Xdr.ColumnOffset(PxToEmu(toOffsetXPixels).ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.RowOffset = new Xdr.RowOffset(toOffsetY.ToEmus().ToString(CultureInfo.InvariantCulture));
+            anchor.ToMarker.ColumnOffset = new Xdr.ColumnOffset(toOffsetX.ToEmus().ToString(CultureInfo.InvariantCulture));
             Save();
             return this;
         }
@@ -422,21 +422,21 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the image size in pixels.
+        /// Sets the image size as a document length.
         /// </summary>
-        public ExcelImage SetSize(int widthPixels, int heightPixels) {
-            if (widthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(widthPixels));
-            if (heightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(heightPixels));
+        public ExcelImage SetSize(OfficeLength width, OfficeLength height) {
+            if (width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
 
-            long cx = PxToEmu(widthPixels);
-            long cy = PxToEmu(heightPixels);
+            long cx = width.ToEmus();
+            long cy = height.ToEmus();
 
             var extent = _anchor.GetFirstChild<Xdr.Extent>();
             if (extent != null) {
                 extent.Cx = cx;
                 extent.Cy = cy;
             } else if (_anchor is Xdr.TwoCellAnchor twoCellAnchor) {
-                ResizeTwoCellAnchor(twoCellAnchor, widthPixels, heightPixels);
+                ResizeTwoCellAnchor(twoCellAnchor, width, height);
             }
 
             var transform = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>();
@@ -450,7 +450,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private void ResizeTwoCellAnchor(Xdr.TwoCellAnchor anchor, int widthPixels, int heightPixels) {
+        private void ResizeTwoCellAnchor(Xdr.TwoCellAnchor anchor, OfficeLength width, OfficeLength height) {
             Xdr.FromMarker? fromMarker = anchor.FromMarker;
             Xdr.ToMarker? toMarker = anchor.ToMarker;
             if (fromMarker == null || toMarker == null) {
@@ -458,21 +458,21 @@ namespace OfficeIMO.Excel {
             }
 
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            double maximumDigitWidth = ExcelColumnGeometry.GetMaximumDigitWidth(worksheetPart);
+            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(worksheetPart);
             int startColumn = ParseMarkerIndex(fromMarker.ColumnId?.Text);
             int startRow = ParseMarkerIndex(fromMarker.RowId?.Text);
             var columnMarker = ResolveEndMarker(
                 startColumn,
                 ParseMarkerOffset(fromMarker.ColumnOffset?.Text),
-                widthPixels,
-                A1.MaxColumns,
-                index => GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth));
+                width.ToEmus(),
+                ExcelA1.MaxColumns,
+                index => geometry.GetColumnLength(index + 1).ToEmus());
             var rowMarker = ResolveEndMarker(
                 startRow,
                 ParseMarkerOffset(fromMarker.RowOffset?.Text),
-                heightPixels,
-                A1.MaxRows,
-                index => GetRowHeightPixels(worksheetPart, index + 1));
+                height.ToEmus(),
+                ExcelA1.MaxRows,
+                index => geometry.GetRowLength(index + 1).ToEmus());
 
             toMarker.ColumnId = new Xdr.ColumnId(columnMarker.Index.ToString(CultureInfo.InvariantCulture));
             toMarker.ColumnOffset = new Xdr.ColumnOffset(columnMarker.OffsetEmu.ToString(CultureInfo.InvariantCulture));
@@ -489,21 +489,23 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(percent), "Scale percentage must be a positive finite number.");
             }
 
-            int width = Math.Max(1, (int)Math.Round(WidthPixels * percent / 100.0));
-            int height = Math.Max(1, (int)Math.Round(HeightPixels * percent / 100.0));
+            OfficeLength width = Width * (percent / 100D);
+            OfficeLength height = Height * (percent / 100D);
+            if (width <= OfficeLength.Zero) width = OfficeLength.Emus(1);
+            if (height <= OfficeLength.Zero) height = OfficeLength.Emus(1);
             return SetSize(width, height);
         }
 
         /// <summary>
-        /// Moves the image to a one-cell anchor position and optionally applies pixel offsets.
+        /// Moves the image to a one-cell anchor position and optionally applies length offsets.
         /// </summary>
         /// <param name="row">1-based target row.</param>
         /// <param name="column">1-based target column.</param>
-        /// <param name="offsetXPixels">Horizontal offset from the cell edge, in pixels.</param>
-        /// <param name="offsetYPixels">Vertical offset from the cell edge, in pixels.</param>
-        public ExcelImage MoveTo(int row, int column, int offsetXPixels = 0, int offsetYPixels = 0) {
-            if (row <= 0 || row > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row), "Row must be between 1 and the Excel row limit.");
-            if (column <= 0 || column > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column), "Column must be between 1 and the Excel column limit.");
+        /// <param name="offsetX">Horizontal offset from the cell edge, as a document length.</param>
+        /// <param name="offsetY">Vertical offset from the cell edge, as a document length.</param>
+        public ExcelImage MoveTo(int row, int column, OfficeLength offsetX = default, OfficeLength offsetY = default) {
+            if (row <= 0 || row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(row), "Row must be between 1 and the Excel row limit.");
+            if (column <= 0 || column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(column), "Column must be between 1 and the Excel column limit.");
 
             var marker = _anchor.GetFirstChild<Xdr.FromMarker>();
             if (marker == null) {
@@ -516,14 +518,14 @@ namespace OfficeIMO.Excel {
             long previousRowOffset = ParseMarkerOffset(marker.RowOffset?.Text);
             int targetColumn = column - 1;
             int targetRow = row - 1;
-            long targetColumnOffset = PxToEmu(offsetXPixels);
-            long targetRowOffset = PxToEmu(offsetYPixels);
+            long targetColumnOffset = offsetX.ToEmus();
+            long targetRowOffset = offsetY.ToEmus();
 
             MoveTwoCellEndMarkerIfNeeded(
                 targetColumn - previousColumn,
                 targetRow - previousRow,
-                targetColumnOffset - previousColumnOffset,
-                targetRowOffset - previousRowOffset);
+                (decimal)targetColumnOffset - previousColumnOffset,
+                (decimal)targetRowOffset - previousRowOffset);
 
             marker.ColumnId = new Xdr.ColumnId((column - 1).ToString(CultureInfo.InvariantCulture));
             marker.ColumnOffset = new Xdr.ColumnOffset(targetColumnOffset.ToString(CultureInfo.InvariantCulture));
@@ -533,7 +535,7 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        private void MoveTwoCellEndMarkerIfNeeded(int columnDelta, int rowDelta, long columnOffsetDelta, long rowOffsetDelta) {
+        private void MoveTwoCellEndMarkerIfNeeded(int columnDelta, int rowDelta, decimal columnOffsetDelta, decimal rowOffsetDelta) {
             Xdr.ToMarker? toMarker = _anchor.GetFirstChild<Xdr.ToMarker>();
             if (toMarker == null) {
                 return;
@@ -541,18 +543,20 @@ namespace OfficeIMO.Excel {
 
             int targetColumn = ParseMarkerIndex(toMarker.ColumnId?.Text) + columnDelta;
             int targetRow = ParseMarkerIndex(toMarker.RowId?.Text) + rowDelta;
-            if (targetColumn < 0 || targetColumn >= A1.MaxColumns) {
+            if (targetColumn < 0 || targetColumn >= ExcelA1.MaxColumns) {
                 throw new ArgumentOutOfRangeException("column", "Moving this two-cell image would place its end marker outside the Excel column limit.");
             }
 
-            if (targetRow < 0 || targetRow >= A1.MaxRows) {
+            if (targetRow < 0 || targetRow >= ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException("row", "Moving this two-cell image would place its end marker outside the Excel row limit.");
             }
 
+            long targetOffsetX = checked((long)(ParseMarkerOffset(toMarker.ColumnOffset?.Text) + columnOffsetDelta));
+            long targetOffsetY = checked((long)(ParseMarkerOffset(toMarker.RowOffset?.Text) + rowOffsetDelta));
             toMarker.ColumnId = new Xdr.ColumnId(targetColumn.ToString(CultureInfo.InvariantCulture));
-            toMarker.ColumnOffset = new Xdr.ColumnOffset((ParseMarkerOffset(toMarker.ColumnOffset?.Text) + columnOffsetDelta).ToString(CultureInfo.InvariantCulture));
+            toMarker.ColumnOffset = new Xdr.ColumnOffset(targetOffsetX.ToString(CultureInfo.InvariantCulture));
             toMarker.RowId = new Xdr.RowId(targetRow.ToString(CultureInfo.InvariantCulture));
-            toMarker.RowOffset = new Xdr.RowOffset((ParseMarkerOffset(toMarker.RowOffset?.Text) + rowOffsetDelta).ToString(CultureInfo.InvariantCulture));
+            toMarker.RowOffset = new Xdr.RowOffset(targetOffsetY.ToString(CultureInfo.InvariantCulture));
         }
 
         private Xdr.NonVisualDrawingProperties? DrawingProperties
@@ -617,30 +621,12 @@ namespace OfficeIMO.Excel {
             return 0;
         }
 
-        private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
-
         private static int ParseMarkerIndex(string? text) {
             return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value) && value >= 0 ? value : 0;
         }
 
         private static long ParseMarkerOffset(string? text) {
             return long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value) ? value : 0L;
-        }
-
-        private static int EmuToPx(long emu) {
-            if (emu <= 0) {
-                return 0;
-            }
-
-            double pixels = Math.Max(1D, Math.Round(emu / 9525.0));
-            return ExcelImageExportLimits.ClampExtentPixels(pixels >= int.MaxValue ? int.MaxValue : (int)pixels);
-        }
-
-        private static int EmuOffsetToPx(long emu) {
-            double pixels = Math.Round(emu / 9525.0);
-            if (pixels <= -int.MaxValue) return -int.MaxValue;
-            if (pixels >= int.MaxValue) return int.MaxValue;
-            return ExcelImageExportLimits.ClampOffsetPixels((int)pixels);
         }
 
         private static double GetCropRatio(int? percentage) {
@@ -674,53 +660,17 @@ namespace OfficeIMO.Excel {
         }
 
         private static (int Index, long OffsetEmu) ResolveEndMarker(
-            int startIndex,
-            long startOffsetEmu,
-            int sizePixels,
-            int limit,
-            Func<int, int> segmentSizePixels) {
+            int startIndex, long startOffsetEmu, long sizeEmu, int limit, Func<int, long> segmentSizeEmu) {
             int index = Math.Max(0, startIndex);
-            int remainingPixels = ExcelImageExportLimits.SaturatingAddExtent(sizePixels, EmuToPx(startOffsetEmu));
+            decimal remaining = (decimal)sizeEmu + startOffsetEmu;
             int maximumIndex = Math.Min(limit - 1, index + ExcelImageExportLimits.MaximumAnchorSpanCells);
             while (index < maximumIndex) {
-                int segmentPixels = Math.Max(1, segmentSizePixels(index));
-                if (remainingPixels < segmentPixels) {
-                    break;
-                }
-
-                remainingPixels -= segmentPixels;
+                long segment = segmentSizeEmu(index);
+                if (remaining < segment) break;
+                remaining -= segment;
                 index++;
             }
-
-            return (index, PxToEmu(Math.Max(0, remainingPixels)));
-        }
-
-        private static int GetColumnWidthPixels(WorksheetPart? worksheetPart, int columnIndex, double maximumDigitWidth) {
-            DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
-            DocumentFormat.OpenXml.Spreadsheet.Column? column = worksheet?
-                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Columns>()?
-                .Elements<DocumentFormat.OpenXml.Spreadsheet.Column>()
-                .FirstOrDefault(item => item.Min != null && item.Max != null && item.Min.Value <= (uint)columnIndex && item.Max.Value >= (uint)columnIndex);
-            return ExcelColumnGeometry.GetWidthPixels(column,
-                worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>(), maximumDigitWidth);
-        }
-
-        private static int GetRowHeightPixels(WorksheetPart? worksheetPart, int rowIndex) {
-            DocumentFormat.OpenXml.Spreadsheet.Worksheet? worksheet = worksheetPart?.Worksheet;
-            DocumentFormat.OpenXml.Spreadsheet.Row? row = worksheet?
-                .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()?
-                .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>()
-                .FirstOrDefault(item => item.RowIndex != null && item.RowIndex.Value == (uint)rowIndex);
-            if (row?.Hidden?.Value == true) {
-                return 0;
-            }
-
-            double heightPoints = row?.Height?.Value > 0 && row.CustomHeight?.Value == true
-                ? row.Height.Value
-                : worksheet?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()?.DefaultRowHeight?.Value > 0
-                    ? worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetFormatProperties>()!.DefaultRowHeight!.Value
-                    : 15D;
-            return Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
+            return (index, checked((long)remaining));
         }
 
         private int GetMarkerRow() {
@@ -835,17 +785,15 @@ namespace OfficeIMO.Excel {
             }
 
             WorksheetPart? worksheetPart = _drawingsPart.GetParentParts().OfType<WorksheetPart>().FirstOrDefault();
-            double maximumDigitWidth = ExcelColumnGeometry.GetMaximumDigitWidth(worksheetPart);
-            long basePixels = 0L;
+            ExcelWorksheetGeometryIndex geometry = ExcelWorksheetGeometryIndex.Create(worksheetPart);
+            decimal sizeEmu = 0M;
             for (int index = from; index < to; index++) {
-                basePixels += horizontal
-                    ? GetColumnWidthPixels(worksheetPart, index + 1, maximumDigitWidth)
-                    : GetRowHeightPixels(worksheetPart, index + 1);
+                sizeEmu += horizontal
+                    ? geometry.GetColumnLength(index + 1).ToEmus()
+                    : geometry.GetRowLength(index + 1).ToEmus();
             }
-
-            int offsetPixels = ExcelImageExportLimits.EmuOffsetDifferencePixels(fromOffset, toOffset);
-            int pixels = ExcelImageExportLimits.ClampExtentPixels((int)Math.Min(int.MaxValue, Math.Max(1L, basePixels + offsetPixels)));
-            emu = PxToEmu(pixels);
+            sizeEmu += (decimal)toOffset - fromOffset;
+            emu = checked((long)Math.Max(1M, sizeEmu));
             return true;
         }
     }

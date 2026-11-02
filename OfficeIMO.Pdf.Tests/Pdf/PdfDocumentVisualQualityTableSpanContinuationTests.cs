@@ -15,25 +15,25 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_RowSpanSkipsContinuationRowStripeFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
@@ -51,25 +51,25 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsContinuationRowStripeFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -92,28 +92,28 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.BodyColumnFills = new List<PdfColor?> {
-            new PdfColor(0.11, 0.22, 0.33)
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
@@ -134,28 +134,28 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.BodyColumnFills = new List<PdfColor?> {
-            new PdfColor(0.11, 0.22, 0.33)
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -181,29 +181,29 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_ColumnSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { PdfTableCell.Span("Group", 2), PdfTableCell.TextCell("B1") },
@@ -220,29 +220,29 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_ColumnSpanSkipsContinuationBodyColumnFillAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -264,26 +264,26 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanSkipsInternalRowSeparatorAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
@@ -302,26 +302,26 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsInternalRowSeparatorAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         style.BorderColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
-        style.RowSeparatorWidth = 0.6;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
+        style.RowSeparatorWidth = global::OfficeIMO.OfficeLength.Points(0.6);
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Compose(document =>
                 document.Page(page =>
@@ -345,26 +345,26 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void Table_RowSpanSkipsInternalBorderLineAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
-        style.BorderWidth = 0.6;
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(70) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 180,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { PdfTableCell.Merge("Group", rowSpan: 2), PdfTableCell.TextCell("A1"), PdfTableCell.TextCell("B1") },
@@ -388,26 +388,26 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void RowColumnTable_RowSpanSkipsInternalBorderLineAcrossMergedCell() {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
-        style.BorderWidth = 0.6;
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(0.6);
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellPaddingX = 4;
-        style.CellPaddingY = 4;
-        style.MinRowHeight = 24;
-        style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4);
+        style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
+        style.MinRowHeight = global::OfficeIMO.OfficeLength.Points(24);
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(45) };
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 320,
-                PageHeight = 180,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(180),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Compose(document =>
                 document.Page(page =>

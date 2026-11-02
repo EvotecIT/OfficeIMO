@@ -8,7 +8,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
-        private static bool TryBuildModifiedPersistObjects(PowerPointPresentation presentation,
+        private static bool TryBuildModifiedPersistObjects(PowerPointDocument presentation,
             out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
             out IReadOnlyList<uint> currentSlideIds,
             out byte[]? replacementPicturesStream) {
@@ -51,7 +51,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out LegacyPptWriter.LegacyPptWriterFontCatalog
                         textFonts)) return false;
             if (presentation.LegacyPptImportDiagnostics.Any(diagnostic =>
-                    diagnostic.Code.StartsWith("PPT-PICTURE-BULLET",
+                    diagnostic.Code.StartsWith("ppt-picture-bullet",
                         StringComparison.Ordinal))
                 || !LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
                     out LegacyPptWriter

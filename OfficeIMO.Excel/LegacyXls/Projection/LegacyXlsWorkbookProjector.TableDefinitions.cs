@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ExcelSheet sheet,
             LegacyXlsTableDefinition tableDefinition) {
             LegacyXlsTableBlockLevelFormatting? formatting = tableDefinition.BlockLevelFormatting;
-            if (formatting == null || !A1.TryParseStrictRange(tableDefinition.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (formatting == null || !ExcelA1.TryParseStrictRange(tableDefinition.Range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return;
             }
 

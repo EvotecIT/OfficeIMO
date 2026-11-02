@@ -14,7 +14,7 @@ namespace OfficeIMO.Html.Pdf;
 ///     Margins = HtmlRenderMargins.All(32),
 ///     DefaultFontFamily = "Arial"
 /// };
-/// byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+/// using var pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
 /// </code>
 /// </example>
 public sealed class HtmlToPdfOptions : HtmlRenderOptions {
@@ -22,7 +22,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     private int _maxOutlinedTextPathCommands = 1_000_000;
     private double? _printLayoutWidthCssPixels;
     private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateLibraryFontDefault();
-    private PdfCore.PdfOptions _documentOptions = new PdfCore.PdfOptions {
+    private PdfCore.PdfCreateOptions _documentOptions = new PdfCore.PdfCreateOptions {
         CompressContentStreams = true
     }.EnableTaggedPdfCatalogMarkers();
 
@@ -135,7 +135,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     /// Conversion snapshots this value. HTML-specific font and shaping properties are
     /// then applied as explicit adapter overrides.
     /// </remarks>
-    public PdfCore.PdfOptions PdfOptions {
+    public PdfCore.PdfCreateOptions PdfOptions {
         get => _documentOptions;
         set => _documentOptions = value ?? throw new ArgumentNullException(nameof(value));
     }
@@ -164,6 +164,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     public HtmlPdfResourcePolicySummary GetResourcePolicySummary() => HtmlPdfResourcePolicySummary.From(this);
 
     private void CopyPdfSettingsFrom(HtmlToPdfOptions source) {
+        FailOnLoss = source.FailOnLoss;
         TextFallbacks = source.TextFallbacks;
         TextShapingMode = source.TextShapingMode;
         FontFamily = source.FontFamily;

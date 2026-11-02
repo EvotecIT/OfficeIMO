@@ -82,7 +82,7 @@ internal sealed partial class MobileDocumentController : IDisposable {
         StudioStorageSnapshot snapshot = await storage.ReadSnapshotAsync(location, token, StudioPdfSecurityPolicy.MaximumInputBytes);
         // Encrypted files defer content inspection to the shared workspace's password prompt.
         await Task.Run(() => {
-            try { OfficeIMO.Pdf.PdfDocument.Load(snapshot.Bytes, StudioPdfSecurityPolicy.CreateLoadOptions()).InspectForViewing(cancellationToken: token); }
+            try { OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(snapshot.Bytes), StudioPdfSecurityPolicy.CreateLoadOptions()).InspectForViewing(cancellationToken: token); }
             catch (OfficeIMO.Pdf.PdfPasswordRequiredException) { }
         }, token);
         return await _locations.WriteWorkingCopyAsync(name, snapshot.Bytes, token);

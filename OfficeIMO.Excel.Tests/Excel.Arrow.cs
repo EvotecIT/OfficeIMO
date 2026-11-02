@@ -17,7 +17,7 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(
                    memory,
                    new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Id");
             sheet.CellValue(1, 3, "Amount");
@@ -30,7 +30,7 @@ public partial class Excel {
             sheet.CellValue(3, 2, 8);
         }
 
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(memory.ToArray());
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(memory.ToArray());
         RecordBatch batch = Assert.Single(reader.ReadArrowBatches(new ArrowReadOptions {
             BatchSize = 16,
             ColumnTypes = [typeof(string), typeof(long), typeof(double), typeof(DateTime)]
@@ -54,7 +54,7 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(
                    memory,
                    new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(2, 1, "Placeholder");
         }
@@ -64,12 +64,12 @@ public partial class Excel {
             "<c r=\"A2\" t=\"inlineStr\"><is><t>Line1\r\nLine2\rLine3</t></is></c>");
         const string expected = "Line1\nLine2\nLine3";
 
-        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook)) {
+        using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook)) {
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetString(0));
         }
 
-        using ExcelWorkbookDataReader arrowReader = ExcelDocument.OpenDataReader(workbook);
+        using ExcelWorkbookDataReader arrowReader = ExcelDocument.OpenReader(workbook);
         RecordBatch batch = Assert.Single(arrowReader.ReadArrowBatches(new ArrowReadOptions {
             ColumnTypes = [typeof(string)]
         }));

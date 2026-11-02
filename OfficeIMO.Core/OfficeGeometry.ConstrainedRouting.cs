@@ -9,7 +9,7 @@ internal enum OfficeConnectorDirections {
     Horizontal = Left | Right, Vertical = Up | Down, Any = Horizontal | Vertical
 }
 
-public static partial class OfficeGeometry {
+internal static partial class OfficeGeometry {
     // Try the existing short routes first. Exit stubs add five-segment candidates when both
     // endpoints point away from each other, without multiplying the two-dimensional lane grid.
     internal static IEnumerable<OfficePoint[]> EnumerateConstrainedOrthogonalConnectorRoutes(OfficePoint start, OfficePoint end,

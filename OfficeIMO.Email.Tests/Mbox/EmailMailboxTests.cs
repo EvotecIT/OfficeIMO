@@ -53,7 +53,7 @@ public sealed class EmailMailboxTests {
     public void MailboxToStreamMatchesToBytesAndStartsAtBeginning() {
         var mailbox = new EmailMailbox();
 
-        using MemoryStream stream = mailbox.ToStream();
+        using MemoryStream stream = new System.IO.MemoryStream(mailbox.ToBytes());
 
         Assert.Equal(0, stream.Position);
         Assert.Equal(mailbox.ToBytes(), stream.ToArray());

@@ -74,14 +74,14 @@ public sealed class PdfContinuousRunningStoryTests {
     [Fact]
     public void AKeptParagraphIsRemeasuredInTheReplacementRunningFrame() {
         var document = Create();
-        document.Header(header => header.Content(content => content.Spacer(220), 18));
+        document.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(220)), global::OfficeIMO.OfficeLength.Points(18)));
         Line(document, "FIRST");
         var next = PdfDocument.Create(Presentation("HEADER_B"));
-        next.Header(header => header.Content(content => content.Spacer(20), 18));
+        next.Header(header => header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(20)), global::OfficeIMO.OfficeLength.Points(18)));
         document.BeginRunningContentSection(1, next.Options);
         document.Paragraph(paragraph => paragraph.Text("NEXT_FRAME_BODY"), style: new PdfParagraphStyle {
-            FontSize = 12, SpacingBefore = 0, SpacingAfter = 0,
-            LineSpacing = PdfLineSpacing.Exactly(80), KeepTogether = true, WidowControl = false
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+            LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(80)), KeepTogether = true, WidowControl = false
         });
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -162,16 +162,16 @@ public sealed class PdfContinuousRunningStoryTests {
         return document;
     }
 
-    private static PdfOptions Presentation(string header) => new() {
-        PageWidth = 240, PageHeight = 320,
-        MarginTop = 32, MarginBottom = 32, MarginLeft = 24, MarginRight = 24,
-        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 10,
-        ShowHeader = true, HeaderFormat = header, HeaderOffsetY = 18
+    private static PdfCreateOptions Presentation(string header) => new() {
+        PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+        MarginTop = global::OfficeIMO.OfficeLength.Points(32), MarginBottom = global::OfficeIMO.OfficeLength.Points(32), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
+        DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
+        ShowHeader = true, HeaderFormat = header, HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18)
     };
 
     private static PdfParagraphStyle Style() => new() {
-        FontSize = 10, SpacingBefore = 0, SpacingAfter = 0,
-        LineSpacing = PdfLineSpacing.Exactly(24), WidowControl = false
+        FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
+        LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(24)), WidowControl = false
     };
 
     private static void Line(PdfDocument document, string value) =>

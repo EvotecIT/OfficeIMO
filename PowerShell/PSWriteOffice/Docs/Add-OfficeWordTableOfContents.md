@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a table of contents to a Word document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordTableOfContents [-Document <WordDocument>] [-Style <WordTableOfContentsStyle>] [-PassThru] [<CommonParameters>]
 ```
@@ -40,7 +40,7 @@ Document to modify when provided explicitly.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -56,7 +56,7 @@ Emit the created table of contents.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -72,7 +72,7 @@ Table of contents template style.
 
 ```yaml
 Type: WordTableOfContentsStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Template1, Template2
 

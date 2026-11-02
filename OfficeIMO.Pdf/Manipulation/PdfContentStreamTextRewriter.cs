@@ -42,6 +42,8 @@ internal static class PdfContentStreamTextRewriter {
         bool removedAnyGlyph = false;
         bool safe = true;
         var edits = new List<TextShowEdit>();
+        var markedContent = new Stack<(int Index, int Length, bool ActualText)>();
+        var clearedActualText = new HashSet<int>();
 
         PdfContentStreamInterpreter.InterpretUntil(
             textObject,
@@ -55,6 +57,16 @@ internal static class PdfContentStreamTextRewriter {
                     stateProgram.Append(textObject, operationStart, previousOperatorEnd - operationStart).Append(' ');
 
                 switch (operation.Name) {
+                    case "BDC":
+                    case "BMC":
+                        markedContent.Push((operationStart, previousOperatorEnd - operationStart,
+                            operation.Name == "BDC" && operation.Operands.Count > 0 &&
+                            operation.Operands[operation.Operands.Count - 1] is PdfContentDictionary properties &&
+                            properties.Items.ContainsKey("ActualText")));
+                        break;
+                    case "EMC" when markedContent.Count > 0:
+                        markedContent.Pop();
+                        break;
                     case "Tf" when operation.Operands.Count >= 2:
                         currentTextState = currentTextState.WithFont(
                             operation.Operands[operation.Operands.Count - 2] as string ?? currentTextState.FontResource,
@@ -143,6 +155,12 @@ internal static class PdfContentStreamTextRewriter {
                 if (changed) {
                     removedAnyGlyph = true;
                     edits.Add(new TextShowEdit(operationStart, previousOperatorEnd - operationStart, replacement));
+                    foreach (var scope in markedContent.Where(static item => item.ActualText)) {
+                        // The rewritten show proved that this closed scope repeats the decoded paint.
+                        // Retained glyphs now supply the remaining text, so its old replacement must go.
+                        if (clearedActualText.Add(scope.Index))
+                            edits.Add(new TextShowEdit(scope.Index, scope.Length, "/Span BMC"));
+                    }
                 }
                 return true;
             },
@@ -263,7 +281,7 @@ internal static class PdfContentStreamTextRewriter {
                 continue;
             }
 
-            if (transformSpans.Any(static span => span.HasActualText)) return false;
+            if (transformSpans.Any(static span => span.HasActualText && !span.HasExactActualTextGlyphMapping)) return false;
 
             if (!TryRewriteByteString(
                     bytes,
@@ -304,7 +322,7 @@ internal static class PdfContentStreamTextRewriter {
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionBounds(spans[spanIndex]);
             for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
-                if (targets[targetIndex].Intersects(bounds, spans[spanIndex].TextRenderingMode)) return true;
+                if (targets[targetIndex].TargetsSpan(bounds, spans[spanIndex].TextRenderingMode)) return true;
             }
         }
         return false;
@@ -365,9 +383,10 @@ internal static class PdfContentStreamTextRewriter {
                         span.TextToPageTransform.Value.B * span.TextToPageTransform.Value.B)
                     : 1D;
                 double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
+                (double originX, double originY) = PdfTextSpanGeometry.GetGlyphOrigin(span, offset);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
                     PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetRedactionGlyphBounds(span, offset, advance);
-                    if (targets[targetIndex].Intersects(bounds, span.TextRenderingMode)) {
+                    if (targets[targetIndex].TargetsGlyph(bounds, span.TextRenderingMode, originX, originY, glyph.Bytes)) {
                         remove = true;
                         break;
                     }
@@ -533,7 +552,7 @@ internal static class PdfContentStreamTextRewriter {
         return builder.ToString();
     }
 
-    private static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
+    internal static int FindOperationStart(string content, int previousOperatorEnd, int operatorOffset) {
         int index = Math.Max(0, previousOperatorEnd);
         while (index < operatorOffset) {
             if (char.IsWhiteSpace(content[index])) {
@@ -633,7 +652,9 @@ internal readonly struct PdfContentStreamTextRewriteTarget {
     internal bool MatchesRenderingMode(int textRenderingMode) =>
         !TextRenderingMode.HasValue || TextRenderingMode.Value == textRenderingMode;
 
-    internal bool Intersects(PdfTextSpanBounds bounds, int textRenderingMode) =>
-        MatchesRenderingMode(textRenderingMode) &&
-        Area.IntersectsRectangle(bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+    internal bool TargetsSpan(PdfTextSpanBounds bounds, int textRenderingMode) =>
+        MatchesRenderingMode(textRenderingMode) && Area.TargetsSpan(bounds);
+
+    internal bool TargetsGlyph(PdfTextSpanBounds bounds, int textRenderingMode, double originX, double originY, byte[] encodedBytes) =>
+        MatchesRenderingMode(textRenderingMode) && Area.TargetsGlyph(bounds, originX, originY, encodedBytes);
 }

@@ -68,8 +68,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Creates or replaces a workbook named style from a cell's current formatting.</summary>
         public ExcelNamedStyleInfo DefineNamedStyle(string name, int sourceRow, int sourceColumn, bool hidden = false) {
             string normalizedName = ValidateNamedStyleName(name);
-            if (sourceRow < 1 || sourceRow > A1.MaxRows) throw new ArgumentOutOfRangeException(nameof(sourceRow));
-            if (sourceColumn < 1 || sourceColumn > A1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(sourceColumn));
+            if (sourceRow < 1 || sourceRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(sourceRow));
+            if (sourceColumn < 1 || sourceColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(sourceColumn));
             ExcelNamedStyleInfo? result = null;
             WriteLock(() => {
                 var stylesPart = _excelDocument.WorkbookPartRoot.WorkbookStylesPart
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
             if (maximumCells < 1) throw new ArgumentOutOfRangeException(nameof(maximumCells));
-            var (r1, c1, r2, c2) = A1.ParseRange(range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(range);
             long cellCount = ((long)r2 - r1 + 1L) * ((long)c2 - c1 + 1L);
             if (cellCount > maximumCells) {
                 throw new InvalidOperationException($"Named-style application requires {cellCount} cells, exceeding maximumCells ({maximumCells}).");

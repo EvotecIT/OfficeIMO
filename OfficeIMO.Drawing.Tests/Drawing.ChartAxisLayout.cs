@@ -6,22 +6,22 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
     [Theory]
-    [InlineData(OfficeChartKind.ColumnClustered)]
-    [InlineData(OfficeChartKind.BarClustered)]
-    public void BarClusterWidthFollowsNativeDefaultGapWidth(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.BarClustered)]
+    public void BarClusterWidthFollowsNativeDefaultGapWidth(OfficeChartType kind) {
         OfficeColor first = OfficeColor.FromRgb(200, 20, 20);
         OfficeColor second = OfficeColor.FromRgb(20, 20, 200);
-        OfficeDrawing Render(params OfficeChartSeries[] series) => OfficeChartDrawingRenderer.Render(
+        OfficeDrawing Render(params OfficeSeries[] series) => OfficeChartDrawingRenderer.Render(
             new OfficeChartSnapshot("", null, kind,
-                new OfficeChartData(new[] { "A" }, series), 480, 260,
-                layout: new OfficeChartLayout(showLegend: false)));
-        var single = Render(new OfficeChartSeries("First", new[] { 10d }, null, first));
-        var paired = Render(new OfficeChartSeries("First", new[] { 10d }, null, first),
-            new OfficeChartSeries("Second", new[] { 10d }, null, second));
-        double singleSize = kind == OfficeChartKind.BarClustered
+                new OfficeChartData(new[] { "A" }, series), global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(260),
+                layout: new OfficeChartLayout(showLegend: false).WithBarGeometry(gapWidthPercent: 150, overlapPercent: 0)));
+        var single = Render(new OfficeSeries("First", new[] { 10d }, null, first));
+        var paired = Render(new OfficeSeries("First", new[] { 10d }, null, first),
+            new OfficeSeries("Second", new[] { 10d }, null, second));
+        double singleSize = kind == OfficeChartType.BarClustered
             ? single.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Height
             : single.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Width;
-        double pairedSize = kind == OfficeChartKind.BarClustered
+        double pairedSize = kind == OfficeChartType.BarClustered
             ? paired.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Height
             : paired.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Width;
         Assert.Equal(2.5D / 3.5D, pairedSize / singleSize, 3);
@@ -34,8 +34,8 @@ public class DrawingChartAxisLayoutTests {
     [InlineData(-12.5, "0", "-13")]
     [InlineData(12.345, "0.00", "12.35")]
     public void NumericChartLabels_RoundMidpointsConsistently(double value, string format, string expected) {
-        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Rounding", null, OfficeChartKind.Line,
-            new OfficeChartData(new[] { "Point" }, new[] { new OfficeChartSeries("Value", new[] { value }) }), 480, 260,
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Rounding", null, OfficeChartType.Line,
+            new OfficeChartData(new[] { "Point" }, new[] { new OfficeSeries("Value", new[] { value }) }), global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(260),
             layout: new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true, dataLabelNumberFormat: format)));
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == expected);
     }
@@ -43,9 +43,9 @@ public class DrawingChartAxisLayoutTests {
     [InlineData(0.005)]
     [InlineData(0.002)]
     public void NumericAxes_KeepAdjacentFractionalTicksDistinct(double majorUnit) {
-        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Fractional ticks", null, OfficeChartKind.Line,
-            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.005, 0.02 }) }),
-            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.02, verticalAxisMajorUnit: majorUnit)));
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Fractional ticks", null, OfficeChartType.Line,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeSeries("Rate", new[] { 0.005, 0.02 }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(260), layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.02, verticalAxisMajorUnit: majorUnit)));
         string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToArray();
         Assert.Contains(majorUnit == 0.005 ? "0.015" : "0.012", labels);
         Assert.Equal(1, labels.Count(label => label == "0.01"));
@@ -54,9 +54,9 @@ public class DrawingChartAxisLayoutTests {
 
     [Fact]
     public void NumericAxes_KeepSmallNonzeroTicksDistinctFromZero() {
-        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Small ticks", null, OfficeChartKind.Line,
-            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.00025, 0.001 }) }),
-            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.001, verticalAxisMajorUnit: 0.00025)));
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Small ticks", null, OfficeChartType.Line,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeSeries("Rate", new[] { 0.00025, 0.001 }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(260), layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.001, verticalAxisMajorUnit: 0.00025)));
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
         Assert.Contains("0.00025", labels);
         Assert.Contains("0.001", labels);
@@ -64,14 +64,14 @@ public class DrawingChartAxisLayoutTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.BarClustered)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void NumericAxes_DoNotInferPercentagesFromFractionalTicks(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.BarClustered)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void NumericAxes_DoNotInferPercentagesFromFractionalTicks(OfficeChartType kind) {
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Numeric ticks", null, kind,
             new OfficeChartData(new[] { "One", "Two", "Three" }, new[] {
-                new OfficeChartSeries("Measurements", new[] { 1d, 3d, 2d }, new[] { 1d, 2d, 3d }) }),
-            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 3, verticalAxisMajorUnit: 0.75,
+                new OfficeSeries("Measurements", new[] { 1d, 3d, 2d }, new[] { 1d, 2d, 3d }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(260), layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 3, verticalAxisMajorUnit: 0.75,
                 horizontalAxisMinimum: 0, horizontalAxisMaximum: 3, horizontalAxisMajorUnit: 0.75)));
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
         Assert.Contains("0.75", labels);
@@ -79,12 +79,12 @@ public class DrawingChartAxisLayoutTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line, "0%")]
-    [InlineData(OfficeChartKind.LineStacked100, null)]
-    public void PercentageAxes_RetainExplicitOrPercentStackedFormatting(OfficeChartKind kind, string? format) {
+    [InlineData(OfficeChartType.Line, "0%")]
+    [InlineData(OfficeChartType.LineStacked100, null)]
+    public void PercentageAxes_RetainExplicitOrPercentStackedFormatting(OfficeChartType kind, string? format) {
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Percentage ticks", null, kind,
-            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.25, 0.5 }) }),
-            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 1,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeSeries("Rate", new[] { 0.25, 0.5 }) }),
+            global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(260), layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 1,
                 verticalAxisMajorUnit: 0.25, verticalAxisNumberFormat: format)));
         var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
         Assert.Contains("25%", labels);
@@ -101,10 +101,10 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Bounded categories",
             null,
-            OfficeChartKind.BarClustered,
-            new OfficeChartData(categories, new[] { new OfficeChartSeries("Series", values) }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+            OfficeChartType.BarClustered,
+            new OfficeChartData(categories, new[] { new OfficeSeries("Series", values) }),
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(maximumHorizontalCategoryAxisLabels: 8)));
 
         Assert.NotEmpty(drawing.Elements);
@@ -117,19 +117,19 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Measured vertical axis",
             "Measured Vertical Axis",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1200000D, 1800000D })
+                    new OfficeSeries("Actual", new[] { 1200000D, 1800000D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(verticalAxisNumberFormat: "$#,##0.00")));
 
         OfficeDrawingText valueAxisLabel = drawing.Elements
             .OfType<OfficeDrawingText>()
-            .First(label => label.Text == "$1,800,000.00");
+            .First(label => label.Text == "$2,000,000.00");
 
         Assert.True(valueAxisLabel.Width > 60D, "Long formatted value-axis labels should reserve measured width instead of using the legacy fixed band.");
         Assert.True(valueAxisLabel.X >= 0D);
@@ -140,19 +140,19 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Measured horizontal axis",
             "Measured Horizontal Axis",
-            OfficeChartKind.BarClustered,
+            OfficeChartType.BarClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 1200000D, 1800000D })
+                    new OfficeSeries("Actual", new[] { 1200000D, 1800000D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(horizontalAxisNumberFormat: "$#,##0.00")));
 
         OfficeDrawingText valueAxisLabel = drawing.Elements
             .OfType<OfficeDrawingText>()
-            .First(label => label.Text == "$1,800,000.00");
+            .First(label => label.Text == "$2,000,000.00");
 
         Assert.True(valueAxisLabel.Width > 60D, "Long formatted horizontal value-axis labels should not be forced into the legacy 34-point box.");
         Assert.True(valueAxisLabel.X >= 0D);
@@ -164,14 +164,14 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Formatted categories",
             "Formatted Categories",
-            OfficeChartKind.BarClustered,
+            OfficeChartType.BarClustered,
             new OfficeChartData(
                 new[] { "1", "2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 12D, 18D })
+                    new OfficeSeries("Actual", new[] { 12D, 18D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(categoryAxisNumberFormat: "0.0")));
 
         string[] labels = drawing.Elements
@@ -192,11 +192,11 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Single letter date format",
             "Single letter date format",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { serial },
-                new[] { new OfficeChartSeries("Actual", new[] { 1200D }) }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+                new[] { new OfficeSeries("Actual", new[] { 1200D }) }),
+            width: OfficeLength.Points(320D),
+            height: OfficeLength.Points(190D),
             layout: new OfficeChartLayout(categoryAxisNumberFormat: format,
                 showLegend: false, showValueAxisLabels: false)));
 
@@ -209,14 +209,14 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter skipped pairs",
             "Scatter Skipped Pairs",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "1", "999" },
                 new[] {
-                    new OfficeChartSeries("Points", new[] { 10D, double.NaN }, new[] { 1D, 999D })
+                    new OfficeSeries("Points", new[] { 10D, double.NaN }, new[] { 1D, 999D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(showLegend: false)));
 
         string[] labels = drawing.Elements
@@ -233,14 +233,14 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Visible axis minimum",
             "Visible Axis Minimum",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 12D })
+                    new OfficeSeries("Actual", new[] { 10D, 12D })
                 }),
-            widthPoints: 320D,
-            heightPoints: 190D,
+width: global::OfficeIMO.OfficeLength.Points(320D),
+height: global::OfficeIMO.OfficeLength.Points(190D),
             layout: new OfficeChartLayout(verticalAxisMinimum: 5D, verticalAxisMaximum: 15D, showLegend: false)));
 
         OfficeDrawingShape[] filledRectangles = drawing.Elements
@@ -261,15 +261,15 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Mixed bar column",
             "Mixed Bar Column",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Columns", new[] { 10D, 12D }, null, columnColor, null, true, renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries("Bars", new[] { 8D, 14D }, null, barColor, null, true, renderKind: OfficeChartKind.BarClustered)
+                    new OfficeSeries("Columns", new[] { 10D, 12D }, null, columnColor, null, true, renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries("Bars", new[] { 8D, 14D }, null, barColor, null, true, renderKind: OfficeChartType.BarClustered)
                 }),
-            widthPoints: 340D,
-            heightPoints: 220D,
+width: global::OfficeIMO.OfficeLength.Points(340D),
+height: global::OfficeIMO.OfficeLength.Points(220D),
             layout: new OfficeChartLayout(showLegend: false)));
 
         OfficeDrawingShape[] columnBars = drawing.Shapes
@@ -294,17 +294,17 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Mixed column line",
             "Mixed Column Line",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Columns", new[] { 10D, 12D, 14D }, null, columnColor, null,
-                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries("Line", new[] { 6D, 6D, 6D }, null, lineColor, null,
-                        showMarkers: false, renderKind: OfficeChartKind.Line)
+                    new OfficeSeries("Columns", new[] { 10D, 12D, 14D }, null, columnColor, null,
+                        showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries("Line", new[] { 6D, 6D, 6D }, null, lineColor, null,
+                        showMarkers: false, renderKind: OfficeChartType.Line)
                 }),
-            widthPoints: 360D,
-            heightPoints: 220D,
+width: global::OfficeIMO.OfficeLength.Points(360D),
+height: global::OfficeIMO.OfficeLength.Points(220D),
             layout: new OfficeChartLayout(showLegend: false, reverseCategoryAxis: reverseCategoryAxis)));
 
         OfficeDrawingShape[] columns = drawing.Shapes
@@ -328,15 +328,15 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "mixed-scatter-category-guard",
             "Mixed Scatter Category Guard",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2" },
                 new[] {
-                    new OfficeChartSeries("Columns", new[] { 10D, 12D }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries("Scatter", new[] { 8D, 14D }, new[] { 1D, 2D }, null, null, true, renderKind: OfficeChartKind.Scatter)
+                    new OfficeSeries("Columns", new[] { 10D, 12D }, null, null, null, true, renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries("Scatter", new[] { 8D, 14D }, new[] { 1D, 2D }, null, null, true, renderKind: OfficeChartType.Scatter)
                 }),
-            widthPoints: 340D,
-            heightPoints: 220D));
+width: global::OfficeIMO.OfficeLength.Points(340D),
+height: global::OfficeIMO.OfficeLength.Points(220D)));
 
         string[] text = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToArray();
 
@@ -351,18 +351,18 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Secondary axis",
             "Secondary Axis",
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Revenue", new[] { 100D, 150D, 200D }, null, columnColor, null,
-                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries("Margin", new[] { 1D, 1.5D, 2D }, null, lineColor, null,
-                        showMarkers: true, renderKind: OfficeChartKind.Line,
+                    new OfficeSeries("Revenue", new[] { 100D, 150D, 200D }, null, columnColor, null,
+                        showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries("Margin", new[] { 1D, 1.5D, 2D }, null, lineColor, null,
+                        showMarkers: true, renderKind: OfficeChartType.Line,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 }),
-            widthPoints: 360D,
-            heightPoints: 220D,
+width: global::OfficeIMO.OfficeLength.Points(360D),
+height: global::OfficeIMO.OfficeLength.Points(220D),
             layout: new OfficeChartLayout(showLegend: false)));
 
         OfficeDrawingShape[] marginLines = drawing.Shapes
@@ -384,18 +384,18 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Horizontal secondary axis",
             "Horizontal Secondary Axis",
-            OfficeChartKind.BarClustered,
+            OfficeChartType.BarClustered,
             new OfficeChartData(
                 new[] { "North", "South" },
                 new[] {
-                    new OfficeChartSeries("Primary", new[] { 100D, 200D }, null, primaryColor, null,
-                        showMarkers: false, renderKind: OfficeChartKind.BarClustered),
-                    new OfficeChartSeries("Secondary", new[] { 1D, 2D }, null, secondaryColor, null,
-                        showMarkers: false, renderKind: OfficeChartKind.BarClustered,
+                    new OfficeSeries("Primary", new[] { 100D, 200D }, null, primaryColor, null,
+                        showMarkers: false, renderKind: OfficeChartType.BarClustered),
+                    new OfficeSeries("Secondary", new[] { 1D, 2D }, null, secondaryColor, null,
+                        showMarkers: false, renderKind: OfficeChartType.BarClustered,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 }),
-            widthPoints: 360D,
-            heightPoints: 220D,
+width: global::OfficeIMO.OfficeLength.Points(360D),
+height: global::OfficeIMO.OfficeLength.Points(220D),
             layout: new OfficeChartLayout(showLegend: false)));
 
         OfficeDrawingShape[] secondaryBars = drawing.Shapes
@@ -416,18 +416,18 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter axes",
             "Scatter Axes",
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             new OfficeChartData(
                 new[] { "1", "2" },
                 new[] {
-                    new OfficeChartSeries("Primary", new[] { 0D, 100D }, new[] { 1D, 2D },
-                        primaryColor, null, showMarkers: true, renderKind: OfficeChartKind.Scatter),
-                    new OfficeChartSeries("Secondary", new[] { 0D, 1D }, new[] { 1D, 2D },
-                        secondaryColor, null, showMarkers: true, renderKind: OfficeChartKind.Scatter,
+                    new OfficeSeries("Primary", new[] { 0D, 100D }, new[] { 1D, 2D },
+                        primaryColor, null, showMarkers: true, renderKind: OfficeChartType.Scatter),
+                    new OfficeSeries("Secondary", new[] { 0D, 1D }, new[] { 1D, 2D },
+                        secondaryColor, null, showMarkers: true, renderKind: OfficeChartType.Scatter,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 }),
-            widthPoints: 360D,
-            heightPoints: 220D,
+width: global::OfficeIMO.OfficeLength.Points(360D),
+height: global::OfficeIMO.OfficeLength.Points(220D),
             layout: new OfficeChartLayout(showLegend: false)));
 
         OfficeDrawingShape[] secondaryMarkers = drawing.Shapes

@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_hyperlink_target.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_hyperlink_target.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_moved_same_part.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.AddParagraph("Anchor text");
                 doc.Save();
             }
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_moved_same_part.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Anchor text");
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -366,7 +366,7 @@ namespace OfficeIMO.Tests {
             AppendFootnoteImageWithDrawingId(path, imagePath, 900U);
 
             using (WordDocument doc = WordDocument.Load(path)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
             AppendCommentImageWithDrawingId(path, imagePath, 900U);
 
             using (WordDocument doc = WordDocument.Load(path)) {
-                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
                 doc.Save();
             }
 

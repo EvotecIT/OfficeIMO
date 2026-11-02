@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
@@ -12,19 +14,19 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Writes tabular data to the current worksheet and formats it as an Excel table.</summary>
 /// <para>Accepts objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow sequences and writes them into an Excel table with optional styling.</para>
 /// <example>
-///   <summary>Insert a table starting at A1.</summary>
+///   <summary>Insert a table starting at ExcelA1.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$data = @([pscustomobject]@{ Region='NA'; Revenue=100 }, [pscustomobject]@{ Region='EMEA'; Revenue=150 })
-///   ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -TableName 'Sales' }</code>
+///   ExcelSheet 'Data' { Add-OfficeExcelTable -InputObject $data -Name 'Sales' }</code>
 ///   <para>Writes two rows and formats them as a styled Excel table.</para>
 /// </example>
 /// <example>
 ///   <summary>Add a table to an explicit worksheet.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -TableName 'Sales' -AutoFit</code>
+///   <code>Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -Name 'Sales' -AutoFit</code>
 ///   <para>Writes the rows into a live workbook without requiring an active DSL scope.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelTable")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelTable", DefaultParameterSetName = "Default")]
 [Alias("ExcelTable")]
 public sealed class AddOfficeExcelTableCommand : PSCmdlet
 {
@@ -95,7 +97,15 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
 
     /// <summary>Name to assign to the table.</summary>
     [Parameter]
-    public string? TableName { get; set; }
+    public string? Name { get; set; }
+
+    /// <summary>Header-to-format mapping, using presets such as Percent or custom Excel number formats.</summary>
+    [Parameter]
+    public Hashtable? ColumnFormat { get; set; }
+
+    /// <summary>Culture used by number-format presets.</summary>
+    [Parameter]
+    public CultureInfo Culture { get; set; } = CultureInfo.CurrentCulture;
 
     /// <summary>Built-in table style to apply.</summary>
     [Parameter]
@@ -150,7 +160,7 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
             MaxNestingDepth);
         var table = ExcelTabularInputService.ToDataTable(
             projectedRows,
-            TableName,
+            Name,
             normalizerOptions: normalizerOptions);
         if (table.Columns.Count == 0)
         {
@@ -162,15 +172,15 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
             throw new ArgumentOutOfRangeException("StartRow/StartColumn must be 1 or greater.");
         }
 
-        var resolvedTableName = ResolveTableName(table);
-        var range = sheet.InsertDataTableAsTable(
-            table,
-            startRow: StartRow,
-            startColumn: StartColumn,
-            includeHeaders: !NoHeader.IsPresent,
-            tableName: resolvedTableName,
-            style: TableStyle,
-            includeAutoFilter: !NoAutoFilter.IsPresent);
+        var formatPlan = ExcelColumnFormatPlanService.Build(ColumnFormat, null, null, null, null, null, null, null, 2, Culture.Name);
+        if (formatPlan != null) {
+            foreach (var rule in formatPlan.Rules) {
+                if (!table.Columns.Contains(rule.Header))
+                    throw new PSArgumentException($"Column '{rule.Header}' was not found in the supplied table.", nameof(ColumnFormat));
+            }
+        }
+        var resolvedName = ResolveName(table);
+        var range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { AutoFit = false, UseDefaultHeaderlessColumnNames = true, IncludeHeaders = !NoHeader.IsPresent, Name = resolvedName, Style = TableStyle, IncludeAutoFilter = !NoAutoFilter.IsPresent }, row: StartRow, column: StartColumn).Range!;
         ExcelTableStyleOptionService.Apply(
             sheet,
             range,
@@ -180,7 +190,18 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
             ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(NoRowStripes), NoRowStripes),
             ExcelTableStyleOptionService.IsSwitchPresent(this, nameof(ShowColumnStripes), ShowColumnStripes));
         var context = ExcelDslContext.Current;
-        context?.RegisterTableRange(sheet, resolvedTableName, range);
+        context?.RegisterTableRange(sheet, resolvedName, range);
+
+        if (formatPlan != null && table.Rows.Count > 0) {
+            int firstDataRow = StartRow + (NoHeader.IsPresent ? 0 : 1);
+            foreach (var rule in formatPlan.Rules) {
+                int column = StartColumn + table.Columns[rule.Header]!.Ordinal;
+                int firstRow = rule.IncludeHeader ? StartRow : firstDataRow;
+                sheet.Range(ExcelA1.CellReference(firstRow, column) + ":" +
+                    ExcelA1.CellReference(firstDataRow + table.Rows.Count - 1, column)).SetNumberFormat(rule.ResolveNumberFormat());
+                if (rule.AutoFit) sheet.AutoFitColumn(column);
+            }
+        }
 
         if (AutoFit.IsPresent)
         {
@@ -194,11 +215,11 @@ public sealed class AddOfficeExcelTableCommand : PSCmdlet
         }
     }
 
-    private string? ResolveTableName(System.Data.DataTable table)
+    private string? ResolveName(System.Data.DataTable table)
     {
-        if (!string.IsNullOrWhiteSpace(TableName))
+        if (!string.IsNullOrWhiteSpace(Name))
         {
-            return TableName;
+            return Name;
         }
 
         return string.IsNullOrWhiteSpace(table.TableName) ? null : table.TableName;

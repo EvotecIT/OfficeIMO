@@ -11,21 +11,24 @@ namespace OfficeIMO.PowerPoint {
     /// Represents a formatted text run within a paragraph.
     /// </summary>
     public partial class PowerPointTextRun {
-        private readonly SlidePart? _slidePart;
-        private readonly OpenXmlPartContainer? _ownerPart;
+        private readonly SlidePart? _initialSlidePart;
+        private SlidePart? _slidePart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>().FirstOrDefault()?.SlidePart ?? _initialSlidePart;
+        private readonly OpenXmlPartContainer? _initialOwnerPart;
+        private OpenXmlPartContainer? _ownerPart => (_field as DocumentFormat.OpenXml.OpenXmlElement ?? Run).Ancestors<DocumentFormat.OpenXml.Presentation.Slide>()
+            .FirstOrDefault()?.SlidePart ?? _initialOwnerPart ?? _initialSlidePart;
         private readonly A.Field? _field;
 
         internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Run = run;
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal PowerPointTextRun(A.Field field, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             _field = field;
             Run = new A.Run();
-            _slidePart = slidePart;
-            _ownerPart = ownerPart ?? slidePart;
+            _initialSlidePart = slidePart ?? ownerPart as SlidePart;
+            _initialOwnerPart = ownerPart ?? slidePart;
         }
 
         internal A.Run Run { get; }
@@ -195,29 +198,17 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the font size in points.
+        /// Gets or sets the physical font size, preserving DrawingML hundredth-point precision.
+        /// Null removes the override; sizes must be from 1 through 4000 points.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 int? size = RunProperties?.FontSize?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
-                FontSizePoints = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the font size in points while preserving DrawingML hundredth-point precision.
-        /// </summary>
-        public double? FontSizePoints {
-            get {
-                int? size = RunProperties?.FontSize?.Value;
-                return size.HasValue ? size.Value / 100D : (double?)null;
-            }
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
+                int? drawingSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
+                EnsureRunProperties().FontSize = drawingSize;
             }
         }
 
@@ -230,7 +221,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the text color in hexadecimal format (e.g. "FF0000"). Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
+        /// Gets the RGB text color or sets an RGB or RGBA hexadecimal literal (e.g. "FF000080").
+        /// Alpha is written as native DrawingML opacity. Explicit color also applies to hyperlinks in readers supporting the native text-color extension.
         /// </summary>
         public string? Color {
             get => RunProperties?.GetFirstChild<A.SolidFill>()?.RgbColorModelHex?.Val;
@@ -238,17 +230,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Gets or sets the highlight color in hexadecimal format (e.g. "FFFF00").
+        /// Gets the RGB highlight color or sets an RGB or RGBA hexadecimal literal (e.g. "FFFF0080").
         /// </summary>
         public string? HighlightColor {
             get => RunProperties?.GetFirstChild<A.Highlight>()?.GetFirstChild<A.RgbColorModelHex>()?.Val;
-            set {
-                A.RunProperties props = EnsureRunProperties();
-                props.RemoveAllChildren<A.Highlight>();
-                if (value != null) {
-                    props.AddChild(new A.Highlight(new A.RgbColorModelHex { Val = value }), true);
-                }
-            }
+            set => PowerPointTextPropertyFormatting.SetHighlightColor(EnsureRunProperties(), value);
         }
 
         /// <summary>
@@ -430,6 +416,18 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointEmbeddedSound.RemoveIfUnused(ownerPart,
                     soundRelationshipId);
             }
+        }
+
+        /// <summary>Removes a content subtree and the relationships no surviving content uses.</summary>
+        internal static void DiscardContent(DocumentFormat.OpenXml.OpenXmlElement content, OpenXmlPart? ownerPart) {
+            string[] soundIds = PowerPointEmbeddedSound.GetRelationshipIds(content);
+            string[] linkIds = content.Descendants<A.HyperlinkType>()
+                .Select(link => link.Id?.Value).Where(id => !string.IsNullOrEmpty(id))
+                .Cast<string>().Distinct(StringComparer.Ordinal).ToArray();
+            if (content.Parent != null) content.Remove();
+            if (ownerPart == null) return;
+            foreach (string id in linkIds) RemoveHyperlinkRelationshipIfUnused(ownerPart, id, ownerPart as SlidePart);
+            PowerPointEmbeddedSound.RemoveIfUnused(ownerPart, soundIds);
         }
 
         private static void RemoveHyperlinkRelationshipIfUnused(

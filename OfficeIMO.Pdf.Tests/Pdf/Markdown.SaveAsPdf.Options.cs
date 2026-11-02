@@ -18,43 +18,44 @@ namespace OfficeIMO.Tests.Pdf;
 public class MarkdownSaveAsPdfOptionsTests {
     [Fact]
     public void ToPdfDocument_Markdown_ClonesCallerPdfOptionsBeforeApplyingAdapterDefaults() {
-        var pdfOptions = new PdfCore.PdfOptions();
-        var options = new MarkdownToPdfOptions {
+        var pdfOptions = new PdfCore.PdfCreateOptions();
+        var options = new MarkdownPdfExportOptions {
             PdfOptions = pdfOptions,
             CreateOutlineFromHeadings = true
         };
 
-        OfficeIMO.Markdown.MarkdownReader.Parse("# Heading").ToPdfDocument(options).ToBytes();
+        OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading").ToPdf(options).ToBytes();
 
         Assert.False(pdfOptions.CreateOutlineFromHeadings);
     }
 
     [Fact]
     public void ToPdfDocument_Markdown_FontFamilyUsesSharedOfficeFontMapping() {
-        var options = new MarkdownToPdfOptions {
+        var options = new MarkdownPdfExportOptions {
             FontFamily = "Georgia",
-            PdfOptions = new PdfCore.PdfOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false
             }
         };
 
-        byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse("# Heading\n\nBody").ToPdfDocument(options).ToBytes();
-        string raw = Encoding.ASCII.GetString(bytes);
-
-        Assert.True(
-            System.Text.RegularExpressions.Regex.IsMatch(raw, PdfTestContentText.BaseFontPattern("Georgia-Regular")) ||
-            raw.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal),
-            "Expected Markdown font-family export to use an installed Georgia TrueType font or the mapped Times standard family.");
+        using PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading\n\nBody").ToPdf(options);
+        // Georgia selects the logical serif family. The embedded face can be a
+        // theme serif fallback when Georgia is not installed on the host.
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
+        using var rendered = PdfPigDocument.Open(document.ToBytes());
+        string text = rendered.GetPage(1).Text;
+        Assert.Contains("Heading", text, StringComparison.Ordinal);
+        Assert.Contains("Body", text, StringComparison.Ordinal);
     }
 
     [Fact]
     public void ToPdfDocument_Markdown_PortableDeterministicResourcePolicyDoesNotEmbedSystemFonts() {
-        var options = new MarkdownToPdfOptions {
+        var options = new MarkdownPdfExportOptions {
             FontFamily = "Georgia",
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
 
-        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("# Heading\n\nBody").ToPdfDocument(options);
+        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading\n\nBody").ToPdf(options);
 
         Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
         Assert.False(document.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.TimesRoman));
@@ -62,16 +63,16 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_TextFallbacksPreserveCallerPdfOptionsFontSlots() {
-        var options = new MarkdownToPdfOptions {
+        var options = new MarkdownPdfExportOptions {
             Style = MarkdownPdfStyle.Plain(),
-            PdfOptions = new PdfCore.PdfOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultFont = PdfCore.PdfStandardFont.TimesRoman,
                 HeaderFont = PdfCore.PdfStandardFont.Courier,
                 FooterFont = PdfCore.PdfStandardFont.Helvetica
             }
         };
 
-        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("# Heading\n\nBody").ToPdfDocument(options);
+        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading\n\nBody").ToPdf(options);
 
         Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
         Assert.Equal(PdfCore.PdfStandardFont.Courier, document.Options.HeaderFont);
@@ -80,7 +81,7 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_TextFallbacksReserveCourierForCodeText() {
-        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("`code` text").ToPdfDocument(new MarkdownToPdfOptions());
+        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("`code` text").ToPdf(new MarkdownPdfExportOptions());
         PdfCore.PdfEmbeddedFontFallbackSet? fallbackSet = document.Options.EmbeddedFontFallbacks;
         if (fallbackSet == null) {
             return;
@@ -93,25 +94,25 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     [Fact]
     public void ToPdfDocument_Markdown_TextFallbacksEmbedMonospaceBeforeReservingCourierForSymbols() {
-        var probe = new PdfCore.PdfOptions();
+        var probe = new PdfCore.PdfCreateOptions();
         if (!probe.TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: true)) {
             return;
         }
 
-        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownReader.Parse("`Zażółć` text").ToPdfDocument(new MarkdownToPdfOptions());
+        PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("`Zażółć` text").ToPdf(new MarkdownPdfExportOptions());
 
         Assert.True(document.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.Courier));
     }
 
     [Fact]
     public void ToPdfDocument_Markdown_DefaultsUseSharedUnicodeFallbackWhenAvailable() {
-        var probe = new PdfCore.PdfOptions();
+        var probe = new PdfCore.PdfCreateOptions();
         if (!probe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
             return;
         }
 
         const string polish = "Zażółć gęślą jaźń Łódź";
-        byte[] bytes = OfficeIMO.Markdown.MarkdownReader.Parse("# Faktura\n\n" + polish).ToPdfDocument(new MarkdownToPdfOptions()).ToBytes();
+        byte[] bytes = OfficeIMO.Markdown.MarkdownDocument.Parse("# Faktura\n\n" + polish).ToPdf(new MarkdownPdfExportOptions()).ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -130,16 +131,16 @@ public class MarkdownSaveAsPdfOptionsTests {
   <tr><td style="background:#0000ff">C</td></tr>
 </table>
 """;
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
-        byte[] bytes = document.ToPdfDocument(new MarkdownToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
+        byte[] bytes = document.ToPdf(new MarkdownPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             }
         }).ToBytes();
 
@@ -170,20 +171,20 @@ public class MarkdownSaveAsPdfOptionsTests {
 </table>
 """;
 
-        var options = new MarkdownToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions {
-                PageWidth = 420,
-                PageHeight = 240,
-                MarginLeft = 30,
-                MarginRight = 30,
-                MarginTop = 30,
-                MarginBottom = 30,
-                DefaultFontSize = 9
+        var options = new MarkdownPdfExportOptions {
+            PdfOptions = new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             }
         };
 
-        byte[] defaultBytes = HtmlConversionDocument.Parse(defaultHtml).ToMarkdownDocument().ToPdfDocument(options).ToBytes();
-        byte[] alignedBytes = HtmlConversionDocument.Parse(alignedHtml).ToMarkdownDocument().ToPdfDocument(options).ToBytes();
+        byte[] defaultBytes = HtmlConversionDocument.Parse(defaultHtml).ToMarkdown().ToPdf(options).ToBytes();
+        byte[] alignedBytes = HtmlConversionDocument.Parse(alignedHtml).ToMarkdown().ToPdf(options).ToBytes();
 
         using PdfPigDocument defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
         using PdfPigDocument alignedPdf = PdfPigDocument.Open(new MemoryStream(alignedBytes));
@@ -203,11 +204,11 @@ public class MarkdownSaveAsPdfOptionsTests {
 </table>
 """;
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        MarkdownDocument document = HtmlConversionDocument.Parse(html).ToMarkdown();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(1, table.HeaderCells[0].RowSpan);
-        byte[] bytes = document.ToPdfDocument(new MarkdownToPdfOptions()).ToBytes();
+        byte[] bytes = document.ToPdf(new MarkdownPdfExportOptions()).ToBytes();
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
     }
 
@@ -219,7 +220,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         }
         html.Append("</tr></table>");
 
-        MarkdownDoc document = HtmlConversionDocument.Parse(html.ToString()).ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDocument document = HtmlConversionDocument.Parse(html.ToString()).ToMarkdown(new MarkdownHtmlImportOptions {
             MaxTableExpandedColumns = 32
         });
 
@@ -228,7 +229,7 @@ public class MarkdownSaveAsPdfOptionsTests {
         Assert.Equal(32, table.HeaderCells.Count);
         Assert.Equal(32, table.HeaderCells[0].ColumnSpan);
 
-        byte[] bytes = document.ToPdfDocument(new MarkdownToPdfOptions()).ToBytes();
+        byte[] bytes = document.ToPdf(new MarkdownPdfExportOptions()).ToBytes();
         Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
     }
 

@@ -26,8 +26,8 @@ public sealed partial class HtmlRenderingTests {
         options.AllowSystemFontFallback = false;
         options.ViewportWidth = 320D;
         options.ViewportHeight = 300D;
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch,
-            300D / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;
@@ -69,8 +69,8 @@ public sealed partial class HtmlRenderingTests {
         options.ViewportWidth = 816D;
         options.ViewportHeight = 900D;
         options.Margins = HtmlRenderMargins.All(48D);
-        options.PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch,
-            pageHeight / HtmlRenderOptions.CssPixelsPerInch);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch),
+            global::OfficeIMO.OfficeLength.Inches(pageHeight / HtmlRenderOptions.CssPixelsPerInch));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderEngine.Execute(HtmlConversionDocument.Parse(html),
             HtmlRenderRequest.Create(profile, HtmlRenderEncoder.DisplayList, options)).Document;

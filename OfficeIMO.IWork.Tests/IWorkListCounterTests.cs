@@ -42,9 +42,9 @@ public sealed partial class IWorkBoundaryTests {
             }));
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word));
         } else if (kind == IWorkDocumentKind.Keynote) {
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointPresentationResult(policy);
+            using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(policy);
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-            using var pptx = PowerPointPresentation.Load(saved);
+            using var pptx = PowerPointDocument.Load(saved);
             var paragraphs = Assert.Single(Assert.Single(pptx.Slides).Tables).GetCell(0, 0).Paragraphs;
             Assert.Equal(new int?[] { 7, null, 3, null }, paragraphs.Select(p => p.NumberingStartAt));
             Assert.All(paragraphs, paragraph => Assert.Equal(PowerPointNumberingScheme.ArabicPeriod, paragraph.NumberingScheme));
@@ -115,7 +115,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(14, ListLevelEntry(0, 32_767), ListLevelEntry(6, 0)));
         var source = IWorkSourceDocument.Open(package);
         Assert.Equal(32_768, source.ReadKeynote().Slides[0].Tables[0].Cells[0].RichText!.Paragraphs[1].ListNumber);
-        Assert.Contains("counter outside", Assert.Throws<InvalidDataException>(() => source.ToPowerPointPresentationResult(new() {
+        Assert.Contains("counter outside", Assert.Throws<InvalidDataException>(() => source.ToPowerPointDocumentResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true })).Message);
     }
 

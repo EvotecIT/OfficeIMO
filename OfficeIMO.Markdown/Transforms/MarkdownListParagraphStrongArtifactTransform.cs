@@ -22,7 +22,7 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
     public MarkdownInputNormalizationOptions Options { get; }
 
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

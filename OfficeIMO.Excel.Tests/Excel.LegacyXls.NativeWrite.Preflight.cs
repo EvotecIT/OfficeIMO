@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Protected");
+                    ExcelSheet sheet = document.AddSheet("Protected");
                     sheet.CellValue(1, 1, "Protected range");
                     sheet.CellValue(2, 3, "Second range");
                     sheet.Protect();
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SingleProtected");
+                    ExcelSheet sheet = document.AddSheet("SingleProtected");
                     sheet.CellValue(1, 1, "Editable");
                     sheet.Protect();
                     sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(
@@ -1117,12 +1117,12 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksHeaderFooterImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
                 sheet.CellValue(1, 1, "Header image");
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", widthPoints: 24D, heightPoints: 16D);
+                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
             });
 
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
                 sheet.CellValue(1, 1, "Footer image");
-                sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", widthPoints: 24D, heightPoints: 16D);
+                sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
             });
         }
 
@@ -1850,7 +1850,11 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksWorksheetImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("drawings, images, or charts", (document, sheet) => {
                 sheet.CellValue(1, 1, "Worksheet image");
-                sheet.AddImage(2, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", widthPixels: 24, heightPixels: 16);
+                sheet.AddImage(2, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(24),
+                    Height = OfficeIMO.OfficeLength.Pixels(16)
+                });
             });
         }
 
@@ -1863,7 +1867,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "Feb");
                 sheet.CellValue(3, 2, 15d);
-                sheet.AddChartFromRange("A1:B3", 1, 4, type: ExcelChartType.ColumnClustered, hasHeaders: true, title: "Chart");
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, HasHeaders = true, Title = "Chart" });
             });
         }
 

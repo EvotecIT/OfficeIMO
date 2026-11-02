@@ -16,17 +16,17 @@ public sealed class PdfWatermarkOptions {
     /// <summary>Target pages; null selects every page.</summary>
     public PdfPageSelector? TargetPages { get; set; }
 
-    /// <summary>Left edge in visual page points; null centers the rectangle horizontally.</summary>
-    public double? X { get; set; }
+    /// <summary>Nonnegative physical left offset on the visual page; null centers the rectangle horizontally.</summary>
+    public global::OfficeIMO.OfficeLength? X { get; set; }
 
-    /// <summary>Top edge in visual page points; null centers the rectangle vertically.</summary>
-    public double? Y { get; set; }
+    /// <summary>Nonnegative physical top offset on the visual page; null centers the rectangle vertically.</summary>
+    public global::OfficeIMO.OfficeLength? Y { get; set; }
 
-    /// <summary>Unrotated rectangle width in points.</summary>
-    public double Width { get; set; } = 360D;
+    /// <summary>Physical unrotated rectangle width. Defaults to 360 points.</summary>
+    public global::OfficeIMO.OfficeLength Width { get; set; } = global::OfficeIMO.OfficeLength.Points(360D);
 
-    /// <summary>Unrotated rectangle height in points.</summary>
-    public double Height { get; set; } = 100D;
+    /// <summary>Physical unrotated rectangle height. Defaults to 100 points.</summary>
+    public global::OfficeIMO.OfficeLength Height { get; set; } = global::OfficeIMO.OfficeLength.Points(100D);
 
     /// <summary>Clockwise rotation around the rectangle center, in degrees.</summary>
     public double RotationDegrees { get; set; } = -35D;
@@ -37,14 +37,14 @@ public sealed class PdfWatermarkOptions {
     /// <summary>Draws the watermark beneath existing page content when true.</summary>
     public bool BehindContent { get; set; }
 
-    /// <summary>Text size in points.</summary>
-    public double FontSize { get; set; } = 42D;
+    /// <summary>Physical text size. Defaults to 42 points.</summary>
+    public global::OfficeIMO.OfficeLength FontSize { get; set; } = global::OfficeIMO.OfficeLength.Points(42D);
 
     /// <summary>Standard text font.</summary>
     public PdfStandardFont Font { get; set; } = PdfStandardFont.HelveticaBold;
 
     /// <summary>Text color. Image pixels retain their own colors.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Creates an independent copy, including any encoded image bytes.</summary>
     public PdfWatermarkOptions Clone() {
@@ -60,8 +60,6 @@ public sealed class PdfWatermarkOptions {
         Positive(Height, nameof(Height));
         Positive(FontSize, nameof(FontSize));
         Finite(RotationDegrees, nameof(RotationDegrees));
-        if (X.HasValue) Finite(X.Value, nameof(X));
-        if (Y.HasValue) Finite(Y.Value, nameof(Y));
         _ = new PdfCanvasStampOptions { Opacity = Opacity };
         _ = new PdfCanvasTextBoxStyle { Font = Font };
         if (ImageBytes is null && string.IsNullOrWhiteSpace(Text))
@@ -69,9 +67,8 @@ public sealed class PdfWatermarkOptions {
         if (ImageBytes is { Length: 0 }) throw new ArgumentException("Watermark image is empty.", nameof(ImageBytes));
     }
 
-    private static void Positive(double value, string name) {
-        Finite(value, name);
-        if (value <= 0D) throw new ArgumentOutOfRangeException(name, "Watermark dimensions and font size must be positive.");
+    private static void Positive(global::OfficeIMO.OfficeLength value, string name) {
+        if (value <= global::OfficeIMO.OfficeLength.Zero) throw new ArgumentOutOfRangeException(name, "Watermark dimensions and font size must be positive.");
     }
 
     private static void Finite(double value, string name) {

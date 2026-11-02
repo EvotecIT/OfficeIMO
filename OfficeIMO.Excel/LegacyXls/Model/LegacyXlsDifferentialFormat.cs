@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents differential formatting decoded from legacy XLS conditional-formatting style records.
     /// </summary>
-    public sealed class LegacyXlsDifferentialFormat {
+    internal sealed class LegacyXlsDifferentialFormat {
         /// <summary>
         /// Creates a legacy differential format model.
         /// </summary>

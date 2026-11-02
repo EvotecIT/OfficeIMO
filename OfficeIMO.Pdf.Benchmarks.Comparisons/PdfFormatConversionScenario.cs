@@ -81,44 +81,55 @@ internal sealed record PdfFormatConversionScenario(
             PdfFormatConversionKind.Pptx => ConvertPptx(stream, textFallbacksOverride),
             PdfFormatConversionKind.Html => ConvertHtml(source, textFallbacksOverride),
             PdfFormatConversionKind.Markdown => ConvertMarkdown(source, textFallbacksOverride),
-            PdfFormatConversionKind.Rtf => RtfDocument.LoadResult(stream).Document.ToPdfBytes(),
+            PdfFormatConversionKind.Rtf => ConvertRtf(stream),
             _ => throw new ArgumentOutOfRangeException(nameof(kind))
         };
     }
 
+    private static byte[] ConvertRtf(Stream stream) {
+        RtfDocument document = RtfDocument.Load(stream);
+        using PdfCore.PdfDocument pdf = document.ToPdf();
+        return pdf.ToBytes();
+    }
+
     private static byte[] ConvertDocx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using WordDocument document = WordDocument.Load(stream);
-        return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new WordToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdfBytes();
+        using PdfCore.PdfDocument pdf = textFallbacksOverride.HasValue
+            ? document.ToPdf(new WordPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdf();
+        return pdf.ToBytes();
     }
 
     private static byte[] ConvertXlsx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         using ExcelDocument document = ExcelDocument.Load(stream);
-        return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new ExcelToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdfBytes();
+        using PdfCore.PdfDocument pdf = textFallbacksOverride.HasValue
+            ? document.ToPdf(new ExcelPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdf();
+        return pdf.ToBytes();
     }
 
     private static byte[] ConvertPptx(Stream stream, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream);
-        return textFallbacksOverride.HasValue
-            ? presentation.ToPdfBytes(new PowerPointToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
-            : presentation.ToPdfBytes();
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream);
+        using PdfCore.PdfDocument pdf = textFallbacksOverride.HasValue
+            ? presentation.ToPdf(new PowerPointPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
+            : presentation.ToPdf();
+        return pdf.ToBytes();
     }
 
     private static byte[] ConvertHtml(byte[] source, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(Encoding.UTF8.GetString(source));
-        return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new HtmlToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdfBytes();
+        using PdfCore.PdfDocument pdf = textFallbacksOverride.HasValue
+            ? document.ToPdf(new HtmlToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdf();
+        return pdf.ToBytes();
     }
 
     private static byte[] ConvertMarkdown(byte[] source, PdfCore.PdfTextFallbackFeatures? textFallbacksOverride) {
-        OfficeIMO.Markdown.MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.Parse(Encoding.UTF8.GetString(source));
-        return textFallbacksOverride.HasValue
-            ? document.ToPdfBytes(new MarkdownToPdfOptions { TextFallbacks = textFallbacksOverride.Value })
-            : document.ToPdfBytes();
+        using OfficeIMO.Markdown.MarkdownDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse(Encoding.UTF8.GetString(source));
+        using PdfCore.PdfDocument pdf = textFallbacksOverride.HasValue
+            ? document.ToPdf(new MarkdownPdfExportOptions { TextFallbacks = textFallbacksOverride.Value })
+            : document.ToPdf();
+        return pdf.ToBytes();
     }
 
     private static byte[] CreateDocx(int recordCount, PdfFormatConversionProfile profile) {
@@ -147,7 +158,7 @@ internal sealed record PdfFormatConversionScenario(
 
     private static byte[] CreateXlsx(int recordCount, PdfFormatConversionProfile profile) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, Heading);
         sheet.Cell(2, 1, "Record");
         sheet.Cell(2, 2, "Description");
@@ -160,31 +171,27 @@ internal sealed record PdfFormatConversionScenario(
             sheet.Cell(row, 3, PdfFormatConversionRecordManifest.AmountMarker(index));
             sheet.Cell(row, 4, PdfFormatConversionRecordManifest.StatusMarker(index));
         }
-        sheet.SetColumnWidth(1, 18);
-        sheet.SetColumnWidth(2, 42);
-        sheet.SetColumnWidth(3, 14);
-        sheet.SetColumnWidth(4, 14);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+        sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(42));
+        sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
+        sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
         if (profile == PdfFormatConversionProfile.Structured) {
-            ExcelSheet details = document.AddWorksheet("Structured");
+            ExcelSheet details = document.AddSheet("Structured");
             details.Cell(1, 1, StructureMarker);
             details.Cell(2, 1, "This second worksheet verifies multi-sheet pagination and wrapped cell projection.");
-            details.SetColumnWidth(1, 28);
+            details.SetColumnWidth(1, ExcelColumnWidth.Characters(28));
         }
         return document.ToBytes();
     }
 
     private static byte[] CreatePptx() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        using PowerPointDocument presentation = PowerPointDocument.Create();
         for (int slideIndex = 0; slideIndex < 12; slideIndex++) {
             PowerPointSlide slide = presentation.AddSlide();
             int first = (slideIndex * 10) + 1;
             string content = string.Join("\n", Enumerable.Range(first, 10).Select(PdfFormatConversionRecordManifest.RecordLine));
-            slide.AddTextBoxPoints(
-                slideIndex == 0 ? Heading + "\n" + content : content,
-                leftPoints: 36,
-                topPoints: 28,
-                widthPoints: 640,
-                heightPoints: 460);
+            slide.AddTextBox(
+                slideIndex == 0 ? Heading + "\n" + content : content,left: global::OfficeIMO.OfficeLength.Points(36),top: global::OfficeIMO.OfficeLength.Points(28),width: global::OfficeIMO.OfficeLength.Points(640),height: global::OfficeIMO.OfficeLength.Points(460));
         }
         return presentation.ToBytes();
     }

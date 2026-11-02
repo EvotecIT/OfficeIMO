@@ -1,3 +1,4 @@
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
 using OfficeIMO.Pdf;
@@ -28,9 +29,9 @@ internal static class PdfBenchmarkCorpus {
 
     internal static PdfDocument CreateDocument(PdfObjectSerializationMode objectSerializationMode) {
         byte[] image = CreateImage();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             FileVersion = objectSerializationMode == PdfObjectSerializationMode.ForwardOnly
                 ? PdfFileVersion.Pdf17
                 : PdfFileVersion.Pdf14,
@@ -54,16 +55,16 @@ internal static class PdfBenchmarkCorpus {
                     })
                     .Bullets(boundaryItems)
                     .Row(row => row
-                        .Gap(12)
+                        .Gap(global::OfficeIMO.OfficeLength.Points(12))
                         .PercentColumn(50, column => column.Numbered(boundaryItems.Take(3)))
                         .PercentColumn(50, column => column.Bullets(boundaryItems.Skip(2).Take(3))))
                     .Rectangle(
-                        180,
-                        24,
-                        strokeColor: PdfColor.FromRgb(0, 64, 128),
-                        strokeWidth: 1.5,
-                        fillColor: PdfColor.FromRgb(220, 240, 252))
-                    .Image(image, 32, 32, alternativeText: "Deterministic benchmark image");
+                        global::OfficeIMO.OfficeLength.Points(180),
+                        global::OfficeIMO.OfficeLength.Points(24),
+                        strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
+                        strokeWidth: global::OfficeIMO.OfficeLength.Points(1.5),
+                        fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
+                    .Image(image, global::OfficeIMO.OfficeLength.Points(32), global::OfficeIMO.OfficeLength.Points(32), alternativeText: "Deterministic benchmark image");
                 if (page < PageCount) {
                     content.PageBreak();
                 }
@@ -83,9 +84,9 @@ internal static class PdfBenchmarkCorpus {
 
     internal static PdfDocument CreateHarfBuzzDocument() {
         byte[] fontData = CarlitoRegular.Value;
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             CompressContentStreams = true,
-            DefaultFontSize = 10,
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             FileVersion = PdfFileVersion.Pdf17,
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly,
             TextShapingMode = PdfTextShapingMode.LatinLigatures

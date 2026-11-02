@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfDocumentReadEngine {
     internal static PdfInspectionReadResult ReadForInspection(PdfReadDocument document, PdfDocumentInfo sourceInfo,
-        PdfReadOptions options, CancellationToken cancellationToken) {
+        PdfLoadOptions options, CancellationToken cancellationToken) {
         int[] selected = options.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(options.PageSelection))
             ?? Enumerable.Range(1, document.Pages.Count).ToArray();
         PdfUnderstandingPipelineOptions pipelineOptions = PdfUnderstandingPipelineOptions.Resolve(options.Pipeline);

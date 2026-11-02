@@ -92,7 +92,7 @@ public static partial class PdfHtmlConverterExtensions {
                 diagnostic.LossKind);
         }
         if (drawing.Fonts.Faces.Count == 0 && page.TextBlocks.Count > 0) {
-            AddWarning(options, "PageAppearanceBrowserFonts",
+            AddWarning(options, OfficeDiagnosticCodes.PageAppearanceBrowserFonts,
                 "Page " + page.PageNumber.ToString(CultureInfo.InvariantCulture) + ": fonts are not embedded. Browser font substitution may change text appearance.",
                 PdfCore.PdfConversionWarningSeverity.Warning);
         }
@@ -152,21 +152,21 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static bool ReportImageAppearanceFallback(PdfToHtmlOptions options) {
-        AddWarning(options, "PageAppearanceImageFallback",
+        AddWarning(options, OfficeDiagnosticCodes.PageAppearanceImageFallback,
             "The page uses positioned images and text to avoid excessive SVG image expansion. Compare its appearance with the source PDF.",
             PdfCore.PdfConversionWarningSeverity.Warning);
         return false;
     }
 
     private static bool ReportUnsafeImageAppearanceFallback(PdfToHtmlOptions options) {
-        AddWarning(options, "PageAppearanceUnsafeImageFallback",
+        AddWarning(options, OfficeDiagnosticCodes.PageAppearanceUnsafeImageFallback,
             "The page appearance SVG was not emitted because it could expose image pixels hidden by PDF clipping, transparency, or paint effects. Positioned HTML fallback was used instead.",
             PdfCore.PdfConversionWarningSeverity.Information);
         return false;
     }
 
     private static bool ReportUnaccountedImageAppearanceFallback(PdfToHtmlOptions options) {
-        AddWarning(options, "PageAppearanceUnaccountedImageOmitted",
+        AddWarning(options, OfficeDiagnosticCodes.PageAppearanceUnaccountedImageOmitted,
             "The page appearance SVG was not emitted because it contains image payloads that cannot be correlated with safely importable logical images. Positioned HTML fallback omitted those images.",
             PdfCore.PdfConversionWarningSeverity.Warning,
             OfficeConversionLossKind.Omission);

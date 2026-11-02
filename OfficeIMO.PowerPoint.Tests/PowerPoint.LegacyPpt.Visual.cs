@@ -14,14 +14,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ShapeImport_MatchesLibreOfficeVisualReferenceWithinDocumentedTolerance() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 ShapeFixturePath);
             var options = new PowerPointImageExportOptions {
                 BackgroundColor = OfficeColor.White,
                 IncludeSlideBackground = false
             };
 
-            PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0]
+            PowerPointSlideVisualInfo snapshot = presentation.Slides[0]
                 .CreateVisualSnapshot(options);
             OfficeImageExportDiagnostic[] unexpectedDiagnostics = snapshot.Diagnostics.Where(diagnostic =>
                 (diagnostic.Severity != OfficeImageExportDiagnosticSeverity.Info
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted
                 && diagnostic.Code != "font-family-substitution").ToArray();
 
-            byte[] actual = presentation.Slides[0].ToPng(options);
+            byte[] actual = presentation.Slides[0].ToImage(options);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 File.ReadAllBytes(ShapeVisualBaselinePath), actual,
                 channelTolerance: 16,
@@ -50,14 +50,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MicrosoftAuthoredImport_DoesNotRenderMasterPlaceholderPrompts() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+            using PowerPointDocument presentation = PowerPointDocument.Load(
                 AccessibilityFixturePath);
             var options = new PowerPointImageExportOptions {
                 BackgroundColor = OfficeColor.White,
                 IncludeSlideBackground = false
             };
 
-            PowerPointSlideVisualSnapshot snapshot = presentation.Slides[0]
+            PowerPointSlideVisualInfo snapshot = presentation.Slides[0]
                 .CreateVisualSnapshot(options);
             Assert.NotEmpty(snapshot.TextSpans);
             Assert.DoesNotContain("Click to edit", string.Concat(snapshot.TextSpans.Select(span => span.Text)),
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 && diagnostic.Code != OfficeImageExportDiagnosticCodes.FontSubstituted
                 && diagnostic.Code != "font-family-substitution").ToArray();
 
-            byte[] actual = presentation.Slides[0].ToPng(options);
+            byte[] actual = presentation.Slides[0].ToImage(options);
             VisualRasterComparison comparison = VisualBaselineTestSupport.CompareRasterImages(
                 File.ReadAllBytes(AccessibilityVisualBaselinePath), actual,
                 channelTolerance: 16,

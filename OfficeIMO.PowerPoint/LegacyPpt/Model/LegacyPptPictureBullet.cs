@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one picture bullet stored in a PPT9 document extension.</summary>
-    public sealed class LegacyPptPictureBullet {
+    internal sealed class LegacyPptPictureBullet {
         private readonly byte[] _imageBytes;
         private readonly bool _isImagePayloadTruncated;
 

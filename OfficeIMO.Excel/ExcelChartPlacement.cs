@@ -8,13 +8,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">One-based worksheet row where the chart should be anchored.</param>
         /// <param name="column">One-based worksheet column where the chart should be anchored.</param>
-        /// <param name="widthPixels">Chart width in pixels.</param>
-        /// <param name="heightPixels">Chart height in pixels.</param>
-        public ExcelChartPlacement(int row, int column, int widthPixels, int heightPixels) {
+        /// <param name="width">Chart physical width.</param>
+        /// <param name="height">Chart physical height.</param>
+        public ExcelChartPlacement(int row, int column, OfficeLength width, OfficeLength height) {
+            if (row <= 0 || row > ExcelA1.MaxRows) throw new System.ArgumentOutOfRangeException(nameof(row));
+            if (column <= 0 || column > ExcelA1.MaxColumns) throw new System.ArgumentOutOfRangeException(nameof(column));
+            if (width <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(width));
+            if (height <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(height));
             Row = row;
             Column = column;
-            WidthPixels = widthPixels;
-            HeightPixels = heightPixels;
+            Width = width;
+            Height = height;
         }
 
         /// <summary>
@@ -28,13 +32,13 @@ namespace OfficeIMO.Excel {
         public int Column { get; }
 
         /// <summary>
-        /// Gets the chart width in pixels.
+        /// Gets the chart physical width.
         /// </summary>
-        public int WidthPixels { get; }
+        public OfficeLength Width { get; }
 
         /// <summary>
-        /// Gets the chart height in pixels.
+        /// Gets the chart physical height.
         /// </summary>
-        public int HeightPixels { get; }
+        public OfficeLength Height { get; }
     }
 }

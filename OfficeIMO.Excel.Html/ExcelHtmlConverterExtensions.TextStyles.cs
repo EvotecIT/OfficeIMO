@@ -5,16 +5,19 @@ namespace OfficeIMO.Excel.Html;
 public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
-        ExcelCellStyleSnapshot style,
-        bool includeDecorations) {
+        ExcelCellStyleInfo style,
+        bool includeDecorations,
+        string? boxCss = null,
+        bool suppressFontColor = false) {
         var css = new StringBuilder();
+        if (!string.IsNullOrEmpty(boxCss)) css.Append(boxCss);
         AppendCss(css, "font-weight", style.Bold ? "700" : null);
         AppendCss(css, "font-style", style.Italic ? "italic" : null);
         AppendCss(css, "font-family", style.IsFontFamilyExplicit && !string.IsNullOrWhiteSpace(style.FontName)
-            ? OfficeHtmlText.QuoteCssString(style.FontName!) : null);
+            ? CssFontFamily(style.FontName!) : null);
         AppendCss(css, "font-size", style.FontSize.HasValue
-            ? style.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
-        AppendCss(css, "color", !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
+            ? style.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
+        AppendCss(css, "color", !suppressFontColor && !string.IsNullOrWhiteSpace(style.FontColorHex) ? "#" + style.FontColorHex : null);
         ExcelUnderlineStyle underlineStyle = style.Underline
             ? style.UnderlineStyle ?? ExcelUnderlineStyle.Single
             : ExcelUnderlineStyle.None;
@@ -42,13 +45,13 @@ public static partial class ExcelHtmlConverterExtensions {
     private static bool AppendExcelTextStyleAttributes(
         StringBuilder body,
         ExcelRichTextRun run,
-        ExcelCellStyleSnapshot cellStyle) {
+        ExcelCellStyleInfo cellStyle) {
         var css = new StringBuilder();
         AppendCss(css, "font-weight", run.BoldSpecified ? (run.Bold ? "700" : "normal") : null);
         AppendCss(css, "font-style", run.ItalicSpecified ? (run.Italic ? "italic" : "normal") : null);
-        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? OfficeHtmlText.QuoteCssString(run.FontName!) : null);
+        AppendCss(css, "font-family", !string.IsNullOrWhiteSpace(run.FontName) ? CssFontFamily(run.FontName!) : null);
         AppendCss(css, "font-size", run.FontSize.HasValue
-            ? run.FontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
+            ? run.FontSize.Value.ToPoints().ToString("0.###", CultureInfo.InvariantCulture) + "pt" : null);
         string color = (run.FontColor ?? string.Empty).Trim().TrimStart('#');
         if (color.Length == 8) color = color.Substring(2);
         AppendCss(css, "color", color.Length == 6 ? "#" + color : null);

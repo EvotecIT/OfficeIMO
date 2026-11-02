@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_Respects_DefaultPageSettings() {
             string html = "<p>Hello</p>";
-            var options = new HtmlToWordOptions {
+            var options = new WordHtmlImportOptions {
                 DefaultOrientation = OfficePageOrientation.Landscape,
                 DefaultPageSize = WordPageSize.A5
             };
             
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);
             
             Assert.Equal(OfficePageOrientation.Landscape, doc.PageOrientation);
             Assert.Equal(WordPageSize.A5, doc.PageSettings.PageSize);
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_BlockStyles_MapPageBreakBeforeAndAfter() {
             string html = "<p>Intro</p><p style=\"break-before: page\">Next</p><p style=\"page-break-after: always\">Tail</p><p>After</p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             Assert.False(doc.Paragraphs[0].PageBreakBefore);
             Assert.True(doc.Paragraphs[1].PageBreakBefore);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ContainerBreakAfter_AppliesToLastGeneratedParagraphOnly() {
             string html = "<div style=\"break-after: page\"><p>First</p><p>Second</p></div><p>Third</p>";
 
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
 
             Assert.Null(doc.Paragraphs[0].PageBreak);
             Assert.Null(doc.Paragraphs[1].PageBreak);

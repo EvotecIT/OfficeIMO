@@ -72,16 +72,16 @@ namespace OfficeIMO.Word {
     /// <summary>Dimensions and Word paper code for a built-in page-size preset.</summary>
     public sealed class WordPageSizeDefinition {
         internal WordPageSizeDefinition(uint widthTwips, uint heightTwips, ushort paperCode) {
-            WidthTwips = widthTwips;
-            HeightTwips = heightTwips;
+            Width = global::OfficeIMO.OfficeLength.Points((widthTwips) / 20D);
+            Height = global::OfficeIMO.OfficeLength.Points((heightTwips) / 20D);
             PaperCode = paperCode;
         }
 
-        /// <summary>Gets the page width in twips.</summary>
-        public uint WidthTwips { get; }
+        /// <summary>Gets the page width as a physical length.</summary>
+        public global::OfficeIMO.OfficeLength Width { get; }
 
-        /// <summary>Gets the page height in twips.</summary>
-        public uint HeightTwips { get; }
+        /// <summary>Gets the page height as a physical length.</summary>
+        public global::OfficeIMO.OfficeLength Height { get; }
 
         /// <summary>Gets the Word paper-size code.</summary>
         public ushort PaperCode { get; }
@@ -178,28 +178,32 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or Set section/page Width
         /// </summary>
-        public uint? Width {
+        public global::OfficeIMO.OfficeLength? Width {
             get {
                 var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-                return pageSize?.Width?.Value;
+                return ((pageSize?.Width?.Value) is { } wordLength7222 ? global::OfficeIMO.OfficeLength.Points((wordLength7222) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageSize = EnsurePageSize();
-                pageSize.Width = value;
+                pageSize.Width = wordNativeValue;
             }
         }
 
         /// <summary>
         /// Get or Set section/page Height
         /// </summary>
-        public uint? Height {
+        public global::OfficeIMO.OfficeLength? Height {
             get {
                 var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
-                return pageSize?.Height?.Value;
+                return ((pageSize?.Height?.Value) is { } wordLength7637 ? global::OfficeIMO.OfficeLength.Points((wordLength7637) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             set {
+                if (value.HasValue && value.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(value), "The length cannot be negative.");
+                var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageSize = EnsurePageSize();
-                pageSize.Height = value;
+                pageSize.Height = wordNativeValue;
             }
         }
 
@@ -272,8 +276,8 @@ namespace OfficeIMO.Word {
 
         private static PageSize ToOpenXmlPageSize(WordPageSizeDefinition definition) =>
             new PageSize {
-                Width = definition.WidthTwips,
-                Height = definition.HeightTwips,
+                Width = checked((uint)(definition.Width.ToTwips())),
+                Height = checked((uint)(definition.Height.ToTwips())),
                 Code = definition.PaperCode
             };
     }

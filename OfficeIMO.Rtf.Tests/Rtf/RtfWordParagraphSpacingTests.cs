@@ -33,8 +33,12 @@ public class RtfWordParagraphSpacingTests {
         WordLineSpacingRule? rule, int expectedLine, bool expectedMultiple) {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Spacing");
-        paragraph.LineSpacing = 360;
-        paragraph.LineSpacingRule = rule;
+        paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635))), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635))), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D) };
+
+        if (!rule.HasValue) {
+            paragraph.NativeLineSpacingRule = null;
+            Assert.Null(paragraph._paragraph.ParagraphProperties!.SpacingBetweenLines!.LineRule);
+        }
 
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         RtfDocument parsed = RtfDocument.Read(rtf).Document;
@@ -126,7 +130,7 @@ public class RtfWordParagraphSpacingTests {
         child.StyleParagraphProperties = new StyleParagraphProperties(new SpacingBetweenLines { LineRule = LineSpacingRuleValues.Auto });
         word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(parent, child);
         WordParagraph paragraph = word.AddParagraph("Inherited").SetStyleId("RuleOnlyChild");
-        paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+        paragraph.NativeLineSpacingRule = WordLineSpacingRule.AtLeast;
 
         RtfDocument authored = word.ToRtfDocument();
         RtfStyle authoredChild = Assert.Single(authored.Styles, item => item.Name == "RuleOnlyChild");

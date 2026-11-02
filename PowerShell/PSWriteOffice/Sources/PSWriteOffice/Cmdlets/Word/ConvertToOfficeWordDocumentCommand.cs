@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System;
 using System.IO;
 using System.Management.Automation;
@@ -82,14 +83,12 @@ public sealed class ConvertToOfficeWordDocumentCommand : PSCmdlet
             }
             else
             {
-                WordDocument.Convert(sourcePath, outputPath, new WordDocumentConversionOptions
+                OfficeConverter.Convert(sourcePath, outputPath, new OfficeConversionOptions
                 {
                     FileConflictPolicy = Force.IsPresent
-                        ? OfficeConversionFileConflictPolicy.Replace
-                        : OfficeConversionFileConflictPolicy.FailIfExists,
-                    LossPolicy = AllowLossyLegacyConversion.IsPresent
-                        ? OfficeConversionLossPolicy.Allow
-                        : OfficeConversionLossPolicy.Block
+                        ? OfficePublicationPolicy.Replace
+                        : OfficePublicationPolicy.Fail,
+                    FailOnLoss = !AllowLossyLegacyConversion.IsPresent
                 });
             }
 

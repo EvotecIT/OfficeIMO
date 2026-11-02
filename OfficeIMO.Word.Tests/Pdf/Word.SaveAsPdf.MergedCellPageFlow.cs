@@ -24,11 +24,11 @@ public partial class Word {
         for (int row = 0; row < 3; row++) {
             table.Rows[row].Cells[1].Paragraphs[0].Text = $"Neighbour{row}";
             foreach (WordTableCell cell in table.Rows[row].Cells) {
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
-                    paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-                    paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-                    paragraph.LineSpacingRule = WordLineSpacingRule.Exact; paragraph.LineSpacing = 400;
+                    paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                    paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                    paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
                     paragraph.KeepLinesTogetherOverride = false; paragraph.KeepWithNextOverride = false;
                     paragraph.AvoidWidowAndOrphanOverride = false;
                 }
@@ -39,10 +39,10 @@ public partial class Word {
         first.AvoidWidowAndOrphanOverride = rule == "widow";
         table.MergeCells(0, 0, 3, 1, copyParagraphs: true);
         Assert.Empty(document.ValidateDocument());
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(300, 140),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20)
-        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(140)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPages().SelectMany(page => page.GetWords().Select(word => (page.Number, word.Text))).ToArray();
         int PageOf(string marker) => Assert.Single(words, word => word.Text == marker).Number;
         if (rule == "next") Assert.Equal(PageOf("First3"), PageOf("Second1"));
@@ -58,30 +58,29 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(3, 2);
         table.ConditionalFormattingFirstRow = false;
-        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.Drawing.OfficeColor.Black);
+        table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].Text = column == 0 ? $"SpanToken{row * paragraphsPerRow + 1}" : $"Neighbour{row}";
                 if (column == 0)
                     for (int paragraph = 1; paragraph < paragraphsPerRow; paragraph++)
                         cell.AddParagraph($"SpanToken{row * paragraphsPerRow + paragraph + 1}");
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = "Arial";
-                    paragraph.FontSize = 12;
-                    paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
-                    paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-                    paragraph.LineSpacing = 240;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+                    paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                    paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
                 }
             }
         }
         table.MergeCells(0, 0, 3, 1, copyParagraphs: true);
         Assert.Empty(document.ValidateDocument());
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
-            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PageSize(300, 120),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(20)
-        }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(120)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(20))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.True(pdf.NumberOfPages > 1);
         var words = pdf.GetPages().SelectMany(page => page.GetWords().Select(word => (page.Number, Word: word))).ToArray();
         for (int token = 1; token <= paragraphsPerRow * 3; token++) {

@@ -15,7 +15,7 @@ public sealed class HtmlRenderConsumerTests {
     [Fact]
     public void OutputSurfaceMapsSelectedAndStitchedCoordinatesBackToTheirSources() {
         var options = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
         };
@@ -211,15 +211,18 @@ public sealed class HtmlRenderConsumerTests {
     [Fact]
     public void SvgArchiveIsDeterministicAndPreservesSelectedSurfaceEvidence() {
         var options = new HtmlRenderOptions {
-            PageSize = new OfficePageSize(4D, 3D),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false,
-            BackgroundColor = OfficeColor.FromRgba(10, 20, 30, 200)
+            BackgroundColor = OfficeColor.FromRgba(10, 20, 30, 200),
+            PageSelection = OfficeIMO.Pdf.PdfPageSelection.From(2)
         };
         HtmlRenderResult result = HtmlRenderEngine.Execute(
             HtmlConversionDocument.Parse(PagedHtml),
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options)
                 .WithPageSet(HtmlRenderPageSet.Pages(1, 2)));
+
+        Assert.Equal("Page 3", Assert.Single(result.ExportImages()).Name);
 
         HtmlRenderArchiveResult first = result.ExportArchive();
         HtmlRenderArchiveResult second = result.ExportArchive();

@@ -19,19 +19,8 @@ namespace OfficeIMO.PowerPoint {
                 return spacing.HasValue ? spacing.Value / 100D : (double?)null;
 
             var sources = new List<A.TextCharacterPropertiesType>();
-            P.PlaceholderShape? placeholder = textBox.Element.GetFirstChild<P.NonVisualShapeProperties>()?
-                .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>();
-            if (placeholder != null) {
-                var layout = textBox.SlidePart?.SlideLayoutPart;
-                P.Shape? layoutShape = FindSpacingPlaceholder(layout?.SlideLayout?.CommonSlideData?.ShapeTree,
-                    placeholder, matchIndex: true);
-                AddPlaceholderDefaults(sources, layoutShape, level);
-                P.PlaceholderShape effectivePlaceholder = layoutShape?.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>() ?? placeholder;
-                AddPlaceholderDefaults(sources, FindSpacingPlaceholder(
-                    layout?.SlideMasterPart?.SlideMaster?.CommonSlideData?.ShapeTree,
-                    effectivePlaceholder, matchIndex: false), level);
-            }
+            foreach (P.Shape inherited in EnumerateTextColorShapes(textBox).Skip(1))
+                AddPlaceholderDefaults(sources, inherited, level);
             sources.AddRange(FindDefaultRunProperties(textBox.MasterTextStyle, level));
             OpenXmlCompositeElement? presentationDefaults = textBox.SlidePart?.GetParentParts()
                 .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>().FirstOrDefault()?.Presentation?.DefaultTextStyle;
@@ -41,29 +30,5 @@ namespace OfficeIMO.PowerPoint {
             return spacing.HasValue ? spacing.Value / 100D : (double?)null;
         }
 
-        private static void AddPlaceholderDefaults(List<A.TextCharacterPropertiesType> sources, P.Shape? shape, int level) {
-            A.DefaultRunProperties? paragraphDefaults = shape?.TextBody?.Elements<A.Paragraph>()
-                .FirstOrDefault(paragraph => (paragraph.ParagraphProperties?.Level?.Value ?? 0) == level)?
-                .ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>();
-            if (paragraphDefaults != null) sources.Add(paragraphDefaults);
-            sources.AddRange(FindDefaultRunProperties(shape?.TextBody?.ListStyle, level));
-        }
-
-        private static P.Shape? FindSpacingPlaceholder(P.ShapeTree? tree, P.PlaceholderShape source, bool matchIndex) {
-            IEnumerable<P.Shape> matches = tree?.Elements<P.Shape>() ?? Enumerable.Empty<P.Shape>();
-            matches = matches.Where(shape => {
-                P.PlaceholderShape? candidate = shape.NonVisualShapeProperties?
-                    .ApplicationNonVisualDrawingProperties?.GetFirstChild<P.PlaceholderShape>();
-                return candidate != null && (matchIndex
-                    ? (candidate.Index?.Value ?? 0U) == (source.Index?.Value ?? 0U)
-                    : NormalizePlaceholderType(candidate.Type?.Value) == NormalizePlaceholderType(source.Type?.Value));
-            });
-            // Ambiguous source declarations cannot establish an effective inherited value.
-            P.Shape[] selected = matches.Take(2).ToArray();
-            return selected.Length == 1 ? selected[0] : null;
-        }
-
-        private static P.PlaceholderValues NormalizePlaceholderType(P.PlaceholderValues? value) =>
-            value == P.PlaceholderValues.CenteredTitle ? P.PlaceholderValues.Title : value ?? P.PlaceholderValues.Object;
     }
 }

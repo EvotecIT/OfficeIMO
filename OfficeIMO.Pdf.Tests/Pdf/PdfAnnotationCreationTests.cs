@@ -74,7 +74,7 @@ public class PdfAnnotationCreationTests {
             OwnerPassword = "owner",
             AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
         };
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .TextAnnotation("restricted note")
             .Paragraph(paragraph => paragraph.Text("Restricted annotation source"))
             .ToBytes();
@@ -257,7 +257,7 @@ public class PdfAnnotationCreationTests {
     [Fact]
     public void AddLinkAnnotation_AllowsRelativeUriWithCatalogBase() {
         byte[] source = PdfDocument
-            .Create(new PdfOptions().SetCatalogUriBase("https://officeimo.com/docs/"))
+            .Create(new PdfCreateOptions().SetCatalogUriBase("https://officeimo.com/docs/"))
             .Paragraph(p => p.Text("Existing page"))
             .ToBytes();
 
@@ -521,7 +521,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void FluentAnnotationEdits_UseStoredOwnerCredentialsForEncryptedPdf() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted annotations"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
@@ -551,7 +551,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void StaticAnnotationResult_RetainsExplicitOwnerCredentialsForToDocument() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Static encrypted annotation"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
@@ -573,7 +573,7 @@ public class PdfAnnotationCreationTests {
 
     [Fact]
     public void FluentAnnotationFlatten_UsesStoredOwnerCredentialsDuringPreflight() {
-        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .FreeTextAnnotation("Encrypted annotation", 120, 30)
             .Paragraph(paragraph => paragraph.Text("Encrypted flatten"))
             .ToBytes();

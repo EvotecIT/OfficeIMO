@@ -5,8 +5,8 @@ using OfficeIMO.Benchmarks;
 namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
-/// Measures complete exports with the public defaults, including shared strings
-/// and explicit cell references. The compact streaming profile has a separate lane.
+/// Measures complete bounded exports with inline text and explicit cell references.
+/// The compact profile omits data cell references in a separate lane.
 /// </summary>
 [MemoryDiagnoser]
 public class ExcelDefaultTextWriteBenchmarks {
@@ -32,7 +32,19 @@ public class ExcelDefaultTextWriteBenchmarks {
     private byte[] WritePackage() {
         using var stream = new MemoryStream();
         using var reader = _table.CreateDataReader();
-        ExcelDocument.WriteDataReader(stream, reader);
+        var destination1 = stream;
+
+        var writeOptions1 = new ExcelWriterOptions {
+            UseSharedStrings = false,
+            CreateTable = false
+        };
+
+        using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
+            workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
+        }
+
+        if (destination1.CanSeek)
+            destination1.Position = 0;
         return stream.ToArray();
     }
 }

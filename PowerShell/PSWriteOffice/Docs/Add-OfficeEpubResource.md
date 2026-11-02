@@ -9,9 +9,9 @@ schema: 2.0.0
 Adds an image, font, stylesheet or media payload without executing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
-Add-OfficeEpubResource [-Path] <string> -Publication <EpubPublication> -Id <string> -MediaType <string> [-ContainerPath <string>] [-MaxInputBytes <long>] [-PassThru] [<CommonParameters>]
+Add-OfficeEpubResource [-Path] <string> -Id <string> -MediaType <string> [-ContainerPath <string>] [-MaxInputBytes <long>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,7 +32,7 @@ Optional package-relative path; omission uses EPUB/assets and the source filenam
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -43,12 +43,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
+
+```yaml
+Type: EpubPublication
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -Id
 Unique manifest identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +80,7 @@ Maximum input payload bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,7 +96,7 @@ Explicit MIME type.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -96,7 +112,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -112,7 +128,7 @@ Literal payload path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -120,22 +136,6 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Publication
-Live editable publication.
-
-```yaml
-Type: EpubPublication
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 

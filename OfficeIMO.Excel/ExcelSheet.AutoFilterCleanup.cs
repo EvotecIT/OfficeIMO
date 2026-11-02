@@ -14,19 +14,27 @@ namespace OfficeIMO.Excel {
                 }
 
                 var tableAutoFilter = table!.Elements<AutoFilter>().FirstOrDefault();
-                if (!A1.TryParseRange(tableRange!, out _, out int c1, out _, out int c2)) {
+                if (!ExcelA1.TryParseRange(tableRange!, out _, out int c1, out _, out int c2)) {
                     tableAutoFilter?.Remove();
                     DeferPartSave(tableDefinitionPart);
                     continue;
                 }
 
-                tableRanges.Add(A1.ParseRange(tableRange!));
+                tableRanges.Add(ExcelA1.ParseRange(tableRange!));
                 if (tableAutoFilter == null) {
                     continue;
                 }
 
-                if (!string.Equals(tableAutoFilter.Reference?.Value, tableRange, StringComparison.OrdinalIgnoreCase)) {
-                    tableAutoFilter.Reference = tableRange;
+                // Excel's table filter covers the header and data rows, not the totals row.
+                string filterRange = tableRange!;
+                int totalsRows = (int)(table.TotalsRowCount?.Value ?? 0U);
+                if (totalsRows > 0 && ExcelA1.TryParseRange(tableRange!, out int filterFirstRow, out _, out int filterLastRow, out _) &&
+                    filterLastRow - totalsRows >= filterFirstRow) {
+                    filterRange = ExcelA1.CellReference(filterFirstRow, c1) + ":" + ExcelA1.CellReference(filterLastRow - totalsRows, c2);
+                }
+
+                if (!string.Equals(tableAutoFilter.Reference?.Value, filterRange, StringComparison.OrdinalIgnoreCase)) {
+                    tableAutoFilter.Reference = filterRange;
                 }
 
                 NormalizeAutoFilterColumns(tableAutoFilter, c2 - c1 + 1);
@@ -39,7 +47,7 @@ namespace OfficeIMO.Excel {
             }
 
             string? worksheetRange = worksheetAutoFilter.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(worksheetRange) || !A1.TryParseRange(worksheetRange!, out int wsR1, out int wsC1, out int wsR2, out int wsC2)) {
+            if (string.IsNullOrWhiteSpace(worksheetRange) || !ExcelA1.TryParseRange(worksheetRange!, out int wsR1, out int wsC1, out int wsR2, out int wsC2)) {
                 ws.RemoveChild(worksheetAutoFilter);
                 return;
             }

@@ -39,7 +39,7 @@ public sealed class ExcelLegacyAuxiliaryEncryptionTests {
             Assert.Equal(stream.Value, encrypted.Streams[stream.Key]);
         using var loaded = ExcelDocument.LoadEncrypted(output, "test-password");
         Assert.Equal("Encrypted auxiliary preservation", loaded.Sheets[0].CellAt(1, 1).GetValue<string>());
-        byte[] unencryptedBytes = loaded.ToBytes(ExcelFileFormat.Xls);
+        byte[] unencryptedBytes = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         Assert.True(OfficeCompoundFileReader.TryRead(unencryptedBytes, out OfficeCompoundFile? plaintextCompound, out error), error);
         Assert.Equal(pivot, plaintextCompound!.Streams["_SX_DB_CUR/0001"]);
         Assert.Equal(revisions, plaintextCompound.Streams["Revision Log"]);

@@ -8,6 +8,7 @@ using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Html;
+using OfficeIMO.Internal;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -69,7 +70,7 @@ namespace OfficeIMO.Word.Html {
         private long _cssBytesUsed;
         private double _rootFontSizePixels = 16d;
         private HtmlCssProcessingBudget _cssProcessingBudget = new HtmlCssProcessingBudget(null);
-        private HtmlToWordOptions _options = new HtmlToWordOptions();
+        private WordHtmlImportOptions _options = new WordHtmlImportOptions();
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
         private static readonly HashSet<string> _blockTags = new(StringComparer.OrdinalIgnoreCase) {
             "p", "div", "section", "article", "aside", "nav", "header", "footer", "main",
@@ -77,9 +78,9 @@ namespace OfficeIMO.Word.Html {
             "ul", "ol", "li", "pre", "code", "blockquote", "figure", "figcaption",
             "h1", "h2", "h3", "h4", "h5", "h6", "address", "hr", "dd", "dt"
         };
-        internal async Task<WordDocument> ConvertAsync(IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+        internal async Task<WordDocument> ConvertAsync(IHtmlDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new HtmlToWordOptions();
+            options ??= new WordHtmlImportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 
             var wordDoc = WordDocument.Create();
@@ -114,10 +115,13 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+        internal async Task<IReadOnlyList<WordElement>> AddHtmlToBodyAsync(WordDocument doc, WordSection section, IHtmlDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new HtmlToWordOptions();
+            options ??= new WordHtmlImportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
+            Body body = doc._wordprocessingDocument?.MainDocumentPart?.Document?.Body
+                ?? throw new InvalidOperationException("The document body is unavailable.");
+            var existingBlocks = new HashSet<OpenXmlElement>(body.ChildElements, OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
             ApplyDocumentMetadata(doc, document);
 
             var listStack = new Stack<WordList>();
@@ -127,20 +131,23 @@ namespace OfficeIMO.Word.Html {
                 ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
             }
             InsertTopBookmarkIfNeeded(doc);
+            return WordSection.WrapBlockElements(doc,
+                body.ChildElements.Where(block => !existingBlocks.Contains(block)), cancellationToken);
         }
 
-        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordSection section, WordHeader header, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            await AddHtmlToHeaderFooterAsync(doc, section, header, document, options, cancellationToken).ConfigureAwait(false);
+        internal async Task<IReadOnlyList<WordElement>> AddHtmlToHeaderAsync(WordDocument doc, WordSection section, WordHeader header, IHtmlDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken = default) {
+            return await AddHtmlToHeaderFooterAsync(doc, section, header, document, options, cancellationToken).ConfigureAwait(false);
         }
 
-        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordSection section, WordFooter footer, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            await AddHtmlToHeaderFooterAsync(doc, section, footer, document, options, cancellationToken).ConfigureAwait(false);
+        internal async Task<IReadOnlyList<WordElement>> AddHtmlToFooterAsync(WordDocument doc, WordSection section, WordFooter footer, IHtmlDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken = default) {
+            return await AddHtmlToHeaderFooterAsync(doc, section, footer, document, options, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordSection section, WordHeaderFooter headerFooter, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken) {
+        private async Task<IReadOnlyList<WordElement>> AddHtmlToHeaderFooterAsync(WordDocument doc, WordSection section, WordHeaderFooter headerFooter, IHtmlDocument document, WordHtmlImportOptions options, CancellationToken cancellationToken) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new HtmlToWordOptions();
+            options ??= new WordHtmlImportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
+            var existingBlocks = new HashSet<OpenXmlElement>(headerFooter.ChildElements, OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
             ApplyDocumentMetadata(doc, document);
 
             var listStack = new Stack<WordList>();
@@ -149,18 +156,25 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
             }
+            return WordSection.WrapBlockElements(doc,
+                headerFooter.ChildElements.Where(block => !existingBlocks.Contains(block)), cancellationToken);
         }
 
-        internal async Task AddHtmlToTableCellAsync(
+        internal async Task<IReadOnlyList<WordElement>> AddHtmlToTableCellAsync(
             WordTableCell cell,
             IHtmlDocument document,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             CancellationToken cancellationToken = default) {
             if (cell == null) throw new ArgumentNullException(nameof(cell));
             if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new HtmlToWordOptions();
+            options ??= new WordHtmlImportOptions();
             await PrepareImportAsync(document, options, cancellationToken).ConfigureAwait(false);
 
+            var existingBlocks = new HashSet<OpenXmlElement>(cell._tableCell.ChildElements, OfficeReferenceEqualityComparer<OpenXmlElement>.Instance);
+            List<WordParagraph> paragraphs = cell.Paragraphs;
+            WordParagraph? placeholder = paragraphs.Count == 1 && IsReplaceableEmptyCellParagraph(paragraphs[0])
+                ? paragraphs[0]
+                : null;
             WordDocument doc = cell.Document;
             ApplyDocumentMetadata(doc, document);
             WordSection section = doc.Sections.First();
@@ -180,11 +194,19 @@ namespace OfficeIMO.Word.Html {
                     headingList: headingList);
             }
             InsertTopBookmarkIfNeeded(doc);
+            // Top-level inline HTML can fill the initial paragraph in place. Block HTML
+            // replaces it instead; native identity handles that without a count offset.
+            if (placeholder != null && ReferenceEquals(placeholder._paragraph.Parent, cell._tableCell) &&
+                !IsReplaceableEmptyCellParagraph(placeholder)) {
+                existingBlocks.Remove(placeholder._paragraph);
+            }
+            return WordSection.WrapBlockElements(doc,
+                cell._tableCell.ChildElements.Where(block => !existingBlocks.Contains(block)), cancellationToken);
         }
 
         private async Task PrepareImportAsync(
             IHtmlDocument document,
-            HtmlToWordOptions options,
+            WordHtmlImportOptions options,
             CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             ValidateResourceConcurrency(options);
@@ -243,7 +265,7 @@ namespace OfficeIMO.Word.Html {
             _computedFontSizePixels[native] = ResolveComputedFontSizePixels(source);
         }
 
-        private static void ValidateResourceConcurrency(HtmlToWordOptions options) {
+        private static void ValidateResourceConcurrency(WordHtmlImportOptions options) {
             if (options.MaxDecodedImagePixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDecodedImagePixels));
             if (options.MaxConcurrentResourceLoads <= 0) {
                 throw new ArgumentOutOfRangeException(

@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown.Pdf;
 
 // First-party Markdown to PDF conversion helpers.
 public static partial class MarkdownPdfConverterExtensions {
-    private static void ApplyMarkdownTextFallbackOptions(PdfCore.PdfOptions pdfOptions, MarkdownToPdfOptions options, MarkdownDoc document) {
+    private static void ApplyMarkdownTextFallbackOptions(PdfCore.PdfCreateOptions pdfOptions, MarkdownPdfExportOptions options, MarkdownDocument document) {
         bool hasCallerPdfOptions = options.PdfOptions != null;
         bool hasExplicitFontFamily = !string.IsNullOrWhiteSpace(options.FontFamily);
         if (hasExplicitFontFamily) {
@@ -55,7 +55,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static IEnumerable<string?> EnumerateMarkdownFallbackText(MarkdownDoc document, MarkdownToPdfOptions options) {
+    private static IEnumerable<string?> EnumerateMarkdownFallbackText(MarkdownDocument document, MarkdownPdfExportOptions options) {
         yield return document.ToMarkdown();
 
         foreach (SemanticFencedBlock semantic in document.DescendantsOfType<SemanticFencedBlock>()) {
@@ -70,7 +70,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 yield return category;
             }
 
-            foreach (OfficeChartSeries series in snapshot.Data.Series) {
+            foreach (OfficeSeries series in snapshot.Data.Series) {
                 yield return series.Name;
             }
 
@@ -88,7 +88,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static bool MarkdownDocumentUsesCodeFont(MarkdownDoc document) {
+    private static bool MarkdownDocumentUsesCodeFont(MarkdownDocument document) {
         foreach (IMarkdownBlock block in document.DescendantsAndSelf()) {
             if (MarkdownBlockUsesCodeFont(block)) {
                 return true;
@@ -186,7 +186,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static IReadOnlyList<PdfCore.PdfStandardFont> CreateMarkdownReservedFontSlots(PdfCore.PdfOptions pdfOptions, bool includeDocumentFontSlots, bool reserveCourier) {
+    private static IReadOnlyList<PdfCore.PdfStandardFont> CreateMarkdownReservedFontSlots(PdfCore.PdfCreateOptions pdfOptions, bool includeDocumentFontSlots, bool reserveCourier) {
         var slots = new List<PdfCore.PdfStandardFont>();
         if (reserveCourier) {
             slots.Add(PdfCore.PdfStandardFont.Courier);

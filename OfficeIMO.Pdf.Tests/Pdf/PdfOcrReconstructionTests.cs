@@ -39,7 +39,7 @@ public sealed class PdfOcrReconstructionTests {
             result.Ocr.Pages[0].Words.Select(static word => (word.ProviderSequence, word.X, word.Y, word.Width, word.Height)));
         byte[] searchable = result.Document.ToBytes();
         Assert.Equal(PdfPageImageRenderer.RenderPageAsPng(source), PdfPageImageRenderer.RenderPageAsPng(searchable));
-        Assert.Equal(expected, Normalize(PdfDocument.Load(searchable).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Text));
+        Assert.Equal(expected, Normalize(PdfDocument.Load(searchable).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text));
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public sealed class PdfOcrReconstructionTests {
         Assert.True(table.VisualBounds!.Width > 0D);
         Assert.True(table.VisualBounds.Height > 0D);
         PdfLogicalTable readback = Assert.Single(PdfDocument.Load(result.Document.ToBytes())
-            .Read(new PdfReadOptions { Profile = PdfReadProfile.Structured }).Tables);
+            .Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Tables);
         Assert.Equal(PdfLogicalContentSourceKind.Native, readback.SourceKind);
         for (int index = 0; index < expected.Length; index++) Assert.Equal(expected[index], readback.Rows[index]);
         foreach (PdfLogicalTable detected in new[] { table, readback }) {

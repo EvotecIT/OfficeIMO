@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Assigns a project resource to a task by stable UID.</summary>
 ///   <code>$project | Add-OfficeProjectAssignment -TaskUid 1 -ResourceUid 1 -UnitsPercent 50</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeProjectAssignment")]
+[Cmdlet(VerbsCommon.Add, "OfficeProjectAssignment", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectAssignment))]
 public sealed class AddOfficeProjectAssignmentCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

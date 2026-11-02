@@ -9,14 +9,14 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class PdfReadLayoutSmokeTests {
     private static byte[] BuildThreePageTablePdf() {
-        return PdfDocument.Create(new PdfOptions {
-                PageWidth = 420,
-                PageHeight = 320,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        return PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(p => p.Text("First page table."))
             .Table(new[] {
@@ -38,10 +38,10 @@ public sealed partial class PdfReadLayoutSmokeTests {
 
     private static PdfTableStyle TableStyle() {
         return new PdfTableStyle {
-            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70, 170, 60 },
+            ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
             HeaderRowCount = 1,
-            CellPaddingX = 6,
-            CellPaddingY = 4
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
         };
     }
 

@@ -7,21 +7,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartExplodedSlicesTests {
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExplodedSlice_OffsetsOnlySelectedPointAndFitsCanvas(OfficeChartKind kind) {
-        var series = new OfficeChartSeries("Status", new[] { 5d, 5d })
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExplodedSlice_OffsetsOnlySelectedPointAndFitsCanvas(OfficeChartType kind) {
+        var series = new OfficeSeries("Status", new[] { 5d, 5d })
             .WithPointExplosions(new[] { 25, 0 });
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, kind, data, 320, 240,
+            new OfficeChartSnapshot("", null, kind, data, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240),
                 null, new OfficeChartLayout(showLegend: false)), false);
         OfficeDrawingShape[] slices = drawing.Shapes
             .Where(item => item.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
         Assert.Equal(2, slices.Length);
         double firstX = slices[0].X + slices[0].Shape.Points[0].X;
         double secondX = slices[1].X + slices[1].Shape.Points[0].X;
-        if (kind == OfficeChartKind.Pie) {
+        if (kind == OfficeChartType.Pie) {
             double centerY = slices[0].Y + slices[0].Shape.Points[0].Y;
             OfficePoint outer = slices[0].Shape.Points[1];
             double radius = Math.Sqrt(Math.Pow(slices[0].X + outer.X - firstX, 2) +
@@ -40,11 +40,11 @@ public sealed class DrawingChartExplodedSlicesTests {
     [Fact]
     public void InnerDoughnutRing_ExplosionUsesItsOwnRadius() {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Inner", new[] { 5d, 5d }).WithPointExplosions(new[] { 25, 0 }),
-            new OfficeChartSeries("Outer", new[] { 5d, 5d })
+            new OfficeSeries("Inner", new[] { 5d, 5d }).WithPointExplosions(new[] { 25, 0 }),
+            new OfficeSeries("Outer", new[] { 5d, 5d })
         });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, OfficeChartKind.Doughnut, data, 320, 240,
+            new OfficeChartSnapshot("", null, OfficeChartType.Doughnut, data, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240),
                 null, new OfficeChartLayout(showLegend: false)), false);
         OfficeDrawingShape[] slices = drawing.Shapes
             .Where(item => item.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
@@ -60,7 +60,7 @@ public sealed class DrawingChartExplodedSlicesTests {
 
     [Fact]
     public void ExplosionValues_AreAlignedBoundedAndRetainedAcrossSeriesCopies() {
-        var series = new OfficeChartSeries("Status", new[] { 5d, 5d })
+        var series = new OfficeSeries("Status", new[] { 5d, 5d })
             .WithPointExplosions(new[] { 25, 0 })
             .WithPointStyles(new OfficeChartPointStyle?[] { null, null })
             .WithLegendVisibility(false);
@@ -69,6 +69,6 @@ public sealed class DrawingChartExplodedSlicesTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => series.WithPointExplosions(new[] { 401, 0 }));
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         Assert.Throws<NotSupportedException>(() => OfficeChartDrawingRenderer.Render(
-            new OfficeChartSnapshot("", null, OfficeChartKind.Line, data, 320, 240)));
+            new OfficeChartSnapshot("", null, OfficeChartType.Line, data, global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240))));
     }
 }

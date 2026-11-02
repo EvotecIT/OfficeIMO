@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Excel
             string filePath = Path.Combine(folderPath, "PS-RoundTrip.xlsx");
 
             // 1) Write: create workbook with a simple sheet
-            using (var doc = ExcelDocument.Create(filePath, "Data"))
+            using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var s = doc.Sheets[0];
                 s.CellValue(1, 1, "Name");
@@ -39,9 +39,9 @@ namespace OfficeIMO.Examples.Excel
 
             // 2) Modify: read through the package-owned Excel API, then update and save
             var updates = new List<(int RowNumber, int? Value, string Status)>();
-            using (var reader = ExcelDocument.OpenDataReader(
+            using (var reader = ExcelDocument.OpenReader(
                 filePath,
-                new ExcelReadOptions { SheetName = "Data" }))
+                new ExcelReaderOptions { SheetName = "Data" }))
             {
                 int rowNumber = 2;
                 while (reader.Read())
@@ -78,9 +78,9 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // 3) Read again and emit JSON lines for PowerShell consumption
-            using var finalReader = ExcelDocument.OpenDataReader(
+            using var finalReader = ExcelDocument.OpenReader(
                 filePath,
-                new ExcelReadOptions { SheetName = "Data" });
+                new ExcelReaderOptions { SheetName = "Data" });
             var jsonOptions = new JsonSerializerOptions { WriteIndented = false };
             while (finalReader.Read())
             {

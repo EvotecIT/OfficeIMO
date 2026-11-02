@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageBackground_RendersBeforePageContent() {
             byte[] pdfBytes = PdfDocument.Create()
-                .Background(PdfColor.FromRgb(240, 248, 255))
+                .Background(global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255))
                 .Paragraph(paragraph => paragraph.Text("DocBackgroundMarker"))
                 .ToBytes();
 
@@ -26,12 +26,12 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void PageBackground_CanBeOverriddenPerComposedPage() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
-                    BackgroundColor = PdfColor.White
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
+                    BackgroundColor = global::OfficeIMO.OfficeColor.White
                 })
                 .Page(page => page
-                    .Size(300, 400)
-                    .Background(PdfColor.FromRgb(238, 242, 255))
+                    .Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400))
+                    .Background(global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
                     .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("PageBackgroundMarker")))))
                 .ToBytes();
 
@@ -43,20 +43,20 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeContent_ItemAndSpacerProvideDirectWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Item(item => item
                             .H1("DirectComposeTitle")
                             .Paragraph(paragraph => paragraph.Text("DirectComposeLead")))
-                        .Spacer(24)
+                        .Spacer(global::OfficeIMO.OfficeLength.Points(24))
                         .Column(column => column
                             .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeTop")))
-                            .Spacer(18)
+                            .Spacer(global::OfficeIMO.OfficeLength.Points(18))
                             .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeBottom")))))))
                 .ToBytes();
 
@@ -78,12 +78,12 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeContent_PageBreaksProvideDirectWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Item(item => item.Paragraph(paragraph => paragraph.Text("DirectPageOne")))
                         .PageBreak()
@@ -104,12 +104,12 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ComposeItem_ElementPageBreakProvidesNestedWordLikeFlow() {
-            byte[] pdfBytes = PdfDocument.Create(new PdfOptions {
+            byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 12
+                    DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12)
                 })
                 .Compose(compose => compose.Page(page => page
-                    .Margin(72)
+                    .Margin(global::OfficeIMO.OfficeLength.Points(72))
                     .Content(content => content
                         .Column(column => column
                             .Item(item => item

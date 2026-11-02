@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         [InlineData("MODE(ABS(Data!B1:B4-3))", false)]
         public void Computed_arrays_retain_array_evaluation_across_function_arguments(string expression, bool arrayFormula) {
             foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xls, ExcelFileFormat.Xlsb }) {
-                using ExcelDocument seed = ExcelDocument.Create(); seed.AddWorksheet("Data"); seed.AddWorksheet("Formulas");
+                using ExcelDocument seed = ExcelDocument.Create(); seed.AddSheet("Data"); seed.AddSheet("Formulas");
                 using ExcelDocument document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
                 if (arrayFormula) document.Sheets[1].SetArrayFormula("D1:D1", expression);
                 else document.Sheets[1].CellFormula(1, 4, expression);
@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Legacy_CSE_conditionals_keep_array_operands_under_an_aggregate() {
-            using ExcelDocument document = ExcelDocument.Create(); document.AddWorksheet("Data");
-            document.AddWorksheet("Formulas").SetArrayFormula("D1:D1", "SUM(IF(Data!A1:A4>0,Data!A1:A4,0))");
-            var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+            using ExcelDocument document = ExcelDocument.Create(); document.AddSheet("Data");
+            document.AddSheet("Formulas").SetArrayFormula("D1:D1", "SUM(IF(Data!A1:A4>0,Data!A1:A4,0))");
+            var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             var areas = native.FormulaTokenRecords.Where(token => token.TokenName == "PtgArea3d").ToArray();
             Assert.Equal(2, areas.Length);
             Assert.All(areas, token => Assert.Equal((byte)0x7b, token.Token));
@@ -105,10 +105,10 @@ namespace OfficeIMO.Tests {
         [InlineData("CHOOSE(A1,IF(B1>0,C1,D1),E1)>0")]
         public void Choose_formula_references_rebase_for_validation_and_conditional_formatting(string expression) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Rules");
+            ExcelSheet sheet = document.AddSheet("Rules");
             sheet.ValidationCustomFormula("D4:D5", expression);
             sheet.AddConditionalFormulaRule("D4:D5", expression);
-            var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+            var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             Assert.Equal(expression, Assert.Single(native.Worksheets[0].DataValidations).Formula1);
             Assert.Equal(expression, Assert.Single(native.Worksheets[0].ConditionalFormattings).Formula1);
         }
@@ -120,8 +120,8 @@ namespace OfficeIMO.Tests {
         [InlineData("SUM(IF(1,{1,2},0))")]
         public void Native_control_flow_offsets_land_on_token_boundaries(string expression) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Formulas").CellFormula(1, 1, expression);
-            var native = LegacyXlsWorkbook.Load(document.ToBytes(ExcelFileFormat.Xls));
+            document.AddSheet("Formulas").CellFormula(1, 1, expression);
+            var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             var formula = BiffRecordReader.ReadRecords(native.SourceCompoundFile!.Streams["Workbook"], new()).Single(record => record.Type == 6);
             byte[] bytes = formula.Payload.Skip(22).Take(BiffRecordReader.ReadUInt16(formula.Payload, 20)).ToArray();
             var scanned = new List<LegacyXlsFormulaTokenRecord>();
@@ -149,9 +149,9 @@ namespace OfficeIMO.Tests {
         [InlineData("IF(A1>0,SUM(Data!A1:A3),0)", 0x3b)]
         public void Native_reference_classes_preserve_function_argument_semantics(string expression, byte expectedReference) {
             using ExcelDocument seed = ExcelDocument.Create();
-            ExcelSheet data = seed.AddWorksheet("Data");
+            ExcelSheet data = seed.AddSheet("Data");
             data.CellValue(1, 1, 10D); data.CellValue(2, 1, 20D); data.CellValue(3, 1, 30D);
-            seed.AddWorksheet("Formulas").CellValue(1, 1, 20D);
+            seed.AddSheet("Formulas").CellValue(1, 1, 20D);
             foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xls, ExcelFileFormat.Xlsb }) {
                 using ExcelDocument document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
                 document.Sheets[1].CellFormula(1, 2, expression);
@@ -177,8 +177,8 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xls)]
         [InlineData(ExcelFileFormat.Xlsb)]
         public void A_range_returning_function_remains_a_reference_inside_SUM(ExcelFileFormat format) {
-            using ExcelDocument seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, 10D);
-            seed.AddWorksheet("Formulas");
+            using ExcelDocument seed = ExcelDocument.Create(); seed.AddSheet("Data").CellValue(1, 1, 10D);
+            seed.AddSheet("Formulas");
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
             document.Sheets[1].CellFormula(1, 1, "SUM(OFFSET(Data!A1,0,0,3,1))");
             byte[] output = document.ToBytes(format);

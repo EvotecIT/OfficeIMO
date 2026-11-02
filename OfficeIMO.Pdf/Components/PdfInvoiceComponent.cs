@@ -109,7 +109,7 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
             .Table(new[] {
                 new[] { "Seller", Seller.ToDisplayText(), "Customer", Customer.ToDisplayText() },
                 new[] { "Issued", IssueDate.ToString("d", _culture), "Due", DueDate?.ToString("d", _culture) ?? string.Empty }
-            }, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 12 });
+            }, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = global::OfficeIMO.OfficeLength.Points(12) });
 
         var rows = new List<string[]> {
             InvoiceHeaders
@@ -121,7 +121,7 @@ public sealed class PdfInvoiceComponent : IPdfComponent {
             line.TaxRate.ToString("P0", _culture),
             Money(line.Total)
         }));
-        content.Table(rows, style: new PdfTableStyle { HeaderRowCount = 1, SpacingAfter = 10 });
+        content.Table(rows, style: new PdfTableStyle { HeaderRowCount = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(10) });
         content.Paragraph(paragraph => paragraph
             .Bold("Subtotal: ").Text(Money(Subtotal))
             .LineBreak().Bold("Tax: ").Text(Money(Tax))

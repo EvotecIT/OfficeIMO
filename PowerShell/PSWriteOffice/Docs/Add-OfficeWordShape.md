@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a basic OfficeIMO Word shape to the current paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordShape [-Type <WordShapeType>] [-Width <double>] [-Height <double>] [-Left <Double>] [-Top <Double>] [-FillColor <string>] [-StrokeColor <string>] [-StrokeWidth <Double>] [-Title <string>] [-Description <string>] [-PassThru] [<CommonParameters>]
 ```
@@ -46,7 +46,7 @@ Optional alternate text metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -62,7 +62,7 @@ Fill color. Named colors and hexadecimal values are accepted.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -78,7 +78,7 @@ Height in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -94,7 +94,7 @@ Anchored left position in points. When omitted, the shape is inline.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -110,7 +110,7 @@ Emit the created shape.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -126,7 +126,7 @@ Stroke color. Named colors and hexadecimal values are accepted.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -142,7 +142,7 @@ Stroke width in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -158,7 +158,7 @@ Optional title metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -174,7 +174,7 @@ Anchored top position in points. When omitted, the shape is inline.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -190,7 +190,7 @@ Shape type to add.
 
 ```yaml
 Type: WordShapeType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Rectangle, Ellipse, Line, RoundedRectangle, Triangle, Diamond, Pentagon, Hexagon, Parallelogram, Trapezoid, Chevron, Plus, RightArrow, LeftArrow, UpArrow, DownArrow, LeftRightArrow, Star5, Heart, Cloud, Donut, Can, Cube
 
@@ -206,7 +206,7 @@ Width in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

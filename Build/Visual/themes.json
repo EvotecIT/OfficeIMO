@@ -1,0 +1,2533 @@
+{
+  "$comment": "OfficeIMO built-in themes. Maps 1:1 onto OfficeIMO.Core/Themes (M1). Lengths are points (OfficeLength.Points). Colours are RRGGBB literals or OfficeColor role names (Accent1-6, Text, TextMuted, Background, Success, Warning, Danger); palette entries are always literal. 'extensions' and 'derived' map onto the remaining theme components (text style, surfaces, page, footer, table and chart details); OfficeIMO.Core/Themes/generate_theme_builtins.py generates the built-in themes from this file; 'checks' is generated and must not be edited by hand.",
+  "version": "3.6-design-1",
+  "generatedBy": "build_themes.py (design source and colour checks; mockups are generated from this file)",
+  "derivationRules": {
+    "statusFill": "status colour composited over the background at 12 % (light themes) or 18 % (Dark)",
+    "accent1Tint": "Accent1 composited over the background at 10 %",
+    "roleResolution": "OfficeColor.Resolve(theme)"
+  },
+  "themes": [
+    {
+      "name": "Modern",
+      "default": true,
+      "intent": "Default. Clean sans-serif, cobalt accent, airy tables with a tinted header. For status reports, exports, dashboards and anything generated without a brief.",
+      "palette": {
+        "background": "FFFFFF",
+        "text": "1B2433",
+        "textMuted": "5B6575",
+        "accent1": "3F64D7",
+        "accent2": "DC7536",
+        "accent3": "058E80",
+        "accent4": "A52758",
+        "accent5": "3F2F6B",
+        "accent6": "255319",
+        "success": "08684A",
+        "warning": "865500",
+        "danger": "BF3B2C"
+      },
+      "fonts": {
+        "heading": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "body": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        }
+      },
+      "typeScale": {
+        "title": 28,
+        "heading1": 20,
+        "heading2": 15,
+        "heading3": 12.5,
+        "heading4": 11,
+        "heading5": 11,
+        "heading6": 10,
+        "body": 11,
+        "caption": 9
+      },
+      "tableStyle": {
+        "headerFill": "EAF0FC",
+        "headerText": "Text",
+        "banding": true,
+        "bandFill": "F6F8FB",
+        "borderColor": "DCE2EA",
+        "borderWidth": 0.5,
+        "cellPadding": 5
+      },
+      "chartStyle": {
+        "seriesPalette": [
+          "Accent1",
+          "Accent2",
+          "Accent3",
+          "Accent4",
+          "Accent5",
+          "Accent6"
+        ],
+        "axisFont": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "titleFont": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "axisFontSize": 9,
+        "titleFontSize": 12,
+        "gridlineColor": "E6EAF0",
+        "showDataLabels": false,
+        "showLegend": true
+      },
+      "spacing": {
+        "paragraphBefore": 0,
+        "paragraphAfter": 8,
+        "listIndent": 18,
+        "slideMarginTop": 36,
+        "slideMarginRight": 48,
+        "slideMarginBottom": 36,
+        "slideMarginLeft": 48
+      },
+      "extensions": {
+        "lineSpacing": 1.2,
+        "headingColor": "Text",
+        "titleColor": "Text",
+        "subtitleColor": "Accent1",
+        "headingBold": true,
+        "headingSpacing": {
+          "title": [
+            0,
+            6
+          ],
+          "heading1": [
+            18,
+            6
+          ],
+          "heading2": [
+            14,
+            4
+          ],
+          "heading3": [
+            12,
+            3
+          ]
+        },
+        "surface": "F6F8FB",
+        "rule": "DCE2EA",
+        "link": "Accent1",
+        "table": {
+          "borderMode": "horizontal",
+          "headerRule": {
+            "color": "Accent1",
+            "width": 1.0
+          },
+          "headerBold": true,
+          "numbersAlign": "right"
+        },
+        "chart": {
+          "axisLine": "C9D0DA",
+          "axisText": "TextMuted",
+          "gridlineWidth": 0.5,
+          "lineWidth": 2.0,
+          "barGapPercent": 60,
+          "markers": "none"
+        },
+        "page": {
+          "marginTop": 64,
+          "marginRight": 64,
+          "marginBottom": 56,
+          "marginLeft": 64
+        },
+        "footer": {
+          "size": 8.5,
+          "color": "TextMuted",
+          "rule": null
+        }
+      },
+      "derived": {
+        "successFill": "E1EDE9",
+        "warningFill": "F0EBE0",
+        "dangerFill": "F7E7E6",
+        "accent1Tint": "ECF0FB"
+      },
+      "checks": {
+        "contrast": [
+          {
+            "pair": "text on background",
+            "foreground": "1B2433",
+            "background": "FFFFFF",
+            "ratio": 15.59,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on background",
+            "foreground": "5B6575",
+            "background": "FFFFFF",
+            "ratio": 5.89,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "heading colour on background",
+            "foreground": "1B2433",
+            "background": "FFFFFF",
+            "ratio": 15.59,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "subtitle colour on background",
+            "foreground": "3F64D7",
+            "background": "FFFFFF",
+            "ratio": 5.23,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "link colour on background",
+            "foreground": "3F64D7",
+            "background": "FFFFFF",
+            "ratio": 5.23,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "table headerText on headerFill",
+            "foreground": "1B2433",
+            "background": "EAF0FC",
+            "ratio": 13.64,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on table bandFill",
+            "foreground": "1B2433",
+            "background": "F6F8FB",
+            "ratio": 14.66,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on table bandFill",
+            "foreground": "5B6575",
+            "background": "F6F8FB",
+            "ratio": 5.54,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "chart axis text on background",
+            "foreground": "5B6575",
+            "background": "FFFFFF",
+            "ratio": 5.89,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on background",
+            "foreground": "08684A",
+            "background": "FFFFFF",
+            "ratio": 6.8,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on successFill",
+            "foreground": "08684A",
+            "background": "E1EDE9",
+            "ratio": 5.66,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on successFill",
+            "foreground": "1B2433",
+            "background": "E1EDE9",
+            "ratio": 12.99,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on background",
+            "foreground": "865500",
+            "background": "FFFFFF",
+            "ratio": 6.34,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on warningFill",
+            "foreground": "865500",
+            "background": "F0EBE0",
+            "ratio": 5.33,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on warningFill",
+            "foreground": "1B2433",
+            "background": "F0EBE0",
+            "ratio": 13.12,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on background",
+            "foreground": "BF3B2C",
+            "background": "FFFFFF",
+            "ratio": 5.42,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on dangerFill",
+            "foreground": "BF3B2C",
+            "background": "F7E7E6",
+            "ratio": 4.52,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on dangerFill",
+            "foreground": "1B2433",
+            "background": "F7E7E6",
+            "ratio": 13.01,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "series 1 mark on background",
+            "foreground": "3F64D7",
+            "background": "FFFFFF",
+            "ratio": 5.23,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 2 mark on background",
+            "foreground": "DC7536",
+            "background": "FFFFFF",
+            "ratio": 3.16,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 3 mark on background",
+            "foreground": "058E80",
+            "background": "FFFFFF",
+            "ratio": 4.05,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 4 mark on background",
+            "foreground": "A52758",
+            "background": "FFFFFF",
+            "ratio": 6.93,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 5 mark on background",
+            "foreground": "3F2F6B",
+            "background": "FFFFFF",
+            "ratio": 11.47,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 6 mark on background",
+            "foreground": "255319",
+            "background": "FFFFFF",
+            "ratio": 9.01,
+            "required": 3.0,
+            "pass": true
+          }
+        ],
+        "decorative": [
+          {
+            "pair": "gridline",
+            "foreground": "E6EAF0",
+            "background": "FFFFFF",
+            "ratio": 1.21,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          },
+          {
+            "pair": "table border",
+            "foreground": "DCE2EA",
+            "background": "FFFFFF",
+            "ratio": 1.3,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          }
+        ],
+        "seriesColourVision": {
+          "normal": {
+            "minDeltaE2000": 22.7,
+            "closestPair": [
+              1,
+              5
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 13.2,
+            "closestPair": [
+              4,
+              5
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 13.8,
+            "closestPair": [
+              4,
+              6
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.6,
+            "closestPair": [
+              1,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 6.8,
+            "closestPair": [
+              5,
+              6
+            ],
+            "lightness": [
+              45.7,
+              60.1,
+              52.9,
+              38.1,
+              24.2,
+              31.0
+            ]
+          },
+          "simulated": {
+            "protanopia": [
+              "0874DB",
+              "92832E",
+              "878580",
+              "454A59",
+              "153A6D",
+              "554B12"
+            ],
+            "deuteranopia": [
+              "0066D5",
+              "AB9A34",
+              "777981",
+              "666355",
+              "18386A",
+              "4F471E"
+            ],
+            "tritanopia": [
+              "008094",
+              "F15F68",
+              "00918A",
+              "B30C3C",
+              "343B48",
+              "215047"
+            ],
+            "greyscale": [
+              "6C6C6C",
+              "919191",
+              "7E7E7E",
+              "5A5A5A",
+              "393939",
+              "494949"
+            ]
+          },
+          "method": "Machado et al. 2009 full-severity matrices in linear sRGB; CIEDE2000 minimum over all pairs; greyscale = WCAG relative luminance; lightness = CIE L*"
+        },
+        "statusColourVision": {
+          "normal": {
+            "minDeltaE2000": 24.0,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 6.5,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 6.7,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.6,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 1.9,
+            "closestPair": [
+              1,
+              2
+            ],
+            "lightness": [
+              38.6,
+              40.5,
+              44.8
+            ]
+          }
+        },
+        "allContrastPass": true
+      }
+    },
+    {
+      "name": "Classic",
+      "intent": "Traditional serif document: navy headings, warm neutrals, solid navy table header. For policies, proposals, contracts and formal letters that will be printed.",
+      "palette": {
+        "background": "FFFFFF",
+        "text": "1F1F1F",
+        "textMuted": "5C5850",
+        "accent1": "1F3A5F",
+        "accent2": "BB8842",
+        "accent3": "8A1D3E",
+        "accent4": "03655B",
+        "accent5": "3A85AD",
+        "accent6": "A3553A",
+        "success": "08684A",
+        "warning": "865500",
+        "danger": "BF3B2C"
+      },
+      "fonts": {
+        "heading": {
+          "family": "Cambria",
+          "fallbacks": [
+            "Caladea",
+            "Georgia",
+            "Liberation Serif",
+            "Times New Roman",
+            "serif"
+          ]
+        },
+        "body": {
+          "family": "Cambria",
+          "fallbacks": [
+            "Caladea",
+            "Georgia",
+            "Liberation Serif",
+            "Times New Roman",
+            "serif"
+          ]
+        }
+      },
+      "typeScale": {
+        "title": 30,
+        "heading1": 20,
+        "heading2": 15.5,
+        "heading3": 13,
+        "heading4": 11.5,
+        "heading5": 11,
+        "heading6": 10.5,
+        "body": 11,
+        "caption": 9
+      },
+      "tableStyle": {
+        "headerFill": "Accent1",
+        "headerText": "Background",
+        "banding": true,
+        "bandFill": "F7F4EE",
+        "borderColor": "D9D1C3",
+        "borderWidth": 0.5,
+        "cellPadding": 5
+      },
+      "chartStyle": {
+        "seriesPalette": [
+          "Accent1",
+          "Accent2",
+          "Accent3",
+          "Accent4",
+          "Accent5",
+          "Accent6"
+        ],
+        "axisFont": {
+          "family": "Calibri",
+          "fallbacks": [
+            "Carlito",
+            "Aptos",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "titleFont": {
+          "family": "Calibri",
+          "fallbacks": [
+            "Carlito",
+            "Aptos",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "axisFontSize": 9,
+        "titleFontSize": 12,
+        "gridlineColor": "E7E2D8",
+        "showDataLabels": false,
+        "showLegend": true
+      },
+      "spacing": {
+        "paragraphBefore": 0,
+        "paragraphAfter": 10,
+        "listIndent": 20,
+        "slideMarginTop": 40,
+        "slideMarginRight": 54,
+        "slideMarginBottom": 40,
+        "slideMarginLeft": 54
+      },
+      "extensions": {
+        "lineSpacing": 1.25,
+        "headingColor": "Accent1",
+        "titleColor": "Accent1",
+        "subtitleColor": "8A6427",
+        "headingBold": true,
+        "headingSpacing": {
+          "title": [
+            0,
+            4
+          ],
+          "heading1": [
+            20,
+            8
+          ],
+          "heading2": [
+            16,
+            6
+          ],
+          "heading3": [
+            12,
+            4
+          ]
+        },
+        "surface": "F7F4EE",
+        "rule": "D9D1C3",
+        "link": "Accent1",
+        "titleRule": {
+          "color": "Accent2",
+          "width": 1.5
+        },
+        "table": {
+          "borderMode": "horizontal",
+          "headerRule": null,
+          "headerBold": true,
+          "numbersAlign": "right"
+        },
+        "chart": {
+          "axisLine": "BDB4A4",
+          "axisText": "TextMuted",
+          "gridlineWidth": 0.5,
+          "lineWidth": 1.75,
+          "barGapPercent": 70,
+          "markers": "circle"
+        },
+        "page": {
+          "marginTop": 72,
+          "marginRight": 72,
+          "marginBottom": 64,
+          "marginLeft": 72
+        },
+        "footer": {
+          "size": 9,
+          "color": "TextMuted",
+          "rule": "D9D1C3"
+        }
+      },
+      "derived": {
+        "successFill": "E1EDE9",
+        "warningFill": "F0EBE0",
+        "dangerFill": "F7E7E6",
+        "accent1Tint": "E9EBEF"
+      },
+      "checks": {
+        "contrast": [
+          {
+            "pair": "text on background",
+            "foreground": "1F1F1F",
+            "background": "FFFFFF",
+            "ratio": 16.48,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on background",
+            "foreground": "5C5850",
+            "background": "FFFFFF",
+            "ratio": 7.08,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "heading colour on background",
+            "foreground": "1F3A5F",
+            "background": "FFFFFF",
+            "ratio": 11.48,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "subtitle colour on background",
+            "foreground": "8A6427",
+            "background": "FFFFFF",
+            "ratio": 5.34,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "link colour on background",
+            "foreground": "1F3A5F",
+            "background": "FFFFFF",
+            "ratio": 11.48,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "table headerText on headerFill",
+            "foreground": "FFFFFF",
+            "background": "1F3A5F",
+            "ratio": 11.48,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on table bandFill",
+            "foreground": "1F1F1F",
+            "background": "F7F4EE",
+            "ratio": 15.01,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on table bandFill",
+            "foreground": "5C5850",
+            "background": "F7F4EE",
+            "ratio": 6.45,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "chart axis text on background",
+            "foreground": "5C5850",
+            "background": "FFFFFF",
+            "ratio": 7.08,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on background",
+            "foreground": "08684A",
+            "background": "FFFFFF",
+            "ratio": 6.8,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on successFill",
+            "foreground": "08684A",
+            "background": "E1EDE9",
+            "ratio": 5.66,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on successFill",
+            "foreground": "1F1F1F",
+            "background": "E1EDE9",
+            "ratio": 13.73,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on background",
+            "foreground": "865500",
+            "background": "FFFFFF",
+            "ratio": 6.34,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on warningFill",
+            "foreground": "865500",
+            "background": "F0EBE0",
+            "ratio": 5.33,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on warningFill",
+            "foreground": "1F1F1F",
+            "background": "F0EBE0",
+            "ratio": 13.87,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on background",
+            "foreground": "BF3B2C",
+            "background": "FFFFFF",
+            "ratio": 5.42,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on dangerFill",
+            "foreground": "BF3B2C",
+            "background": "F7E7E6",
+            "ratio": 4.52,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on dangerFill",
+            "foreground": "1F1F1F",
+            "background": "F7E7E6",
+            "ratio": 13.76,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "series 1 mark on background",
+            "foreground": "1F3A5F",
+            "background": "FFFFFF",
+            "ratio": 11.48,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 2 mark on background",
+            "foreground": "BB8842",
+            "background": "FFFFFF",
+            "ratio": 3.13,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 3 mark on background",
+            "foreground": "8A1D3E",
+            "background": "FFFFFF",
+            "ratio": 9.03,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 4 mark on background",
+            "foreground": "03655B",
+            "background": "FFFFFF",
+            "ratio": 6.96,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 5 mark on background",
+            "foreground": "3A85AD",
+            "background": "FFFFFF",
+            "ratio": 4.09,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 6 mark on background",
+            "foreground": "A3553A",
+            "background": "FFFFFF",
+            "ratio": 5.36,
+            "required": 3.0,
+            "pass": true
+          }
+        ],
+        "decorative": [
+          {
+            "pair": "gridline",
+            "foreground": "E7E2D8",
+            "background": "FFFFFF",
+            "ratio": 1.29,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          },
+          {
+            "pair": "table border",
+            "foreground": "D9D1C3",
+            "background": "FFFFFF",
+            "ratio": 1.52,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          }
+        ],
+        "seriesColourVision": {
+          "normal": {
+            "minDeltaE2000": 21.2,
+            "closestPair": [
+              3,
+              6
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 12.7,
+            "closestPair": [
+              3,
+              4
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 14.7,
+            "closestPair": [
+              2,
+              6
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.1,
+            "closestPair": [
+              3,
+              6
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 6.8,
+            "closestPair": [
+              1,
+              3
+            ],
+            "lightness": [
+              24.1,
+              60.4,
+              30.9,
+              38.0,
+              52.6,
+              45.1
+            ]
+          },
+          "simulated": {
+            "protanopia": [
+              "2A3D61",
+              "9A8A3B",
+              "3A3B3F",
+              "5F5E5B",
+              "7284AF",
+              "6A6037"
+            ],
+            "deuteranopia": [
+              "21375E",
+              "A69744",
+              "56513B",
+              "54565C",
+              "6278AC",
+              "7C7139"
+            ],
+            "tritanopia": [
+              "004248",
+              "CB7B78",
+              "97002B",
+              "006762",
+              "008F92",
+              "B2464F"
+            ],
+            "greyscale": [
+              "393939",
+              "929292",
+              "494949",
+              "595959",
+              "7E7E7E",
+              "6B6B6B"
+            ]
+          },
+          "method": "Machado et al. 2009 full-severity matrices in linear sRGB; CIEDE2000 minimum over all pairs; greyscale = WCAG relative luminance; lightness = CIE L*"
+        },
+        "statusColourVision": {
+          "normal": {
+            "minDeltaE2000": 24.0,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 6.5,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 6.7,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.6,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 1.9,
+            "closestPair": [
+              1,
+              2
+            ],
+            "lightness": [
+              38.6,
+              40.5,
+              44.8
+            ]
+          }
+        },
+        "allContrastPass": true
+      }
+    },
+    {
+      "name": "Minimal",
+      "intent": "Swiss restraint: Arial, graphite with one vermilion signal, hairline rules and no fills. For technical notes, data appendices and output that must look identical in LibreOffice.",
+      "palette": {
+        "background": "FFFFFF",
+        "text": "1A1A1A",
+        "textMuted": "616161",
+        "accent1": "353535",
+        "accent2": "BE3E2B",
+        "accent3": "0287B8",
+        "accent4": "B28C54",
+        "accent5": "00655C",
+        "accent6": "5A3E6D",
+        "success": "08684A",
+        "warning": "865500",
+        "danger": "BF3B2C"
+      },
+      "fonts": {
+        "heading": {
+          "family": "Arial",
+          "fallbacks": [
+            "Liberation Sans",
+            "Arimo",
+            "Helvetica Neue",
+            "Helvetica",
+            "sans-serif"
+          ]
+        },
+        "body": {
+          "family": "Arial",
+          "fallbacks": [
+            "Liberation Sans",
+            "Arimo",
+            "Helvetica Neue",
+            "Helvetica",
+            "sans-serif"
+          ]
+        }
+      },
+      "typeScale": {
+        "title": 24,
+        "heading1": 16,
+        "heading2": 12.5,
+        "heading3": 10.5,
+        "heading4": 10,
+        "heading5": 10,
+        "heading6": 9,
+        "body": 10,
+        "caption": 8.5
+      },
+      "tableStyle": {
+        "headerFill": "Background",
+        "headerText": "Text",
+        "banding": false,
+        "bandFill": "F4F4F4",
+        "borderColor": "D6D6D6",
+        "borderWidth": 0.5,
+        "cellPadding": 4
+      },
+      "chartStyle": {
+        "seriesPalette": [
+          "Accent1",
+          "Accent2",
+          "Accent3",
+          "Accent4",
+          "Accent5",
+          "Accent6"
+        ],
+        "axisFont": {
+          "family": "Arial",
+          "fallbacks": [
+            "Liberation Sans",
+            "Arimo",
+            "Helvetica Neue",
+            "Helvetica",
+            "sans-serif"
+          ]
+        },
+        "titleFont": {
+          "family": "Arial",
+          "fallbacks": [
+            "Liberation Sans",
+            "Arimo",
+            "Helvetica Neue",
+            "Helvetica",
+            "sans-serif"
+          ]
+        },
+        "axisFontSize": 8,
+        "titleFontSize": 10.5,
+        "gridlineColor": "E8E8E8",
+        "showDataLabels": false,
+        "showLegend": true
+      },
+      "spacing": {
+        "paragraphBefore": 0,
+        "paragraphAfter": 6,
+        "listIndent": 14,
+        "slideMarginTop": 32,
+        "slideMarginRight": 40,
+        "slideMarginBottom": 32,
+        "slideMarginLeft": 40
+      },
+      "extensions": {
+        "lineSpacing": 1.25,
+        "headingColor": "Text",
+        "titleColor": "Text",
+        "subtitleColor": "TextMuted",
+        "headingBold": true,
+        "headingSpacing": {
+          "title": [
+            0,
+            4
+          ],
+          "heading1": [
+            16,
+            4
+          ],
+          "heading2": [
+            12,
+            3
+          ],
+          "heading3": [
+            10,
+            2
+          ]
+        },
+        "surface": "F4F4F4",
+        "rule": "D6D6D6",
+        "link": "Text",
+        "table": {
+          "borderMode": "horizontal",
+          "headerRule": {
+            "color": "Text",
+            "width": 1.0
+          },
+          "headerBold": true,
+          "numbersAlign": "right"
+        },
+        "chart": {
+          "axisLine": "1A1A1A",
+          "axisText": "TextMuted",
+          "gridlineWidth": 0.5,
+          "lineWidth": 1.5,
+          "barGapPercent": 80,
+          "markers": "none"
+        },
+        "page": {
+          "marginTop": 56,
+          "marginRight": 56,
+          "marginBottom": 48,
+          "marginLeft": 56
+        },
+        "footer": {
+          "size": 8,
+          "color": "TextMuted",
+          "rule": null
+        }
+      },
+      "derived": {
+        "successFill": "E1EDE9",
+        "warningFill": "F0EBE0",
+        "dangerFill": "F7E7E6",
+        "accent1Tint": "EBEBEB"
+      },
+      "checks": {
+        "contrast": [
+          {
+            "pair": "text on background",
+            "foreground": "1A1A1A",
+            "background": "FFFFFF",
+            "ratio": 17.4,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on background",
+            "foreground": "616161",
+            "background": "FFFFFF",
+            "ratio": 6.19,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "heading colour on background",
+            "foreground": "1A1A1A",
+            "background": "FFFFFF",
+            "ratio": 17.4,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "subtitle colour on background",
+            "foreground": "616161",
+            "background": "FFFFFF",
+            "ratio": 6.19,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "link colour on background",
+            "foreground": "1A1A1A",
+            "background": "FFFFFF",
+            "ratio": 17.4,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "table headerText on headerFill",
+            "foreground": "1A1A1A",
+            "background": "FFFFFF",
+            "ratio": 17.4,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on table bandFill",
+            "foreground": "1A1A1A",
+            "background": "F4F4F4",
+            "ratio": 15.82,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on table bandFill",
+            "foreground": "616161",
+            "background": "F4F4F4",
+            "ratio": 5.63,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "chart axis text on background",
+            "foreground": "616161",
+            "background": "FFFFFF",
+            "ratio": 6.19,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on background",
+            "foreground": "08684A",
+            "background": "FFFFFF",
+            "ratio": 6.8,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on successFill",
+            "foreground": "08684A",
+            "background": "E1EDE9",
+            "ratio": 5.66,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on successFill",
+            "foreground": "1A1A1A",
+            "background": "E1EDE9",
+            "ratio": 14.5,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on background",
+            "foreground": "865500",
+            "background": "FFFFFF",
+            "ratio": 6.34,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on warningFill",
+            "foreground": "865500",
+            "background": "F0EBE0",
+            "ratio": 5.33,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on warningFill",
+            "foreground": "1A1A1A",
+            "background": "F0EBE0",
+            "ratio": 14.64,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on background",
+            "foreground": "BF3B2C",
+            "background": "FFFFFF",
+            "ratio": 5.42,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on dangerFill",
+            "foreground": "BF3B2C",
+            "background": "F7E7E6",
+            "ratio": 4.52,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on dangerFill",
+            "foreground": "1A1A1A",
+            "background": "F7E7E6",
+            "ratio": 14.53,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "series 1 mark on background",
+            "foreground": "353535",
+            "background": "FFFFFF",
+            "ratio": 12.27,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 2 mark on background",
+            "foreground": "BE3E2B",
+            "background": "FFFFFF",
+            "ratio": 5.37,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 3 mark on background",
+            "foreground": "0287B8",
+            "background": "FFFFFF",
+            "ratio": 4.07,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 4 mark on background",
+            "foreground": "B28C54",
+            "background": "FFFFFF",
+            "ratio": 3.1,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 5 mark on background",
+            "foreground": "00655C",
+            "background": "FFFFFF",
+            "ratio": 6.96,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 6 mark on background",
+            "foreground": "5A3E6D",
+            "background": "FFFFFF",
+            "ratio": 8.96,
+            "required": 3.0,
+            "pass": true
+          }
+        ],
+        "decorative": [
+          {
+            "pair": "gridline",
+            "foreground": "E8E8E8",
+            "background": "FFFFFF",
+            "ratio": 1.23,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          },
+          {
+            "pair": "table border",
+            "foreground": "D6D6D6",
+            "background": "FFFFFF",
+            "ratio": 1.45,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          }
+        ],
+        "seriesColourVision": {
+          "normal": {
+            "minDeltaE2000": 21.6,
+            "closestPair": [
+              1,
+              6
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 14.0,
+            "closestPair": [
+              1,
+              5
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 11.8,
+            "closestPair": [
+              1,
+              5
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 13.6,
+            "closestPair": [
+              1,
+              6
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 6.8,
+            "closestPair": [
+              5,
+              6
+            ],
+            "lightness": [
+              22.2,
+              45.0,
+              52.7,
+              60.7,
+              38.0,
+              31.2
+            ]
+          },
+          "simulated": {
+            "protanopia": [
+              "353535",
+              "635928",
+              "6E86BA",
+              "9B8D4F",
+              "5F5E5C",
+              "34486F"
+            ],
+            "deuteranopia": [
+              "353535",
+              "827526",
+              "5977B7",
+              "A49655",
+              "54565D",
+              "3B4A6C"
+            ],
+            "tritanopia": [
+              "353535",
+              "D1163B",
+              "009498",
+              "BF827E",
+              "006762",
+              "584550"
+            ],
+            "greyscale": [
+              "353535",
+              "6B6B6B",
+              "7E7E7E",
+              "929292",
+              "595959",
+              "494949"
+            ]
+          },
+          "method": "Machado et al. 2009 full-severity matrices in linear sRGB; CIEDE2000 minimum over all pairs; greyscale = WCAG relative luminance; lightness = CIE L*"
+        },
+        "statusColourVision": {
+          "normal": {
+            "minDeltaE2000": 24.0,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 6.5,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 6.7,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.6,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 1.9,
+            "closestPair": [
+              1,
+              2
+            ],
+            "lightness": [
+              38.6,
+              40.5,
+              44.8
+            ]
+          }
+        },
+        "allContrastPass": true
+      }
+    },
+    {
+      "name": "Boardroom",
+      "intent": "Formal executive: Georgia headings over Aptos text, deep navy with a muted gold, larger type and generous spacing. For board packs, quarterly reviews and investor material.",
+      "palette": {
+        "background": "FFFFFF",
+        "text": "16202E",
+        "textMuted": "586274",
+        "accent1": "14335C",
+        "accent2": "B0883E",
+        "accent3": "5181B9",
+        "accent4": "882139",
+        "accent5": "00655C",
+        "accent6": "766386",
+        "success": "08684A",
+        "warning": "865500",
+        "danger": "BF3B2C"
+      },
+      "fonts": {
+        "heading": {
+          "family": "Georgia",
+          "fallbacks": [
+            "Gelasio",
+            "Cambria",
+            "Caladea",
+            "Liberation Serif",
+            "serif"
+          ]
+        },
+        "body": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        }
+      },
+      "typeScale": {
+        "title": 32,
+        "heading1": 22,
+        "heading2": 16,
+        "heading3": 13,
+        "heading4": 12,
+        "heading5": 11,
+        "heading6": 10.5,
+        "body": 11,
+        "caption": 9
+      },
+      "tableStyle": {
+        "headerFill": "Accent1",
+        "headerText": "Background",
+        "banding": true,
+        "bandFill": "F3F5F8",
+        "borderColor": "D3D9E2",
+        "borderWidth": 0.5,
+        "cellPadding": 6
+      },
+      "chartStyle": {
+        "seriesPalette": [
+          "Accent1",
+          "Accent2",
+          "Accent3",
+          "Accent4",
+          "Accent5",
+          "Accent6"
+        ],
+        "axisFont": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "titleFont": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "axisFontSize": 9,
+        "titleFontSize": 12,
+        "gridlineColor": "E4E8EE",
+        "showDataLabels": true,
+        "showLegend": true
+      },
+      "spacing": {
+        "paragraphBefore": 0,
+        "paragraphAfter": 10,
+        "listIndent": 20,
+        "slideMarginTop": 44,
+        "slideMarginRight": 60,
+        "slideMarginBottom": 40,
+        "slideMarginLeft": 60
+      },
+      "extensions": {
+        "lineSpacing": 1.25,
+        "headingColor": "Accent1",
+        "titleColor": "Accent1",
+        "subtitleColor": "876630",
+        "headingBold": false,
+        "headingSpacing": {
+          "title": [
+            0,
+            6
+          ],
+          "heading1": [
+            22,
+            8
+          ],
+          "heading2": [
+            16,
+            6
+          ],
+          "heading3": [
+            12,
+            4
+          ]
+        },
+        "surface": "F3F5F8",
+        "rule": "D3D9E2",
+        "link": "Accent1",
+        "titleRule": {
+          "color": "Accent2",
+          "width": 2.0
+        },
+        "table": {
+          "borderMode": "horizontal",
+          "headerRule": null,
+          "headerBold": true,
+          "numbersAlign": "right"
+        },
+        "chart": {
+          "axisLine": "C3CAD5",
+          "axisText": "TextMuted",
+          "gridlineWidth": 0.5,
+          "lineWidth": 2.25,
+          "barGapPercent": 60,
+          "markers": "none"
+        },
+        "page": {
+          "marginTop": 72,
+          "marginRight": 72,
+          "marginBottom": 64,
+          "marginLeft": 72
+        },
+        "footer": {
+          "size": 8.5,
+          "color": "TextMuted",
+          "rule": "D3D9E2"
+        }
+      },
+      "derived": {
+        "successFill": "E1EDE9",
+        "warningFill": "F0EBE0",
+        "dangerFill": "F7E7E6",
+        "accent1Tint": "E8EBEF"
+      },
+      "checks": {
+        "contrast": [
+          {
+            "pair": "text on background",
+            "foreground": "16202E",
+            "background": "FFFFFF",
+            "ratio": 16.4,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on background",
+            "foreground": "586274",
+            "background": "FFFFFF",
+            "ratio": 6.15,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "heading colour on background",
+            "foreground": "14335C",
+            "background": "FFFFFF",
+            "ratio": 12.67,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "subtitle colour on background",
+            "foreground": "876630",
+            "background": "FFFFFF",
+            "ratio": 5.29,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "link colour on background",
+            "foreground": "14335C",
+            "background": "FFFFFF",
+            "ratio": 12.67,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "table headerText on headerFill",
+            "foreground": "FFFFFF",
+            "background": "14335C",
+            "ratio": 12.67,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on table bandFill",
+            "foreground": "16202E",
+            "background": "F3F5F8",
+            "ratio": 15.02,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on table bandFill",
+            "foreground": "586274",
+            "background": "F3F5F8",
+            "ratio": 5.63,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "chart axis text on background",
+            "foreground": "586274",
+            "background": "FFFFFF",
+            "ratio": 6.15,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on background",
+            "foreground": "08684A",
+            "background": "FFFFFF",
+            "ratio": 6.8,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on successFill",
+            "foreground": "08684A",
+            "background": "E1EDE9",
+            "ratio": 5.66,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on successFill",
+            "foreground": "16202E",
+            "background": "E1EDE9",
+            "ratio": 13.66,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on background",
+            "foreground": "865500",
+            "background": "FFFFFF",
+            "ratio": 6.34,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on warningFill",
+            "foreground": "865500",
+            "background": "F0EBE0",
+            "ratio": 5.33,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on warningFill",
+            "foreground": "16202E",
+            "background": "F0EBE0",
+            "ratio": 13.8,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on background",
+            "foreground": "BF3B2C",
+            "background": "FFFFFF",
+            "ratio": 5.42,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on dangerFill",
+            "foreground": "BF3B2C",
+            "background": "F7E7E6",
+            "ratio": 4.52,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on dangerFill",
+            "foreground": "16202E",
+            "background": "F7E7E6",
+            "ratio": 13.69,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "series 1 mark on background",
+            "foreground": "14335C",
+            "background": "FFFFFF",
+            "ratio": 12.67,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 2 mark on background",
+            "foreground": "B0883E",
+            "background": "FFFFFF",
+            "ratio": 3.26,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 3 mark on background",
+            "foreground": "5181B9",
+            "background": "FFFFFF",
+            "ratio": 4.05,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 4 mark on background",
+            "foreground": "882139",
+            "background": "FFFFFF",
+            "ratio": 9.04,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 5 mark on background",
+            "foreground": "00655C",
+            "background": "FFFFFF",
+            "ratio": 6.96,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 6 mark on background",
+            "foreground": "766386",
+            "background": "FFFFFF",
+            "ratio": 5.39,
+            "required": 3.0,
+            "pass": true
+          }
+        ],
+        "decorative": [
+          {
+            "pair": "gridline",
+            "foreground": "E4E8EE",
+            "background": "FFFFFF",
+            "ratio": 1.23,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          },
+          {
+            "pair": "table border",
+            "foreground": "D3D9E2",
+            "background": "FFFFFF",
+            "ratio": 1.42,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          }
+        ],
+        "seriesColourVision": {
+          "normal": {
+            "minDeltaE2000": 22.3,
+            "closestPair": [
+              3,
+              6
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 12.0,
+            "closestPair": [
+              4,
+              5
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 11.0,
+            "closestPair": [
+              3,
+              6
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 14.9,
+            "closestPair": [
+              1,
+              5
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 6.2,
+            "closestPair": [
+              2,
+              3
+            ],
+            "lightness": [
+              21.2,
+              59.1,
+              52.9,
+              30.9,
+              38.0,
+              44.9
+            ]
+          },
+          "simulated": {
+            "protanopia": [
+              "1F365E",
+              "988836",
+              "6A84BB",
+              "3C3B39",
+              "5F5E5C",
+              "5D6987"
+            ],
+            "deuteranopia": [
+              "13305B",
+              "A29241",
+              "5D7AB8",
+              "575036",
+              "54565D",
+              "616B85"
+            ],
+            "tritanopia": [
+              "003D43",
+              "BE7C78",
+              "008E95",
+              "95032B",
+              "006762",
+              "74686F"
+            ],
+            "greyscale": [
+              "333333",
+              "8E8E8E",
+              "7E7E7E",
+              "494949",
+              "595959",
+              "6A6A6A"
+            ]
+          },
+          "method": "Machado et al. 2009 full-severity matrices in linear sRGB; CIEDE2000 minimum over all pairs; greyscale = WCAG relative luminance; lightness = CIE L*"
+        },
+        "statusColourVision": {
+          "normal": {
+            "minDeltaE2000": 24.0,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 6.5,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 6.7,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.6,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 1.9,
+            "closestPair": [
+              1,
+              2
+            ],
+            "lightness": [
+              38.6,
+              40.5,
+              44.8
+            ]
+          }
+        },
+        "allContrastPass": true
+      }
+    },
+    {
+      "name": "Dark",
+      "intent": "Screen-first dark surface with light text and luminous accents. For HTML reports, on-screen PDFs, wallboards and presentations; not for print.",
+      "palette": {
+        "background": "0F1620",
+        "text": "E7ECF2",
+        "textMuted": "9AA6B5",
+        "accent1": "68A1F9",
+        "accent2": "F2B349",
+        "accent3": "90E7D6",
+        "accent4": "C84F7B",
+        "accent5": "675DAD",
+        "accent6": "6E974B",
+        "success": "3FA66E",
+        "warning": "F2C14E",
+        "danger": "FF8F8F"
+      },
+      "fonts": {
+        "heading": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "body": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        }
+      },
+      "typeScale": {
+        "title": 28,
+        "heading1": 20,
+        "heading2": 15,
+        "heading3": 12.5,
+        "heading4": 11,
+        "heading5": 11,
+        "heading6": 10,
+        "body": 11,
+        "caption": 9
+      },
+      "tableStyle": {
+        "headerFill": "1E2A39",
+        "headerText": "Text",
+        "banding": true,
+        "bandFill": "151F2B",
+        "borderColor": "2A3747",
+        "borderWidth": 0.5,
+        "cellPadding": 5
+      },
+      "chartStyle": {
+        "seriesPalette": [
+          "Accent1",
+          "Accent2",
+          "Accent3",
+          "Accent4",
+          "Accent5",
+          "Accent6"
+        ],
+        "axisFont": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "titleFont": {
+          "family": "Aptos",
+          "fallbacks": [
+            "Calibri",
+            "Carlito",
+            "Helvetica Neue",
+            "Arial",
+            "Liberation Sans",
+            "sans-serif"
+          ]
+        },
+        "axisFontSize": 9,
+        "titleFontSize": 12,
+        "gridlineColor": "243142",
+        "showDataLabels": false,
+        "showLegend": true
+      },
+      "spacing": {
+        "paragraphBefore": 0,
+        "paragraphAfter": 8,
+        "listIndent": 18,
+        "slideMarginTop": 36,
+        "slideMarginRight": 48,
+        "slideMarginBottom": 36,
+        "slideMarginLeft": 48
+      },
+      "extensions": {
+        "lineSpacing": 1.25,
+        "headingColor": "Text",
+        "titleColor": "Text",
+        "subtitleColor": "Accent1",
+        "headingBold": true,
+        "headingSpacing": {
+          "title": [
+            0,
+            6
+          ],
+          "heading1": [
+            18,
+            6
+          ],
+          "heading2": [
+            14,
+            4
+          ],
+          "heading3": [
+            12,
+            3
+          ]
+        },
+        "surface": "151F2B",
+        "rule": "2A3747",
+        "link": "Accent1",
+        "table": {
+          "borderMode": "horizontal",
+          "headerRule": {
+            "color": "Accent1",
+            "width": 1.0
+          },
+          "headerBold": true,
+          "numbersAlign": "right"
+        },
+        "chart": {
+          "axisLine": "3A4859",
+          "axisText": "TextMuted",
+          "gridlineWidth": 0.5,
+          "lineWidth": 2.0,
+          "barGapPercent": 60,
+          "markers": "none"
+        },
+        "page": {
+          "marginTop": 64,
+          "marginRight": 64,
+          "marginBottom": 56,
+          "marginLeft": 64
+        },
+        "footer": {
+          "size": 8.5,
+          "color": "TextMuted",
+          "rule": null
+        }
+      },
+      "derived": {
+        "successFill": "18302E",
+        "warningFill": "383528",
+        "dangerFill": "3A2C34",
+        "accent1Tint": "182436"
+      },
+      "checks": {
+        "contrast": [
+          {
+            "pair": "text on background",
+            "foreground": "E7ECF2",
+            "background": "0F1620",
+            "ratio": 15.29,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on background",
+            "foreground": "9AA6B5",
+            "background": "0F1620",
+            "ratio": 7.35,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "heading colour on background",
+            "foreground": "E7ECF2",
+            "background": "0F1620",
+            "ratio": 15.29,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "subtitle colour on background",
+            "foreground": "68A1F9",
+            "background": "0F1620",
+            "ratio": 6.97,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "link colour on background",
+            "foreground": "68A1F9",
+            "background": "0F1620",
+            "ratio": 6.97,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "table headerText on headerFill",
+            "foreground": "E7ECF2",
+            "background": "1E2A39",
+            "ratio": 12.23,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on table bandFill",
+            "foreground": "E7ECF2",
+            "background": "151F2B",
+            "ratio": 14.0,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "textMuted on table bandFill",
+            "foreground": "9AA6B5",
+            "background": "151F2B",
+            "ratio": 6.73,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "chart axis text on background",
+            "foreground": "9AA6B5",
+            "background": "0F1620",
+            "ratio": 7.35,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on background",
+            "foreground": "3FA66E",
+            "background": "0F1620",
+            "ratio": 5.96,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "success text on successFill",
+            "foreground": "3FA66E",
+            "background": "18302E",
+            "ratio": 4.59,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on successFill",
+            "foreground": "E7ECF2",
+            "background": "18302E",
+            "ratio": 11.78,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on background",
+            "foreground": "F2C14E",
+            "background": "0F1620",
+            "ratio": 10.83,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "warning text on warningFill",
+            "foreground": "F2C14E",
+            "background": "383528",
+            "ratio": 7.33,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on warningFill",
+            "foreground": "E7ECF2",
+            "background": "383528",
+            "ratio": 10.35,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on background",
+            "foreground": "FF8F8F",
+            "background": "0F1620",
+            "ratio": 8.29,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "danger text on dangerFill",
+            "foreground": "FF8F8F",
+            "background": "3A2C34",
+            "ratio": 6.02,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "text on dangerFill",
+            "foreground": "E7ECF2",
+            "background": "3A2C34",
+            "ratio": 11.12,
+            "required": 4.5,
+            "pass": true
+          },
+          {
+            "pair": "series 1 mark on background",
+            "foreground": "68A1F9",
+            "background": "0F1620",
+            "ratio": 6.97,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 2 mark on background",
+            "foreground": "F2B349",
+            "background": "0F1620",
+            "ratio": 9.79,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 3 mark on background",
+            "foreground": "90E7D6",
+            "background": "0F1620",
+            "ratio": 12.62,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 4 mark on background",
+            "foreground": "C84F7B",
+            "background": "0F1620",
+            "ratio": 4.2,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 5 mark on background",
+            "foreground": "675DAD",
+            "background": "0F1620",
+            "ratio": 3.24,
+            "required": 3.0,
+            "pass": true
+          },
+          {
+            "pair": "series 6 mark on background",
+            "foreground": "6E974B",
+            "background": "0F1620",
+            "ratio": 5.36,
+            "required": 3.0,
+            "pass": true
+          }
+        ],
+        "decorative": [
+          {
+            "pair": "gridline",
+            "foreground": "243142",
+            "background": "0F1620",
+            "ratio": 1.38,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          },
+          {
+            "pair": "table border",
+            "foreground": "2A3747",
+            "background": "0F1620",
+            "ratio": 1.5,
+            "note": "decorative structure; intentionally below 3:1 so it recedes behind data and text"
+          }
+        ],
+        "seriesColourVision": {
+          "normal": {
+            "minDeltaE2000": 25.9,
+            "closestPair": [
+              1,
+              5
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 13.7,
+            "closestPair": [
+              2,
+              6
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 14.7,
+            "closestPair": [
+              4,
+              6
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 15.1,
+            "closestPair": [
+              1,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 7.0,
+            "closestPair": [
+              4,
+              6
+            ],
+            "lightness": [
+              66.0,
+              77.0,
+              86.0,
+              51.0,
+              43.8,
+              58.0
+            ]
+          },
+          "simulated": {
+            "protanopia": [
+              "7CA8FD",
+              "CBB53C",
+              "E0DED5",
+              "656B7C",
+              "3F6AB0",
+              "9D8D44"
+            ],
+            "deuteranopia": [
+              "699AF7",
+              "DAC44D",
+              "D1D2D7",
+              "858278",
+              "3E65AB",
+              "978A50"
+            ],
+            "tritanopia": [
+              "00B5C1",
+              "FFA29D",
+              "72EAE2",
+              "D84360",
+              "536D7D",
+              "6F9285"
+            ],
+            "greyscale": [
+              "A0A0A0",
+              "BEBEBE",
+              "D7D7D7",
+              "7A7A7A",
+              "686868",
+              "8B8B8B"
+            ]
+          },
+          "method": "Machado et al. 2009 full-severity matrices in linear sRGB; CIEDE2000 minimum over all pairs; greyscale = WCAG relative luminance; lightness = CIE L*"
+        },
+        "statusColourVision": {
+          "normal": {
+            "minDeltaE2000": 36.5,
+            "closestPair": [
+              1,
+              2
+            ]
+          },
+          "protanopia": {
+            "minDeltaE2000": 9.1,
+            "closestPair": [
+              1,
+              3
+            ]
+          },
+          "deuteranopia": {
+            "minDeltaE2000": 12.4,
+            "closestPair": [
+              1,
+              3
+            ]
+          },
+          "tritanopia": {
+            "minDeltaE2000": 12.0,
+            "closestPair": [
+              2,
+              3
+            ]
+          },
+          "greyscale": {
+            "minDeltaLightness": 9.0,
+            "closestPair": [
+              2,
+              3
+            ],
+            "lightness": [
+              61.2,
+              80.5,
+              71.5
+            ]
+          }
+        },
+        "allContrastPass": true
+      }
+    }
+  ]
+}

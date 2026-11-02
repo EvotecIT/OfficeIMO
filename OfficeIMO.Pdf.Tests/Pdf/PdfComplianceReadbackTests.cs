@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfComplianceReadbackTests {
     [Fact]
     public void AssessReadback_ReportsPdfA3GroundworkFromSavedPdf() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -30,7 +30,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_RejectsPdfAEmbeddedFileWithoutModificationDate() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -49,7 +49,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_UsesCatalogVersionAsEffectiveVersion() {
-        byte[] generated = PdfDocument.Create(new PdfOptions {
+        byte[] generated = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -75,7 +75,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_RejectsPdf20EffectiveVersionForPdfA3() {
-        byte[] generated = PdfDocument.Create(new PdfOptions {
+        byte[] generated = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -135,7 +135,7 @@ public class PdfComplianceReadbackTests {
 
     [Fact]
     public void AssessReadback_ReportsPdfUaGroundworkFromSavedPdf() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })

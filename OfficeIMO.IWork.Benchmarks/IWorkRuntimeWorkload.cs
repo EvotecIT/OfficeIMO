@@ -77,7 +77,7 @@ public sealed partial class IWorkRuntimeWorkload {
             using var result = source.ToExcelDocumentResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             ValidateConversionPolicy(result.Report); result.Value.Save(saved);
         }
         _output = saved.ToArray();
@@ -161,7 +161,7 @@ public sealed partial class IWorkRuntimeWorkload {
                 }
                 VerifiedUnits = rows.Length;
             } else {
-                using PowerPointPresentation document = PowerPointPresentation.Load(saved);
+                using PowerPointDocument document = PowerPointDocument.Load(saved);
                 ValidateText(document.Slides.Select(slide => slide.TextBoxes.Single().Text),
                     paragraphTerminator: _createdNativeDocument is not null ? Environment.NewLine : string.Empty);
             }

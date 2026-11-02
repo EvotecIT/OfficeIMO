@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesRelativeTableFormulaOffsetsAtFirstDataRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(1, 2).SetValue("Result");
             sheet.CellAt(2, 1).SetValue(10);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(sheet, "A5:C10");
 
             sheet.InsertRows(5, 2);
@@ -57,17 +57,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsNamedSheetViewFilters() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(
                 sheet,
-                $"A{A1.MaxRows}:C{A1.MaxRows}");
+                $"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(1));
 
             Assert.Contains("row limit", exception.Message);
-            Assert.Equal($"A{A1.MaxRows}:C{A1.MaxRows}", filter.Ref!.Value);
+            Assert.Equal($"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}", filter.Ref!.Value);
             Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
         }
 

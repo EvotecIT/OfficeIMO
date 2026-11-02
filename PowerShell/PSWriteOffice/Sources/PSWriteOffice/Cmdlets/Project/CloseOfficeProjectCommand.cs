@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Closes a project without implicitly saving it.</summary>
 ///   <code>$project | Close-OfficeProject</code>
 /// </example>
-[Cmdlet(VerbsCommon.Close, "OfficeProject")]
+[Cmdlet(VerbsCommon.Close, "OfficeProject", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficeProjectCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true)]

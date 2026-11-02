@@ -11,7 +11,7 @@ namespace OfficeIMO.Shared.Tests;
 public class ConversionOptionsTests {
     [Fact]
     public void HtmlToWordOptions_ExposeFontFamily() {
-        var options = new HtmlToWordOptions {
+        var options = new WordHtmlImportOptions {
             FontFamily = "Calibri",
             MaxImageBytes = 1024,
             MaxTotalImageBytes = 4096,
@@ -30,7 +30,7 @@ public class ConversionOptionsTests {
         Assert.Equal(8192, options.MaxCssBytes);
         Assert.Equal(16384, options.MaxTotalCssBytes);
         Assert.Equal(10000, options.MaxTableCells);
-        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
+        Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
         Assert.Equal(32, options.MaxImageSourceCandidates);
         Assert.False(options.AllowDocumentStylesheetLinks);
         Assert.True(options.ValidateImageContentTypes);
@@ -49,17 +49,17 @@ public class ConversionOptionsTests {
 
     [Fact]
     public void HtmlToWordOptions_DefaultsBoundTableExpansion() {
-        var options = new HtmlToWordOptions();
+        var options = new WordHtmlImportOptions();
 
         Assert.Equal(50000, options.MaxTableCells);
-        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
+        Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, options.ImageProcessing);
     }
 
     [Fact]
     public void HtmlToWordOptions_CreateProfilesExposeExpectedPolicies() {
-        var defaultProfile = HtmlToWordOptions.CreateOfficeIMOProfile();
+        var defaultProfile = WordHtmlImportOptions.CreateOfficeIMOProfile();
         Assert.False(defaultProfile.AllowDocumentStylesheetLinks);
-        Assert.Equal(ImageProcessingMode.Embed, defaultProfile.ImageProcessing);
+        Assert.Equal(WordHtmlImageProcessingMode.Embed, defaultProfile.ImageProcessing);
         Assert.Contains("https", defaultProfile.AllowedImageUriSchemes);
         Assert.Contains("file", defaultProfile.AllowedImageUriSchemes);
         Assert.Contains("https", defaultProfile.AllowedStylesheetUriSchemes);
@@ -69,9 +69,9 @@ public class ConversionOptionsTests {
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxTableCells);
 
-        var untrustedProfile = HtmlToWordOptions.CreateUntrustedHtmlProfile();
+        var untrustedProfile = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
         Assert.False(untrustedProfile.AllowDocumentStylesheetLinks);
-        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, untrustedProfile.ImageProcessing);
+        Assert.Equal(WordHtmlImageProcessingMode.EmbedDataUriOnly, untrustedProfile.ImageProcessing);
         Assert.Equal(TimeSpan.FromSeconds(5), untrustedProfile.ResourceTimeout);
         Assert.Equal(10000, untrustedProfile.MaxHtmlNodes);
         Assert.Equal(64, untrustedProfile.MaxHtmlDepth);
@@ -82,9 +82,9 @@ public class ConversionOptionsTests {
         Assert.Empty(untrustedProfile.AllowedStylesheetUriSchemes);
         Assert.True(untrustedProfile.EnableAccessibilityDiagnostics);
 
-        var trustedProfile = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        var trustedProfile = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         Assert.True(trustedProfile.AllowDocumentStylesheetLinks);
-        Assert.Equal(ImageProcessingMode.Embed, trustedProfile.ImageProcessing);
+        Assert.Equal(WordHtmlImageProcessingMode.Embed, trustedProfile.ImageProcessing);
         Assert.Contains("file", trustedProfile.AllowedImageUriSchemes);
         Assert.True(trustedProfile.ValidateImageContentTypes);
         Assert.True(trustedProfile.ValidateStylesheetContentTypes);
@@ -93,8 +93,8 @@ public class ConversionOptionsTests {
     [Fact]
     public void HtmlToWordOptions_CloneCopiesConfigurationWithoutDiagnostics() {
         using var httpClient = new HttpClient();
-        Action<StyleMissingEventArgs> handler = _ => { };
-        var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+        Action<WordHtmlStyleMissingEventArgs> handler = _ => { };
+        var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
         options.FontFamily = "Aptos";
         options.QuotePrefix = "[";
         options.QuoteSuffix = "]";
@@ -104,13 +104,13 @@ public class ConversionOptionsTests {
         options.ContinueNumbering = true;
         options.SupportsHeadingNumbering = true;
         options.BasePath = "C:\\Temp";
-        options.NoteReferenceType = NoteReferenceType.Endnote;
+        options.NoteReferenceType = WordHtmlNoteReferenceType.Endnote;
         options.LinkNoteUrls = false;
         options.HyperlinkUrlPolicy.DisallowFileUrls = false;
         options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
         options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
-        options.ImageProcessing = ImageProcessingMode.LinkExternal;
+        options.ImageProcessing = WordHtmlImageProcessingMode.LinkExternal;
         options.HttpClient = httpClient;
         options.ResourceTimeout = TimeSpan.FromSeconds(7);
         options.MaxImageBytes = 11;
@@ -129,10 +129,10 @@ public class ConversionOptionsTests {
         options.ImportHtmlComments = true;
         options.HtmlCommentAuthor = "HTML Reviewer";
         options.HtmlCommentInitials = "HR";
-        options.UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error;
+        options.UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error;
         options.RenderPreAsTable = true;
-        options.TableCaptionPosition = TableCaptionPosition.Below;
-        options.SectionTagHandling = SectionTagHandling.Block;
+        options.TableCaptionPosition = WordHtmlTableCaptionPosition.Below;
+        options.SectionTagHandling = WordHtmlSectionTagHandling.Block;
         options.ClassStyles["lead"] = WordParagraphStyles.Heading2;
         options.StylesheetPaths.Add("site.css");
         options.StylesheetContents.Add("p{color:red}");
@@ -208,7 +208,7 @@ public class ConversionOptionsTests {
 
     [Fact]
     public void MarkdownToWordOptions_EnableBoundedDataUriImagesByDefault() {
-        var options = new MarkdownToWordOptions();
+        var options = new WordMarkdownImportOptions();
 
         Assert.True(options.AllowDataUriImages);
         Assert.Equal(32L * 1024L * 1024L, options.MaxDataUriImageBytes);

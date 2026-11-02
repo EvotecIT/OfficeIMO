@@ -67,7 +67,7 @@ public class PdfDocumentIOTests {
         using var stream = new MemoryStream();
         stream.Write(existing, 0, existing.Length);
         stream.Position = 3;
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
         PdfDocument document = PdfDocument.Create()
             .TableDeferred(() => new[] {
@@ -76,7 +76,7 @@ public class PdfDocumentIOTests {
                 new[] { "Third", "Unexpected column" }
             }, batchSize: 2, style: style);
 
-        PdfSaveResult result = document.SaveResult(stream);
+        PdfSaveResult result = document.TrySaveWithEvidence(stream);
 
         Assert.False(result.Succeeded);
         Assert.Equal(existing, stream.ToArray());
@@ -85,7 +85,7 @@ public class PdfDocumentIOTests {
 
     [Fact]
     public void Save_DirectStreamOutputSupportsGeneratedEncryption() {
-        PdfDocument document = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Direct encrypted stream"));
         using var stream = new MemoryStream();
 
@@ -103,7 +103,7 @@ public class PdfDocumentIOTests {
     public void Save_WritesGeneratedPdfToNonSeekableStreamWithValidOffsets() {
         using var stream = new NonSeekableWriteStream();
 
-        PdfSaveResult result = BuildDocument("Non-seekable stream").SaveResult(stream);
+        PdfSaveResult result = BuildDocument("Non-seekable stream").TrySaveWithEvidence(stream);
         byte[] bytes = stream.ToArray();
 
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
@@ -133,8 +133,8 @@ public class PdfDocumentIOTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            BuildDocument("Canceled stream save").SaveAsync(stream, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            BuildDocument("Canceled stream save").SaveAsync(stream, cancellationToken: cancellation.Token));
 
         Assert.Equal(0, stream.Length);
     }
@@ -145,8 +145,8 @@ public class PdfDocumentIOTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            BuildDocument("Canceled try-save").SaveResultAsync(stream, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            BuildDocument("Canceled try-save").TrySaveWithEvidenceAsync(stream, cancellation.Token));
 
         Assert.Equal(0, stream.Length);
     }
@@ -184,7 +184,7 @@ public class PdfDocumentIOTests {
             File.WriteAllBytes(outputPath, existing);
 
             await Assert.ThrowsAsync<IOException>(() => BuildDocument("Must not replace")
-                .SaveAsync(outputPath, OfficeConversionFileConflictPolicy.FailIfExists, CancellationToken.None));
+                .SaveAsync(outputPath, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.FailIfExists }, cancellationToken:CancellationToken.None));
 
             Assert.Equal(existing, File.ReadAllBytes(outputPath));
         } finally {
@@ -201,8 +201,8 @@ public class PdfDocumentIOTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            BuildDocument("Canceled path save").SaveAsync(outputPath, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            BuildDocument("Canceled path save").SaveAsync(outputPath, cancellationToken: cancellation.Token));
 
         Assert.False(Directory.Exists(directory));
         Assert.False(File.Exists(outputPath));
@@ -229,8 +229,8 @@ public class PdfDocumentIOTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            BuildDocument("Canceled path try-save").SaveResultAsync(outputPath, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            BuildDocument("Canceled path try-save").TrySaveWithEvidenceAsync(outputPath, cancellation.Token));
 
         Assert.False(Directory.Exists(directory));
         Assert.False(File.Exists(outputPath));

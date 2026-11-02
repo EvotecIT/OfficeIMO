@@ -40,7 +40,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static void ExportSlide(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
         MarkupToPowerPointOptions options,
@@ -73,12 +73,8 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         if (!useDesignerCanvas && ShouldRenderSlideTitle(slideBlock)) {
-            var title = slide.AddTitleInches(
-                slideBlock.Title!,
-                metrics.Horizontal(TitleLeft),
-                metrics.Vertical(TitleTop),
-                metrics.Horizontal(TitleWidth),
-                metrics.Vertical(TitleHeight));
+            var title = slide.AddTitle(
+                slideBlock.Title!,                global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(TitleLeft)),                global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(TitleTop)),                global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(TitleWidth)),                global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(TitleHeight)));
             ApplyTextStyle(title, styleResolver.Resolve("slide-title"));
         }
 
@@ -112,7 +108,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static bool TryExportDesignerSlide(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupStyleResolver styleResolver,
@@ -130,7 +126,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static bool TryExportMarkupSummarySlide(
-        PowerPointPresentation presentation,
+        PowerPointDocument presentation,
         PowerPointDesignTheme theme,
         OfficeMarkupSlideBlock slideBlock,
         OfficeMarkupStyleResolver styleResolver,
@@ -165,7 +161,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         slide = presentation.AddSlide();
         AddMarkupCanvas(slide, theme, slideBlock, metrics, strong: true);
 
-        var eyebrow = slide.AddTextBoxInches("OfficeIMO Markup", metrics.Horizontal(0.72), metrics.Vertical(0.42), metrics.Horizontal(2.2), metrics.Vertical(0.28));
+        var eyebrow = slide.AddTextBox("OfficeIMO Markup",global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.72)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.42)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(2.2)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.28)));
         ApplyTextStyle(eyebrow, new OfficeMarkupResolvedStyle {
             FontName = theme.BodyFontName,
             FontSize = 9,
@@ -173,7 +169,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             TextColor = theme.AccentColor
         });
 
-        var title = slide.AddTitleInches(slideBlock.Title ?? "Summary", metrics.Horizontal(0.72), metrics.Vertical(0.72), metrics.Horizontal(5.7), metrics.Vertical(0.78));
+        var title = slide.AddTitle(slideBlock.Title ?? "Summary",global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.72)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.72)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(5.7)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.78)));
         ApplyTextStyle(title, new OfficeMarkupResolvedStyle {
             FontName = theme.HeadingFontName,
             FontSize = 30,
@@ -183,7 +179,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var paragraph = slideBlock.Blocks.OfType<OfficeMarkupParagraphBlock>().FirstOrDefault();
         if (paragraph != null && !string.IsNullOrWhiteSpace(paragraph.Text)) {
-            var subtitle = slide.AddTextBoxInches(paragraph.Text.Trim(), metrics.Horizontal(0.76), metrics.Vertical(1.48), metrics.Horizontal(5.4), metrics.Vertical(0.52));
+            var subtitle = slide.AddTextBox(paragraph.Text.Trim(),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.76)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(1.48)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(5.4)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.52)));
             ApplyTextStyle(subtitle, styleResolver.Resolve("lead"));
         }
 
@@ -292,7 +288,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         slide = deck.ComposeSlide(composer => {
             composer.AddTitle(slideBlock.Title ?? "Overview", subtitle);
-            var regions = composer.ContentColumns(2, gutterCm: 0.78, topCm: 4.0, bottomMarginCm: 1.05, horizontalMarginCm: 1.55);
+            var regions = composer.ContentColumns(2, gutter: global::OfficeIMO.OfficeLength.Centimeters(0.78), top: global::OfficeIMO.OfficeLength.Centimeters(4.0), bottomMargin: global::OfficeIMO.OfficeLength.Centimeters(1.05), horizontalMargin: global::OfficeIMO.OfficeLength.Centimeters(1.55));
             for (var index = 0; index < regions.Length && index < columns.Count; index++) {
                 AddDesignerColumnRegion(composer.Slide, deck.Design.Theme, regions[index], columns[index], styleResolver, index);
             }

@@ -39,33 +39,30 @@ namespace OfficeIMO.Tests {
                     document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
                     sheet = document.Sheets[0];
                 } else {
-                    sheet = document.AddWorksheet("Data");
-                    sheet.InsertDataTable(table, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
+                    sheet = document.AddSheet("Data");
+                    sheet.WriteData(table, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
                 }
             } else {
-                sheet = document.AddWorksheet("Data");
+                sheet = document.AddSheet("Data");
                 if (source == "Projected") {
-                    sheet.InsertObjects(new[] { 1, 2 },
-                        ("Id", (Func<int, object?>)(id => id == 1 ? 1 : null)),
-                        ("Amount", _ => null),
-                        ("Text", id => id == 1 ? string.Empty : null));
+                    sheet.WriteData(new[] { 1, 2 }, ("Id", (Func<int, object?>)(id => id == 1 ? 1 : null)), ("Amount", _ => null), ("Text", id => id == 1 ? string.Empty : null));
                 } else if (source == "Objects") {
-                    sheet.InsertObjects(new[] {
+                    sheet.WriteData(new[] {
                         new MissingStyleRow { Id = 1, Text = string.Empty },
                         new MissingStyleRow()
                     });
                 } else if (source == "ReadOnlyDictionary") {
-                    sheet.InsertObjects(new IReadOnlyDictionary<string, object?>[] {
+                    sheet.WriteData(new IReadOnlyDictionary<string, object?>[] {
                         new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?> { ["Id"] = 1, ["Amount"] = null, ["Text"] = string.Empty }),
                         new System.Collections.ObjectModel.ReadOnlyDictionary<string, object?>(new Dictionary<string, object?> { ["Id"] = null, ["Amount"] = DBNull.Value, ["Text"] = null })
                     });
                 } else if (source == "LegacyDictionary") {
-                    sheet.InsertObjects(new System.Collections.IDictionary[] {
+                    sheet.WriteData(new System.Collections.IDictionary[] {
                         new System.Collections.Specialized.OrderedDictionary { ["Id"] = 1, ["Amount"] = null, ["Text"] = string.Empty },
                         new System.Collections.Specialized.OrderedDictionary { ["Id"] = null, ["Amount"] = DBNull.Value, ["Text"] = null }
                     });
                 } else {
-                    sheet.InsertObjects(new[] {
+                    sheet.WriteData(new[] {
                         new Dictionary<string, object?> { ["Id"] = 1, ["Amount"] = null, ["Text"] = string.Empty },
                         new Dictionary<string, object?> { ["Id"] = null, ["Amount"] = DBNull.Value, ["Text"] = null }
                     });
@@ -77,7 +74,7 @@ namespace OfficeIMO.Tests {
                 sheet.ColumnStyleByHeader("Amount").NumberFormat("0.0000");
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = standardWriter });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -92,7 +89,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
             Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(3, 2).NumberFormatCode);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package);
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.True(reader.IsDBNull(1));
@@ -120,7 +117,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xlsb, false, true, true)]
         public void TabularImport_ExplicitCellNullCompatibility_IsEmptyTextAcrossFormats(ExcelFileFormat format, bool standardWriter, bool batchWrite, bool useSharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var values = Enumerable.Range(1, 140).Select(row => (Row: row, Column: 1, Value: row == 2 ? DBNull.Value : row == 3 ? null! : (object)"Value"));
             if (batchWrite) {
                 sheet.CellValues(values);
@@ -133,7 +130,7 @@ namespace OfficeIMO.Tests {
                 XlsbUseSharedStrings = format == ExcelFileFormat.Xlsb ? useSharedStrings : null
             });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             for (int row = 1; row <= 140; row++) {
                 Assert.True(reader.Read());
                 Assert.False(reader.IsDBNull(0));
@@ -156,8 +153,8 @@ namespace OfficeIMO.Tests {
         public void TabularImport_PreparedOverwrite_ReplacesFormulaAndInlineTextAndPreservesStyles(string source, ExcelExecutionMode mode) {
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.Mode = mode;
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellFormula(2, 1, "123");
             sheet.CellValue(2, 2, "Previous");
             sheet.FormatCell(2, 1, "0.0000");
@@ -172,13 +169,11 @@ namespace OfficeIMO.Tests {
                 table.Columns.Add("Inline", typeof(string));
                 table.Rows.Add(string.Empty, string.Empty);
                 table.Rows.Add("Next", "Next");
-                sheet.InsertDataTable(table, mode: mode);
+                sheet.WriteData(table, mode: mode);
             } else if (source is "Projected" or "SmallProjected") {
-                sheet.InsertObjects(Enumerable.Range(1, source == "SmallProjected" ? 2 : 20),
-                    ("Formula", (Func<int, object?>)(id => id == 1 ? string.Empty : "Next")),
-                    ("Inline", id => id == 1 ? string.Empty : "Next"));
+                sheet.WriteData(Enumerable.Range(1, source == "SmallProjected" ? 2 : 20), ("Formula", (Func<int, object?>)(id => id == 1 ? string.Empty : "Next")), ("Inline", id => id == 1 ? string.Empty : "Next"));
             } else if (source is "Objects" or "SmallObjects") {
-                sheet.InsertObjects(Enumerable.Range(1, source == "SmallObjects" ? 2 : 20).Select(id => new OverwriteRow {
+                sheet.WriteData(Enumerable.Range(1, source == "SmallObjects" ? 2 : 20).Select(id => new OverwriteRow {
                     Formula = id == 1 ? string.Empty : "Next",
                     Inline = id == 1 ? string.Empty : "Next"
                 }));
@@ -190,10 +185,13 @@ namespace OfficeIMO.Tests {
                 sheet.CellValues(cells, mode: mode);
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx);
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
-            var written = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            Sheet dataSheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name?.Value == "Data");
+            var written = ((WorksheetPart)workbookPart.GetPartById(dataSheet.Id!.Value!)).Worksheet
+                .Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             foreach (string reference in new[] { "A2", "B2" }) {
                 Assert.Null(written[reference].CellFormula);
                 Assert.Null(written[reference].InlineString);
@@ -201,7 +199,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 1).NumberFormatCode);
             Assert.Equal("@", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { SheetName = "Data", HasHeaderRow = source != "CellValues", A1Range = source == "CellValues" ? "A2:B21" : null });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { SheetName = "Data", HasHeaderRow = source != "CellValues", A1Range = source == "CellValues" ? "A2:B21" : null });
             Assert.True(reader.Read());
             Assert.False(reader.IsDBNull(0));
             Assert.False(reader.IsDBNull(1));
@@ -218,8 +216,8 @@ namespace OfficeIMO.Tests {
         public void TabularImport_RejectedReplacement_PreservesTheExistingCell(string source) {
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.Mode = ExcelExecutionMode.Sequential;
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellFormula(2, 1, "123");
             sheet.FormatCell(2, 1, "0.0000");
             Cell existing = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
@@ -230,10 +228,9 @@ namespace OfficeIMO.Tests {
                 var table = new DataTable();
                 table.Columns.Add("Value", typeof(string));
                 table.Rows.Add(rejected);
-                Assert.Throws<ArgumentException>(() => sheet.InsertDataTable(table, mode: ExcelExecutionMode.Sequential));
+                Assert.Throws<ArgumentException>(() => sheet.WriteData(table, mode: ExcelExecutionMode.Sequential));
             } else {
-                Assert.Throws<ArgumentException>(() => sheet.InsertObjects(new[] { 1, 2 },
-                    ("Value", (Func<int, object?>)(_ => rejected))));
+                Assert.Throws<ArgumentException>(() => sheet.WriteData(new[] { 1, 2 }, ("Value", (Func<int, object?>)(_ => rejected))));
             }
 
             Assert.Equal(original, existing.OuterXml);
@@ -251,7 +248,7 @@ namespace OfficeIMO.Tests {
         public void TabularImport_HeaderlessStyledMissingRows_PreserveAllColumns(string source, bool standardWriter) {
             using ExcelDocument document = ExcelDocument.Create();
             if (source == "Objects") {
-                document.AddWorksheet("Data").InsertObjects(new[] {
+                document.AddSheet("Data").WriteData(new[] {
                     new HeaderlessDateStyleRow(), new HeaderlessDateStyleRow()
                 }, includeHeaders: false);
             } else {
@@ -266,12 +263,11 @@ namespace OfficeIMO.Tests {
                     dataSet.Tables.Add(table);
                     document.InsertDataSet(dataSet, createTables: false, includeHeaders: false, includeAutoFilter: false);
                 } else {
-                    document.AddWorksheet("Data").InsertDataTable(table, includeHeaders: false,
-                        mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
+                    document.AddSheet("Data").WriteData(table, includeHeaders: false, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
                 }
             }
 
-            byte[] package = document.ToBytes(ExcelFileFormat.Xlsx, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
+            byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx,  DisableFastPackageWriter = standardWriter });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
             var cells = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
@@ -288,7 +284,7 @@ namespace OfficeIMO.Tests {
             }
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Contains("yy", loaded.Sheets[0].GetCellStyle(1, 2).NumberFormatCode, StringComparison.OrdinalIgnoreCase);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(package, new ExcelReadOptions { HasHeaderRow = false });
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(package, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(3, reader.FieldCount);
             for (int row = 0; row < 2; row++) {
                 Assert.True(reader.Read());

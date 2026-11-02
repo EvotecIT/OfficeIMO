@@ -24,7 +24,7 @@ public sealed class StudioProviderOutputFolderTests {
             foreach (string name in new[] { "First.pdf", "Second.pdf" }) {
                 var file = new TestStorageFile("content://recoveries/" + name, [], name) { FailWrite = true };
                 var result = await new OfficeIMO.Workflows.OfficeWorkflowRunner().AssemblePdfAsync(new() {
-                    Sources = [source], OutputPath = file.Location.AbsoluteUri, ConflictPolicy = OfficeIMO.Workflows.OfficeWorkflowConflictPolicy.Replace,
+                    Sources = [source], OutputPath = file.Location.AbsoluteUri, ConflictPolicy = OfficeIMO.OfficePublicationPolicy.Replace,
                     OutputStream = new(name, _ => file.Item.OpenReadAsync(), _ => file.Item.OpenWriteAsync(), services.WorkflowRecovery)
                 });
                 recoveries.Add(Assert.IsType<OfficeIMO.Workflows.OfficeWorkflowOutputRecovery>(result.Recovery));

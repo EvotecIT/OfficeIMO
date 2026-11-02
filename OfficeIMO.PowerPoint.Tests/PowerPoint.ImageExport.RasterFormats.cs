@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
             using var package = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(package);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "123456";
             var options = new PowerPointImageExportOptions {
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Throws<OperationCanceledException>(() =>
-                slide.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+                slide.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)));
         }
 
         [Theory]
@@ -35,8 +35,8 @@ namespace OfficeIMO.Tests {
             OfficeImageExportFormat format,
             OfficeImageFormat expected) {
             using var package = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(package);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "123456";
 
@@ -52,14 +52,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointPresentation_BatchSaveUsesWebpExtension() {
+        public void PowerPointDocument_BatchSaveUsesWebpExtension() {
             using var package = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(package);
-            presentation.SlideSize.SetSizePoints(160, 90);
+            using PowerPointDocument presentation = PowerPointDocument.Create(package);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(90));
             presentation.AddSlide().BackgroundColor = "123456";
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
             try {
-                presentation.SaveAsImages(folder, OfficeImageExportFormat.Webp);
+                presentation.SaveAsImages(folder, new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Webp });
 
                 Assert.True(File.Exists(Path.Combine(folder, "Slide 1.webp")));
             } finally {
@@ -70,20 +70,20 @@ namespace OfficeIMO.Tests {
 
     public partial class PowerPointImageExportTests {
         [Fact]
-        public void PowerPointSlide_RendersMediaPosterThroughThePdfSceneInRasterAndSvg() {
+        public void PowerPointSlide_RendersMediaPosterInRasterAndSvg() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(160, 100);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide slide = presentation.AddSlide();
             using MemoryStream video = new(new byte[] { 0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50 });
             slide.AddVideo(
                 video,
                 "video/mp4",
                 ".mp4",
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(80),
-                PowerPointUnits.FromPoints(45));
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(80),
+                OfficeIMO.OfficeLength.Points(45));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -95,28 +95,28 @@ namespace OfficeIMO.Tests {
             Assert.True(CountPixelsNear(rendered, OfficeColor.FromRgb(249, 250, 251)) > 0);
 
             Assert.Contains("<svg", Encoding.UTF8.GetString(svg.Bytes), StringComparison.Ordinal);
-            OfficeImageExportResult pdfSvg = presentation.ToPdfDocumentResult()
-                .ExportImages(OfficeImageExportFormat.Svg)[0];
-            Assert.Equal(pdfSvg.Bytes, svg.Bytes);
+            OfficeRasterImage svgPoster = ReadSvgOutput(svg);
+            Assert.Equal(OfficeColor.FromRgb(31, 41, 55), svgPoster.GetPixel(24, 24));
+            Assert.True(CountPixelsNear(svgPoster, OfficeColor.FromRgb(249, 250, 251)) > 0);
         }
 
         [Fact]
         public void PowerPointSlide_RendersBmpPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 80);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(80));
             PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp24(2, 2, new[] {
                 OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86),
                 OfficeColor.FromRgb(18, 52, 86), OfficeColor.FromRgb(18, 52, 86)
             });
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(24),
+                global::OfficeIMO.OfficeLength.Points(18));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -131,20 +131,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersTopDownBmpPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 80);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(80));
             PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp24(2, 2, new[] {
                 OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144),
                 OfficeColor.FromRgb(24, 96, 144), OfficeColor.FromRgb(24, 96, 144)
             }, topDown: true);
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(24),
+                global::OfficeIMO.OfficeLength.Points(18));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -159,20 +159,20 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersBmp32AlphaPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 80);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(80));
             PowerPointSlide slide = presentation.AddSlide();
             byte[] bmp = CreateBmp32(2, 2, new[] {
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
             });
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(24),
+                global::OfficeIMO.OfficeLength.Points(18));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
@@ -191,17 +191,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PowerPointSlide_RendersGifPicturesThroughSharedRasterDecoder() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(120, 80);
+            using PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(80));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "000000";
-            slide.AddPicture(
+            slide.AddImage(
                 new MemoryStream(CreateSinglePixelGif()),
                 OfficeImageFormat.Gif,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(20),
+                global::OfficeIMO.OfficeLength.Points(24),
+                global::OfficeIMO.OfficeLength.Points(18));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);

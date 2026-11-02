@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(LOG(8,1),99)", 99d)]
         public void Logarithms_and_exponential_results_survive_saved_numeric_caches(string formula, double expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>(), 12);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
         [InlineData("LOG(8,#N/A)", "#N/A")]
         public void Logarithms_propagate_typed_errors_and_replace_stale_numeric_caches(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(LOG(#REF!,\"text\"),99)")]
         public void Unsupported_logarithm_operands_and_arities_preserve_existing_caches(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Math");
+            var sheet = document.AddSheet("Math");
             sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 2d);
             sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
             Assert.Equal(0, document.Calculate());

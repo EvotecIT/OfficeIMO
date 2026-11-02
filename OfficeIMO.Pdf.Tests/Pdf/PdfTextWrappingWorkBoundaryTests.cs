@@ -41,18 +41,18 @@ public sealed class PdfTextWrappingWorkBoundaryTests {
 
     [Fact]
     public void LongCondensedTokenStillProducesReadablePdf() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
-            DefaultFontSize = 10D,
-            PageWidth = 612D,
-            PageHeight = 792D,
-            MarginLeft = 36D,
-            MarginRight = 36D,
-            MarginTop = 36D,
-            MarginBottom = 36D
+            DefaultFontSize = OfficeLength.Points(10D),
+            PageWidth = OfficeLength.Points(612D),
+            PageHeight = OfficeLength.Points(792D),
+            MarginLeft = OfficeLength.Points(36D),
+            MarginRight = OfficeLength.Points(36D),
+            MarginTop = OfficeLength.Points(36D),
+            MarginBottom = OfficeLength.Points(36D)
         };
-        var run = new PdfTextRun(new string('0', 4000) + new string('W', 200), fontSize: 10D)
-            .WithCharacterSpacing(-5D);
+        var run = new PdfTextRun(new string('0', 4000) + new string('W', 200), fontSize: OfficeLength.Points(10D))
+            .WithCharacterSpacing(OfficeLength.Points(-5D));
 
         byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { run })).ToBytes();
 

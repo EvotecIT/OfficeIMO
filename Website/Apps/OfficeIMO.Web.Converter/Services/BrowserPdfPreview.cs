@@ -20,7 +20,8 @@ internal sealed class BrowserPdfPreview {
         deadline.CancelAfter(timeout);
         deadline.Token.ThrowIfCancellationRequested();
         PdfLoadOptions options = BrowserPdfPolicy.CreateReadOptions(maximumInputBytes: BrowserPdfPolicy.MaxOutputBytes);
-        _document = PdfDocument.Load(bytes, options);
+        using var input = new MemoryStream(bytes, writable: false);
+        _document = PdfDocument.Load(input, options);
         PdfDocumentViewInfo geometry = _document.InspectGeometryForViewing(cancellationToken: deadline.Token);
         cancellationToken.ThrowIfCancellationRequested();
         // Browser timers cannot fire during synchronous WASM work; check elapsed time as well.
@@ -43,7 +44,7 @@ internal sealed class BrowserPdfPreview {
         double scale = maximumDimension >= 1280 ? 1.5 : 1.0;
         cancellationToken.ThrowIfCancellationRequested();
         if (_canExtractContent) return _document.Render.Pages(pageNumber.ToString(CultureInfo.InvariantCulture), new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Scale = scale,
             ThumbnailMaxDimension = maximumDimension,
             MaxPages = 1,

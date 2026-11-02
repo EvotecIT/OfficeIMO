@@ -33,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertInternalLinks(conversion.Value);
         using var saved = new MemoryStream();
         conversion.Value.Save(saved); saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         AssertInternalLinks(reopened);
         Assert.Empty(reopened.ValidateDocument());
     }

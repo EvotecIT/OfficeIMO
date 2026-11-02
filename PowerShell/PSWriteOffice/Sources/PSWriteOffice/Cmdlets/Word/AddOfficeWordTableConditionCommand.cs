@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>WordTableCondition -FilterScript { $_.Qty -gt 10 } -BackgroundColor '#fff4d6'</code>
 ///   <para>Applies a light highlight when the quantity column exceeds 10.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordTableCondition")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordTableCondition", DefaultParameterSetName = "Default")]
 [Alias("WordTableCondition")]
 public sealed class AddOfficeWordTableConditionCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Predicate executed per data row (uses <c>$_</c>).</summary>

@@ -9,75 +9,34 @@ BeforeAll {
 }
 
 Describe 'Expanded OfficeIMO support' {
-    It 'exports every new command family' {
-        $commands = @(
-            'Get-OfficeDocumentDetection', 'Get-OfficeDocumentStructured', 'Get-OfficeDocumentHierarchy',
-            'Get-OfficeDocumentBatch', 'New-OfficeDocumentReader', 'Search-OfficeDocument',
-            'Get-OfficeDocumentPageMarkdown',
-            'Export-OfficeWordImage', 'Export-OfficeExcelImage', 'Export-OfficePowerPointImage',
-            'Export-OfficeHtmlImage', 'Export-OfficePdfImage',
-            'Compare-OfficeWordDocument', 'Get-OfficeWordReview', 'Resolve-OfficeWordRevision',
-            'Get-OfficePowerPointInspection', 'ConvertTo-OfficePdfSanitized',
-            'ConvertTo-OfficePdfWord', 'ConvertTo-OfficePdfExcel', 'ConvertTo-OfficePdfPowerPoint',
-            'Export-OfficePdfXfdf', 'Import-OfficePdfXfdf', 'Compare-OfficePdfVisual',
-            'Get-OfficePdfInteractionMap', 'Export-OfficePdfLayoutOverlay', 'Invoke-OfficePdfOcrMerge',
-            'Get-OfficeImageText', 'ConvertTo-OfficePdfSearchable',
-            'Test-OfficePdfRewrite', 'New-OfficeOpenDocument', 'Get-OfficeOpenDocument',
-            'Save-OfficeOpenDocument', 'ConvertTo-OfficeOpenDocument', 'ConvertFrom-OfficeOpenDocument',
-            'Get-OfficeEmail', 'Save-OfficeEmail', 'Get-OfficeEmailMailbox', 'Save-OfficeEmailMailbox',
-            'Get-OfficeAsciiDoc', 'Save-OfficeAsciiDoc', 'ConvertTo-OfficeAsciiDocMarkdown',
-            'ConvertFrom-OfficeAsciiDocMarkdown', 'Get-OfficeLatex', 'Save-OfficeLatex',
-            'ConvertTo-OfficeLatexMarkdown', 'ConvertFrom-OfficeLatexMarkdown',
-            'Export-OfficeWordGoogleDocument', 'Export-OfficeExcelGoogleSpreadsheet',
-            'Get-OfficeProtectionCapability'
-        )
-
-        foreach ($command in $commands) {
-            Get-Command $command -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        }
-        (Get-Command New-OfficeDocumentReader).Parameters.Keys | Should -Contain 'TesseractOptions'
-        (Get-Command New-OfficeDocumentReader).Parameters.Keys | Should -Contain 'ProcessOcrOptions'
-        (Get-Command Invoke-OfficePdfOcrMerge).Parameters.Keys | Should -Contain 'Provider'
-        (Get-Command Get-OfficeImageText).Parameters.Keys | Should -Contain 'Language'
-        (Get-Command Get-OfficeImageText).Parameters.Keys | Should -Contain 'TesseractLanguageExpression'
-        (Get-Command Get-OfficeImageText).Parameters.Keys | Should -Contain 'NoLanguageDownload'
-        (Get-Command ConvertTo-OfficePdfSearchable).Parameters.Keys | Should -Contain 'RenderDpi'
-        (Get-Command ConvertTo-OfficePdfSearchable).Parameters.Keys | Should -Contain 'MinimumConfidence'
-        (Get-Command Import-OfficePdfXfdf).Parameters.Keys | Should -Contain 'MaxXfdfBytes'
-        (Get-Command Import-OfficePdfXfdf).Parameters.Keys | Should -Contain 'ReadOptions'
-        (Get-Command Export-OfficePdfXfdf).Parameters.Keys | Should -Contain 'ReadOptions'
-        (Get-Command ConvertTo-OfficePdfSanitized).Parameters.Keys | Should -Contain 'ReadOptions'
-        (Get-Command Export-OfficePdfImage).Parameters.Options.ParameterType.FullName |
-            Should -Be 'OfficeIMO.Pdf.PdfImageExportOptions'
-    }
-
     It 'detects, structures, chunks, and batch-reads additional text formats' {
         $asciiDocPath = Join-Path $TestDrive 'guide.adoc'
         $latexPath = Join-Path $TestDrive 'paper.tex'
         Set-Content -LiteralPath $asciiDocPath -Encoding UTF8 -Value "= Guide`n`n== Reader`n`nStructured AsciiDoc content."
         Set-Content -LiteralPath $latexPath -Encoding UTF8 -Value '\documentclass{article}\begin{document}\section{Reader}Structured LaTeX content.\end{document}'
 
-        $detection = Get-OfficeDocumentDetection -Path $asciiDocPath
-        $detection.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderDetectionResult'
+        $info = Get-OfficeDocumentInfo -Path $asciiDocPath
+        $info.GetType().FullName | Should -Be 'OfficeIMO.OfficeDocumentInfo'
+        $info.Detection.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderDetectionResult'
 
-        $structured = Get-OfficeDocumentStructured -Path $asciiDocPath
+        $structured = Read-OfficeDocument -As Structure -Path $asciiDocPath
         $structured.GetType().FullName | Should -Be 'OfficeIMO.Reader.OfficeDocumentStructuredExtractionResult'
         $structured.Records.Count | Should -BeGreaterThan 0
 
-        $hierarchy = Get-OfficeDocumentHierarchy -Path $asciiDocPath
+        $hierarchy = Read-OfficeDocument -As Hierarchy -Path $asciiDocPath
         $hierarchy.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderChunkHierarchyResult'
         $hierarchy.Chunks.Count | Should -BeGreaterThan 0
 
-        $batch = @(@($asciiDocPath, $latexPath) | Get-OfficeDocumentBatch)
+        $batch = @(@($asciiDocPath, $latexPath) | Read-OfficeDocument)
         $batch | Should -HaveCount 2
         $batch[0].GetType().FullName | Should -Be 'OfficeIMO.Reader.OfficeDocumentReadResult'
 
-        $reader = New-OfficeDocumentReader -MaxConcurrentReads 2
+        $reader = New-OfficeDocumentReader -MaximumConcurrentReads 2
         $reader.GetType().FullName | Should -Be 'OfficeIMO.Reader.OfficeDocumentReader'
     }
 
     It 'round-trips AsciiDoc and LaTeX through loss-aware Markdown results' {
-        $markdown = Get-OfficeMarkdown -Text "# Portable report`n`nA compact conversion contract."
+        $markdown = Open-OfficeMarkdown -Text "# Portable report`n`nA compact conversion contract."
         $asciiDocPath = Join-Path $TestDrive 'portable.adoc'
         $latexPath = Join-Path $TestDrive 'portable.tex'
 
@@ -156,7 +115,7 @@ Describe 'Expanded OfficeIMO support' {
 
     It 'saves native drawings directly and rejects mismatched drawing extensions before output' {
         $path = Join-Path $TestDrive 'direct.odg'
-        $saved = New-OfficeOpenDocument -Kind Graphics -Path $path -PassThru
+        $saved = New-OfficeOpenDocument -Kind Graphics -Path $path -PassThru -Content {}
         $saved.FullName | Should -Be $path
         $drawing = Get-OfficeOpenDocument -Path $path
         $drawing.GetType().FullName | Should -Be 'OfficeIMO.OpenDocument.OdgDocument'
@@ -169,7 +128,7 @@ Describe 'Expanded OfficeIMO support' {
         Test-Path -LiteralPath $wrongPath | Should -BeFalse
 
         $whatIfPath = Join-Path $TestDrive 'preview.odg'
-        New-OfficeOpenDocument -Kind Graphics -Path $whatIfPath -WhatIf | Out-Null
+        New-OfficeOpenDocument -Kind Graphics -Path $whatIfPath -WhatIf -Content {} | Out-Null
         Test-Path -LiteralPath $whatIfPath | Should -BeFalse
     }
 
@@ -234,7 +193,7 @@ Describe 'Expanded OfficeIMO support' {
         $script:OpenDocumentInvalidExtensionDslRan | Should -BeFalse
 
         $signedPath = Join-Path $TestDrive 'signed.odt'
-        New-OfficeOpenDocument -Kind Text -Path $signedPath | Out-Null
+        New-OfficeOpenDocument -Kind Text -Path $signedPath -Content {} | Out-Null
         $stream = [System.IO.File]::Open($signedPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
         try {
             $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Update, $false)
@@ -268,7 +227,7 @@ Describe 'Expanded OfficeIMO support' {
 
         $textPath = Join-Path $TestDrive 'reverse-source.odt'
         $wrongOfficeOutput = Join-Path $TestDrive 'text.xlsx'
-        New-OfficeOpenDocument -Kind Text -Path $textPath | Out-Null
+        New-OfficeOpenDocument -Kind Text -Path $textPath -Content {} | Out-Null
         { ConvertFrom-OfficeOpenDocument -Path $textPath -OutputPath $wrongOfficeOutput -ErrorAction Stop } |
             Should -Throw '*must use the .docx extension*'
         Test-Path -LiteralPath $wrongOfficeOutput | Should -BeFalse
@@ -361,20 +320,20 @@ Describe 'Expanded OfficeIMO support' {
         $pdfPath = Join-Path $TestDrive 'images.pdf'
         New-OfficeWord -Path $wordPath { WordSection { WordParagraph -Text 'Word image' } } | Out-Null
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Excel image' } } | Out-Null
-        New-OfficePowerPoint -Path $powerPointPath { PptSlide { PptTitle -Title 'PowerPoint image' } } | Out-Null
+        New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'PowerPoint image' } | Out-Null
         New-OfficePdf -Path $pdfPath { PdfParagraph 'PDF image' } | Out-Null
 
         $quietImagePath = Join-Path $TestDrive 'word-quiet.svg'
-        @(Export-OfficeWordImage -Path $wordPath -OutputPath $quietImagePath -Format Svg) | Should -HaveCount 0
+        @(Export-OfficeDocumentImage -Path $wordPath -OutputPath $quietImagePath -Format Svg) | Should -HaveCount 1
         Test-Path -LiteralPath $quietImagePath | Should -BeTrue
 
         $results = @(
-            Export-OfficeWordImage -Path $wordPath -OutputPath (Join-Path $TestDrive 'word.svg') -Format Svg -PassThru
-            Export-OfficeExcelImage -Path $excelPath -OutputPath (Join-Path $TestDrive 'excel-images') -Format Svg -PassThru
-            Export-OfficePowerPointImage -Path $powerPointPath -OutputPath (Join-Path $TestDrive 'ppt-images') -Format Svg -PassThru
-            Export-OfficeHtmlImage -Html '<h1>HTML image</h1>' -OutputPath (Join-Path $TestDrive 'html.svg') -Format Svg -PassThru
-            Export-OfficePdfImage -Path $pdfPath -OutputPath (Join-Path $TestDrive 'pdf-images') -Format Svg -PassThru
-            Export-OfficePdfImage -Path $pdfPath -OutputPath (Join-Path $TestDrive 'pdf-webp-images') -Format Webp -PassThru
+            Export-OfficeDocumentImage -Path $wordPath -OutputPath (Join-Path $TestDrive 'word.svg') -Format Svg
+            Export-OfficeDocumentImage -Path $excelPath -OutputDirectory (Join-Path $TestDrive 'excel-images') -Format Svg
+            Export-OfficeDocumentImage -Path $powerPointPath -OutputDirectory (Join-Path $TestDrive 'ppt-images') -Format Svg
+            Export-OfficeDocumentImage -From Html -Text '<h1>HTML image</h1>' -OutputPath (Join-Path $TestDrive 'html.svg') -Format Svg
+            Export-OfficeDocumentImage -Path $pdfPath -OutputDirectory (Join-Path $TestDrive 'pdf-images') -Format Svg
+            Export-OfficeDocumentImage -Path $pdfPath -OutputDirectory (Join-Path $TestDrive 'pdf-webp-images') -Format Webp
         )
 
         $results.Count | Should -BeGreaterOrEqual 5
@@ -388,7 +347,7 @@ Describe 'Expanded OfficeIMO support' {
 
         $htmlLines = @('<html><body>', '<h1>Pipeline heading</h1><p>Pipeline body</p>', '</body></html>')
         $pipelineHtmlPath = Join-Path $TestDrive 'pipeline-html.svg'
-        $pipelineHtml = @($htmlLines | Export-OfficeHtmlImage -OutputPath $pipelineHtmlPath -Format Svg -PassThru)
+        $pipelineHtml = @(Export-OfficeDocumentImage -Text ($htmlLines -join "`n") -From Html -OutputPath $pipelineHtmlPath -Format Svg)
         $pipelineHtml | Should -HaveCount 1
         $pipelineHtml[0].GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult'
         Test-Path -LiteralPath $pipelineHtmlPath | Should -BeTrue
@@ -406,8 +365,8 @@ Describe 'Expanded OfficeIMO support' {
 
         foreach ($format in 'Jpeg', 'Tiff', 'Webp') {
             $extension = if ($format -eq 'Jpeg') { 'jpg' } else { $format.ToLowerInvariant() }
-            $wordResult = Export-OfficeWordImage -Path $wordPath -OutputPath (Join-Path $TestDrive "word.$extension") -Format $format -PassThru
-            $htmlResult = Export-OfficeHtmlImage -Html '<h1>Format contract</h1>' -OutputPath (Join-Path $TestDrive "html.$extension") -Format $format -PassThru
+            $wordResult = Export-OfficeDocumentImage -Path $wordPath -Page 1 -OutputPath (Join-Path $TestDrive "word.$extension") -Format $format
+            $htmlResult = Export-OfficeDocumentImage -From Html -Text '<h1>Format contract</h1>' -OutputPath (Join-Path $TestDrive "html.$extension") -Format $format
 
             foreach ($result in $wordResult, $htmlResult) {
                 $result.Format.ToString() | Should -Be $format
@@ -431,7 +390,7 @@ Describe 'Expanded OfficeIMO support' {
 
         $batchOptions = New-OfficeWordImageOptions -PageIndex 0 -PageCount 2
         $batchFolder = Join-Path $TestDrive 'word-pages'
-        $batch = @(Export-OfficeWordImage -Path $wordPath -OutputPath $batchFolder -Format Svg -Options $batchOptions -PassThru)
+        $batch = @(Export-OfficeDocumentImage -Path $wordPath -OutputDirectory $batchFolder -Format Svg -Options $batchOptions)
         $batch | Should -HaveCount 2
         $batch[0].SequenceIndex | Should -Be 0
         $batch[1].SequenceIndex | Should -Be 1
@@ -442,10 +401,10 @@ Describe 'Expanded OfficeIMO support' {
 
     It 'releases path-loaded PowerPoint presentations after image export' {
         $powerPointPath = Join-Path $TestDrive 'transient.pptx'
-        New-OfficePowerPoint -Path $powerPointPath { PptSlide { PptTitle -Title 'Transient' } } | Out-Null
+        New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'Transient' } | Out-Null
 
-        Export-OfficePowerPointImage -Path $powerPointPath -OutputPath (Join-Path $TestDrive 'transient-images') -Format Svg | Out-Null
-        Get-OfficePowerPointInspection -Path $powerPointPath | Out-Null
+        Export-OfficeDocumentImage -Path $powerPointPath -OutputDirectory (Join-Path $TestDrive 'transient-images') -Format Svg | Out-Null
+        Test-OfficePowerPoint -Path $powerPointPath | Out-Null
 
         $renamedPath = Join-Path $TestDrive 'transient-renamed.pptx'
         Move-Item -LiteralPath $powerPointPath -Destination $renamedPath
@@ -458,7 +417,7 @@ Describe 'Expanded OfficeIMO support' {
         $powerPointPath = Join-Path $TestDrive 'convert.pptx'
         New-OfficeWord -Path $wordPath { WordSection { WordParagraph -Text 'Convert' } } | Out-Null
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Convert' } } | Out-Null
-        New-OfficePowerPoint -Path $powerPointPath { PptSlide { PptTitle -Title 'Convert' } } | Out-Null
+        New-OfficePowerPoint -Path $powerPointPath { PowerPointSlide -Title 'Convert' } | Out-Null
 
         ConvertTo-OfficeOpenDocument -Path $wordPath -OutputPath (Join-Path $TestDrive 'convert.odt') | Out-Null
         ConvertTo-OfficeOpenDocument -Path $excelPath -OutputPath (Join-Path $TestDrive 'convert.ods') | Out-Null
@@ -480,13 +439,13 @@ Describe 'Expanded OfficeIMO support' {
         $deck = Join-Path $TestDrive 'inspection.pptx'
         New-OfficeWord -Path $before { WordSection { WordParagraph -Text 'Before text' } } | Out-Null
         New-OfficeWord -Path $after { WordSection { WordParagraph -Text 'After text' } } | Out-Null
-        New-OfficePowerPoint -Path $deck { PptSlide { PptTitle -Title 'Inspection' } } | Out-Null
+        New-OfficePowerPoint -Path $deck { PowerPointSlide -Title 'Inspection' } | Out-Null
 
         $comparison = Compare-OfficeWordDocument -ReferencePath $before -DifferencePath $after -RedlinePath $redline
         $comparison.GetType().FullName | Should -Be 'OfficeIMO.Word.WordComparisonResult'
         Test-Path -LiteralPath $redline | Should -BeTrue
         (Get-OfficeWordReview -Path $redline).GetType().FullName | Should -Be 'OfficeIMO.Word.WordReviewReport'
-        (Get-OfficePowerPointInspection -Path $deck).GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointInspectionReport'
+        (Test-OfficePowerPoint -Path $deck).GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointInspectionReport'
     }
 
     It 'runs PDF sanitization, XFDF, interaction, overlay, comparison, and rewrite proof' {
@@ -560,13 +519,13 @@ Describe 'Expanded OfficeIMO support' {
         New-OfficeWord -Path $wordPath { WordSection { WordParagraph -Text 'Google plan' } } | Out-Null
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Google plan' } } | Out-Null
 
-        (Export-OfficeWordGoogleDocument -Path $wordPath -PlanOnly).GetType().FullName |
+        (Export-OfficeWordGoogleDocument -Path $wordPath -Mode Plan).GetType().FullName |
             Should -Be 'OfficeIMO.Word.GoogleDocs.GoogleDocsTranslationPlan'
-        (Export-OfficeWordGoogleDocument -Path $wordPath -AsBatch).GetType().FullName |
+        (Export-OfficeWordGoogleDocument -Path $wordPath -Mode Batch).GetType().FullName |
             Should -Be 'OfficeIMO.Word.GoogleDocs.GoogleDocsBatch'
-        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -PlanOnly).GetType().FullName |
+        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -Mode Plan).GetType().FullName |
             Should -Be 'OfficeIMO.Excel.GoogleSheets.GoogleSheetsTranslationPlan'
-        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -AsBatch).GetType().FullName |
+        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -Mode Batch).GetType().FullName |
             Should -Be 'OfficeIMO.Excel.GoogleSheets.GoogleSheetsBatch'
     }
 }

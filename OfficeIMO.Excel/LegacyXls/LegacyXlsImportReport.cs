@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// Compact public import report for preflight checks and diagnostics.
     /// Detailed corpus aggregations are kept internal to avoid turning parser telemetry into a public compatibility surface.
     /// </summary>
-    public sealed class LegacyXlsImportReport {
+    internal sealed class LegacyXlsImportReport {
         internal LegacyXlsImportReport(LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
@@ -364,7 +364,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             WarningCount = workbook.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
             DiagnosticsByCode = CountByCode(workbook.Diagnostics.Select(diagnostic => diagnostic.Code));
             LegacyXlsImportDiagnostic[] formulaTokenDiagnostics = workbook.Diagnostics
-                .Where(diagnostic => string.Equals(diagnostic.Code, "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED", StringComparison.OrdinalIgnoreCase))
+                .Where(diagnostic => string.Equals(diagnostic.Code, "xls-biff-formula-tokens-unsupported", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             FormulaTokenBlockers = CountByCode(formulaTokenDiagnostics
                 .Select(diagnostic => diagnostic.DetailCode ?? "FormulaUnknown"));
@@ -5016,15 +5016,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             return record.Kind switch {
                 LegacyXlsCompoundFeatureRecordKind.VbaProject => GetProjectedFeatureKey(
                     LegacyXlsUnsupportedFeatureKind.VbaProject,
-                    "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED",
+                    "xls-compound-feature-vba-project-preserved",
                     detailCode: "Compound:VbaProjectStorage"),
                 LegacyXlsCompoundFeatureRecordKind.OleObject => GetProjectedFeatureKey(
                     LegacyXlsUnsupportedFeatureKind.OleObject,
-                    "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED",
+                    "xls-compound-feature-ole-object-preserved",
                     detailCode: "Compound:OleObjectStorage"),
                 LegacyXlsCompoundFeatureRecordKind.DigitalSignature => GetProjectedFeatureKey(
                     LegacyXlsUnsupportedFeatureKind.DigitalSignature,
-                    "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED",
+                    "xls-compound-feature-digital-signature-diagnosed",
                     detailCode: "Compound:DigitalSignature"),
                 _ => null
             };
@@ -5375,12 +5375,12 @@ namespace OfficeIMO.Excel.LegacyXls {
         }
 
         private static bool IsBofDiagnostic(LegacyXlsImportDiagnostic diagnostic) {
-            return diagnostic.Code.IndexOf("-BOF-", StringComparison.Ordinal) >= 0;
+            return diagnostic.Code.IndexOf("-bof-", StringComparison.Ordinal) >= 0;
         }
 
         private static bool IsBiffTruncationDiagnostic(LegacyXlsImportDiagnostic diagnostic) {
-            return diagnostic.Code.StartsWith("XLS-BIFF-", StringComparison.Ordinal)
-                && diagnostic.Code.IndexOf("TRUNCATED", StringComparison.Ordinal) >= 0;
+            return diagnostic.Code.StartsWith("xls-biff-", StringComparison.Ordinal)
+                && diagnostic.Code.IndexOf("truncated", StringComparison.Ordinal) >= 0;
         }
 
         private static bool IsFileFormatBlocker(LegacyXlsUnsupportedFeature feature) {
@@ -5698,8 +5698,8 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetDrawingFutureRecordRangeKey(LegacyXlsDrawingRecord record) {
             LegacyXlsDrawingFutureRecordHeader header = record.FutureRecordHeader!;
-            string start = A1.CellReference(header.FirstRow!.Value + 1, header.FirstColumn!.Value + 1);
-            string end = A1.CellReference(header.LastRow!.Value + 1, header.LastColumn!.Value + 1);
+            string start = ExcelA1.CellReference(header.FirstRow!.Value + 1, header.FirstColumn!.Value + 1);
+            string end = ExcelA1.CellReference(header.LastRow!.Value + 1, header.LastColumn!.Value + 1);
             return $"{record.RecordName}|{start}:{end}";
         }
 

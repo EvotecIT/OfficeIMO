@@ -10,6 +10,11 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        private static ExcelReaderOptions WithTransport(ExcelReaderOptions options, ExcelLoadOptions transport) {
+            options.Transport = transport;
+            return options;
+        }
+
         [Fact]
         public async Task ExcelHttpLoadRejectsHttpByDefault() {
             var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
@@ -27,7 +32,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(CreateWorkbookResponse(workbookBytes));
             });
 
-            var httpOptions = new ExcelHttpLoadOptions {
+            var httpOptions = new ExcelLoadOptions {
                 SchemePolicy = ExcelUriSchemePolicy.HttpAndHttps,
                 HttpMessageHandler = handler,
                 UserAgent = "OfficeIMO.Tests"
@@ -53,7 +58,7 @@ namespace OfficeIMO.Tests {
 
             await using var document = await ExcelDocument.LoadAsync(
                 new Uri("https://example.test/workbook.xlsx"),
-                new ExcelHttpLoadOptions { HttpMessageHandler = handler });
+                new ExcelLoadOptions { HttpMessageHandler = handler });
 
             Assert.Equal(OfficeIMO.DocumentAccessMode.ReadWrite, document.AccessMode);
             Assert.Equal("Remote", document.Sheets[0].Name);
@@ -69,9 +74,7 @@ namespace OfficeIMO.Tests {
             });
 
             ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(
-                new Uri("https://example.test/workbook.xlsx"),
-                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
-                new ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
+                new Uri("https://example.test/workbook.xlsx"),                new ExcelLoadOptions { HttpMessageHandler = handler ,PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose }));
 
             Assert.Equal("options", exception.ParamName);
             Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -87,7 +90,7 @@ namespace OfficeIMO.Tests {
             var ex = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    httpOptions: new ExcelHttpLoadOptions {
+                    httpOptions: new ExcelLoadOptions {
                         HttpMessageHandler = handler,
                         MaxBytes = workbookBytes.Length - 1
                     }));
@@ -105,8 +108,8 @@ namespace OfficeIMO.Tests {
             var ex = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    new ExcelReadOptions { MaxInputBytes = workbookBytes.Length - 1 },
-                    new ExcelHttpLoadOptions {
+                    new ExcelReaderOptions { MaxInputBytes = workbookBytes.Length - 1 },
+                    new ExcelLoadOptions {
                         HttpMessageHandler = handler,
                         MaxBytes = workbookBytes.Length * 2L
                     }));
@@ -130,7 +133,7 @@ namespace OfficeIMO.Tests {
             var ex = await Assert.ThrowsAsync<OfficeInspectionResourceLimitException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    httpOptions: new ExcelHttpLoadOptions {
+                    httpOptions: new ExcelLoadOptions {
                         HttpMessageHandler = handler,
                         MaxBytes = workbookBytes.Length - 1
                     }));
@@ -148,7 +151,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = await ExcelDocumentReader.OpenAsync(
                 new Uri("https://example.test/workbook.xlsx"),
-                httpOptions: new ExcelHttpLoadOptions {
+                httpOptions: new ExcelLoadOptions {
                     HttpMessageHandler = handler,
                     Progress = progress
                 });
@@ -172,7 +175,7 @@ namespace OfficeIMO.Tests {
             await Assert.ThrowsAsync<InvalidDataException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    httpOptions: new ExcelHttpLoadOptions { HttpMessageHandler = handler }));
+                    httpOptions: new ExcelLoadOptions { HttpMessageHandler = handler }));
         }
 
         [Fact]
@@ -187,7 +190,7 @@ namespace OfficeIMO.Tests {
             var ex = await Assert.ThrowsAsync<InvalidDataException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    httpOptions: new ExcelHttpLoadOptions {
+                    httpOptions: new ExcelLoadOptions {
                         HttpMessageHandler = handler,
                         ValidateContentTypeWhenPresent = true
                     }));
@@ -207,7 +210,7 @@ namespace OfficeIMO.Tests {
 
             using var reader = await ExcelDocumentReader.OpenAsync(
                 new Uri("https://example.test/workbook.xlsm"),
-                httpOptions: new ExcelHttpLoadOptions {
+                httpOptions: new ExcelLoadOptions {
                     HttpMessageHandler = handler,
                     ValidateContentTypeWhenPresent = true
                 });
@@ -226,7 +229,7 @@ namespace OfficeIMO.Tests {
             var ex = await Assert.ThrowsAsync<NotSupportedException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    httpOptions: new ExcelHttpLoadOptions { HttpMessageHandler = handler }));
+                    httpOptions: new ExcelLoadOptions { HttpMessageHandler = handler }));
 
             Assert.Contains("HTTPS", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -239,7 +242,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
             });
 
-            var options = new ExcelHttpLoadOptions {
+            var options = new ExcelLoadOptions {
                 HttpMessageHandler = handler
             };
             options.AllowedHosts.Add("allowed.example.test");
@@ -267,7 +270,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
             });
 
-            var options = new ExcelHttpLoadOptions {
+            var options = new ExcelLoadOptions {
                 HttpMessageHandler = handler
             };
             options.AllowedHosts.Add("example.test");
@@ -297,7 +300,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(CreateWorkbookResponse(workbookBytes));
             });
 
-            var options = new ExcelHttpLoadOptions {
+            var options = new ExcelLoadOptions {
                 HttpMessageHandler = handler
             };
             options.AllowedHosts.Add("example.test");
@@ -327,7 +330,7 @@ namespace OfficeIMO.Tests {
                 return Task.FromResult(CreateWorkbookResponse(workbookBytes));
             });
 
-            var options = new ExcelHttpLoadOptions {
+            var options = new ExcelLoadOptions {
                 HttpMessageHandler = handler,
                 UserAgent = "OfficeIMO.Tests"
             };
@@ -356,7 +359,7 @@ namespace OfficeIMO.Tests {
             await Assert.ThrowsAsync<TaskCanceledException>(() =>
                 ExcelDocumentReader.OpenAsync(
                     new Uri("https://example.test/workbook.xlsx"),
-                    httpOptions: new ExcelHttpLoadOptions { HttpMessageHandler = handler },
+                    httpOptions: new ExcelLoadOptions { HttpMessageHandler = handler },
                     cancellationToken: cancellation.Token));
         }
 
@@ -367,7 +370,7 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.Http.{Guid.NewGuid():N}.xls");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Legacy");
+                    ExcelSheet sheet = document.AddSheet("Legacy");
                     sheet.CellValue(1, 1, "Id");
                     sheet.CellValue(2, 1, 7);
                     document.Save();
@@ -377,9 +380,8 @@ namespace OfficeIMO.Tests {
                 using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
                     Task.FromResult(CreateWorkbookResponse(workbookBytes)));
 
-                using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
-                    new Uri("https://example.test/workbook.xls"),
-                    httpOptions: new ExcelHttpLoadOptions { HttpMessageHandler = handler });
+                using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(
+                    new Uri("https://example.test/workbook.xls"),new ExcelReaderOptions { Transport = new ExcelLoadOptions { HttpMessageHandler = handler } });
 
                 Assert.Equal("Legacy", reader.CurrentSheetName);
                 Assert.True(reader.Read());
@@ -399,10 +401,8 @@ namespace OfficeIMO.Tests {
             cancellation.Cancel();
 
             await Assert.ThrowsAsync<TaskCanceledException>(() =>
-                ExcelDocument.OpenDataReaderAsync(
-                    new Uri("https://example.test/workbook.xlsx"),
-                    new ExcelReadOptions { CancellationToken = cancellation.Token },
-                    new ExcelHttpLoadOptions { HttpMessageHandler = handler }));
+                ExcelDocument.OpenReaderAsync(
+                    new Uri("https://example.test/workbook.xlsx"),WithTransport(new ExcelReaderOptions { CancellationToken = cancellation.Token }, new ExcelLoadOptions { HttpMessageHandler = handler })));
         }
 
         [Theory]
@@ -415,15 +415,12 @@ namespace OfficeIMO.Tests {
                 Task.FromResult(CreateWorkbookResponse(workbookBytes)));
             using var methodCancellation = new CancellationTokenSource();
             using var optionsCancellation = new CancellationTokenSource();
-            var options = new ExcelReadOptions {
+            var options = new ExcelReaderOptions {
                 CancellationToken = optionsCancellation.Token
             };
 
-            using ExcelWorkbookDataReader reader = await ExcelDocument.OpenDataReaderAsync(
-                new Uri("https://example.test/workbook.xlsx"),
-                options,
-                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
-                methodCancellation.Token);
+            using ExcelWorkbookDataReader reader = await ExcelDocument.OpenReaderAsync(
+                new Uri("https://example.test/workbook.xlsx"),WithTransport(options, new ExcelLoadOptions { HttpMessageHandler = handler }),                methodCancellation.Token);
 
             if (cancelOptionsToken) {
                 optionsCancellation.Cancel();
@@ -437,7 +434,7 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Remote");
+                var sheet = document.AddSheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }
 

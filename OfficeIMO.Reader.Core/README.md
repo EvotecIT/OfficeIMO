@@ -97,6 +97,8 @@ foreach (OfficeDocumentSearchHit hit in matches.Hits) {
 }
 
 string pageMarkedMarkdown = document.ToPageMarkedMarkdown();
+string text = document.GetText();
+IReadOnlyList<OfficeDocumentPageText> pageText = document.GetPageText();
 ```
 
 Page boundaries are not equally authoritative in every source format:
@@ -109,6 +111,9 @@ Page boundaries are not equally authoritative in every source format:
 
 Use `document.GetPageProvenance()` when page accuracy affects citations. `GetPageMarkdown()` returns separate
 page values, while `ToPageMarkedMarkdown()` produces one portable Markdown string with HTML page markers.
+`GetText()` follows the same canonical source order, emits structured table cells separated by tabs,
+and avoids duplicate block, chunk and table projections. `GetPageText()` returns only observed page-like
+containers, with their original page metadata and provenance. These projections do not reopen the source.
 The original document-wide `Markdown`, `Blocks`, and `Chunks` remain available on the same result.
 
 For dependency-free plain text and an explicit unknown-payload fallback:
@@ -148,6 +153,31 @@ Disable `ComputeHashes` for earliest first-chunk delivery. Dispose the
 enumerator when stopping early. A seekable stream reads from the beginning and restores its original position;
 a forward-only stream starts at its current position. The caller keeps stream ownership and must keep its
 input stable during enumeration. Content-first routing uses the snapshot-based materialized contract.
+
+## Bound a batch by source bytes
+
+Set `ReaderBatchOptions.MaxTotalBytes` to bound the combined source lengths accepted by a batch.
+When set, reads run in input order so each native owner receives the remaining allowance;
+`MaxDegreeOfParallelism` remains an upper bound. Per-file and registered default limits still apply.
+Directory packages use their native bounded reader and snapshot length.
+
+`ReadDocumentsDetailedAsync` and `ReadDocumentsAsCompletedAsync` report a source that does not fit
+as a failed outcome and continue with the remaining sources. `ReadDocumentsAsync` throws instead.
+The other operation budgets still span the complete batch; terminal safety limits retain their
+existing behavior.
+
+## Reuse an immutable read policy
+
+`OfficeDocumentReaderBuilder.WithDefaultOptions(options)` captures common read and folder settings.
+Registration and `Build()` each snapshot the policy, including nested budgets, encoding and folder
+selection. Changing the original options, the builder or the copy returned by `reader.DefaultOptions`
+does not reconfigure an existing reader.
+
+Omitting per-read options uses that profile across path, stream, bytes, incremental, asynchronous,
+folder and batch routes. An explicit `ReaderOptions` object replaces the complete common profile;
+it does not merge individual fields. Explicit `ReaderFolderOptions` similarly replace folder defaults.
+Standalone detection retains its own `ReaderDetectionOptions` contract, and `DetectKind` remains an
+extension lookup that does not open a file.
 
 ## Operation budgets and decoding
 

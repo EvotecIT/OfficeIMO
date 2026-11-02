@@ -179,11 +179,11 @@ namespace OfficeIMO.Word {
         /// <param name="position">Location of footnotes.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        public void AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
+        public WordFootnoteSettings AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
             WordFootnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
-            this.Sections[0].AddFootnoteProperties(numberingFormat, position, restartNumbering, startNumber);
+            return this.Sections[0].AddFootnoteProperties(numberingFormat, position, restartNumbering, startNumber);
         }
 
         /// <summary>
@@ -193,11 +193,11 @@ namespace OfficeIMO.Word {
         /// <param name="position">Document-wide endnote location. A position-only update preserves section numbering.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        public void AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
+        public WordEndnoteSettings AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
             WordEndnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
-            this.Sections[0].AddEndnoteProperties(numberingFormat, position, restartNumbering, startNumber);
+            return this.Sections[0].AddEndnoteProperties(numberingFormat, position, restartNumbering, startNumber);
         }
 
         /// <summary>
@@ -229,8 +229,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="startNumber">Starting page number.</param>
         /// <param name="format">Number format.</param>
-        public void AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
-            this.Sections[0].AddPageNumbering(startNumber, format);
+        public WordPageNumberSettings AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
+            return this.Sections[0].AddPageNumbering(startNumber, format);
         }
     }
 }

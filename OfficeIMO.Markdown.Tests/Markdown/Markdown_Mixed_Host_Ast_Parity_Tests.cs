@@ -100,17 +100,17 @@ public sealed class Markdown_Mixed_Host_Ast_Parity_Tests {
         AssertDocumentAstParity(markdown, html, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
     }
 
-    private static void AssertDocumentAstParity(string markdown, string html, MarkdownReaderOptions? options = null) {
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+    private static void AssertDocumentAstParity(string markdown, string html, MarkdownLoadOptions? options = null) {
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, options);
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         Assert.Equal(
             MarkdownAstParityFormatter.DescribeBlocks(markdownDocument.Blocks),
             MarkdownAstParityFormatter.DescribeBlocks(htmlDocument.Blocks));
     }
 
-    private static MarkdownReaderOptions CreateSemanticOptions(string language, string semanticKind) {
-        var options = new MarkdownReaderOptions();
+    private static MarkdownLoadOptions CreateSemanticOptions(string language, string semanticKind) {
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Semantic AST",
             new[] { language },

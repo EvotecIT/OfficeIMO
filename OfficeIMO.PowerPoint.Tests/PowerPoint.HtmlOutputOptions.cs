@@ -105,24 +105,24 @@ public sealed class PowerPointHtmlOutputOptionsTests {
         Assert.Contains(SlideSvg(presentation, new PowerPointImageExportOptions()), html, StringComparison.Ordinal);
     }
 
-    static string SlideSvg(PowerPointPresentation presentation, PowerPointImageExportOptions options) =>
+    static string SlideSvg(PowerPointDocument presentation, PowerPointImageExportOptions options) =>
         OfficeDrawingSvgExporter.ToSvg(presentation.Slides[0].CreateVisualSnapshot(options).Drawing);
 
     static byte[] ReadBaselineSans() =>
         File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Fonts", "OfficeIMOBaselineSans-Regular.ttf"));
 
-    static PowerPointPresentation CreateWithCalibriText() {
-        var presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(320, 120);
-        var box = presentation.AddSlide().AddTextBoxPoints("Pinned fonts", 20, 20, 280, 60);
+    static PowerPointDocument CreateWithCalibriText() {
+        var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeLength.Points(320), OfficeLength.Points(120));
+        var box = presentation.AddSlide().AddTextBox("Pinned fonts", OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(280), OfficeLength.Points(60));
         box.FontName = "Calibri";
         return presentation;
     }
 
-    static PowerPointPresentation CreateWithOffSlideShape() {
-        var presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(160, 100);
-        presentation.AddSlide().AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
+    static PowerPointDocument CreateWithOffSlideShape() {
+        var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
+        presentation.AddSlide().AddRectangle(OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Outside slide bounds");
         return presentation;
     }
 }

@@ -26,7 +26,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
-        using var saved = PowerPointPresentation.Load(output);
+        using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "NativeAOT image PPTX did not save/reopen correctly.");
         for (int i = 0; i < 3; i++) {
             PowerPointPicture picture = saved.Slides[i].Pictures.Single();

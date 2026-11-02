@@ -461,6 +461,8 @@ public sealed partial class RtfLosslessEditor {
             AppendWithSkip("\u2011", builder, state);
         } else if (symbol.Symbol == '-') {
             AppendWithSkip("\u00AD", builder, state);
+        } else if (symbol.IsParagraphBreak) {
+            AppendWithSkip(Environment.NewLine, builder, state);
         }
     }
 

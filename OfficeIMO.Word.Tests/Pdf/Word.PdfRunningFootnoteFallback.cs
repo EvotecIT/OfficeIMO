@@ -24,7 +24,7 @@ public partial class Word {
             Assert.Equal(activeReference ? 3 : 2, main.FootnotesPart!.Footnotes!.Elements<W.Footnote>().Count(note => note.Id?.Value > 0));
             string notesBefore = main.FootnotesPart.Footnotes.OuterXml;
             string headersBefore = string.Concat(main.HeaderParts.OrderBy(part => part.Uri.ToString()).Select(part => part.Header.OuterXml));
-            var result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+            var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
 
             // Reusing the same conversion result must not append fallback notes
             // or warnings again when its PDF is serialized more than once.
@@ -63,7 +63,7 @@ public partial class Word {
                         letter.EndBaseLine.X <= note[0].StartBaseLine.X &&
                         note[0].StartBaseLine.X - letter.EndBaseLine.X < note[0].PointSize);
                     Assert.True(noteMarker.PointSize < note[0].PointSize);
-                    var warning = Assert.Single(result.Warnings, item => item.Code == "NativeFootnotePlacementApproximated");
+                    var warning = Assert.Single(result.Warnings, item => item.Code == "native-footnote-placement-approximated");
                     Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
                     Assert.True(result.HasLoss);
                     Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -71,7 +71,7 @@ public partial class Word {
                     Assert.All(pdf.GetPages(), page => Assert.Contains("ACTIVEHEADER", page.Text, StringComparison.Ordinal));
                     Assert.DoesNotContain(result.Warnings, warning =>
                         warning.Code.IndexOf("Footnote", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                        warning.Code.StartsWith("NativeNote", StringComparison.Ordinal));
+                        warning.Code.StartsWith("native-note-", StringComparison.Ordinal));
                 }
             }
             Assert.Equal(notesBefore, main.FootnotesPart.Footnotes.OuterXml);

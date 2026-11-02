@@ -5,16 +5,20 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Adds an editable native chart with the format's default title, size and placement.</summary>
+        public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data) =>
+            AddChart(chartKind, data, null);
+
         /// <summary>
         /// Adds a native Excel chart from the shared OfficeIMO chart contract, including per-series combo kinds
         /// and primary or secondary axis assignments.
         /// </summary>
-        public ExcelChart AddChart(OfficeChartKind chartKind, OfficeChartData data, int row, int column,
-            int widthPixels = 640, int heightPixels = 360, string? title = null) {
+        public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions? options) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             ExcelChartData excelData = ToExcelChartData(data, chartKind);
-            ExcelChart chart = AddChart(excelData, row, column, widthPixels, heightPixels,
-                MapChartKind(chartKind), title);
+            var placement = options as ExcelChartOptions;
+            ExcelChart chart = AddChart(excelData, placement?.Row ?? 1, placement?.Column ?? 1,
+                options?.Width, options?.Height, chartKind, options?.Title);
             chart.ApplyAuthoredSeriesStyles(excelData.Series,
                 data.Series.Select(series => series.ShowInLegend).ToList());
             chart.ApplySharedPointStyles(data.Series);
@@ -22,12 +26,12 @@ namespace OfficeIMO.Excel {
             return chart;
         }
 
-        private static ExcelChartData ToExcelChartData(OfficeChartData data, OfficeChartKind defaultKind) {
+        private static ExcelChartData ToExcelChartData(OfficeChartData data, OfficeChartType defaultKind) {
             var series = new List<ExcelChartSeries>(data.Series.Count);
-            foreach (OfficeChartSeries item in data.Series) {
-                ExcelChartType? chartType = MapChartKind(item.RenderKind ?? defaultKind);
+            foreach (OfficeSeries item in data.Series) {
+                OfficeChartType? chartType = item.RenderKind ?? defaultKind;
                 if (item.PointExplosions != null &&
-                    chartType is not ExcelChartType.Pie and not ExcelChartType.Doughnut)
+                    chartType is not OfficeChartType.Pie and not OfficeChartType.Doughnut)
                     throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
                 OfficeChartAxisGroup axisGroup = item.AxisGroup == OfficeChartAxisGroup.Secondary
                     ? OfficeChartAxisGroup.Secondary
@@ -38,41 +42,15 @@ namespace OfficeIMO.Excel {
                     : new ExcelChartSeries(item.Name, item.Values, item.XValues, chartType, axisGroup,
                         item.Color?.ToRgbHex());
                 mapped = mapped.WithImageExportStyle(
-                    item.Color?.ToRgbHex(), item.StrokeWidth, item.StrokeDashStyle,
-                    item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ShowMarkers,
-                    item.ConnectLine, item.MarkerSize, item.MarkerShape, item.MarkerOutlineColor?.ToRgbHex(),
-                    item.MarkerOutlineWidth).WithSeriesStyle(item.SeriesStyle)
+                    item.Color?.ToRgbHex(), item.StrokeWidth?.ToPoints(), item.StrokeDashStyle,
+                    item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ResolveMarkerVisibility(item.RenderKind ?? defaultKind, OfficeTheme.Default),
+                    item.ConnectLine, item.MarkerSize, item.ResolveMarkerShape(item.RenderKind ?? defaultKind, OfficeTheme.Default), item.MarkerOutlineColor?.ToRgbHex(),
+                    item.MarkerOutlineWidth?.ToPoints()).WithSeriesStyle(item.SeriesStyle)
                     .WithPointStyles(item.PointStyles).WithPointExplosions(item.PointExplosions);
                 series.Add(mapped);
             }
             return new ExcelChartData(data.Categories, series);
         }
 
-        private static ExcelChartType MapChartKind(OfficeChartKind kind) {
-            switch (kind) {
-                case OfficeChartKind.ColumnClustered: return ExcelChartType.ColumnClustered;
-                case OfficeChartKind.ColumnStacked: return ExcelChartType.ColumnStacked;
-                case OfficeChartKind.ColumnStacked100: return ExcelChartType.ColumnStacked100;
-                case OfficeChartKind.BarClustered: return ExcelChartType.BarClustered;
-                case OfficeChartKind.BarStacked: return ExcelChartType.BarStacked;
-                case OfficeChartKind.BarStacked100: return ExcelChartType.BarStacked100;
-                case OfficeChartKind.Line: return ExcelChartType.Line;
-                case OfficeChartKind.LineStacked: return ExcelChartType.LineStacked;
-                case OfficeChartKind.LineStacked100: return ExcelChartType.LineStacked100;
-                case OfficeChartKind.Area: return ExcelChartType.Area;
-                case OfficeChartKind.AreaStacked: return ExcelChartType.AreaStacked;
-                case OfficeChartKind.AreaStacked100: return ExcelChartType.AreaStacked100;
-                case OfficeChartKind.Scatter: return ExcelChartType.Scatter;
-                case OfficeChartKind.Radar: return ExcelChartType.Radar;
-                case OfficeChartKind.Pie: return ExcelChartType.Pie;
-                case OfficeChartKind.Doughnut: return ExcelChartType.Doughnut;
-                case OfficeChartKind.Bubble:
-                    throw new NotSupportedException(
-                        "Bubble charts are not supported by the shared Excel chart API. Use the native Excel bubble-chart API.");
-                default:
-                    throw new NotSupportedException(
-                        $"Shared chart kind '{kind}' is not supported by Excel.");
-            }
-        }
     }
 }

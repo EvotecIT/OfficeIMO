@@ -28,23 +28,24 @@ public sealed partial class OfficeRasterCanvas {
         return (Math.Floor(device + 1e-6D) - device) / CoordinateScaleY;
     }
 
-    private (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? _textOutlineStroke;
+    private (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset, OfficeStrokeLineCap Cap, OfficeStrokeLineJoin Join, double MiterLimit)? _textOutlineStroke;
 
     /// <summary>Strokes the outlines of glyphs drawn within the scope, optionally without filling them.</summary>
-    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? pattern = null, double offset = 0D) {
+    internal IDisposable PushTextOutlineStroke(OfficeColor color, double width, bool fillSuppressed, IReadOnlyList<double>? pattern = null, double offset = 0D,
+        OfficeStrokeLineCap cap = OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin join = OfficeStrokeLineJoin.Miter, double miterLimit = 10D) {
         var previous = _textOutlineStroke;
-        _textOutlineStroke = (color, width, fillSuppressed, pattern, offset);
+        _textOutlineStroke = (color, width, fillSuppressed, pattern, offset, cap, join, miterLimit);
         return new TextOutlineStrokeScope(this, previous);
     }
 
     private sealed class TextOutlineStrokeScope : IDisposable {
         private OfficeRasterCanvas? _canvas;
-        private readonly (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? _previous;
-        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset)? previous) { _canvas = canvas; _previous = previous; }
+        private readonly (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset, OfficeStrokeLineCap Cap, OfficeStrokeLineJoin Join, double MiterLimit)? _previous;
+        internal TextOutlineStrokeScope(OfficeRasterCanvas canvas, (OfficeColor Color, double Width, bool FillSuppressed, IReadOnlyList<double>? Pattern, double Offset, OfficeStrokeLineCap Cap, OfficeStrokeLineJoin Join, double MiterLimit)? previous) { _canvas = canvas; _previous = previous; }
         public void Dispose() { if (_canvas != null) { _canvas._textOutlineStroke = _previous; _canvas = null; } }
     }
 
-    // Glyph outlines are closed contours stroked with the PDF text-state defaults (miter joins, limit 10).
+    // Glyph outlines retain the source text-state stroke geometry, including joins and miter limits.
     private void PaintTextContours(List<List<OfficePoint>> contours, OfficeColor fill, double emboldenOffset) {
         if (_textOutlineStroke is not { } stroke) {
             FillTextContours(contours, fill, emboldenOffset);
@@ -56,7 +57,7 @@ public sealed partial class OfficeRasterCanvas {
         foreach (List<OfficePoint> contour in painted) if (contour.Count >= 2) outlines.Add(new OfficeFlattenedPathContour(contour, true));
         if (outlines.Count == 0) return;
         OfficeColor strokeColor = stroke.Color;
-        StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Miter, 10D,
+        StrokeContours(outlines, stroke.Width > 0D ? stroke.Width : 1E-9D, stroke.Cap, stroke.Join, stroke.MiterLimit,
             stroke.Pattern, stroke.Offset, (_, _) => strokeColor, hairline: stroke.Width <= 0D);
     }
 

@@ -109,7 +109,7 @@ public class RtfWordTableImportDefaultsTests {
     public void Rtf_To_Word_Import_Preserves_Explicit_Cell_Padding_And_Borders(int gapTwips) {
         string rtf = @"{\rtf1\ansi{\colortbl;\red68\green114\blue196;}\trowd\trgaph" +
             gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-            @"\trleft0\clpadt120\clpadft3\clpadl180\clpadfl3\clpadb240\clpadfb3\clpadr300\clpadfr3\clbrdrt\brdrs\brdrw12\brdrcf1\cellx2400\cellx4800\clpadl0\clpadfl3\clpadr0\clpadfr3\cellx7200\pard\intbl Explicit\cell\pard\intbl Plain\cell\pard\intbl Zero\cell\row}";
+            @"\trleft0\clpadt120\clpadft3\clpadl180\clpadfl3\clpadb240\clpadfb3\clpadr300\clpadfr3\clbrdrt\brdrs\brdrw30\brdrcf1\cellx2400\cellx4800\clpadl0\clpadfl3\clpadr0\clpadfr3\cellx7200\pard\intbl Explicit\cell\pard\intbl Plain\cell\pard\intbl Zero\cell\row}";
         using WordDocument mapped = RtfDocument.Read(rtf).Document.ToWordDocument();
         XElement table = Assert.Single(ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl"));
         XElement[] cells = table.Descendants(W + "tc").ToArray();
@@ -172,13 +172,13 @@ public class RtfWordTableImportDefaultsTests {
         using WordDocument mapped = source.ToWordDocument();
         mapped.AddTable(1, 1); // Existing public Word authoring default.
         WordTable callerStyled = mapped.AddTable(1, 1, WordTableStyle.TableGrid);
-        callerStyled.Rows[0].Cells[0].MarginLeftWidth = 180;
+        callerStyled.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);
         callerStyled.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Double;
         XElement[] tables = ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl").ToArray();
 
         Assert.Equal(3, tables.Length);
         AssertNeutralTable(tables[0]);
-        Assert.Equal("TableGrid", (string?)tables[1].Element(W + "tblPr")?.Element(W + "tblStyle")?.Attribute(W + "val"));
+        Assert.Equal("OfficeIMOModern", (string?)tables[1].Element(W + "tblPr")?.Element(W + "tblStyle")?.Attribute(W + "val"));
         Assert.Equal("TableGrid", (string?)tables[2].Element(W + "tblPr")?.Element(W + "tblStyle")?.Attribute(W + "val"));
         Assert.Null(tables[1].Element(W + "tblPr")?.Element(W + "tblBorders"));
         XElement callerCellProperties = Assert.Single(tables[2].Descendants(W + "tcPr"));

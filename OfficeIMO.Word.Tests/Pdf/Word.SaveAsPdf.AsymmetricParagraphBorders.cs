@@ -34,16 +34,16 @@ public partial class Word {
         middle.Borders.BottomStyle = box || shape == "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         middle.Borders.LeftStyle = box || shape == "top-left" ? WordBorderStyle.Single : WordBorderStyle.Nil;
         middle.Borders.RightStyle = box || shape == "bottom-right" ? WordBorderStyle.Single : WordBorderStyle.Nil;
-        middle.Borders.TopSize = middle.Borders.BottomSize = middle.Borders.LeftSize = middle.Borders.RightSize = 8;
-        middle.Borders.TopSpace = shape == "box-top" || shape == "top-left" ? 3U : 0U;
-        middle.Borders.BottomSpace = shape == "box-bottom" || shape == "bottom-right" ? 3U : 0U;
+        middle.Borders.TopSize = middle.Borders.BottomSize = middle.Borders.LeftSize = middle.Borders.RightSize = OfficeLength.Points(1);
+        middle.Borders.TopSpace = shape == "box-top" || shape == "top-left" ? OfficeLength.Points(3) : OfficeLength.Points(0);
+        middle.Borders.BottomSpace = shape == "box-bottom" || shape == "bottom-right" ? OfficeLength.Points(3) : OfficeLength.Points(0);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(30),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(200)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)),
             FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
         var words = pdf.GetPage(1).GetWords().ToArray();
         double first = Assert.Single(words, word => word.Text == "Before").Letters[0].StartBaseLine.Y;
@@ -63,16 +63,16 @@ public partial class Word {
         WordParagraph paragraph = source.AddParagraph(string.Join("\n", Enumerable.Range(1, 30).Select(i => $"Marker{i:D3}")));
         ConfigureAsymmetricBorderParagraph(paragraph);
         paragraph.Borders.TopStyle = paragraph.Borders.LeftStyle = WordBorderStyle.Single;
-        paragraph.Borders.TopSize = paragraph.Borders.LeftSize = 8;
-        paragraph.Borders.TopSpace = 3;
+        paragraph.Borders.TopSize = paragraph.Borders.LeftSize = OfficeLength.Points(1);
+        paragraph.Borders.TopSpace = OfficeLength.Points(3);
         ConfigureAsymmetricBorderParagraph(source.AddParagraph("After"));
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(format)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new OfficeIMO.Pdf.PageSize(468, 300),
-            Margins = OfficeIMO.Pdf.PageMargins.Uniform(36),
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(468),OfficeIMO.OfficeLength.Points(300)),
+            Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36)),
             FontFamily = "Helvetica"
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(3, pdf.NumberOfPages);
         for (int index = 1; index <= 30; index++) {
             int page = index <= 13 ? 1 : index <= 27 ? 2 : 3;
@@ -83,9 +83,8 @@ public partial class Word {
 
     private static void ConfigureAsymmetricBorderParagraph(WordParagraph paragraph) {
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
-        paragraph.LineSpacingPoints = 16;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(16));
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

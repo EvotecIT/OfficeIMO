@@ -9,9 +9,9 @@ public sealed class PdfRunningContentTests {
     [Fact]
     public void GeometryOnlyFooterRetainsProjectedNumbersAtTheirPhysicalAnchorAcrossVariantsAndReplays() {
         var source = PdfDocument.Create(Options());
-        source.Footer(footer => footer.Text("F{page}").Content(content => content.Spacer(60), 36)
-            .FirstPageText("F{page}").FirstPageContent(content => content.Spacer(80), 36)
-            .EvenPagesText("F{page}").EvenPagesContent(content => content.Spacer(40), 36));
+        source.Footer(footer => footer.Text("F{page}").Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(60)), global::OfficeIMO.OfficeLength.Points(36))
+            .FirstPageText("F{page}").FirstPageContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(80)), global::OfficeIMO.OfficeLength.Points(36))
+            .EvenPagesText("F{page}").EvenPagesContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(40)), global::OfficeIMO.OfficeLength.Points(36)));
         foreach (PdfRunningContentVariant variant in Enum.GetValues(typeof(PdfRunningContentVariant))) {
             source.Options.RetainRunningContentTextProjection(isHeader: false, variant);
             source.Options.ReserveEmptyRunningContentDistance(isHeader: false, variant);
@@ -25,7 +25,7 @@ public sealed class PdfRunningContentTests {
                 if (index > 0) paragraph.LineBreak();
                 paragraph.Text("A");
             }
-        }, style: new PdfParagraphStyle { FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(40), WidowControl = false });
+        }, style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40)), WidowControl = false });
         for (int replay = 0; replay < 2; replay++) {
             using var pdf = PdfPigDocument.Open(document.ToBytes());
             Assert.Equal(3, pdf.NumberOfPages);
@@ -35,8 +35,8 @@ public sealed class PdfRunningContentTests {
                 Assert.Equal(14D, pdf.GetPage(page).Letters.Single(letter => letter.Value == "F").StartBaseLine.Y, 3);
             }
         }
-        Assert.Equal(32D, document.Options.MarginBottom);
-        Assert.Equal(18D, document.Options.FooterOffsetY);
+        Assert.Equal(32D, document.Options.MarginBottom.ToPoints());
+        Assert.Equal(18D, document.Options.FooterOffsetY.ToPoints());
     }
 
     [Theory]
@@ -44,13 +44,13 @@ public sealed class PdfRunningContentTests {
     [InlineData(true, 2)]
     public void ImportedFooterFirstLineOverlapRetainsHeaderWithoutChangingOrdinaryFlow(bool allowOverlap, int pages) {
         var options = Options();
-        options.PageHeight = 300; options.MarginTop = options.MarginBottom = 72;
+        options.PageHeight = global::OfficeIMO.OfficeLength.Points(300); options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(72);
         var document = PdfDocument.Create(options);
-        document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(96), 36));
-        document.Footer(footer => footer.Content(content => content.Spacer(96), 36));
+        document.Header(header => header.Text("FALLBACK").Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(96)), global::OfficeIMO.OfficeLength.Points(36)));
+        document.Footer(footer => footer.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(96)), global::OfficeIMO.OfficeLength.Points(36)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
         document.Paragraph(paragraph => paragraph.Text("ALPHA").LineBreak().Text("BETA"), style: new PdfParagraphStyle {
-            FontSize = 12, LineSpacing = PdfLineSpacing.Exactly(48), SpacingBefore = 0, SpacingAfter = 0,
+            FontSize = global::OfficeIMO.OfficeLength.Points(12), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(48)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             WidowControl = false, AllowFirstLineOverlapWithRunningFooter = allowOverlap
         });
 
@@ -70,9 +70,9 @@ public sealed class PdfRunningContentTests {
     [Fact]
     public void EmptyOrdinaryRunningContentDoesNotExpandTheBodyFrame() {
         var document = PdfDocument.Create(Options());
-        document.Header(header => header.Content(_ => { }, 80, 20));
-        document.Footer(footer => footer.Content(_ => { }, 60, 20));
-        document.Paragraph(paragraph => paragraph.FontSize(40)
+        document.Header(header => header.Content(_ => { }, global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(20)));
+        document.Footer(footer => footer.Content(_ => { }, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(20)));
+        document.Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(40))
             .Text("A").LineBreak().Text("A").LineBreak().Text("A").LineBreak().Text("A"));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -88,14 +88,14 @@ public sealed class PdfRunningContentTests {
     public void ImportedHeaderFitReservesActiveContainerPaddingAcrossExplicitBreaks(bool breakEndsPanel, bool repeatDecoration) {
         var document = PdfDocument.Create(Options());
         document.Header(header => header.Text("TEXT")
-            .Content(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18)
-            .FirstPageContent(content => content.Table(new[] { new[] { "FIRST HEADER" } }, style: TableStyle(24)), 18));
+            .Content(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), global::OfficeIMO.OfficeLength.Points(18))
+            .FirstPageContent(content => content.Table(new[] { new[] { "FIRST HEADER" } }, style: TableStyle(24)), global::OfficeIMO.OfficeLength.Points(18)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
         document.Panel(panel => {
             panel.Paragraph(paragraph => paragraph.Text("FIRST")).PageBreak();
-            if (!breakEndsPanel) panel.Paragraph(paragraph => paragraph.FontSize(20).Text("BODY"));
-        }, new PdfPanelStyle { PaddingX = 12, PaddingY = 20, RepeatFragmentDecoration = repeatDecoration, SpacingBefore = 0, SpacingAfter = 0 });
-        if (breakEndsPanel) document.Paragraph(paragraph => paragraph.FontSize(20).Text("BODY"));
+            if (!breakEndsPanel) panel.Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(20)).Text("BODY"));
+        }, new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(12), PaddingY = global::OfficeIMO.OfficeLength.Points(20), RepeatFragmentDecoration = repeatDecoration, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
+        if (breakEndsPanel) document.Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(20)).Text("BODY"));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
@@ -109,15 +109,20 @@ public sealed class PdfRunningContentTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ImportedHeaderFitReservesActiveContainerBottomInsetForContinuationLines(bool nested) {
-        var document = PdfDocument.Create(Options());
+        // Continuation admission uses this fixture's 1.4-line-height metrics, without widow grouping.
+        var options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle {
+            LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
+        };
+        var document = PdfDocument.Create(options);
         document.Header(header => header.Text("TEXT").Content(content =>
-            content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18));
+            content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), global::OfficeIMO.OfficeLength.Points(18)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
-        var style = new PdfPanelStyle { PaddingX = 12, PaddingY = 0, FragmentBottomInset = nested ? 10 : 20, SpacingBefore = 0, SpacingAfter = 0 };
+        var style = new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(12), PaddingY = global::OfficeIMO.OfficeLength.Points(0), FragmentBottomInset = global::OfficeIMO.OfficeLength.Points(nested ? 10 : 20), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         document.Panel(panel => {
             if (nested) panel.Panel(inner => inner.Paragraph(paragraph =>
-                paragraph.Text("SMALL").LineBreak().FontSize(20).Text("LARGE")), style);
-            else panel.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(20).Text("LARGE"));
+                paragraph.Text("SMALL").LineBreak().FontSize(global::OfficeIMO.OfficeLength.Points(20)).Text("LARGE")), style);
+            else panel.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(global::OfficeIMO.OfficeLength.Points(20)).Text("LARGE"));
         }, style);
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -135,19 +140,19 @@ public sealed class PdfRunningContentTests {
     public void ImportedHeaderFitSkipsLeadingNonvisualContent(int leadingKind) {
         var document = PdfDocument.Create(Options());
         document.Header(header => header.Text("TEXT").Content(content =>
-            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
+            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), global::OfficeIMO.OfficeLength.Points(18)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
         if (leadingKind == 2) {
             document.Page(page => page.Content(content => content.Panel(panel => panel
                 .Semantic(PdfSemanticRole.Division, empty => { })
-                .Paragraph(paragraph => paragraph.FontSize(40).Text("BODY")),
-                new PdfPanelStyle { PaddingX = 0, PaddingY = 2, SpacingBefore = 0, SpacingAfter = 0 })));
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(40)).Text("BODY")),
+                new PdfPanelStyle { PaddingX = global::OfficeIMO.OfficeLength.Points(0), PaddingY = global::OfficeIMO.OfficeLength.Points(2), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })));
         } else if (leadingKind == 1) {
             document.Page(page => page.Content(content => content
                 .Semantic(PdfSemanticRole.Division, empty => { })
-                .Paragraph(paragraph => paragraph.FontSize(40).Text("BODY"))));
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(40)).Text("BODY"))));
         } else {
-            document.Bookmark("body").Paragraph(paragraph => paragraph.FontSize(40).Text("BODY"));
+            document.Bookmark("body").Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(40)).Text("BODY"));
         }
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(1, pdf.NumberOfPages);
@@ -157,11 +162,16 @@ public sealed class PdfRunningContentTests {
 
     [Fact]
     public void ImportedHeaderFitUsesTheActualParagraphContinuationLine() {
-        var document = PdfDocument.Create(Options());
+        // Continuation admission uses this fixture's 1.4-line-height metrics, without widow grouping.
+        var options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle {
+            LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false
+        };
+        var document = PdfDocument.Create(options);
         document.Header(header => header.Text("TEXT").Content(content =>
-            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
+            content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), global::OfficeIMO.OfficeLength.Points(18)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
-        document.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(40).Text("LARGE"));
+        document.Paragraph(paragraph => paragraph.Text("SMALL").LineBreak().FontSize(global::OfficeIMO.OfficeLength.Points(40)).Text("LARGE"));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.Contains("FLOW", pdf.GetPage(1).Text);
@@ -174,10 +184,10 @@ public sealed class PdfRunningContentTests {
     public void ImportedTextFallbackIsLocalToThePageVariantAndReservesTheBodyLine() {
         var document = PdfDocument.Create(Options());
         document.Header(header => header.Text("DEFAULT TEXT").FirstPageText("FIRST TEXT")
-            .Content(content => content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(24)), 18)
-            .FirstPageContent(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(246)), 18));
+            .Content(content => content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(24)), global::OfficeIMO.OfficeLength.Points(18))
+            .FirstPageContent(content => content.Table(new[] { new[] { "TALL" } }, style: TableStyle(246)), global::OfficeIMO.OfficeLength.Points(18)));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
-        document.Paragraph(paragraph => paragraph.FontSize(40).Text("BODY")).PageBreak()
+        document.Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(40)).Text("BODY")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("BODY"));
 
         for (int pass = 0; pass < 2; pass++) {
@@ -192,19 +202,19 @@ public sealed class PdfRunningContentTests {
         }
     }
 
-    private static PdfOptions Options(long memoryLimit = 1024 * 1024) => new() {
-        PageWidth = 240, PageHeight = 320, MarginTop = 32, MarginBottom = 32,
-        MarginLeft = 24, MarginRight = 24, DefaultFont = PdfStandardFont.Helvetica,
-        DefaultFontSize = 11, PageContentMemoryLimitBytes = memoryLimit
+    private static PdfCreateOptions Options(long memoryLimit = 1024 * 1024) => new() {
+        PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(320), MarginTop = global::OfficeIMO.OfficeLength.Points(32), MarginBottom = global::OfficeIMO.OfficeLength.Points(32),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica,
+        DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11), PageContentMemoryLimitBytes = memoryLimit
     };
 
     private static PdfTableStyle TableStyle(double height) {
-        var style = TableStyles.Minimal();
+        var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.ColumnWidthPoints = new List<double?> { 100 };
-        style.FixedRowHeights = new List<double?> { height };
-        style.CellPaddingX = 3; style.CellPaddingY = 3;
-        style.BorderWidth = 1;
+        style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
+        style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(height) };
+        style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(3); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(3);
+        style.BorderWidth = global::OfficeIMO.OfficeLength.Points(1);
         return style;
     }
 
@@ -215,7 +225,7 @@ public sealed class PdfRunningContentTests {
         var document = PdfDocument.Create(Options(memoryLimit));
         var cell = new PdfTableCell(new[] { PdfTextRun.Normal("HEAD") }, paragraphs: null,
             linkUri: "https://example.com/running-header", textRotation: -90);
-        document.Header(header => header.Content(content => content.Table(new[] { new[] { cell } }, style: TableStyle(80)), 18, 6));
+        document.Header(header => header.Content(content => content.Table(new[] { new[] { cell } }, style: TableStyle(80)), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(6)));
         document.Paragraph(paragraph => paragraph.Text("BODY")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("BODY"));
         byte[] bytes = document.ToBytes();
@@ -237,12 +247,12 @@ public sealed class PdfRunningContentTests {
         var document = PdfDocument.Create(Options());
         Action<PdfContentBuilder> Compose(PdfRunningContentContext context, string label, double height) =>
             content => content.Table(new[] { new[] { $"{label}{context.PageNumber}/{context.DocumentPages}" } }, style: TableStyle(height));
-        document.Header(header => header.Content(context => Compose(context, "Default", 120), 18, 6)
-            .FirstPageContent(context => Compose(context, "First", 24), 18, 6)
-            .EvenPagesContent(context => Compose(context, "Even", 72), 18, 6));
-        document.Footer(footer => footer.Content(context => content => content.Paragraph(paragraph => paragraph.Text($"F{context.PageNumber}/{context.DocumentPages}")), 18)
-            .FirstPageContent(context => content => content.Paragraph(paragraph => paragraph.Text($"F{context.PageNumber}/{context.DocumentPages}")), 18)
-            .EvenPagesContent(context => content => content.Paragraph(paragraph => paragraph.Text($"F{context.PageNumber}/{context.DocumentPages}")), 18));
+        document.Header(header => header.Content(context => Compose(context, "Default", 120), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(6))
+            .FirstPageContent(context => Compose(context, "First", 24), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(6))
+            .EvenPagesContent(context => Compose(context, "Even", 72), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(6)));
+        document.Footer(footer => footer.Content(context => content => content.Paragraph(paragraph => paragraph.Text($"F{context.PageNumber}/{context.DocumentPages}")), global::OfficeIMO.OfficeLength.Points(18))
+            .FirstPageContent(context => content => content.Paragraph(paragraph => paragraph.Text($"F{context.PageNumber}/{context.DocumentPages}")), global::OfficeIMO.OfficeLength.Points(18))
+            .EvenPagesContent(context => content => content.Paragraph(paragraph => paragraph.Text($"F{context.PageNumber}/{context.DocumentPages}")), global::OfficeIMO.OfficeLength.Points(18)));
         document.Paragraph(paragraph => paragraph.Text("BODY")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("BODY")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("BODY"));
@@ -268,7 +278,7 @@ public sealed class PdfRunningContentTests {
         void AddSection(string label, int? start) => document.Section(section => {
             if (start.HasValue) section.PageNumberStart(start.Value);
             section.Header(header => header.Content(context => content => content.Paragraph(paragraph =>
-                paragraph.Text($"{label}/{context.PageNumber}/{context.TotalPages}/{context.SectionPageNumber}/{context.SectionPages}/{context.DocumentPages}")), 18));
+                paragraph.Text($"{label}/{context.PageNumber}/{context.TotalPages}/{context.SectionPageNumber}/{context.SectionPages}/{context.DocumentPages}")), global::OfficeIMO.OfficeLength.Points(18)));
             section.Footer(footer => footer.Text("Legacy {page}/{pages}"));
             section.Content(content => content.Paragraph(paragraph => paragraph.Text("BODY"))
                 .PageBreak().Paragraph(paragraph => paragraph.Text("BODY")));
@@ -289,7 +299,7 @@ public sealed class PdfRunningContentTests {
     [Fact]
     public void Header_only_document_renders_one_page_and_later_text_replaces_rich_content() {
         var document = PdfDocument.Create(Options());
-        document.Header(header => header.Content(content => content.Paragraph(paragraph => paragraph.Text("RICH")), 18));
+        document.Header(header => header.Content(content => content.Paragraph(paragraph => paragraph.Text("RICH")), global::OfficeIMO.OfficeLength.Points(18)));
         using (var pdf = PdfPigDocument.Open(document.ToBytes())) {
             Assert.Equal(1, pdf.NumberOfPages);
             Assert.Contains("RICH", pdf.GetPage(1).Text);
@@ -304,7 +314,7 @@ public sealed class PdfRunningContentTests {
     [Fact]
     public void Running_page_breaks_are_rejected_instead_of_changing_document_pagination() {
         var document = PdfDocument.Create(Options());
-        document.Header(header => header.Content(content => content.Paragraph(paragraph => paragraph.Text("HEAD")).PageBreak(), 18));
+        document.Header(header => header.Content(content => content.Paragraph(paragraph => paragraph.Text("HEAD")).PageBreak(), global::OfficeIMO.OfficeLength.Points(18)));
         document.Paragraph(paragraph => paragraph.Text("BODY"));
         Assert.Throws<NotSupportedException>(() => document.ToBytes());
     }
@@ -315,14 +325,14 @@ public sealed class PdfRunningContentTests {
     public void Story_only_embedded_glyphs_reach_font_subsets_and_unicode_maps(bool namedFamily) {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "Carlito-Regular.ttf"));
         var family = new PdfEmbeddedFontFamily("Story Font", font);
-        PdfOptions options = Options(0);
+        PdfCreateOptions options = Options(0);
         if (namedFamily) options.RegisterNamedFontFamily(family);
         else options.UseFontFamily(family);
         var document = PdfDocument.Create(options);
         document.Header(header => header.Content(context => content => content.Paragraph(paragraph => {
             if (namedFamily) paragraph.FontFamily("Story Font");
             paragraph.Text($"HEADER{context.PageNumber}/{context.DocumentPages}");
-        }), 18));
+        }), global::OfficeIMO.OfficeLength.Points(18)));
         document.Paragraph(paragraph => paragraph.Text("body")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("body"));
         // Each serialization owns/reset its generation usage; a replay must retain story-only glyphs.
@@ -344,8 +354,8 @@ public sealed class PdfRunningContentTests {
         var drawing = new OfficeDrawing(20, 20).AddEffectDrawing(source, OfficeTransform.Identity, .5);
         byte[] image = PdfPngTestImages.CreateRgbPng(1, 1);
         var document = PdfDocument.Create(Options(memoryLimit));
-        document.Header(header => header.Content(content => content.Drawing(drawing, spacingBefore: 0, spacingAfter: 0), 18));
-        document.Footer(footer => footer.Content(content => content.Image(image, 12, 12), 18));
+        document.Header(header => header.Content(content => content.Drawing(drawing, spacingBefore: global::OfficeIMO.OfficeLength.Points(0), spacingAfter: global::OfficeIMO.OfficeLength.Points(0)), global::OfficeIMO.OfficeLength.Points(18)));
+        document.Footer(footer => footer.Content(content => content.Image(image, global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(12)), global::OfficeIMO.OfficeLength.Points(18)));
         document.Paragraph(paragraph => paragraph.Text("BODY")).PageBreak()
             .Paragraph(paragraph => paragraph.Text("BODY"));
         byte[] bytes = document.ToBytes();

@@ -137,12 +137,12 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
         $path = Join-Path $TestDrive 'provenance.txt'
         [IO.File]::WriteAllText($path, "Human-readable text`n")
 
-        $assessment = Get-OfficeProvenance -Path $path
+        $assessment = Get-OfficeDocumentProvenance -Path $path
         $assessment.Structural.Format.ToString() | Should -Be 'StructuredText'
         $assessment.Verification | Should -BeNullOrEmpty
         $assessment.HasVerifiedContentCredential | Should -BeFalse
 
-        $unavailable = Get-OfficeProvenance -Path $path -C2paToolPath 'definitely-missing-c2patool-for-pswriteoffice'
+        $unavailable = Get-OfficeDocumentProvenance -Path $path -C2paToolPath 'definitely-missing-c2patool-for-pswriteoffice'
         $unavailable.Verification.Status.ToString() | Should -Be 'ProviderUnavailable'
         $unavailable.HasVerifiedContentCredential | Should -BeFalse
     }

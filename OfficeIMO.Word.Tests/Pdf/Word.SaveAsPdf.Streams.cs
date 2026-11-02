@@ -71,7 +71,7 @@ public partial class Word {
         document.Save();
 
         using var stream = new MemoryStream();
-        document.SaveAsPdf(stream, new WordToPdfOptions());
+        document.SaveAsPdf(stream, new WordPdfExportOptions());
         Assert.Equal(0, stream.Position);
         Assert.True(stream.Length > 0);
     }
@@ -85,7 +85,7 @@ public partial class Word {
         document.Save();
 
         using var stream = new MemoryStream();
-        await document.SaveAsPdfAsync(stream, new WordToPdfOptions(), CancellationToken.None);
+        await document.SaveAsPdfAsync(stream, new WordPdfExportOptions(), CancellationToken.None);
         Assert.Equal(0, stream.Position);
         Assert.True(stream.Length > 0);
     }
@@ -98,11 +98,11 @@ public partial class Word {
         document.AddParagraph("Hello native async bytes");
         document.Save();
 
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false,
-            PageSize = new PdfCore.PageSize(240, 320),
-            Margins = PdfCore.PageMargins.Uniform(36)
-        });
+            PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(320)),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(36))
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.True(bytes.Length > 0);
         PdfCore.PdfPageInfo pageInfo = Assert.Single(PdfCore.PdfInspector.Inspect(bytes).Pages);
@@ -119,7 +119,7 @@ public partial class Word {
 
         using WordDocument document = WordDocument.Load(docPath, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
-        byte[] bytes = document.ToPdfBytes();
+        byte[] bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.True(bytes.Length > 4);
         Assert.Equal((byte)'%', bytes[0]);

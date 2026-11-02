@@ -45,6 +45,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double intrinsicHeight = hasIntrinsicSize
             ? imageInfo!.Height * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, style.ImageResolutionDpi ?? imageInfo.DpiY)
             : 150D;
+        ApplyBrokenImageIntrinsicSize(element, style, hasIntrinsicSize, bytes, ref intrinsicWidth, ref intrinsicHeight);
         ReplacedContentSize contentSize = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = contentSize.Width + style.HorizontalInsets;
         double boxHeight = contentSize.Height + style.VerticalInsets;
@@ -546,7 +547,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _diagnostics.Add(ComponentName, diagnosticCode, "An image data URI exceeded the configured operation-wide resource budget.", HtmlDiagnosticSeverity.Warning, sourceDescription, diagnosticDetail, OfficeConversionLossKind.Omission);
             }
         } else if (reportDiagnostics && !string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
-            string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
+            string code = resolvedSource.Length == 0 ? global::OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy : HtmlRenderDiagnosticCodes.ExternalImagePending;
             string message = resolvedSource.Length == 0
                 ? "An image was rejected before entering the rendered document."
                 : "Synchronous rendering does not load external images; use RenderAsync with an application-supplied resolver or provide a data URI.";
@@ -562,6 +563,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Like a browser, an image that did not load and has no authored size occupies the space of its
+    /// alternative text (or nothing) instead of reserving the 300x150 default object box.
+    /// </summary>
+    private void ApplyBrokenImageIntrinsicSize(IElement element, HtmlRenderBoxStyle style, bool hasIntrinsicSize, byte[]? bytes,
+        ref double intrinsicWidth, ref double intrinsicHeight) {
+        if (hasIntrinsicSize || bytes != null && bytes.Length > 0
+            || !string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)
+            || style.ExplicitWidth.HasValue || style.ExplicitHeight.HasValue || style.AspectRatio.HasValue) return;
+        string? alternative = HtmlAccessibilitySemantics.IsDecorativeImage(element)
+            ? null : HtmlAccessibilitySemantics.GetImageAccessibleName(element);
+        string collapsed = string.IsNullOrWhiteSpace(alternative) ? string.Empty : CollapseImageAlternativeText(alternative!);
+        if (collapsed.Length == 0) {
+            intrinsicWidth = 0.01D;
+            intrinsicHeight = 0.01D;
+            return;
+        }
+
+        string measured = collapsed.Length > 1024 ? collapsed.Substring(0, 1024) : collapsed;
+        // The missing-image painter insets text by up to 4px per side; keep room so the text never wraps.
+        intrinsicWidth = Math.Ceiling(MeasureText(measured, style.Font, style.FontDescriptor) * 1.02D) + 10D;
+        intrinsicHeight = Math.Max(0.01D, style.LineHeight);
     }
 
     private static string CollapseImageAlternativeText(string value) =>

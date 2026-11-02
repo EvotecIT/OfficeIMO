@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IPMT(0.01,2,12,1200,0,2)", -10.9443708275841)]
         [InlineData("PPMT(0.01,2,12,1200,0,-1)", -94.61854641401)]
         public void Payment_splits_match_reference_values_and_survive_save(string formula, double expected) {
-            using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Loan");
+            using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Loan");
             sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.InRange(Math.Abs(sheet.CellAt(1, 1).GetValue<double>() - expected), 0, 1e-10);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(IPMT(0.01,0,12,1200),99)", "99")]
         [InlineData("IPMT(#REF!,1,12,1200)", "#REF!")]
         public void Payment_splits_replace_stale_caches_with_typed_errors(string formula, string expected) {
-            using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Loan");
+            using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Loan");
             sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(document.InspectFormulas().Formulas).CachedValue);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Loan_schedule_recalculates_dependencies_and_keeps_unsupported_signatures_unevaluated() {
-            using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Loan");
+            using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Loan");
             sheet.CellValue(1, 1, 0.01d); sheet.CellValue(2, 1, 1200d);
             sheet.CellFormula(1, 2, "IPMT(A1,2,12,A2,,1)"); sheet.CellFormula(2, 2, "PPMT(A1,2,12,A2,,1)");
             sheet.CellFormula(3, 2, "B1+B2-PMT(A1,12,A2,0,1)");

@@ -2,7 +2,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>
     ///     Represents an ActiveX control and its exact Office Forms storage.
     /// </summary>
-    public sealed class LegacyPptActiveXControl {
+    internal sealed class LegacyPptActiveXControl {
         private readonly byte[] _storageBytes;
         private readonly byte[]? _metafileRecordBytes;
 

@@ -60,13 +60,14 @@ internal sealed partial class PdfWorkspace {
                     .Where(finding => finding.Severity == PdfDiagnosticSeverity.Error)
                     .Select(finding => finding.Message)));
             }
-            PdfDocumentReadResult logical = snapshot.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
+            PdfDocumentReadResult logical = snapshot.Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast });
             return plan.Areas.Select(area => {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfLogicalPage page = logical.Pages.Single(candidate => candidate.PageNumber == area.PageNumber);
                     PdfSelectionQuad bounds = page.MapUserSpaceRectangleToVisual(area.X, area.Y, area.Right, area.Top);
                     string preview = string.Join(" ", plan.Matches.Where(match => ReferenceEquals(match.Area, area) && match.Text is not null)
                         .Select(match => match.Text).Distinct());
+                    if (string.IsNullOrWhiteSpace(preview)) preview = text;
                     if (preview.Length > 180) preview = preview[..180] + "…";
                     return new PdfRedactionCandidate(area,
                         new StudioRectangle(bounds.TopLeft.X, bounds.TopLeft.Y,

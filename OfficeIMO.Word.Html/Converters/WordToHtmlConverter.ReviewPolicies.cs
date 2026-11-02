@@ -6,7 +6,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
-        private static Action PrepareTrackedChangeProjection(WordDocument document, WordToHtmlOptions options, bool hasRevisions) {
+        private static Action PrepareTrackedChangeProjection(WordDocument document, WordHtmlExportOptions options, bool hasRevisions) {
             if (!hasRevisions) return static () => { };
 
             var restore = new List<Action>();
@@ -169,14 +169,14 @@ namespace OfficeIMO.Word.Html {
             if (run.RunProperties == null) run.PrependChild(properties);
         }
 
-        private static bool IsSelectedFieldLocation(WordFieldLocationKind location, WordToHtmlOptions options) => location switch {
+        private static bool IsSelectedFieldLocation(WordFieldLocationKind location, WordHtmlExportOptions options) => location switch {
             WordFieldLocationKind.Header or WordFieldLocationKind.Footer => options.ExportHeadersAndFooters,
             WordFieldLocationKind.Footnote => options.ExportFootnotes,
             WordFieldLocationKind.Endnote => options.ExportEndnotes,
             _ => true
         };
 
-        private static bool IsSelectedReviewLocation(WordReviewLocationKind location, WordToHtmlOptions options) => location switch {
+        private static bool IsSelectedReviewLocation(WordReviewLocationKind location, WordHtmlExportOptions options) => location switch {
             WordReviewLocationKind.Header or WordReviewLocationKind.Footer => options.ExportHeadersAndFooters,
             WordReviewLocationKind.Footnote => options.ExportFootnotes,
             WordReviewLocationKind.Endnote => options.ExportEndnotes,
@@ -184,7 +184,7 @@ namespace OfficeIMO.Word.Html {
         };
 
         private static void AppendReviewInventories(IHtmlDocument htmlDoc, IElement body,
-            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fields, WordToHtmlOptions options) {
+            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fields, WordHtmlExportOptions options) {
             if (reviewInfo?.Count > 0) AppendRevisionInventory(htmlDoc, body, reviewInfo);
             if (fields?.Count > 0) AppendFieldInventory(htmlDoc, body, fields);
         }

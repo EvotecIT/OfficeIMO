@@ -16,13 +16,13 @@ public sealed class PdfEmptyPathContractTests {
         var shape = OfficeShape.Path(20, 20, commands);
         shape.FillColor = OfficeColor.Red; shape.StrokeColor = OfficeColor.Blue;
         shape.StrokeLineCap = OfficeStrokeLineCap.Round;
-        var options = new PdfOptions { CompressContentStreams = false };
+        var options = new PdfCreateOptions { CompressContentStreams = false };
         byte[][] documents = {
             PdfDocument.Create(options).Shape(shape).ToBytes(),
             PdfDocument.Create(options).Drawing(new OfficeDrawing(20, 20).AddShape(shape, 0, 0)).ToBytes(),
-            PdfDocument.Create(options).Compose(b => b.Page(p => p.Canvas(c => c.Shape(shape, 0, 0)))).ToBytes(),
-            PdfDocument.Create(options).Compose(b => b.Page(p => { p.Header(h => h.Shape(shape)); p.Content(c => c.Spacer(10)); })).ToBytes(),
-            PdfDocument.Create(options).Compose(b => b.Page(p => { p.Footer(h => h.Shape(shape)); p.Content(c => c.Spacer(10)); })).ToBytes()
+            PdfDocument.Create(options).Compose(b => b.Page(p => p.Canvas(c => c.Shape(shape, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0))))).ToBytes(),
+            PdfDocument.Create(options).Compose(b => b.Page(p => { p.Header(h => h.Shape(shape)); p.Content(c => c.Spacer(global::OfficeIMO.OfficeLength.Points(10))); })).ToBytes(),
+            PdfDocument.Create(options).Compose(b => b.Page(p => { p.Footer(h => h.Shape(shape)); p.Content(c => c.Spacer(global::OfficeIMO.OfficeLength.Points(10))); })).ToBytes()
         };
         Assert.All(documents, bytes => {
             Assert.Single(PdfReadDocument.Open(bytes).Pages);
@@ -43,13 +43,13 @@ public sealed class PdfEmptyPathContractTests {
             OfficePathCommand.MoveTo(15, 15), OfficePathCommand.Close());
         shape.StrokeColor = OfficeColor.Blue; shape.StrokeWidth = 4;
         shape.StrokeLineCap = OfficeStrokeLineCap.Round;
-        var document = PdfDocument.Create(new PdfOptions { CompressContentStreams = false });
+        var document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false });
         if (placement == 0) document.Shape(shape);
-        else if (placement == 1) document.Compose(b => b.Page(p => p.Canvas(c => c.Shape(shape, 0, 0))));
+        else if (placement == 1) document.Compose(b => b.Page(p => p.Canvas(c => c.Shape(shape, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)))));
         else document.Compose(b => b.Page(p => {
             if (placement == 2) p.Header(h => h.Shape(shape));
             else p.Footer(h => h.Shape(shape));
-            p.Content(c => c.Spacer(10));
+            p.Content(c => c.Spacer(global::OfficeIMO.OfficeLength.Points(10)));
         }));
         string pdf = Encoding.ASCII.GetString(document.ToBytes());
         Assert.DoesNotMatch(@"\bm\s+h\b", pdf);

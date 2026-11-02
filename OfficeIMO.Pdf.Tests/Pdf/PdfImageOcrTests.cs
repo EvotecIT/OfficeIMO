@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -55,7 +57,7 @@ public sealed class PdfImageOcrTests {
                 Assert.Equal(expectedTable, page.GetProperty("tables")[0].GetProperty("rows").EnumerateArray()
                     .Select(row => row.EnumerateArray().Select(cell => cell.GetString()!).ToArray()).ToArray());
         }
-        string markdown = review.Ocr.Document.ToMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false });
+        string markdown = review.Ocr.Document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false });
         if (expectedTable.Length > 0) {
             Assert.Single(Regex.Matches(markdown, "Return credit").Cast<Match>());
             Assert.Contains("| Return credit | 3 | ", markdown);
@@ -68,20 +70,20 @@ public sealed class PdfImageOcrTests {
             Assert.True(expectedTable.Length == table.Rows.Count,
                 string.Join(Environment.NewLine, table.Rows.Select(row => string.Join(" | ", row))));
             for (int row = 0; row < expectedTable.Length; row++) Assert.Equal(expectedTable[row], table.Rows[row]);
-            var preserved = review.Ocr.Document.ImportTablesToExcelDocumentResult();
+            var preserved = review.Ocr.Document.ConvertToExcelWithEvidence();
             using (preserved.Value) {
                 Assert.False(Assert.Single(preserved.Report.Entries).FirstRowUsedAsHeader);
                 Assert.Equal(expectedTable.Length, preserved.Report.Entries[0].RowCount);
                 Assert.Equal("Description", preserved.Value.Sheets[0].CellAt(2, 1).GetValue<string>());
             }
-            var limited = review.Ocr.Document.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions { UseFirstRowAsHeader = true, MaxRows = 1 });
+            var limited = review.Ocr.Document.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { UseFirstRowAsHeader = true, MaxRows = 1 });
             using (limited.Value) {
                 var entry = Assert.Single(limited.Report.Entries);
                 Assert.Equal(1, entry.RowCount);
                 Assert.Equal(expectedTable.Length - 1, entry.TotalRowCount);
                 Assert.True(entry.Truncated);
             }
-            var imported = review.Ocr.Document.ImportTablesToExcelDocumentResult(new PdfTablesToExcelOptions { UseFirstRowAsHeader = true });
+            var imported = review.Ocr.Document.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { UseFirstRowAsHeader = true });
             Assert.True(Assert.Single(imported.Report.Entries).FirstRowUsedAsHeader);
             using var workbook = imported.Value;
             using var bytes = new MemoryStream();
@@ -95,7 +97,7 @@ public sealed class PdfImageOcrTests {
             Assert.Equal(-13.5D, sheet.CellAt(3, 4).GetValue<double>());
             Assert.Equal(119.88D, sheet.CellAt(2, 4).GetValue<double>());
         }
-        using (var word = review.Ocr.Document.ToWordDocument()) {
+        using (var word = (review.Ocr.Document.ConvertToWordWithEvidence()).Value) {
             using var bytes = new MemoryStream();
             word.Save(bytes);
             bytes.Position = 0;
@@ -107,7 +109,7 @@ public sealed class PdfImageOcrTests {
             }
         }
         PdfSearchableOcrResult searchable = review.ApplyAll();
-        Assert.Equal(Normalize(review.Ocr.Text), Normalize(PdfDocument.Load(searchable.Document.ToBytes()).Read().Text));
+        Assert.Equal(Normalize(review.Ocr.Text), Normalize(PdfDocument.Load(new System.IO.MemoryStream(searchable.Document.ToBytes())).Read().Text));
         Assert.Equal(png, image.GetBytes());
 
         byte[] ReadVerified(string suffix) {

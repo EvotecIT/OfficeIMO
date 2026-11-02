@@ -159,7 +159,7 @@ internal static partial class PdfTextEditor {
     }
 
     private static PdfRegionText BuildRegionText(PdfTextSpan[] spans) {
-        if (spans.Length == 0) return new PdfRegionText(string.Empty, Array.Empty<PdfTextSpan>(), PdfStandardFont.Helvetica, null, 12D, PdfColor.Black, 0D, 0D, 0D);
+        if (spans.Length == 0) return new PdfRegionText(string.Empty, Array.Empty<PdfTextSpan>(), PdfStandardFont.Helvetica, null, 12D, global::OfficeIMO.OfficeColor.Black, 0D, 0D, 0D);
         PdfTextSpan dominant = spans
             .GroupBy(static span => new SpanStyleKey(span.BaseFont ?? span.FontResource, Math.Round(EffectiveFontSize(span), 2), Math.Round(span.RotationDegrees, 2), span.Color))
             .OrderByDescending(static group => group.Sum(static span => Math.Max(1, span.Text.Length)))
@@ -369,7 +369,7 @@ internal static partial class PdfTextEditor {
         return name.Length > 7 && name[6] == '+' ? name.Substring(7) : name;
     }
 
-    private static PdfColor ToPdfColor(OfficeColor? color) => color.HasValue ? PdfColor.FromOfficeColor(color.Value) : PdfColor.Black;
+    private static global::OfficeIMO.OfficeColor ToPdfColor(OfficeColor? color) => color.HasValue ? color.Value : global::OfficeIMO.OfficeColor.Black;
     private static double EffectiveFontSize(PdfTextSpan span) => span.RestampFontSize > 0D && !double.IsNaN(span.RestampFontSize) && !double.IsInfinity(span.RestampFontSize) ? span.RestampFontSize : 12D;
 
     private static SpanBounds GetBounds(PdfTextSpan span) => SliceBounds(span, 0, Math.Max(1, span.Text.Length));
@@ -495,7 +495,8 @@ internal static partial class PdfTextEditor {
                 int authoredEnd = authoredBoundaries[edit.Start];
                 AddPositionedFragment(fragments, authored.Substring(authoredStart, authoredEnd - authoredStart), sourceStyle);
             }
-            if (edit.Replacement.Length > 0) AddPositionedFragment(fragments, edit.Replacement, edit.Style ?? replacementStyle);
+            if (edit.Replacement.Length > 0) AddPositionedFragment(fragments, edit.Replacement,
+                ResolveReplacementFont(edit.Style ?? replacementStyle, edit.Replacement));
             cursor = edit.Start + edit.Length;
         }
         if (cursor < source.Length) {

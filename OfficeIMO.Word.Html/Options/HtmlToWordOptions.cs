@@ -6,15 +6,18 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Options controlling HTML to Word conversion.
     /// </summary>
-    public class HtmlToWordOptions {
+    public class WordHtmlImportOptions {
+        /// <summary>Rejects a converted target when completed stages report fidelity loss.</summary>
+        public bool FailOnLoss { get; set; }
+
         private HtmlConversionLimits _limits = HtmlConversionLimits.CreateTrustedProfile();
         /// <summary>
         /// Creates the default OfficeIMO HTML import profile.
         /// </summary>
-        /// <returns>A new <see cref="HtmlToWordOptions"/> instance with the default compatibility-oriented settings.</returns>
-        public static HtmlToWordOptions CreateOfficeIMOProfile() {
-            var options = new HtmlToWordOptions {
-                ImageProcessing = ImageProcessingMode.Embed,
+        /// <returns>A new <see cref="WordHtmlImportOptions"/> instance with the default compatibility-oriented settings.</returns>
+        public static WordHtmlImportOptions CreateOfficeIMOProfile() {
+            var options = new WordHtmlImportOptions {
+                ImageProcessing = WordHtmlImageProcessingMode.Embed,
                 MaxTableCells = null
             };
             options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
@@ -30,10 +33,10 @@ namespace OfficeIMO.Word.Html {
         /// applies conservative HTML, CSS, image, and table limits. Callers can relax individual
         /// limits or allow-lists when their ingestion boundary is more trusted.
         /// </remarks>
-        /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for untrusted HTML.</returns>
-        public static HtmlToWordOptions CreateUntrustedHtmlProfile() {
-            var options = new HtmlToWordOptions {
-                ImageProcessing = ImageProcessingMode.EmbedDataUriOnly,
+        /// <returns>A new <see cref="WordHtmlImportOptions"/> instance configured for untrusted HTML.</returns>
+        public static WordHtmlImportOptions CreateUntrustedHtmlProfile() {
+            var options = new WordHtmlImportOptions {
+                ImageProcessing = WordHtmlImageProcessingMode.EmbedDataUriOnly,
                 ResourceTimeout = TimeSpan.FromSeconds(5),
                 MaxImageBytes = 5L * 1024L * 1024L,
                 MaxDecodedImagePixels = 4_000_000,
@@ -44,7 +47,7 @@ namespace OfficeIMO.Word.Html {
                 MaxTotalCssBytes = 512L * 1024L,
                 MaxTableCells = 50000,
                 EnableAccessibilityDiagnostics = true,
-                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Warn
+                UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Warn
             };
 
             options.AllowedImageUriSchemes.Clear();
@@ -62,10 +65,10 @@ namespace OfficeIMO.Word.Html {
         /// <see cref="AllowDocumentStylesheetLinks"/>. Callers should still configure host allow-lists
         /// or byte limits when trusted documents can reference broad network locations.
         /// </remarks>
-        /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for trusted document links.</returns>
-        public static HtmlToWordOptions CreateTrustedDocumentProfile() {
-            var options = new HtmlToWordOptions {
-                ImageProcessing = ImageProcessingMode.Embed,
+        /// <returns>A new <see cref="WordHtmlImportOptions"/> instance configured for trusted document links.</returns>
+        public static WordHtmlImportOptions CreateTrustedDocumentProfile() {
+            var options = new WordHtmlImportOptions {
+                ImageProcessing = WordHtmlImageProcessingMode.Embed,
                 AllowDocumentStylesheetLinks = true
             };
             options.AllowedImageUriSchemes.Add(Uri.UriSchemeFile);
@@ -126,7 +129,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Controls whether HTML-generated notes are inserted as footnotes or endnotes.
         /// </summary>
-        public NoteReferenceType NoteReferenceType { get; set; } = NoteReferenceType.Footnote;
+        public WordHtmlNoteReferenceType NoteReferenceType { get; set; } = WordHtmlNoteReferenceType.Footnote;
 
         /// <summary>
         /// When true, URLs used as note text are emitted as hyperlinks inside the note.
@@ -146,7 +149,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Controls how images are processed during conversion.
         /// </summary>
-        public ImageProcessingMode ImageProcessing { get; set; } = ImageProcessingMode.EmbedDataUriOnly;
+        public WordHtmlImageProcessingMode ImageProcessing { get; set; } = WordHtmlImageProcessingMode.EmbedDataUriOnly;
 
         /// <summary>
         /// Optional <see cref="HttpClient"/> used to download remote resources (images, SVG).
@@ -170,7 +173,7 @@ namespace OfficeIMO.Word.Html {
         /// Controls how CSS text background colors are represented in Word.
         /// Exact run shading is used by default so arbitrary CSS colors round-trip without palette loss.
         /// </summary>
-        public HtmlTextBackgroundMode TextBackgroundMode { get; set; } = HtmlTextBackgroundMode.ExactShading;
+        public WordHtmlTextBackgroundMode TextBackgroundMode { get; set; } = WordHtmlTextBackgroundMode.ExactShading;
 
         /// <summary>
         /// Optional maximum number of bytes allowed for a single image resource, including SVG images.
@@ -229,7 +232,7 @@ namespace OfficeIMO.Word.Html {
 
         /// <summary>
         /// Image URI schemes allowed during import. Defaults allow HTTP, HTTPS, and data URI images.
-        /// Remote image embedding still requires <see cref="ImageProcessingMode.Embed"/> through an explicit option
+        /// Remote image embedding still requires <see cref="WordHtmlImageProcessingMode.Embed"/> through an explicit option
         /// or compatibility profile.
         /// Add <see cref="Uri.UriSchemeFile"/> or use <see cref="CreateTrustedDocumentProfile"/> for trusted local-file images.
         /// Remove entries to reject matching image sources before they are loaded or linked.
@@ -328,7 +331,7 @@ namespace OfficeIMO.Word.Html {
         /// Optional conversion-scoped resolver for CSS classes without a built-in Word style mapping.
         /// This avoids global event state when conversions run concurrently.
         /// </summary>
-        public Action<StyleMissingEventArgs>? StyleMissingHandler { get; set; }
+        public Action<WordHtmlStyleMissingEventArgs>? StyleMissingHandler { get; set; }
 
         /// <summary>
         /// When true, emits advisory accessibility diagnostics for imported HTML patterns that can reduce
@@ -364,7 +367,7 @@ namespace OfficeIMO.Word.Html {
         /// Controls how unsupported CSS properties and values are handled during import.
         /// Defaults to warning diagnostics while preserving best-effort conversion.
         /// </summary>
-        public HtmlUnsupportedCssHandling UnsupportedCssHandling { get; set; } = HtmlUnsupportedCssHandling.Warn;
+        public WordHtmlUnsupportedCssHandling UnsupportedCssHandling { get; set; } = WordHtmlUnsupportedCssHandling.Warn;
 
         /// <summary>
         /// File paths pointing to external stylesheets that should be applied during conversion.
@@ -391,12 +394,12 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Specifies where table captions should be inserted relative to the table.
         /// </summary>
-        public TableCaptionPosition TableCaptionPosition { get; set; } = TableCaptionPosition.Above;
+        public WordHtmlTableCaptionPosition TableCaptionPosition { get; set; } = WordHtmlTableCaptionPosition.Above;
 
         /// <summary>
         /// Controls how the <c>&lt;section&gt;</c> tag is mapped into Word.
         /// </summary>
-        public SectionTagHandling SectionTagHandling { get; set; } = SectionTagHandling.WordSection;
+        public WordHtmlSectionTagHandling SectionTagHandling { get; set; } = WordHtmlSectionTagHandling.WordSection;
 
         /// <summary>
         /// Creates a copy of the current options instance so callers can reuse option templates safely.
@@ -405,9 +408,10 @@ namespace OfficeIMO.Word.Html {
         /// Configuration values, allow-lists, and configured stylesheets are copied. Runtime diagnostics
         /// start empty on the clone so evidence from one conversion is never carried into the next.
         /// </remarks>
-        /// <returns>A new <see cref="HtmlToWordOptions"/> with the same configuration values.</returns>
-        public HtmlToWordOptions Clone() {
-            var clone = new HtmlToWordOptions {
+        /// <returns>A new <see cref="WordHtmlImportOptions"/> with the same configuration values.</returns>
+        public WordHtmlImportOptions Clone() {
+            var clone = new WordHtmlImportOptions {
+                FailOnLoss = FailOnLoss,
                 FontFamily = FontFamily,
                 QuotePrefix = QuotePrefix,
                 QuoteSuffix = QuoteSuffix,
@@ -486,7 +490,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Determines the position of a table caption relative to the table.
     /// </summary>
-    public enum TableCaptionPosition {
+    public enum WordHtmlTableCaptionPosition {
         /// <summary>
         /// Caption is placed before the table.
         /// </summary>
@@ -501,7 +505,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Specifies how images should be processed during HTML to Word conversion.
     /// </summary>
-    public enum ImageProcessingMode {
+    public enum WordHtmlImageProcessingMode {
         /// <summary>
         /// Downloads and embeds all images into the document. Use asynchronous conversion when remote images are present.
         /// </summary>
@@ -522,7 +526,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Specifies how CSS background colors on inline text are represented in Word.
     /// </summary>
-    public enum HtmlTextBackgroundMode {
+    public enum WordHtmlTextBackgroundMode {
         /// <summary>
         /// Uses native run shading, preserving the exact CSS color.
         /// </summary>
@@ -538,7 +542,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Specifies where generated note references are placed.
     /// </summary>
-    public enum NoteReferenceType {
+    public enum WordHtmlNoteReferenceType {
         /// <summary>
         /// Use footnotes (default).
         /// </summary>
@@ -553,7 +557,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Determines how the <c>&lt;section&gt;</c> HTML tag is represented in Word.
     /// </summary>
-    public enum SectionTagHandling {
+    public enum WordHtmlSectionTagHandling {
         /// <summary>
         /// Creates a new Word section for each <c>&lt;section&gt;</c>.
         /// </summary>
@@ -568,7 +572,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Determines how the HTML importer handles CSS declarations it cannot map to Word output.
     /// </summary>
-    public enum HtmlUnsupportedCssHandling {
+    public enum WordHtmlUnsupportedCssHandling {
         /// <summary>
         /// Unsupported CSS declarations are ignored without diagnostics.
         /// </summary>

@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
             var fieldType = " " + wordFieldType.ToString().ToUpper() + " ";
             var fieldFormat = string.Empty;
             if (wordFieldFormat != null) {
-                fieldFormat = @"\* " + wordFieldFormat + " ";
+                fieldFormat = @"\* " + WordFieldFormatCodec.ToInstruction(wordFieldFormat.Value) + " ";
             }
             if (!string.IsNullOrWhiteSpace(customFormat)) {
                 fieldFormat += $"\\@ \"{customFormat}\" ";

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfReadDocument {
+internal sealed partial class PdfReadDocument {
     /// <summary>Catalog optional-content/layer metadata discovered from /OCProperties.</summary>
     public PdfOptionalContentProperties? OptionalContent => ReadLogicalContent(_optionalContent);
 

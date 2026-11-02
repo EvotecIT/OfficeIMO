@@ -3,13 +3,16 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
 
-namespace OfficeIMO.Tests {
-    public class ExcelImageExportSparklineTests {
+namespace OfficeIMO.Tests
+{
+    public class ExcelImageExportSparklineTests
+    {
         [Fact]
-        public void ExcelRange_ImageExportRendersLineSparklinesInVisibleRange() {
+        public void ExcelRange_ImageExportRendersLineSparklinesInVisibleRange()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, "Metric");
             sheet.CellValue(2, 1, "Revenue");
             sheet.CellValue(2, 2, 10);
@@ -17,14 +20,12 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(2, 4, 14);
             sheet.CellValue(2, 6, 7);
             sheet.CellValue(2, 7, 9);
-            sheet.AddSparklines("B2:D2", "E2:E2", displayMarkers: true, seriesColor: "#2563EB");
-            sheet.AddSparklines("F2:G2", "H2:H2", displayMarkers: true, seriesColor: "#DC2626");
-
+            sheet.AddSparklines("B2:D2", "E2:E2", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"));
+            sheet.AddSparklines("F2:G2", "H2:H2", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"));
             ExcelRange range = sheet.Range("A1:E2");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualSparkline visual = Assert.Single(snapshot.Sparklines);
             Assert.Equal("Sparklines!E2", visual.Source);
             Assert.Equal(new[] { 10D, 18D, 14D }, visual.Values);
@@ -43,23 +44,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportRendersColumnAndWinLossSparklines() {
+        public void ExcelRange_ImageExportRendersColumnAndWinLossSparklines()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Types");
+            ExcelSheet sheet = document.AddSheet("Types");
             sheet.CellValue(1, 1, 8);
             sheet.CellValue(1, 2, -4);
             sheet.CellValue(1, 3, 12);
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(2, 2, -1);
             sheet.CellValue(2, 3, 1);
-            sheet.AddSparklines("A1:C1", "D1", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: "#16A34A", negativeColor: "#DC2626", axisColor: "#6B7280");
-            sheet.AddSparklines("A2:C2", "D2", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: "#0EA5E9", negativeColor: "#DC2626", axisColor: "#6B7280");
-
+            sheet.AddSparklines("A1:C1", "D1", ExcelSparklineType.Column, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#16A34A"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#6B7280"));
+            sheet.AddSparklines("A2:C2", "D2", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#0EA5E9"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#6B7280"));
             ExcelRange range = sheet.Range("A1:D2");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
-
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             Assert.Equal(2, snapshot.Sparklines.Count);
             Assert.Contains(snapshot.Sparklines, sparkline => sparkline.Kind == "column");
             Assert.Contains(snapshot.Sparklines, sparkline => sparkline.Kind == "stacked");
@@ -71,22 +71,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportScalesSparklinesAcrossTheirExcelGroup() {
+        public void ExcelRange_ImageExportScalesSparklinesAcrossTheirExcelGroup()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("GroupScale");
+            ExcelSheet sheet = document.AddSheet("GroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(1, 3, 3);
             sheet.CellValue(2, 1, 0);
             sheet.CellValue(2, 2, 50);
             sheet.CellValue(2, 3, 100);
-            sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: "#2563EB");
-
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:D2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
-
+            sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"));
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:D2").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             Assert.Equal(2, snapshot.Sparklines.Count);
-            Assert.All(snapshot.Sparklines, sparkline => {
+            Assert.All(snapshot.Sparklines, sparkline =>
+            {
                 Assert.Equal(0D, sparkline.ScaleMinimum);
                 Assert.Equal(100D, sparkline.ScaleMaximum);
             });
@@ -97,40 +97,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportIncludesOffRangeGroupMembersInSparklineScale() {
+        public void ExcelRange_ImageExportIncludesOffRangeGroupMembersInSparklineScale()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("PartialGroupScale");
+            ExcelSheet sheet = document.AddSheet("PartialGroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(1, 3, 3);
             sheet.CellValue(2, 1, 0);
             sheet.CellValue(2, 2, 50);
             sheet.CellValue(2, 3, 100);
-            sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: "#2563EB");
-
+            sheet.AddSparklines("A1:C2", "D1:D2", ExcelSparklineType.Column, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"));
             ExcelVisualSparkline visible = Assert.Single(sheet.Range("D1:D1").CreateVisualSnapshot().Sparklines);
-
             Assert.Equal("PartialGroupScale!D1", visible.Source);
             Assert.Equal(0D, visible.ScaleMinimum);
             Assert.Equal(100D, visible.ScaleMaximum);
         }
 
         [Fact]
-        public void ExcelRange_ImageExportBoundsAggregateOffRangeSparklineData() {
+        public void ExcelRange_ImageExportBoundsAggregateOffRangeSparklineData()
+        {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("BoundedGroupScale");
+            ExcelSheet sheet = document.AddSheet("BoundedGroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(7, 1, 1000);
-            sheet.AddSparklines("A1:XFC7", "XFD1:XFD7", ExcelSparklineType.Column, seriesColor: "#2563EB");
-
+            sheet.AddSparklines("A1:XFC7", "XFD1:XFD7", ExcelSparklineType.Column, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"));
             ExcelVisualSparkline visible = Assert.Single(sheet.Range("XFD1:XFD1").CreateVisualSnapshot().Sparklines);
-
             Assert.Equal("BoundedGroupScale!XFD1", visible.Source);
             Assert.Equal(1D, visible.ScaleMinimum);
             Assert.Equal(1D, visible.ScaleMaximum);
-
             ExcelVisualSparkline lastVisible = Assert.Single(sheet.Range("XFD7:XFD7").CreateVisualSnapshot().Sparklines);
             Assert.Equal("BoundedGroupScale!XFD7", lastVisible.Source);
             Assert.Equal(new[] { 1000D }, lastVisible.Values);
@@ -141,15 +138,15 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsExternalSparklineRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, 2);
             data.CellValue(1, 2, 4);
             data.CellValue(1, 3, 8);
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.AddSparklines("'Data'!A1:C1", "A1", displayMarkers: true);
 
             ExcelRange range = summary.Range("A1:A1");
-            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png);
 
             Assert.Empty(snapshot.Sparklines);
@@ -163,11 +160,11 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportSkipsOffscreenSparklineDataPrefetch() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, 1);
             sheet.AddSparklines("A1:A100001", "Z1000");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
 
             Assert.Empty(snapshot.Sparklines);
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Source == "Sparklines!Z1000");
@@ -177,11 +174,11 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRejectsOversizedVisibleSparklineDataRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, 1);
             sheet.AddSparklines("A1:A100001", "B1");
 
-            ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
+            ExcelRangeVisualInfo snapshot = sheet.Range("A1:B1").CreateVisualSnapshot();
 
             Assert.Empty(snapshot.Sparklines);
             Assert.Contains(

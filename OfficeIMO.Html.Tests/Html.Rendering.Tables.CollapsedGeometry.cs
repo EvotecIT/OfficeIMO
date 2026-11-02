@@ -200,7 +200,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='foot-probe' class='probe' style='height:12px'>Footer</div></td></tr></tfoot></table>" + CollapsedGeometryFollowing;
         HtmlRenderOptions options = CollapsedGeometryOptions();
         options.Mode = HtmlRenderMode.Paged;
-        options.PageSize = new OfficePageSize(220D / 96D, 120D / 96D);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(220D / 96D), global::OfficeIMO.OfficeLength.Inches(120D / 96D));
         options.HonorCssPageRules = false;
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(CollapsedGeometrySource(html), options);
         HtmlRenderPage[] bodyPages = rendered.Pages.Where(page => CollapsedGeometryPageVisuals(page).OfType<HtmlRenderText>()

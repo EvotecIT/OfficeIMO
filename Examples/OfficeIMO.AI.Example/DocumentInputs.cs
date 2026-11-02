@@ -27,24 +27,33 @@ internal static class DocumentInputs {
         var images = new List<OfficeAiImage>();
         bool pdf = result.Kind == ReaderInputKind.Pdf;
         if (includeImages && pdf) {
-            PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions {
+            using PdfDocument document = PdfDocument.Load(new MemoryStream(bytes), new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxInputBytes = limits.MaxInputBytes }, PermissionPolicy = PdfPermissionPolicy.Enforce
             });
-            PdfPageSelection? selection = pages.Count == 0 ? null : PdfPageSelection.Parse(string.Join(",", pages));
-            IReadOnlyList<OfficeImageExportResult> rendered = document.ExportImages(OfficeImageExportFormat.Png,
+            PdfPageSelector? selection = pages.Count == 0 ? null : PdfPageSelector.Parse(string.Join(",", pages));
+            IReadOnlyList<OfficeImageExportResult> rendered = document.ExportImages(
                 new PdfImageExportOptions {
+                    Format = OfficeImageExportFormat.Png, PageSelector = selection,
                     TargetDpi = 120, MaximumOutputCount = limits.MaxPages, MaximumRasterPixels = limits.MaxImagePixels,
                     MaximumTotalRasterPixels = limits.MaxImagePixels * Math.Min(limits.MaxRequests, limits.MaxPages),
                     MaximumTotalEncodedBytes = limits.MaxInputBytes, RenderTimeout = limits.Timeout
-                }, selection, cancellationToken);
+                }, out OfficeIMO.OfficeConversionReport renderReport, cancellationToken);
             for (int index = 0; index < rendered.Count; index++) {
-                OfficeImageExportResult page = rendered[index];
+                byte[] page = rendered[index].Bytes;
+                if (!OfficeImageReader.TryValidateContent(page, ".png", out OfficeImageInfo info))
+                    throw new InvalidDataException("The exported PDF page has no valid raster metadata.");
                 int number = pages.Count == 0 ? index + 1 : pages[index];
-                images.Add(new("image-page-" + number, number, page.MimeType, page.Bytes, page.Width, page.Height));
-                if (page.Diagnostics.Count > 0) result.Diagnostics = result.Diagnostics.Concat(new[] {
-                    new OfficeDocumentDiagnostic { Code = "render-diagnostics", Message = "Page rendering reported fidelity limitations.", Location = new() { Page = number } }
-                }).ToArray();
+                images.Add(new("image-page-" + number, number, info.MimeType, page, info.Width, info.Height));
             }
+            result.Diagnostics = result.Diagnostics.Concat(renderReport.Diagnostics.Select(diagnostic => new OfficeDocumentDiagnostic {
+                Code = diagnostic.Code, Message = diagnostic.Message, Source = diagnostic.Format,
+                Severity = diagnostic.Severity switch {
+                    OfficeIMO.OfficeDiagnosticSeverity.Error => OfficeDocumentDiagnosticSeverity.Error,
+                    OfficeIMO.OfficeDiagnosticSeverity.Warning => OfficeDocumentDiagnosticSeverity.Warning,
+                    _ => OfficeDocumentDiagnosticSeverity.Information
+                },
+                Attributes = new Dictionary<string, string> { ["location"] = diagnostic.Location ?? string.Empty }
+            })).ToArray();
         } else if (result.Kind == ReaderInputKind.Unknown
             && result.CapabilitiesUsed.Contains(OfficeDocumentReaderBuilderImageExtensions.HandlerId, StringComparer.Ordinal)
             && result.Assets.Any(asset => asset.PayloadBytes is not null && asset.MediaType?.StartsWith("image/", StringComparison.Ordinal) == true)) {

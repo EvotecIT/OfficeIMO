@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             };
 
             foreach (byte[] container in containers) {
-                using DbDataReader reader = ExcelDocument.OpenDataReader(
+                using DbDataReader reader = ExcelDocument.OpenReader(
                     container,
-                    new ExcelReadOptions { HasHeaderRow = false });
+                    new ExcelReaderOptions { HasHeaderRow = false });
 
                 Assert.Equal(3, reader.FieldCount);
                 Assert.True(reader.Read());
@@ -42,9 +42,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions {
+                new ExcelReaderOptions {
                     HasHeaderRow = false,
                     InferSchema = true,
                     SchemaSampleRows = 5,
@@ -79,25 +79,25 @@ namespace OfficeIMO.Tests {
                 LegacyXlsTestWorkbookBuilder.CreatePhase2ValueWorkbookStream());
 
             InvalidOperationException rowLimit = Assert.Throws<InvalidOperationException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions {
+                    new ExcelReaderOptions {
                         HasHeaderRow = false,
                         InferSchema = true,
                         SchemaSampleRows = 2,
                         MaxDataReaderSchemaSampleRows = 1
-                    }));
+                    }); _ = reader.FieldCount; });
             Assert.Contains("Schema sample row count", rowLimit.Message, StringComparison.Ordinal);
 
             InvalidOperationException cellLimit = Assert.Throws<InvalidOperationException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions {
+                    new ExcelReaderOptions {
                         HasHeaderRow = false,
                         InferSchema = true,
                         SchemaSampleRows = 2,
                         MaxDataReaderBufferedCells = 3
-                    }));
+                    }); _ = reader.FieldCount; });
             Assert.Contains("buffer", cellLimit.Message, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -106,9 +106,9 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreatePhase4FormulaWorkbookStream());
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
 
             Assert.True(reader.Read());
             Assert.Equal(42D, reader.GetDouble(0));
@@ -126,9 +126,9 @@ namespace OfficeIMO.Tests {
         public void OpenDataReader_XlsFastPathReads1904DatesAndContinuedSharedStrings() {
             byte[] dateCompound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateDate1904DateFormattedWorkbookStream());
-            using (DbDataReader dateReader = ExcelDocument.OpenDataReader(
+            using (DbDataReader dateReader = ExcelDocument.OpenReader(
                        dateCompound,
-                       new ExcelReadOptions { HasHeaderRow = false })) {
+                       new ExcelReaderOptions { HasHeaderRow = false })) {
                 Assert.True(dateReader.Read());
                 Assert.Equal(new DateTime(1904, 1, 2), dateReader.GetDateTime(0));
                 Assert.False(dateReader.Read());
@@ -136,9 +136,9 @@ namespace OfficeIMO.Tests {
 
             byte[] stringsCompound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateContinuedSharedStringWorkbookStream());
-            using DbDataReader stringsReader = ExcelDocument.OpenDataReader(
+            using DbDataReader stringsReader = ExcelDocument.OpenReader(
                 stringsCompound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
             Assert.True(stringsReader.Read());
             Assert.Equal("First", stringsReader.GetString(0));
             Assert.Equal("Second", stringsReader.GetString(1));
@@ -150,15 +150,15 @@ namespace OfficeIMO.Tests {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(
                 LegacyXlsTestWorkbookBuilder.CreateContinuedSharedStringWorkbookStream());
 
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { MaxSharedStringItems = 1 }));
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(
+                new ExcelReaderOptions { MaxSharedStringItems = 1 }); _ = reader.FieldCount; });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { MaxSharedStringItemCharacters = 5 }));
-            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(
+                new ExcelReaderOptions { MaxSharedStringItemCharacters = 5 }); _ = reader.FieldCount; });
+            Assert.Throws<InvalidDataException>(() => { using var reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { MaxSharedStringCharacters = 8 }));
+                new ExcelReaderOptions { MaxSharedStringCharacters = 8 }); _ = reader.FieldCount; });
         }
 
         [Fact]
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
                 File.WriteAllBytes(path, compound);
 
                 InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                    ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                         path,
-                        new ExcelReadOptions { MaxInputBytes = compound.LongLength - 1L }));
+                        new ExcelReaderOptions { MaxInputBytes = compound.LongLength - 1L }); _ = reader.FieldCount; });
 
                 Assert.Contains("exceeding the configured limit", exception.Message, StringComparison.OrdinalIgnoreCase);
             } finally {
@@ -189,9 +189,9 @@ namespace OfficeIMO.Tests {
                     formulaInFirstRow: true));
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                ExcelDocument.OpenDataReader(
+{ using var reader = ExcelDocument.OpenReader(
                     compound,
-                    new ExcelReadOptions { HasHeaderRow = false }));
+                    new ExcelReaderOptions { HasHeaderRow = false }); _ = reader.FieldCount; });
 
             Assert.Contains("required String record", exception.Message, StringComparison.Ordinal);
         }
@@ -202,9 +202,9 @@ namespace OfficeIMO.Tests {
                 LegacyXlsTestWorkbookBuilder.CreateStringFormulaWithoutStringRecordWorkbookStream(
                     formulaInFirstRow: false));
 
-            using DbDataReader reader = ExcelDocument.OpenDataReader(
+            using DbDataReader reader = ExcelDocument.OpenReader(
                 compound,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
             Assert.True(reader.Read());
             Assert.Throws<InvalidDataException>(() => reader.Read());
         }

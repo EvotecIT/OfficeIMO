@@ -13,7 +13,7 @@ Describe 'Visio cmdlets' {
     It 'creates, loads, and inspects a Visio document' {
         $path = Join-Path $TestDrive 'diagram.vsdx'
 
-        $document = New-OfficeVisio -Path $path -Title 'Visio smoke' -Author 'PSWriteOffice' -NoSave
+        $document = New-OfficeVisio -Path $path -Title 'Visio smoke' -Author 'PSWriteOffice'
         $document.Pages[0].AddRectangle(2, 2, 2, 1, 'Visio smoke') | Out-Null
         $document | Save-OfficeVisio -Path $path | Out-Null
 
@@ -36,18 +36,18 @@ Describe 'Visio cmdlets' {
         $svgPath = Join-Path $TestDrive 'export.svg'
         $pngPath = Join-Path $TestDrive 'export.png'
 
-        $document = New-OfficeVisio -Path $path -NoSave
+        $document = New-OfficeVisio -Path $path
         $document.Pages[0].AddRectangle(2, 2, 2, 1, 'SVG smoke') | Out-Null
         $document | Save-OfficeVisio -Path $path | Out-Null
 
-        ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath |
-            Should -BeOfType System.IO.FileInfo
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath |
+            ForEach-Object { $_.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult' }
         $svg = Get-Content -Path $svgPath -Raw
         $svg | Should -Match '<svg'
         $svg | Should -Match 'SVG smoke'
 
-        ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath -NoText |
-            Should -BeOfType System.IO.FileInfo
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath -Options @{ RenderText = $false } |
+            ForEach-Object { $_.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult' }
         $bytes = [System.IO.File]::ReadAllBytes($pngPath)
         $bytes.Length | Should -BeGreaterThan 8
         $bytes[0] | Should -Be 137
@@ -59,29 +59,30 @@ Describe 'Visio cmdlets' {
     It 'normalizes extensionless Visio image paths before confirmation and output' {
         $path = Join-Path $TestDrive 'extensionless.vsdx'
         New-OfficeVisio -Path $path {
-            VisioRectangle -Text 'Extensionless' -X 2 -Y 2 -Width 2 -Height 1
+            VisioRectangle -Text 'Extensionless' -X 2in -Y 2in -Width 2in -Height 1in
         } | Out-Null
 
         $svgBasePath = Join-Path $TestDrive 'extensionless-svg'
         $pngBasePath = Join-Path $TestDrive 'extensionless-png'
-        (ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgBasePath).FullName |
+        (Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgBasePath).SavedPath |
             Should -Be ($svgBasePath + '.svg')
-        (ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngBasePath).FullName |
+        (Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngBasePath).SavedPath |
             Should -Be ($pngBasePath + '.png')
     }
 
     It 'does not load or render path-based Visio image output under WhatIf' {
-        $missingPath = Join-Path $TestDrive 'missing.vsdx'
+        $inputPath = Join-Path $TestDrive 'invalid-but-existing.vsdx'
+        Set-Content -LiteralPath $inputPath -Value 'WhatIf must not invoke the Visio package parser.'
 
-        { ConvertTo-OfficeVisioSvg -Path $missingPath -OutputPath (Join-Path $TestDrive 'whatif-svg') -WhatIf } |
+        { Export-OfficeDocumentImage -Path $inputPath -Format Svg -OutputPath (Join-Path $TestDrive 'whatif-svg') -WhatIf } |
             Should -Not -Throw
-        { ConvertTo-OfficeVisioPng -Path $missingPath -OutputPath (Join-Path $TestDrive 'whatif-png') -WhatIf } |
+        { Export-OfficeDocumentImage -Path $inputPath -Format Png -OutputPath (Join-Path $TestDrive 'whatif-png') -WhatIf } |
             Should -Not -Throw
     }
 
     It 'saves to the associated path without closing the Visio document' {
         $path = Join-Path $TestDrive 'associated-save.vsdx'
-        $document = New-OfficeVisio -Path $path -NoSave
+        $document = New-OfficeVisio -Path $path
         $document.Pages[0].AddRectangle(2, 2, 2, 1, 'First save') | Out-Null
 
         $savedOutput = @($document | Save-OfficeVisio)
@@ -98,13 +99,13 @@ Describe 'Visio cmdlets' {
         $path = Join-Path $TestDrive 'generic-export.vsdx'
         $output = Join-Path $TestDrive 'generic-images'
         New-OfficeVisio -Path $path {
-            VisioRectangle -Text 'Page one' -X 2 -Y 2 -Width 2 -Height 1
+            VisioRectangle -Text 'Page one' -X 2in -Y 2in -Width 2in -Height 1in
             VisioPage 'Second' {
-                VisioRectangle -Text 'Page two' -X 2 -Y 2 -Width 2 -Height 1
+                VisioRectangle -Text 'Page two' -X 2in -Y 2in -Width 2in -Height 1in
             }
         } | Out-Null
 
-        $results = @(Export-OfficeVisioImage -Path $path -OutputPath $output -Format Svg -PassThru)
+        $results = @(Export-OfficeDocumentImage -Path $path -OutputDirectory $output -Format Svg)
         $results | Should -HaveCount 2
         $results | ForEach-Object {
             $_.GetType().FullName | Should -Be 'OfficeIMO.Drawing.OfficeImageExportResult'
@@ -121,14 +122,14 @@ Describe 'Visio cmdlets' {
         $svgPath = Join-Path $TestDrive 'dsl.svg'
 
         New-OfficeVisio -Path $path -Title 'DSL diagram' -RequestRecalcOnOpen {
-            VisioRectangle -Key web -Text 'Web' -X 1.5 -Y 4 -Width 1.5 -Height 0.8 -FillColor LightBlue -LineColor SteelBlue
-            VisioDiamond -Key decision -Text 'Ready?' -X 4 -Y 4 -Width 1.2 -Height 1 -FillColor '#FFF2CC' -LineColor '#B45309'
-            VisioRectangle -Key api -Text 'API' -X 6.2 -Y 4 -Width 1.5 -Height 0.8 -FillColor LightGreen -LineColor SeaGreen
+            VisioRectangle -Key web -Text 'Web' -X 1.5in -Y 4in -Width 1.5in -Height 0.8in -FillColor LightBlue -LineColor SteelBlue
+            VisioDiamond -Key decision -Text 'Ready?' -X 4in -Y 4in -Width 1.2in -Height 1in -FillColor '#FFF2CC' -LineColor '#B45309'
+            VisioRectangle -Key api -Text 'API' -X 6.2in -Y 4in -Width 1.5in -Height 0.8in -FillColor LightGreen -LineColor SeaGreen
             VisioConnector -From web -To decision -Kind RightAngle -EndArrow Triangle -Label 'check'
             VisioConnector -From decision -To api -Kind RightAngle -EndArrow Triangle -Label 'ship'
             VisioPage 'Operations' {
-                VisioTextBox 'Generated with PSWriteOffice Visio DSL' -X 2 -Y 2 -Width 4 -Height 0.5
-                VisioEllipse -Key ops -Text 'Ops' -X 4 -Y 4 -Width 1.4 -Height 0.8 -FillColor WhiteSmoke -LineColor Gray
+                VisioTextBox 'Generated with PSWriteOffice Visio DSL' -X 2in -Y 2in -Width 4in -Height 0.5in
+                VisioEllipse -Key ops -Text 'Ops' -X 4in -Y 4in -Width 1.4in -Height 0.8in -FillColor WhiteSmoke -LineColor Gray
             }
         } | Out-Null
 
@@ -137,7 +138,7 @@ Describe 'Visio cmdlets' {
         $info.ShapeCount | Should -Be 5
         $info.ConnectorCount | Should -Be 2
 
-        ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath | Out-Null
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
         $svg = Get-Content -Path $svgPath -Raw
         $svg | Should -Match 'Web'
         $svg | Should -Match 'Ready'
@@ -171,9 +172,9 @@ Describe 'Visio cmdlets' {
 
         {
             New-OfficeVisio -Path $path -Title 'Cross-page connector' {
-                VisioRectangle -Key web -Text 'Web' -X 1.5 -Y 4 -Width 1.5 -Height 0.8
+                VisioRectangle -Key web -Text 'Web' -X 1.5in -Y 4in -Width 1.5in -Height 0.8in
                 VisioPage 'Operations' {
-                    VisioEllipse -Key ops -Text 'Ops' -X 4 -Y 4 -Width 1.4 -Height 0.8
+                    VisioEllipse -Key ops -Text 'Ops' -X 4in -Y 4in -Width 1.4in -Height 0.8in
                     VisioConnector -From web -To ops
                 }
             } | Out-Null
@@ -201,7 +202,7 @@ Describe 'Visio cmdlets' {
         $info.ShapeCount | Should -Be 3
         $info.ConnectorCount | Should -Be 2
 
-        ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath | Out-Null
+        Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
         $svg = Get-Content -Path $svgPath -Raw
         $svg | Should -Match 'Intake'
         $svg | Should -Match 'Review'
@@ -309,7 +310,7 @@ Describe 'Visio cmdlets' {
 
         New-OfficeVisio -Path $path -Title 'Metric stencil defaults' {
             Import-OfficeVisioStencil -Catalog $catalog -Name Metric -Default | Out-Null
-            VisioPage 'Metric Page' -Width 210 -Height 297 -Unit Millimeters {
+            VisioPage 'Metric Page' -Width 210mm -Height 297mm -DisplayUnit Millimeters {
                 VisioStencil -Catalog Metric -Stencil 'metric.process' -Key process -Text 'Metric' -X 50 -Y 50 -Width 30
             }
         } | Out-Null
@@ -340,12 +341,12 @@ Describe 'Visio cmdlets' {
         Copy-Item -LiteralPath $fontSource -Destination (Join-Path $fontFolder 'test-font.ttf')
 
         New-OfficeVisio -Path $path -Title 'Font path' {
-            VisioRectangle -Key text -Text 'Font Path' -X 2 -Y 2 -Width 2 -Height 1
+            VisioRectangle -Key text -Text 'Font Path' -X 2in -Y 2in -Width 2in -Height 1in
         } | Out-Null
 
         Push-Location $TestDrive
         try {
-            ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath -FontFilePath '.\Fonts\test-font.ttf' | Out-Null
+            Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath -Options @{ FontFilePath = '.\Fonts\test-font.ttf' } | Out-Null
         } finally {
             Pop-Location
         }
@@ -356,7 +357,7 @@ Describe 'Visio cmdlets' {
     It 'arranges Visio shapes with OfficeIMO selection layout and layers' {
         $path = Join-Path $TestDrive 'visio-layout.vsdx'
 
-        $document = New-OfficeVisio -Path $path -NoSave
+        $document = New-OfficeVisio -Path $path
         $page = $document.Pages[0]
         $shape1 = $page.AddRectangle(1, 4, 1, 0.5, 'One')
         $shape2 = $page.AddRectangle(3, 3, 1, 0.5, 'Two')

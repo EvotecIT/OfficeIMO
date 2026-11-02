@@ -106,7 +106,10 @@ internal static partial class PdfWriter {
             double spaceAdvance = style?.MarkerGap.HasValue == true ? 0D :
                 EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings);
             double markerGap = GetListMarkerGap(style, spaceAdvance);
-            double listLeftIndent = style?.LeftIndent ?? 0D;
+            double listLeftIndent = style?.LeftIndent.ToPoints() ?? 0D;
+            // An indent never pushes the marker out of a frame too narrow for it and its text.
+            double minimumTextWidth = EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts);
+            listLeftIndent = Math.Max(0D, Math.Min(listLeftIndent, frameWidth - markerWidth - markerGap - minimumTextWidth));
             double rawTextWidth = frameWidth - listLeftIndent - markerWidth - markerGap;
             double availableWidth = System.Math.Max(
                 rawTextWidth,
@@ -136,7 +139,7 @@ internal static partial class PdfWriter {
                 items.Add(new PreparedListItem(item, markers[itemIndex], textLayout, firstLineOffset, markerFallbacks[itemIndex]));
             }
 
-            double spacingBefore = style?.SpacingBefore ?? 0D;
+            double spacingBefore = style?.SpacingBefore.ToPoints() ?? 0D;
             if (topLevelSpacing) {
                 spacingBefore = ResolveTopLevelSpacingBefore(spacingBefore);
             }

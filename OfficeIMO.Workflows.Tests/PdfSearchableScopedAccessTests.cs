@@ -12,7 +12,7 @@ public sealed class PdfSearchableScopedAccessTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-ocr-scopes-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         try {
-            byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(300, 300))).ToBytes();
+            byte[] pdf = PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)))).ToBytes();
             var input = new ScopedWorkflowFile(root, "source.pdf", pdf);
             var output = new ScopedWorkflowFile(root, "output.pdf", pdf);
             var store = new OfficeWorkflowOutputRecoveryStore(Path.Combine(root, "recovery"));
@@ -20,7 +20,7 @@ public sealed class PdfSearchableScopedAccessTests {
             var request = new PdfSearchableWorkflowRequest {
                 InputPath = input.Path, InputStream = new("source.pdf", input.OpenRead),
                 OutputPath = output.Path, OutputStream = new("output.pdf", output.OpenRead, output.OpenWrite, store),
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+                ConflictPolicy = OfficePublicationPolicy.Replace,
                 PublicationGuard = new Guard(() => {
                     Assert.True(File.Exists(input.Path));
                     Assert.True(File.Exists(output.Path));
@@ -54,7 +54,7 @@ public sealed class PdfSearchableScopedAccessTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
-    private sealed class Guard(Func<bool> check) : IOfficeWorkflowPublicationGuard {
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => new(check());
+    private sealed class Guard(Func<bool> check) : IOfficePublicationGuard {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) => Task.FromResult(check());
     }
 }

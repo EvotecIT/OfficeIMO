@@ -33,9 +33,9 @@ public sealed class PdfTextQualityReviewRegressionTests {
         PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Bidi", PdfTextShapingMode.UnicodeScalar));
         Assert.Equal(marked ? text : null, run.ActualText);
         Assert.NotEqual(Enumerable.Range(0, text.Length), run.Glyphs.Select(glyph => glyph.TextIndex));
-        byte[] pdf = PdfDocument.Create(new PdfOptions { TextShapingMode = PdfTextShapingMode.UnicodeScalar }
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { TextShapingMode = PdfTextShapingMode.UnicodeScalar }
                 .UseFontFamily(new PdfEmbeddedFontFamily("Bidi", data)))
-            .Canvas(canvas => canvas.Text(text, 20, 20, 500, 30)).ToBytes();
+            .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(30))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
         if (marked && text.IndexOf(' ') < 0) {
             if (text.Any(char.IsDigit)) Assert.Contains("/ActualText", PdfTestContentText.ReadDecoded(pdf), StringComparison.Ordinal);
@@ -55,9 +55,9 @@ public sealed class PdfTextQualityReviewRegressionTests {
         PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(data);
         PdfGlyphRun run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Bidi", PdfTextShapingMode.LatinLigatures));
         Assert.Equal(letters, run.Glyphs[0].UnicodeText);
-        byte[] pdf = PdfDocument.Create(new PdfOptions { TextShapingMode = PdfTextShapingMode.LatinLigatures }
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { TextShapingMode = PdfTextShapingMode.LatinLigatures }
                 .UseFontFamily(new PdfEmbeddedFontFamily("Bidi", data)))
-            .Canvas(canvas => canvas.Text(text, 20, 20, 500, 30)).ToBytes();
+            .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(30))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.Contains("/ActualText", PdfTestContentText.ReadDecoded(pdf), StringComparison.Ordinal);
     }
@@ -65,8 +65,8 @@ public sealed class PdfTextQualityReviewRegressionTests {
     [Fact]
     public void MixedSimpleAndCompositeJustificationDoesNotLeaveTwOnCompositeRuns() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', ' ');
-        var options = new PdfOptions { PageWidth = 160, PageHeight = 200, MarginLeft = 20, MarginRight = 20,
-            MarginTop = 20, MarginBottom = 20, DefaultFontSize = 20, CompressContentStreams = false };
+        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(160), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(20), CompressContentStreams = false };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Embedded", data));
         byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
             new PdfTextRun("A ", font: PdfStandardFont.Helvetica),

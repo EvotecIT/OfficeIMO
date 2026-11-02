@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel {
                     "The workbook has no sheets collection.");
             }
             if (sheetCount > _options.MaxWorksheets) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxWorksheets), _options.MaxWorksheets,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxWorksheets), _options.MaxWorksheets,
                     $"The workbook contains more than the configured {_options.MaxWorksheets} worksheet definitions.");
             }
             if (string.IsNullOrWhiteSpace(_options.SheetName)

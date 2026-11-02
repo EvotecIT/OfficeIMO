@@ -526,7 +526,7 @@ Describe 'Shared tabular input contracts' {
             $reader.Dispose()
         }
 
-        $word = Get-OfficeWord -Path $wordPath -ReadOnly
+        $word = Open-OfficeWord -Path $wordPath -ReadOnly
         try {
             $word.Tables[0].Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Alpha'
             $word.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text | Should -Be 'One | Two'
@@ -536,9 +536,9 @@ Describe 'Shared tabular input contracts' {
         }
 
         $powerPointPath = Join-Path $TestDrive 'Reader.pptx'
-        $presentation = New-OfficePowerPoint -Path $powerPointPath -NoSave
+        $presentation = New-OfficePowerPoint -Path $powerPointPath
         try {
-            $slide = Add-OfficePowerPointSlide -Presentation $presentation -PassThru
+            $slide = Add-OfficePowerPointSlide -Document $presentation -PassThru
             $reader = New-TestTabularContractReader
             try {
                 $table = Add-OfficePowerPointTable -Slide $slide -InputObject $reader `
@@ -553,7 +553,7 @@ Describe 'Shared tabular input contracts' {
             $table.GetCell(1, 1).Text | Should -Be 'One | Two'
             $table.GetCell(1, 2).Text | Should -Be 'Region: EU; Tier: 1'
         } finally {
-            Close-OfficePowerPoint -Presentation $presentation
+            Close-OfficePowerPoint -Document $presentation
         }
 
         $pdfPath = Join-Path $TestDrive 'Reader.pdf'
@@ -628,7 +628,7 @@ Describe 'Shared tabular input contracts' {
         $tablePath = Join-Path $TestDrive 'ReadOnlyDictionaryTable.xlsx'
         New-OfficeExcel -Path $tablePath {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $row -TableName 'ReadOnlyRows' -CollectionSeparator ' | '
+                Add-OfficeExcelTable -InputObject $row -Name 'ReadOnlyRows' -CollectionSeparator ' | '
             }
         }
         $tableRows = @(Import-OfficeExcel -Path $tablePath -WorksheetName 'Data')
@@ -654,7 +654,7 @@ Describe 'Shared tabular input contracts' {
         New-OfficeWord -Path $wordPath {
             Add-OfficeWordTable -InputObject $row -Style TableGrid -CollectionSeparator ' | '
         } | Out-Null
-        $word = Get-OfficeWord -Path $wordPath -ReadOnly
+        $word = Open-OfficeWord -Path $wordPath -ReadOnly
         try {
             $word.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text | Should -Be 'Name'
             $word.Tables[0].Rows[1].Cells[0].Paragraphs[0].Text | Should -Be 'Alpha'
@@ -664,15 +664,15 @@ Describe 'Shared tabular input contracts' {
         }
 
         $powerPointPath = Join-Path $TestDrive 'ReadOnlyDictionary.pptx'
-        $presentation = New-OfficePowerPoint -Path $powerPointPath -NoSave
+        $presentation = New-OfficePowerPoint -Path $powerPointPath
         try {
-            $slide = Add-OfficePowerPointSlide -Presentation $presentation -PassThru
+            $slide = Add-OfficePowerPointSlide -Document $presentation -PassThru
             $table = Add-OfficePowerPointTable -Slide $slide -InputObject $row -CollectionSeparator ' | ' -PassThru
             $table.GetCell(0, 0).Text | Should -Be 'Name'
             $table.GetCell(1, 0).Text | Should -Be 'Alpha'
             $table.GetCell(1, 1).Text | Should -Be 'One | Two'
         } finally {
-            Close-OfficePowerPoint -Presentation $presentation
+            Close-OfficePowerPoint -Document $presentation
         }
 
         $pdfPath = Join-Path $TestDrive 'ReadOnlyDictionary.pdf'

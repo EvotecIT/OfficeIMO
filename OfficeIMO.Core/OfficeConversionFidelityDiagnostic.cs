@@ -41,7 +41,7 @@ public sealed class OfficeConversionFidelityDiagnostic {
 }
 
 /// <summary>Shared composition helpers for typed conversion diagnostics.</summary>
-public static class OfficeConversionFidelityDiagnostics {
+internal static class OfficeConversionFidelityDiagnostics {
     /// <summary>Flattens stage diagnostics without collapsing their loss categories.</summary>
     public static IReadOnlyList<OfficeConversionFidelityDiagnostic> Flatten(
         IEnumerable<IOfficeConversionReport> reports) {
@@ -56,7 +56,7 @@ public static class OfficeConversionFidelityDiagnostics {
                     diagnostic.LossKind != OfficeConversionLossKind.None)) {
                 string source = report.GetType().FullName ?? report.GetType().Name;
                 diagnostics.Add(new OfficeConversionFidelityDiagnostic(
-                    "CONVERSION_REPORT_UNTYPED_LOSS",
+                    global::OfficeIMO.OfficeDiagnosticCodes.ConversionReportUntypedLoss,
                     "The conversion stage reported aggregate loss without a typed fidelity diagnostic.",
                     OfficeConversionLossKind.Failure,
                     source));

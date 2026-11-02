@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesBackslashNamesInSharedFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var ownerRow = new Row { RowIndex = 2U };
             ownerRow.Append(new Cell {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_InvalidatesEveryWrapperForEditedWorksheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet retained = document.AddWorksheet("Data");
+            ExcelSheet retained = document.AddSheet("Data");
             retained.CellAt(5, 1).SetValue("Five");
             retained.CellAt(6, 1).SetValue("Six");
             Assert.Equal("Five", retained.CellAt(5, 1).GetValue<string>());
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RenumbersSelectionActiveCellId() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var selection = new Selection {
                 ActiveCell = "B5",
                 ActiveCellId = 1U,
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_InvalidatesInvariantDynamicNameChartCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Category");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 new DefinedName("OFFSET(Data!$A$1,0,0,COUNTA(Data!$A:$A),1)") {
                     Name = "SeriesData"
                 });
-            sheet.AddChartFromRange("A1:B3", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>()
                 .First(item => item.Parent!.ChildElements.Any(element =>

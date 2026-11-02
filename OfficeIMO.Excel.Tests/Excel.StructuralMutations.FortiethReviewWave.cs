@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_AllowedEditRangeProtectionCheckIsAtomicWithUnprotect() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
             for (int iteration = 0; iteration < 32; iteration++) {
                 sheet.Protect();
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RewriteRepeatedIdenticalRangeQualifiersAsOneRange() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet formulas = document.AddWorksheet("Formulas");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet formulas = document.AddSheet("Formulas");
             formulas.CellFormula(1, 1, "SUM(Data!A1:Data!C1)");
 
             data.DeleteColumns(1);
@@ -177,7 +177,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_NamedRangeParser_PreservesBangInsideQuotedSheetName() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("Bang!Sheet");
+            document.AddSheet("Bang!Sheet");
 
             document.SetNamedRange("DataRange", "'Bang!Sheet'!A1:B2", save: false,
                 validationMode: ExcelDefinedNameValidationMode.Strict);
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SparklineType_RejectsUndefinedValueBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddSparklines("A1:C1", "D1");
             string originalXml = sheet.WorksheetPart.Worksheet.OuterXml;
 
@@ -207,12 +207,12 @@ namespace OfficeIMO.Tests {
             var range = new ExcelChartDataRange(
                 "Data",
                 startRow: 1,
-                startColumn: A1.MaxColumns - 1,
+                startColumn: ExcelA1.MaxColumns - 1,
                 categoryCount: 1,
                 seriesCount: 1);
 
             Assert.Throws<ArgumentOutOfRangeException>(() => range.WithSize(1, 2));
-            Assert.Equal(A1.MaxColumns, range.SeriesEndColumn);
+            Assert.Equal(ExcelA1.MaxColumns, range.SeriesEndColumn);
             Assert.Equal(1, range.SeriesCount);
         }
     }

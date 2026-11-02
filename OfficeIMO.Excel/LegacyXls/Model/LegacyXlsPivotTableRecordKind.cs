@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies a preserve-only PivotTable BIFF record decoded into the legacy XLS import model.
     /// </summary>
-    public enum LegacyXlsPivotTableRecordKind {
+    internal enum LegacyXlsPivotTableRecordKind {
         /// <summary>PivotTable record that is currently preserved without record-specific field decoding.</summary>
         PreserveOnly,
 

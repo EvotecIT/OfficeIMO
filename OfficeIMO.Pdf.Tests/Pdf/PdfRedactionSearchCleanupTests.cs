@@ -41,7 +41,7 @@ public class PdfRedactionSearchCleanupTests {
 
     [Fact]
     public void SearchAndApply_RemovesLiteralRegexFieldMetadataAndAttachmentResidue() {
-        var pdfOptions = new PdfOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
+        var pdfOptions = new PdfCreateOptions().AddEmbeddedFile("secret.txt", Encoding.UTF8.GetBytes("ATTACHMENT-SECRET"), "text/plain", PdfAssociatedFileRelationship.Data);
         byte[] source = PdfDocument.Create(pdfOptions)
             .Meta(title: "SECRET-METADATA", author: "Sensitive Author")
             .Paragraph(p => p.Text("Payroll token SECRET-2026 and SSN 123-45-6789"))
@@ -106,7 +106,7 @@ public class PdfRedactionSearchCleanupTests {
         var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
             original.Width / 3D, original.Height, original.Label);
         var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => PdfRedactionApplier.Apply(source, plan));
@@ -128,7 +128,7 @@ public class PdfRedactionSearchCleanupTests {
         var partial = new PdfRedactionArea(original.PageNumber, original.X, original.Y,
             original.Width / 3D, original.Height, original.Label);
         var plan = new PdfRedactionPlan(searched.Preflight, [partial], searched.Matches,
-            searched.Findings, searched.SearchCriteria, searched.SourceSha256,
+            searched.Findings, searched.RequestedSearchCriteria, searched.SourceSha256,
             searched.PageIdentities, searched.ReviewedTextObjectScopes, searched.SearchMatchCase,
             searched.SearchRegexOptions, searched.SearchRegexTimeout);
 

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes one SXLI PivotTable row or column line item.
     /// </summary>
-    public sealed class LegacyXlsPivotLineItem {
+    internal sealed class LegacyXlsPivotLineItem {
         /// <summary>
         /// Creates a PivotTable line item.
         /// </summary>

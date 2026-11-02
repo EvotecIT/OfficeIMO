@@ -52,8 +52,8 @@ Describe 'Legacy Office conversion cmdlets' {
     }
 
     It 'does not overwrite conversion outputs unless Force is used' {
-        $sourcePath = Join-Path $TestDrive 'source.docx'
-        $targetPath = Join-Path $TestDrive 'target.docx'
+        $sourcePath = Join-Path $TestDrive 'overwrite-source.docx'
+        $targetPath = Join-Path $TestDrive 'overwrite-target.docx'
 
         New-OfficeWord -Path $sourcePath {
             Add-OfficeWordParagraph -Text 'Overwrite source'

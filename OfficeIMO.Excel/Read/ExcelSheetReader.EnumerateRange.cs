@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
         /// Enumerates non-empty cells within the given A1 range as typed values.
         /// </summary>
         public IEnumerable<ExcelCellValueInfo> EnumerateRange(string a1Range, CancellationToken ct = default) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
 
             return CanUseEnumerateRangeXmlReader()
                 ? EnumerateRangeXmlFast(r1, c1, r2, c2, ct)

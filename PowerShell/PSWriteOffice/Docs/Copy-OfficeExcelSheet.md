@@ -6,58 +6,55 @@ schema: 2.0.0
 ---
 # Copy-OfficeExcelSheet
 ## SYNOPSIS
-Copies a worksheet within a workbook or from another workbook.
+Copies selected worksheets within a workbook or from another workbook.
 
 ## SYNTAX
-### Context (Default)
+### Document (Default)
 ```powershell
-Copy-OfficeExcelSheet [[-SourceSheet] <string>] [-NewName] <string> [-SourceDocument <ExcelDocument>] [-SourcePath <string>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficeExcelSheet [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector[]>] [-Name <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Copy-OfficeExcelSheet [-Path] <string> [[-SourceSheet] <string>] [-NewName] <string> [-SourceDocument <ExcelDocument>] [-SourcePath <string>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficeExcelSheet [-Path] <string[]> [-Sheet <OfficeSheetSelector[]>] [-Name <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
-### Document
+### LiteralPath
 ```powershell
-Copy-OfficeExcelSheet [[-SourceSheet] <string>] [-NewName] <string> -Document <ExcelDocument> [-SourceDocument <ExcelDocument>] [-SourcePath <string>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficeExcelSheet -LiteralPath <string[]> [-Sheet <OfficeSheetSelector[]>] [-Name <string>] [-NamePrefix <string>] [-Source <Object>] [-ValidationMode <ExcelSheetNameValidationMode>] [-CopyMode <ExcelWorksheetCopyMode>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Copies a worksheet within a workbook or from another workbook.
+Source accepts a native ExcelDocument, a workbook path or literal FileInfo. Sheet accepts names,
+wildcard patterns, one-based positions and native worksheets. Omit Sheet to copy all source sheets,
+or the current worksheet inside a worksheet content block. Native package copy preserves references
+between selected sheets. File targets are saved in place; live documents require an explicit save.
+
+PassThru emits native worksheets. For file input, their workbook remains open: close
+the returned worksheet's Document with Close-OfficeExcel when finished.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $proof = @(
-    Copy-OfficeExcelSheet -Path .\Report.xlsx -SourceSheet Data -NewName DataCopy
-    Get-OfficeExcelSummary -Path .\Report.xlsx -IncludeSheets |
-        Select-Object -ExpandProperty Sheets |
-        Where-Object Name -eq 'DataCopy'
-)
-$proof
+Copy-OfficeExcelSheet -Document $book -Sheet Template -Name October
 ```
 
-Creates a copy of the Data worksheet and reads the workbook summary to verify the new tab.
 
 ### EXAMPLE 2
 ```powershell
-PS> Copy-OfficeExcelSheet -Path .\Combined.xlsx -SourcePath .\Incoming.xlsx -SourceSheet RawData -NewName IncomingRaw -CopyMode Package
-            Get-OfficeExcelUsedRange -Path .\Combined.xlsx -Sheet IncomingRaw
+Copy-OfficeExcelSheet -LiteralPath ./Combined.xlsx -Source ./Region.xlsx -Sheet 'Sales*' -NamePrefix 'Region '
 ```
 
-Copies the source worksheet package directly so large workbook merges avoid converting rows into PowerShell objects. Use CopyMode Values only when you explicitly want the reader/writer fallback.
 
 ## PARAMETERS
 
 ### -CopyMode
-Controls whether cross-workbook copies use package-level copy or value materialization.
+Gets or sets native package copying or explicit value-only materialization.
 
 ```yaml
 Type: ExcelWorksheetCopyMode
-Parameter Sets: Context, Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: Values, Package
 
@@ -69,7 +66,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Target workbook to update outside the DSL context.
+Gets or sets a live target workbook; omission uses the enclosing workbook scope.
 
 ```yaml
 Type: ExcelDocument
@@ -77,35 +74,67 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -NewName
-Name for the copied worksheet.
+### -LiteralPath
+Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Path, Document
-Aliases: Name, DestinationSheet
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
 Possible values:
 
 Required: True
-Position: 2
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Name
+Gets or sets a new name when copying exactly one worksheet.
+
+```yaml
+Type: String
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NamePrefix
+Gets or sets a prefix for each copied worksheet name.
+
+```yaml
+Type: String
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether to return live copied worksheets; their workbook is caller-owned.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -117,27 +146,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Target workbook path to update.
+Gets or sets target workbook paths with filesystem wildcard expansion.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
-### -SourceDocument
-Optional source workbook object for cross-workbook copies.
+### -Sheet
+Gets or sets source worksheet names or patterns, one-based positions or native worksheets.
 
 ```yaml
-Type: ExcelDocument
-Parameter Sets: Context, Path, Document
+Type: OfficeSheetSelector[]
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -145,47 +174,31 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
-### -SourcePath
-Optional source workbook path for cross-workbook copies.
+### -Source
+Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Path, Document
+Type: Object
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SourceSheet
-Worksheet to copy. Defaults to the current sheet inside an ExcelSheet block.
-
-```yaml
-Type: String
-Parameter Sets: Context, Path, Document
-Aliases: Sheet, WorksheetName
-Possible values:
-
-Required: False
-Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -ValidationMode
-Controls how invalid destination sheet names are handled.
+Gets or sets how invalid or duplicate destination names are handled.
 
 ```yaml
 Type: ExcelSheetNameValidationMode
-Parameter Sets: Context, Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: None, Sanitize, Strict
 
@@ -201,6 +214,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS

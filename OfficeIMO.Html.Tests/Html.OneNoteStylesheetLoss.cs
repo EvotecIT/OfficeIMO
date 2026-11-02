@@ -18,7 +18,7 @@ public partial class HtmlOfficeAdapters {
             "<html><head>" + links + "</head><body><p>Text</p></body></html>").ToOneNoteSectionResult();
 
         HtmlDiagnostic[] skipped = result.Report.Diagnostics
-            .Where(item => item.Code == "HtmlStylesheetLinkSkipped").ToArray();
+            .Where(item => item.Code == "html-stylesheet-link-skipped").ToArray();
         Assert.Equal(128, skipped.Length);
         Assert.Equal("https://example.test/plain-0.css", skipped[0].Source);
         Assert.Equal("https://example.test/titled-63.css", skipped[skipped.Length - 1].Source);
@@ -38,7 +38,7 @@ public partial class HtmlOfficeAdapters {
 
         HtmlToOneNoteSectionResult section = source.ToOneNoteSectionResult();
         HtmlDiagnostic diagnostic = Assert.Single(section.Report.Diagnostics,
-            item => item.Code == "HtmlStylesheetLinkSkipped");
+            item => item.Code == "html-stylesheet-link-skipped");
         Assert.Equal("https://example.test/active.css", diagnostic.Source);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.True(section.Report.HasLoss);
@@ -49,7 +49,7 @@ public partial class HtmlOfficeAdapters {
 
         HtmlToOneNoteNotebookResult notebook = source.ToOneNoteNotebookResult();
         Assert.Equal(diagnostic.Source, Assert.Single(notebook.Report.Diagnostics,
-            item => item.Code == "HtmlStylesheetLinkSkipped").Source);
+            item => item.Code == "html-stylesheet-link-skipped").Source);
     }
 
     [Fact]

@@ -45,11 +45,11 @@ public sealed class ConvertToOfficePdfMarkdownCommand : PSCmdlet
     {
         var readOptions = string.IsNullOrWhiteSpace(PageRange)
             ? null
-            : new PdfReadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
+            : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRange!) };
         var document = PdfDocument.Load(
             PdfCommandUtilities.ResolvePath(this, Path),
             PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
-        var markdown = document.Read(readOptions).ToMarkdown();
+        var markdown = document.Read(readOptions).ExtractMarkdown();
 
         if (!string.IsNullOrWhiteSpace(OutputPath))
         {

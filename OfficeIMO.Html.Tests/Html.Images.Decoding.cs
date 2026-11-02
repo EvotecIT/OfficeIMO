@@ -15,7 +15,7 @@ public partial class Html {
         string fallback = "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(path));
         string html = $"<img data-src=\"{candidate}\" src=\"{fallback}\" alt=\"Logo\">";
 
-        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+        HtmlToWordResult conversion = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
 
         Assert.Single(conversion.Value.Images);
         Assert.Empty(conversion.Report.Diagnostics);

@@ -104,10 +104,10 @@ public sealed partial class PdfRuntimeWorkload {
                 }
                 break;
             case "RenderSvg":
-                Render(PdfPageRenderFormat.Svg, Math.Min(Pages, 12));
+                Render(global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, Math.Min(Pages, 12));
                 break;
             case "RenderPng":
-                Render(PdfPageRenderFormat.Png, Math.Min(Pages, 4));
+                Render(global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Math.Min(Pages, 4));
                 break;
             case "ReplaceRegion":
                 _edit = PdfDocument.Load(_source).Text.Replace(_region, PdfRuntimeCorpus.Replacement(TargetPage));
@@ -125,18 +125,18 @@ public sealed partial class PdfRuntimeWorkload {
     private void Generate(PdfObjectSerializationMode mode) {
         PdfDocument document = PdfRuntimeCorpus.Create(Pages, mode, _textOnly);
         using var stream = new MemoryStream();
-        PdfSaveResult result = document.Save(stream);
+        PdfSaveResult result = document.SaveWithEvidence(stream);
         _serialization = result.Serialization ?? throw new InvalidDataException("Generation returned no serialization report.");
         _output = stream.ToArray();
     }
 
-    private void Render(PdfPageRenderFormat format, int count) {
+    private void Render(global::OfficeIMO.Drawing.OfficeImageExportFormat format, int count) {
         _renders = PdfDocument.Load(_source).Render.Pages("1-" + count,
             new PdfPageRenderOptions {
                 Format = format,
                 MaxPages = count,
-                ThumbnailMaxDimension = format == PdfPageRenderFormat.Png ? 512 : null,
-                MaxPixelsPerPage = format == PdfPageRenderFormat.Png ? 512L * 512L : 16_000_000L,
+                ThumbnailMaxDimension = format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png ? 512 : null,
+                MaxPixelsPerPage = format == global::OfficeIMO.Drawing.OfficeImageExportFormat.Png ? 512L * 512L : 16_000_000L,
                 ContinueOnError = false
             });
     }

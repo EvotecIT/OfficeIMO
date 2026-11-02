@@ -138,7 +138,7 @@ namespace OfficeIMO.Word {
         /// <param name="rows">Number of rows.</param>
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Table style to apply.</param>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             var table = WordTable.Create(_document, rows, columns, tableStyle);
             AppendElementToSection(table._table);
             return table;
@@ -197,11 +197,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="watermarkStyle">Watermark style.</param>
         /// <param name="textOrFilePath">Text or image file path.</param>
-        /// <param name="horizontalOffset">Horizontal offset in points.</param>
-        /// <param name="verticalOffset">Vertical offset in points.</param>
+        /// <param name="horizontalOffset">Optional signed horizontal offset.</param>
+        /// <param name="verticalOffset">Optional signed vertical offset.</param>
         /// <param name="scale">Scale factor for width and height.</param>
         /// <returns>The created <see cref="WordWatermark"/> instance.</returns>
-        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1.0) {
+        public WordWatermark AddWatermark(WordWatermarkStyle watermarkStyle, string textOrFilePath, global::OfficeIMO.OfficeLength? horizontalOffset = null, global::OfficeIMO.OfficeLength? verticalOffset = null, double scale = 1.0) {
             // return new WordWatermark(this._document, this, this.Header.Default, watermarkStyle, text);
             return new WordWatermark(this._document, this, watermarkStyle, textOrFilePath, horizontalOffset, verticalOffset, scale);
         }
@@ -234,7 +234,7 @@ namespace OfficeIMO.Word {
         /// <param name="size">Line width.</param>
         /// <param name="space">Line spacing.</param>
         /// <returns>The paragraph containing the line.</returns>
-        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.OfficeColor? color = null, uint size = 12, uint space = 1) {
             lineType ??= WordBorderStyle.Single;
             return this.AddParagraph("").AddHorizontalLine(lineType.Value, color, size, space);
         }
@@ -248,7 +248,7 @@ namespace OfficeIMO.Word {
         /// <param name="tooltip">Optional tooltip.</param>
         /// <param name="history">Add to document history.</param>
         /// <returns>The created paragraph.</returns>
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        public WordHyperLink AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
@@ -261,15 +261,16 @@ namespace OfficeIMO.Word {
         /// <param name="tooltip">Optional tooltip.</param>
         /// <param name="history">Add to document history.</param>
         /// <returns>The created paragraph.</returns>
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 
         /// <summary>
         /// Adds default headers and footers to the section.
         /// </summary>
-        public void AddHeadersAndFooters() {
-            WordHeadersAndFooters.AddHeadersAndFooters(this);
+        /// <returns>The attached default header and footer.</returns>
+        public (WordHeader Header, WordFooter Footer) AddHeadersAndFooters() {
+            return WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         /// <summary>
@@ -291,48 +292,40 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds a VML image to the section.
+        /// Adds an image to the section.
         /// </summary>
-        /// <param name="filePathImage">Path to the image file to embed.</param>
-        /// <param name="width">Optional image width in points.</param>
-        /// <param name="height">Optional image height in points.</param>
-        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
-            var paragraph = AddParagraph(newRun: true);
-            paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Failed to create VML image.");
+        /// <param name="path">Path to the image file to embed.</param>
+        /// <param name="width">Optional displayed image width.</param>
+        /// <param name="height">Optional displayed image height.</param>
+        /// <param name="options">Image markup, wrapping and metadata options.</param>
+        public WordImage AddImage(string path, OfficeLength? width = null, OfficeLength? height = null, WordImageOptions? options = null) {
+            return AddParagraph(newRun: true).AddImage(path, width, height, options);
         }
 
         /// <summary>
         /// Adds a VML shape to the section.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points or line end X.</param>
-        /// <param name="heightPt">Height in points or line end Y.</param>
-        /// <param name="fillColor">Fill color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
-        /// <param name="strokeColor">Stroke color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
-        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="width">Width or line end X.</param>
+        /// <param name="height">Height or line end Y.</param>
+        /// <param name="fillColor">Fill color; white when omitted.</param>
+        /// <param name="strokeColor">Stroke color; black when omitted.</param>
+        /// <param name="strokeWeight">Stroke thickness; one point when omitted.</param>
         /// <param name="arcSize">Rounded corner size expressed as a fraction between 0 and 1.</param>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
-        }
-
-        /// <summary>
-        /// Adds a VML shape to the section using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
-        /// </summary>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
+        public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
+            OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
+            WordShape.ValidateVmlColors(fillColor, strokeColor);
+            return AddParagraph(newRun: true).AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }
 
         /// <summary>
         /// Adds a DrawingML shape to the section.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points.</param>
-        /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
-            return AddParagraph(newRun: true).AddShapeDrawing(shapeType, widthPt, heightPt);
+        /// <param name="width">Width.</param>
+        /// <param name="height">Height.</param>
+        public WordShape AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) {
+            return AddParagraph(newRun: true).AddShapeDrawing(shapeType, width, height);
         }
 
         /// <summary>
@@ -353,8 +346,8 @@ namespace OfficeIMO.Word {
         /// <param name="position">Footnote position.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        /// <returns>The current section.</returns>
-        public WordSection AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
+        /// <returns>The attached, editable numbering settings.</returns>
+        public WordFootnoteSettings AddFootnoteProperties(WordNumberFormat? numberingFormat = null,
             WordFootnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
@@ -385,7 +378,7 @@ namespace OfficeIMO.Word {
                 props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
             }
 
-            return this;
+            return FootnoteSettings;
         }
 
         /// <summary>
@@ -395,8 +388,8 @@ namespace OfficeIMO.Word {
         /// <param name="position">Document-wide endnote position. A position-only update preserves section numbering.</param>
         /// <param name="restartNumbering">Restart numbering option.</param>
         /// <param name="startNumber">Starting number.</param>
-        /// <returns>The current section.</returns>
-        public WordSection AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
+        /// <returns>The attached, editable numbering settings.</returns>
+        public WordEndnoteSettings AddEndnoteProperties(WordNumberFormat? numberingFormat = null,
             WordEndnotePosition? position = null,
             WordNoteNumberRestart? restartNumbering = null,
             int? startNumber = null) {
@@ -431,7 +424,7 @@ namespace OfficeIMO.Word {
                 props.AddChild(new NumberingStart() { Val = (UInt16Value)startNumber.Value }, true);
             }
 
-            return this;
+            return EndnoteSettings;
         }
 
         /// <summary>
@@ -439,8 +432,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="startNumber">Starting page number.</param>
         /// <param name="format">Number format.</param>
-        /// <returns>The current section.</returns>
-        public WordSection AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
+        /// <returns>The attached, editable numbering settings.</returns>
+        public WordPageNumberSettings AddPageNumbering(int? startNumber = null, WordNumberFormat? format = null) {
             var existing = _sectionProperties.GetFirstChild<PageNumberType>();
             existing?.Remove();
 
@@ -455,7 +448,7 @@ namespace OfficeIMO.Word {
                 _sectionProperties.AddChild(pageNumberType, true);
             }
 
-            return this;
+            return PageNumberSettings;
         }
 
         /// <summary>

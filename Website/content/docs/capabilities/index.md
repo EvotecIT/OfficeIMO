@@ -4,7 +4,7 @@ description: "Navigate the complete managed document platform by workflow, compo
 layout: docs
 ---
 
-OfficeIMO is a modular document platform, not a single basic DOCX helper. The repository currently contains **154 production libraries, adapters, renderers, and tools**, backed by **61 test projects**, **36 benchmark projects**, and dedicated validation applications.
+OfficeIMO is a modular document platform, not a single basic DOCX helper. The repository currently contains **158 production libraries, adapters, renderers, and tools**, backed by **62 test projects**, **36 benchmark projects**, and dedicated validation applications.
 
 ## Choose the right depth
 
@@ -13,7 +13,7 @@ OfficeIMO is a modular document platform, not a single basic DOCX helper. The re
 | Build or edit a document | Use the Word, Excel, PowerPoint, PDF, email, OneNote, OpenDocument, Markdown, CSV, or Visio guide. |
 | Move content between formats | Open the conversion map to choose the source package, destination adapter, and expected loss policy. |
 | Normalize mixed documents | Start with Reader and add only the format adapters your application needs. |
-| Automate from scripts | Use PSWriteOffice and its manifest-derived 594-command catalog. |
+| Automate from scripts | Use PSWriteOffice and its manifest-derived 575-command catalog. |
 | Inspect exact members | Move from a conceptual guide into one of the generated API references. |
 | Evaluate deployment constraints | Use the validation and AOT pages for executable evidence and known boundaries. |
 
@@ -25,9 +25,9 @@ OfficeIMO is a modular document platform, not a single basic DOCX helper. The re
 - **Google Workspace:** 4 focused components
 - **Office documents:** 21 focused components
 - **PowerShell automation:** 1 focused components
-- **Publishing and conversion:** 25 focused components
+- **Publishing and conversion:** 28 focused components
 - **Rendering surfaces:** 3 focused components
-- **Specialized components:** 26 focused components
+- **Specialized components:** 27 focused components
 
 The [complete package and component index](./packages/) is generated from project metadata, so descriptions, source links, API availability, and test-reference counts stay aligned with the repository.
 

@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Html {
 
             // Save HTML synchronously with basic options
             string syncPath = Path.Combine(folderPath, "Html10_Options.sync.html");
-            var options = new WordToHtmlOptions {
+            var options = new WordHtmlExportOptions {
                 IncludeFontStyles = true,
                 IncludeListStyles = true
             };
@@ -31,11 +31,11 @@ namespace OfficeIMO.Examples.Html {
             await doc.SaveAsHtmlAsync(asyncPath);
 
             // Round-trip both sync and async html strings
-            string htmlSync = doc.ToHtml(new WordToHtmlOptions { IncludeFontStyles = true, IncludeDefaultCss = true });
-            using var roundTripSync = OfficeIMO.Html.HtmlConversionDocument.Parse(htmlSync).ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
+            string htmlSync = doc.ToHtml(new WordHtmlExportOptions { IncludeFontStyles = true, IncludeDefaultCss = true });
+            using var roundTripSync = OfficeIMO.Html.HtmlConversionDocument.Parse(htmlSync).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri" });
 
             string htmlForAsyncImport = doc.ToHtml();
-            using var roundTripAsync = await OfficeIMO.Html.HtmlConversionDocument.Parse(htmlForAsyncImport).ToWordDocumentAsync();
+            using var roundTripAsync = (await OfficeIMO.Html.HtmlConversionDocument.Parse(htmlForAsyncImport).ToWordAsync()).Value;
 
             Console.WriteLine($"✓ Created: {syncPath}");
             Console.WriteLine($"✓ Created: {asyncPath}");

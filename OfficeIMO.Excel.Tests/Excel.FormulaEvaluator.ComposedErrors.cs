@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_SumProductPreservesNumericCachesWithoutCoercingUnevaluatedNonnumericInputs(
             string cacheKind, int calculated, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Unresolved");
+            var sheet = document.AddSheet("Unresolved");
             if (cacheKind == "number") sheet.CellValue(1, 1, 1d);
             else if (cacheKind == "text") sheet.CellValue(1, 1, string.Empty);
             sheet.CellFormula(1, 1, "UNKNOWN()");
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SUMPRODUCT(A1:A2,B1:B3)")]
         public void Test_FormulaEvaluator_ComposedErrorsRemainTyped(string expression) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Errors");
+            var sheet = document.AddSheet("Errors");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 2d);
             sheet.CellFormula(1, 2, "NA()");
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SUMPRODUCT(A1:A2,B1:B100001)")]
         public void Test_FormulaEvaluator_UnsupportedCompositionDoesNotActivateFallback(string expression) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Errors");
+            var sheet = document.AddSheet("Errors");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 2d);
             sheet.CellFormula(1, 2, "NA()");
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_TextBeforeDoesNotEvaluateUnusedErrorFallback() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellFormula(1, 1, "TEXTBEFORE(\"a:b\",\":\",1,0,0,NA())");
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 1, "a");
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_BlankReferenceConditionsUseNumericZero() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Blank");
+            var sheet = document.AddSheet("Blank");
             sheet.CellValue(2, 1, "");
             string[] formulas = { "IF(A1=0,1,2)", "IF(0=A1,1,2)", "IF(A1<1,1,2)",
                 "IF(A1=\"0\",1,2)", "IF(A2=0,1,2)", "IFS(A1=0,1,TRUE,2)",
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_LookupErrorsPropagateInsideArithmetic() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Arithmetic");
+            var sheet = document.AddSheet("Arithmetic");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 2d);
             sheet.CellValue(1, 2, 10d);

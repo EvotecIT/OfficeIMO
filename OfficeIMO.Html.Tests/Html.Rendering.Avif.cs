@@ -118,7 +118,7 @@ public sealed partial class HtmlRenderingTests {
         var document = HtmlConversionDocument.Parse("<picture><source type='image/avif' srcset='" + source
             + "'><img width='49' height='33' alt='photo' src='data:image/png;base64,"
             + Convert.ToBase64String(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2)) + "'></picture>");
-        var result = document.ToWordDocumentResult();
+        var result = document.ConvertToWordWithEvidence();
         using var word = result.Value;
         using var stream = new MemoryStream(word.ToBytes());
         using var package = WordprocessingDocument.Open(stream, false);

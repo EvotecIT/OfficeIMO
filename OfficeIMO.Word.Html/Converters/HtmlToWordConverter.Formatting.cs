@@ -6,7 +6,7 @@ using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Text.RegularExpressions;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
+            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, double? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Html {
             internal bool Subscript { get; set; }
             internal string? ColorHex { get; set; }
             internal string? FontFamily { get; set; }
-            internal int? FontSize { get; set; }
+            internal double? FontSize { get; set; }
             internal HighlightColorValues? Highlight { get; set; }
             internal string? BackgroundColorHex { get; set; }
             internal string? BackgroundBackdropColorHex { get; set; }
@@ -136,29 +136,42 @@ namespace OfficeIMO.Word.Html {
             return found;
         }
 
-        private static bool TryParseFontSize(string? text, out int size) {
+        /// <summary>
+        /// Parses a CSS font size into points, rounded to Word's half-point grid. CSS pixels are
+        /// 1/96 inch, so 16px is 12pt; named sizes and percentages resolve against the 16px default.
+        /// </summary>
+        private static bool TryParseFontSize(string? text, out double size) {
             size = 0;
             if (string.IsNullOrWhiteSpace(text)) {
                 return false;
             }
             text = (text ?? string.Empty).Trim().ToLowerInvariant();
             if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
-                size = (int)Math.Round(pt);
+                size = RoundToHalfPoint(pt);
                 return size > 0;
             }
             if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double px)) {
-                size = (int)Math.Round(px);
+                size = RoundToHalfPoint(px * 0.75d);
                 return size > 0;
             }
             if (_namedFontSizes.TryGetValue(text, out int named)) {
-                size = named;
+                size = RoundToHalfPoint(named * 0.75d);
                 return true;
             }
             if (text.EndsWith("%") && double.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
-                size = (int)Math.Round(_renderDevice.FontSize * (percent / 100d));
+                size = RoundToHalfPoint(_renderDevice.FontSize * 0.75d * (percent / 100d));
                 return size > 0;
             }
             return false;
+        }
+
+        private static double RoundToHalfPoint(double points) =>
+            double.IsNaN(points) || double.IsInfinity(points) ? 0d : Math.Min(1638d, Math.Round(points * 2d, MidpointRounding.AwayFromZero) / 2d);
+
+        private static void SetRunFontSizePoints(WordParagraph run, double points) {
+            if (points > 0d) {
+                run.FontSize = OfficeLength.Points(points);
+            }
         }
 
         private static bool TryConvertToTwip(ICssValue? value, out int twips) {
@@ -260,18 +273,19 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (parsed.LineHeight.HasValue) {
-                paragraph.LineSpacing = parsed.LineHeight.Value;
-                if (parsed.LineHeightRule.HasValue) {
-                    paragraph.LineSpacingRule = parsed.LineHeightRule.Value.ToOfficeEnum();
-                }
+                // CSS parsing is native-shaped; use the Word owner to interpret its units.
+                paragraph.LineSpacing = WordLineSpacing.Read(new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines {
+                    Line = parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    LineRule = parsed.LineHeightRule
+                });
             }
 
-            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out int fontSize)) {
-                paragraph.SetFontSize(fontSize);
+            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out double fontSize)) {
+                SetRunFontSizePoints(paragraph, fontSize);
             }
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "letter-spacing"), out int lsParagraph)) {
-                paragraph.SetSpacing(lsParagraph);
+                paragraph.SetSpacing(OfficeLength.Emus((long)lsParagraph * 635));
             }
 
             if (StyleRequestsPageBreakBefore(declaration, styleAttribute) || StyleTextRequestsPageBreak(styleAttribute, "break-before", "page-break-before")) {
@@ -305,14 +319,14 @@ namespace OfficeIMO.Word.Html {
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "text-indent"), out int indent)) {
                 if (indent > 0) {
-                    paragraph.IndentationFirstLine = indent;
-                    paragraph.IndentationHanging = null;
+                    paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points((indent) / 20D);
+                    paragraph.IndentationHanging= null;
                 } else if (indent < 0) {
-                    paragraph.IndentationHanging = -indent;
-                    paragraph.IndentationFirstLine = null;
+                    paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points((-indent) / 20D);
+                    paragraph.IndentationFirstLine= null;
                 } else {
-                    paragraph.IndentationFirstLine = null;
-                    paragraph.IndentationHanging = null;
+                    paragraph.IndentationFirstLine= null;
+                    paragraph.IndentationHanging= null;
                 }
             }
 
@@ -322,20 +336,20 @@ namespace OfficeIMO.Word.Html {
             if (applyVerticalBoxSpacing) {
                 int before = (marginTop ?? 0) + (paddingTop ?? 0);
                 if (before > 0) {
-                    paragraph.LineSpacingBefore = before;
+                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points((before) / 20D);
                 }
                 int after = (marginBottom ?? 0) + (paddingBottom ?? 0);
                 if (after > 0) {
-                    paragraph.LineSpacingAfter = after;
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points((after) / 20D);
                 }
             }
             int left = (marginLeft ?? 0) + (paddingLeft ?? 0);
             if (left != 0) {
-                paragraph.IndentationBefore = left;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points((left) / 20D);
             }
             int right = (marginRight ?? 0) + (paddingRight ?? 0);
             if (right != 0) {
-                paragraph.IndentationAfter = right;
+                paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points((right) / 20D);
             }
             return parsed;
         }
@@ -423,7 +437,7 @@ namespace OfficeIMO.Word.Html {
         private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
         private static readonly Regex _collapseWhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
-        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+        private void AddTextRun(WordParagraph paragraph, string text, TextFormatting formatting, WordHtmlImportOptions options) {
             text = ApplyWhiteSpace(text, formatting.WhiteSpace);
             if (string.IsNullOrEmpty(text)) {
                 return;
@@ -449,7 +463,7 @@ namespace OfficeIMO.Word.Html {
                 if (!Uri.TryCreate(match.Value, UriKind.Absolute, out var uri) || IsInvalidResolvedHref(uri, options)) {
                     AddFormattedSegment(paragraph, display, formatting, options);
                 } else {
-                    var linkRun = paragraph.AddHyperLink(display, uri);
+                    var linkRun = paragraph.AddHyperLink(display, uri).Paragraph;
                     ApplyFormatting(linkRun, formatting, options);
                 }
                 lastIndex = match.Index + match.Length;
@@ -461,15 +475,14 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, HtmlToWordOptions options) {
+        private void AddFormattedSegment(WordParagraph paragraph, string text, TextFormatting formatting, WordHtmlImportOptions options) {
             int start = 0;
             for (int index = 0; index < text.Length; index++) {
                 if (text[index] != '\n') continue;
 
                 int end = index > start && text[index - 1] == '\r' ? index - 1 : index;
                 if (end > start) {
-                    var textRun = paragraph.AddFormattedText(text.Substring(start, end - start), formatting.Bold,
-                        formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
+                    var textRun = AppendTextSegment(paragraph, text.Substring(start, end - start));
                     ApplyFormatting(textRun, formatting, options);
                 }
 
@@ -479,11 +492,35 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (start < text.Length || text.Length == 0) {
-                var textRun = paragraph.AddFormattedText(text.Substring(start), formatting.Bold,
-                    formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
+                var textRun = AppendTextSegment(paragraph, text.Substring(start));
                 ApplyFormatting(textRun, formatting, options);
             }
         }
+
+        private static WordParagraph AppendTextSegment(WordParagraph paragraph, string text) {
+            if (GetReusableInitialRun(paragraph) != null) {
+                paragraph.CopyRunFormattingToParagraphMark();
+                paragraph.Text = text;
+                return paragraph;
+            }
+            return paragraph.AddText(text);
+        }
+
+        private static Run? GetReusableInitialRun(WordParagraph paragraph) {
+            var initialRun = paragraph._run;
+            return initialRun?.Parent == paragraph._paragraph && !initialRun.HasAttributes &&
+                initialRun.ChildElements.All(child => child is RunProperties) &&
+                paragraph._paragraph.ChildElements.All(child => child is ParagraphProperties || ReferenceEquals(child, initialRun))
+                ? initialRun : null;
+        }
+
+        // Semantic wrappers capture this before processing children. The first text may reuse
+        // the formatting-only run instead of adding a run, so count it only after it receives content.
+        private static (int Count, Run? InitialRun) CaptureTextRunStart(WordParagraph paragraph) =>
+            (paragraph.GetRuns().Count(), GetReusableInitialRun(paragraph));
+
+        private static int FirstEmittedTextRunIndex((int Count, Run? InitialRun) start) =>
+            start.InitialRun?.ChildElements.Any(child => child is not RunProperties) == true ? start.Count - 1 : start.Count;
 
         private static string ApplyWhiteSpace(string text, WhiteSpaceMode? mode) {
             if (!mode.HasValue) {
@@ -506,7 +543,7 @@ namespace OfficeIMO.Word.Html {
             return collapsed;
         }
 
-        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
+        private void ApplyFormatting(WordParagraph run, TextFormatting formatting, WordHtmlImportOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
             if (formatting.Underline) run.SetUnderline((GetUnderlineValue(formatting) ?? UnderlineValues.Single).ToOfficeEnum());
@@ -517,9 +554,9 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
             ApplyTextBackground(run, formatting, options);
-            if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
+            if (formatting.FontSize.HasValue) SetRunFontSizePoints(run, formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
-            if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
+            if (formatting.LetterSpacing.HasValue) run.SetSpacing(OfficeLength.Emus((long)formatting.LetterSpacing.Value * 635));
             if (!string.IsNullOrWhiteSpace(formatting.Language)) run.SetLanguage(formatting.Language!);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);
@@ -580,7 +617,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleText, "font-size"), out int size)) {
+            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleText, "font-size"), out double size)) {
                 formatting.FontSize = size;
             }
 
@@ -693,7 +730,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             int sizeIndex = -1;
-            int? parsedSize = null;
+            double? parsedSize = null;
             for (int i = 0; i < tokens.Count; i++) {
                 var token = tokens[i];
                 var sizeToken = token;
@@ -701,7 +738,7 @@ namespace OfficeIMO.Word.Html {
                 if (slashIndex >= 0) {
                     sizeToken = token.Substring(0, slashIndex);
                 }
-                if (TryParseFontSize(sizeToken, out int size)) {
+                if (TryParseFontSize(sizeToken, out double size)) {
                     sizeIndex = i;
                     parsedSize = size;
                     break;
@@ -771,7 +808,7 @@ namespace OfficeIMO.Word.Html {
             return tokens;
         }
 
-        private static bool TryParseHtmlFontSize(string? value, out int size) {
+        private static bool TryParseHtmlFontSize(string? value, out double size) {
             size = 0;
             if (TryParseFontSize(value, out size)) {
                 return true;
@@ -800,7 +837,7 @@ namespace OfficeIMO.Word.Html {
                 formatting.ColorHex = colorAttr;
             }
 
-            if (TryParseHtmlFontSize(element.GetAttribute("size"), out int size)) {
+            if (TryParseHtmlFontSize(element.GetAttribute("size"), out double size)) {
                 formatting.FontSize = size;
             }
         }

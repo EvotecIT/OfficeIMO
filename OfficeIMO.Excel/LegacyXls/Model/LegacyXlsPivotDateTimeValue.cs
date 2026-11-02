@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an SXDtr date/time value attached to legacy XLS PivotCache grouping metadata.
     /// </summary>
-    public sealed class LegacyXlsPivotDateTimeValue {
+    internal sealed class LegacyXlsPivotDateTimeValue {
         /// <summary>Creates a PivotCache date/time value.</summary>
         public LegacyXlsPivotDateTimeValue(ushort year, ushort month, byte day, byte hour, byte minute, byte second) {
             Year = year;

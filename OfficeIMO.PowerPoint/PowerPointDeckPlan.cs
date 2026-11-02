@@ -6,7 +6,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Shared content limits used by semantic PowerPoint deck plans.
     /// </summary>
-    public static class PowerPointDeckPlanLimits {
+    internal static class PowerPointDeckPlanLimits {
         /// <summary>Maximum narrative sections rendered by a case-study slide.</summary>
         public const int MaxCaseStudySections = 4;
         /// <summary>Maximum metrics visibly rendered by a case-study slide.</summary>
@@ -66,7 +66,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Closing statement or action slide.</summary>
         Closing,
         /// <summary>Custom raw-composition slide.</summary>
-        Custom
+        Custom,
+        /// <summary>Ordered content blocks rendered by the shared automatic layout engine.</summary>
+        Content
     }
 
     /// <summary>
@@ -208,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckPlanSlideRenderSummary[] summaries =
                 new PowerPointDeckPlanSlideRenderSummary[_slides.Count];
             for (int i = 0; i < _slides.Count; i++) {
-                summaries[i] = _slides[i].DescribeRender(i, design, slideIndexOffset);
+                summaries[i] = _slides[i].DescribeRender(i, design, slideIndexOffset, isLast: i == _slides.Count - 1);
             }
 
             return summaries;

@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph().Text = "Some text on next page";
 
                 var paragraph1 = document.AddParagraph("Test").AddText("Test2");
-                paragraph1.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph1.Color = OfficeIMO.OfficeColor.Red;
                 paragraph1.AddText("Test3");
 
                 paragraph = document.AddParagraph("Some paragraph");
@@ -44,14 +44,14 @@ namespace OfficeIMO.Examples.Word {
 
                 paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
+                paragraph.Color = OfficeIMO.OfficeColor.Red;
 
                 paragraph = document.AddParagraph("2nd paragraph");
                 paragraph.Bold = true;
                 paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = WordUnderlineStyle.DashLong;
                 paragraph = paragraph.AddText(" More text");
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
+                paragraph.Color = OfficeIMO.OfficeColor.CornflowerBlue;
 
                 // remove last paragraph
                 document.Paragraphs.Last().Remove();
@@ -61,7 +61,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = paragraph.AddText(" continue?");
                 paragraph.Underline = WordUnderlineStyle.DashLong;
                 paragraph = paragraph.AddText(" More text");
-                paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
+                paragraph.Color = OfficeIMO.OfficeColor.CornflowerBlue;
 
                 // remove paragraph
                 int countParagraphs = document.Paragraphs.Count;

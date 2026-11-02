@@ -4,6 +4,8 @@ using System.Linq;
 using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
+using OfficeIMO;
+using OfficeIMO.Workflows;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Markdown;
@@ -56,9 +58,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// </example>
 [Cmdlet(VerbsData.Export, "OfficeDocumentPdf", DefaultParameterSetName = ParameterSetDocument, SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo))]
-#if !FRAMEWORK
-[OutputType(typeof(OfficeIMO.Workflows.OfficeConversionBatchResult), typeof(OfficeIMO.Workflows.OfficeConversionBatchItemResult))]
-#endif
+[OutputType(typeof(OfficeIMO.OfficeBatchSummary), typeof(OfficeIMO.OfficeBatchItemReport))]
 public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPath = "Path";
@@ -84,19 +84,19 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
 
     /// <summary>Word-specific PDF options.</summary>
     [Parameter]
-    public WordToPdfOptions? WordOptions { get; set; }
+    public WordPdfExportOptions? WordOptions { get; set; }
 
     /// <summary>Excel-specific PDF options.</summary>
     [Parameter]
-    public ExcelToPdfOptions? ExcelOptions { get; set; }
+    public ExcelPdfExportOptions? ExcelOptions { get; set; }
 
     /// <summary>PowerPoint-specific PDF options.</summary>
     [Parameter]
-    public PowerPointToPdfOptions? PowerPointOptions { get; set; }
+    public PowerPointPdfExportOptions? PowerPointOptions { get; set; }
 
     /// <summary>Markdown-specific PDF options.</summary>
     [Parameter]
-    public MarkdownToPdfOptions? MarkdownOptions { get; set; }
+    public MarkdownPdfExportOptions? MarkdownOptions { get; set; }
 
     /// <summary>RTF-specific PDF options.</summary>
     [Parameter]
@@ -108,7 +108,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
 
     /// <summary>Literal text layout and strict decoding options. Applies only to TXT sources.</summary>
     [Parameter]
-    public PdfPlainTextOptions? TextOptions { get; set; }
+    public PdfTextImportOptions? TextOptions { get; set; }
 
     /// <summary>Accept reported legacy DOC import loss. Known loss otherwise blocks conversion.</summary>
     [Parameter]
@@ -182,14 +182,13 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
                 }
             }
 
-            PdfSaveResult result = SaveDocument(document, outputPath, sourcePath);
-            PdfCommandUtilities.SetVariable(this, PdfWarningVariable, result.Warnings);
-            PdfCommandUtilities.SetVariable(this, PdfConversionReportVariable, result.Report);
-            PdfCommandUtilities.SetVariable(this, SourceConversionReportVariable, result.ConversionReports.Take(result.ConversionReports.Count - 1).ToArray());
-            foreach (var report in result.ConversionReports.Take(result.ConversionReports.Count - 1))
-                foreach (var finding in report.FidelityDiagnostics)
-                    WriteWarning(finding.Code + " [" + finding.Source + "]: " + finding.Message);
-            result.RequireSuccess();
+            OfficeConversionReport result = SaveDocument(document, outputPath, sourcePath);
+            PdfCommandUtilities.SetVariable(this, PdfWarningVariable, result.Diagnostics);
+            PdfCommandUtilities.SetVariable(this, PdfConversionReportVariable, result);
+            PdfCommandUtilities.SetVariable(this, SourceConversionReportVariable,
+                result.Diagnostics.Where(finding => !string.Equals(finding.Format, "Pdf", StringComparison.OrdinalIgnoreCase)).ToArray());
+            foreach (OfficeDiagnostic finding in result.Diagnostics.Where(finding => !string.Equals(finding.Format, "Pdf", StringComparison.OrdinalIgnoreCase)))
+                WriteWarning(finding.Code + " [" + finding.Location + "]: " + finding.Message);
         } finally {
             closeOwnedDocument?.Invoke();
         }
@@ -208,74 +207,44 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
         string extension = System.IO.Path.GetExtension(sourcePath).ToLowerInvariant();
         if (TextOptions != null && extension != ".txt") throw new PSArgumentException("TextOptions requires a TXT source.");
         if (AllowLegacyImportLoss.IsPresent && extension != ".doc") throw new PSArgumentException("AllowLegacyImportLoss requires a DOC source.");
-        switch (System.IO.Path.GetExtension(sourcePath).ToLowerInvariant()) {
-            case ".doc":
-            case ".txt": {
-                closeOwnedDocument = null;
-                using var source = File.OpenRead(sourcePath);
-                return extension == ".doc"
-                    ? LegacyDocPdfConverter.ToPdfDocumentResult(source, WordOptions,
-                        new OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions { MaxInputBytes = (int)Math.Min(int.MaxValue, MaximumInputBytes) },
-                        AllowLegacyImportLoss.IsPresent ? OfficeIMO.OfficeConversionLossPolicy.Allow : OfficeIMO.OfficeConversionLossPolicy.Block, CancelToken)
-                    : PdfPlainTextConverter.ToPdfDocumentResult(source, TextOptions, MaximumInputBytes, CancelToken);
-            }
-            case ".docx": {
-                    var document = WordDocumentService.LoadDocument(sourcePath, readOnly: true, autoSave: false, Password);
-                    closeOwnedDocument = () => WordDocumentService.CloseDocument(document);
-                    return document;
-                }
-            case ".xlsx": {
-                    var document = ExcelDocumentService.LoadDocument(sourcePath, readOnly: true, autoSave: false, Password);
-                    closeOwnedDocument = () => ExcelDocumentService.CloseDocument(document);
-                    return document;
-                }
-            case ".pptx": {
-                    var document = PowerPointDocumentService.LoadPresentation(sourcePath, Password, readOnly: true);
-                    closeOwnedDocument = () => PowerPointDocumentService.ClosePresentation(document, save: false, show: false);
-                    return document;
-                }
-            case ".md":
-            case ".markdown":
-                closeOwnedDocument = null;
-                return MarkdownDoc.Load(sourcePath);
-            case ".rtf":
-                closeOwnedDocument = null;
-                return RtfDocument.Load(sourcePath);
-            case ".html":
-            case ".htm":
-            case ".xhtml":
-                closeOwnedDocument = null;
-                return HtmlConversionDocument.Load(sourcePath);
-            default:
-                throw new PSArgumentException("Supported PDF source extensions are .doc, .docx, .txt, .xlsx, .pptx, .html, .htm, .xhtml, .md, .markdown, and .rtf.", nameof(InputPath));
-        }
+        if (extension is not (".doc" or ".docx" or ".txt" or ".xlsx" or ".pptx" or ".md" or ".markdown" or ".rtf" or ".html" or ".htm" or ".xhtml"))
+            throw new PSArgumentException("Supported PDF source extensions are .doc, .docx, .txt, .xlsx, .pptx, .html, .htm, .xhtml, .md, .markdown, and .rtf.", nameof(InputPath));
+        closeOwnedDocument = null;
+        return new FileInfo(sourcePath);
     }
 
-    private PdfSaveResult SaveDocument(object document, string outputPath, string? sourcePath) {
+    private OfficeConversionReport SaveDocument(object document, string outputPath, string? sourcePath) {
         switch (document) {
-            case PdfDocumentConversionResult converted:
-                return converted.SaveResult(outputPath, CancelToken);
+            case FileInfo file:
+                PSWriteOffice.Services.OfficeWorkflowCommandUtilities.RegisterConversions();
+                var options = new OfficeConversionOptions {
+                    SourcePassword = Password, MaximumInputBytes = MaximumInputBytes,
+                    FileConflictPolicy = OfficePublicationPolicy.Replace,
+                    Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
+                    Markdown = PrepareMarkdownOptions(file.FullName), Html = HtmlOptions, PlainText = TextOptions,
+                    WordLoad = new WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss.IsPresent },
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = RtfOptions }
+                };
+                return OfficeConverter.ConvertAsync(file.FullName, outputPath, options, CancelToken).GetAwaiter().GetResult();
             case WordDocument word:
-                return word.SaveAsPdf(outputPath, WordOptions ?? new WordToPdfOptions(), CancelToken);
+                return word.SaveAsPdf(outputPath, WordOptions, CancelToken);
             case ExcelDocument excel:
-                return excel.SaveAsPdf(outputPath, ExcelOptions ?? new ExcelToPdfOptions(), CancelToken);
-            case PowerPointPresentation powerPoint:
-                return powerPoint.SaveAsPdf(outputPath, PowerPointOptions ?? new PowerPointToPdfOptions(), CancelToken);
-            case MarkdownDoc markdown:
+                return excel.SaveAsPdf(outputPath, ExcelOptions, CancelToken);
+            case PowerPointDocument powerPoint:
+                return powerPoint.SaveAsPdf(outputPath, PowerPointOptions, CancelToken);
+            case MarkdownDocument markdown:
                 return markdown.SaveAsPdf(outputPath, PrepareMarkdownOptions(sourcePath), CancelToken);
             case RtfDocument rtf:
-                return rtf.SaveAsPdf(outputPath, RtfOptions ?? new RtfToPdfOptions(), CancelToken);
+                return rtf.SaveAsPdf(outputPath, RtfOptions, CancelToken);
             case HtmlConversionDocument html:
-                return html.ToPdfDocumentResult(HtmlOptions, CancelToken).SaveResult(outputPath, CancelToken);
+                return html.SaveAsPdf(outputPath, HtmlOptions, CancelToken);
             default:
-                throw new PSArgumentException(
-                    $"Document type '{document?.GetType().FullName ?? "<null>"}' cannot be exported to PDF. Use a WordDocument, ExcelDocument, PowerPointPresentation, HtmlConversionDocument, MarkdownDoc, or RtfDocument.",
-                    nameof(Document));
+                throw new PSArgumentException($"Document type '{document?.GetType().FullName ?? "<null>"}' cannot be exported to PDF.", nameof(Document));
         }
     }
 
-    private MarkdownToPdfOptions PrepareMarkdownOptions(string? sourcePath) {
-        var options = MarkdownOptions?.Clone() ?? new MarkdownToPdfOptions();
+    private MarkdownPdfExportOptions PrepareMarkdownOptions(string? sourcePath) {
+        var options = MarkdownOptions?.Clone() ?? new MarkdownPdfExportOptions();
         if (options.ResourcePolicy.AllowLocalFileAccess &&
             string.IsNullOrWhiteSpace(options.BaseDirectory) &&
             !string.IsNullOrWhiteSpace(sourcePath)) {

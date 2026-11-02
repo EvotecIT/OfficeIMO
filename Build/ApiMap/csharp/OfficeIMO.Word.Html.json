@@ -1,0 +1,629 @@
+{
+  "package": "OfficeIMO.Word.Html",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "summary": {
+    "changes": 35,
+    "byAction": {
+      "change": 16,
+      "internalize": 2,
+      "merge": 4,
+      "rename": 13
+    },
+    "byCategory": {
+      "authoring": 8,
+      "conversion": 13,
+      "naming": 7,
+      "options": 5,
+      "visibility": 2
+    },
+    "packageMoves": 1
+  },
+  "projectReferences": {
+    "csproj": "OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Core",
+      "OfficeIMO.Html",
+      "OfficeIMO.Word"
+    ],
+    "packageReferences": [
+      "DocumentFormat.OpenXml [3.5.1, 4.0.0)"
+    ]
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "change": "Preserve the existing framework reach and the Windows-only net472 condition. The front door and Workflows use the full framework set. net8.0 retirement belongs to a later release.",
+    "windowsAdditionalTarget": [
+      "net472"
+    ],
+    "applied": {
+      "status": "applied",
+      "baseTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "conditionalTargets": [
+        {
+          "condition": " '$([MSBuild]::IsOsPlatform(`Windows`))' ",
+          "value": "$(TargetFrameworks);net472"
+        }
+      ],
+      "authority": "Approved framework decision in c526a10ad2; no framework is dropped in 3.6."
+    },
+    "supersededM0Target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ]
+  },
+  "notes": [
+    "Depends on OfficeIMO.Html (which brings AngleSharp through OfficeIMO.Html.AngleSharp); conforms to the adapter rule.",
+    "Has a direct DocumentFormat.OpenXml package reference in addition to OfficeIMO.Word; check whether it is still needed."
+  ],
+  "openQuestions": [
+    "To{Target} returns \"the target document model\", but HTML and Markdown->HTML currently return strings and HtmlConversionDocument is the HTML engine model. Decide whether ToHtml returns string or an HTML document type.",
+    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape.",
+    "C# forbids out parameters on async methods, so \"To{Target}/From{Source} have an overload with out OfficeConversionReport\" cannot cover the async forms (FromHtmlAsync, LoadResultAsync, ToWordDocumentResultAsync). Choose: async forms return a (TDocument, OfficeConversionReport) result type, or async forms only throw/ignore loss."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtml(WordDocument document, string path, WordToHtmlOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsHtml(string path, WordHtmlExportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns void today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtml(WordDocument document, Stream stream, WordToHtmlOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsHtml(Stream stream, WordHtmlExportOptions options = null) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns void today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtml(WordDocument document, WordToHtmlOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.ToHtml(WordHtmlExportOptions options = null) : string",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns string today; To{Target} is defined as returning the target document model.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToHtmlResult(WordDocument document, WordToHtmlOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "WordDocument.ToHtml(WordHtmlExportOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "HtmlTextConversionResult today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocument(HtmlConversionDocument document, HtmlToWordOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "HtmlConversionDocument.ToWord(WordHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Extension today on HtmlConversionDocument (html.ToWordDocument()). A static WordDocument.FromHtml defined in the adapter needs a C# 14 static extension member (see openQuestions). A string overload is new.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "WordDocument.FromHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : WordDocument",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "HtmlConversionDocument.ToWordAsync(WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionResult<WordDocument>>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Extension today on HtmlConversionDocument (html.ToWordDocument()). A static WordDocument.FromHtml defined in the adapter needs a C# 14 static extension member (see openQuestions). A string overload is new.",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "WordDocument.FromHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : Task<WordDocument>",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBody(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.AddHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : IReadOnlyList<WordElement>",
+      "reason": "One verb per concept; the Add* verb names the inserted content.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "authoring",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToBodyAsync(WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.AddHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "One verb per concept; the Add* verb names the inserted content.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "authoring",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeader(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordHeader.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
+      "category": "authoring",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Returns IReadOnlyList<WordElement> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToHeaderAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordHeader.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
+      "category": "authoring",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Returns Task<IReadOnlyList<WordElement>> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooter(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordFooter.AddHtml(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null) : IReadOnlyList<WordElement>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
+      "category": "authoring",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Returns IReadOnlyList<WordElement> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlToFooterAsync(WordDocument doc, HtmlConversionDocument htmlDocument, WordHeaderFooterType? type = null, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordFooter.AddHtmlAsync(HtmlConversionDocument htmlDocument, WordHtmlImportOptions options = null, WordSection section = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Select the running story on its receiver and optionally supply a sharing section for image and table geometry.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.HeadersFooters.cs",
+      "category": "authoring",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Returns Task<IReadOnlyList<WordElement>> containing only newly imported live elements in story order. Layout defaults to the first defining section; an explicit section must belong to the same document and share or inherit the story. Sync imports remain offline-only; async imports honor cancellation. The old document entry point is removed."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtmlAsync(WordDocument document, string path, WordToHtmlOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsHtmlAsync(string path, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns void today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.SaveAsHtmlAsync(WordDocument document, Stream stream, WordToHtmlOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordDocument.SaveAsHtmlAsync(Stream stream, WordHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns void today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResult(HtmlConversionDocument document, HtmlToWordOptions options = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToWord(WordHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.Results.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "WordDocument.FromHtml(html, WordHtmlImportOptions options, out OfficeConversionReport report)",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.ToWordDocumentResultAsync(HtmlConversionDocument document, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToWord(WordHtmlImportOptions options = null) with an out OfficeConversionReport overload",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.Results.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "supersededM0Target": "WordDocument.FromHtml(html, WordHtmlImportOptions options, out OfficeConversionReport report) (async form: see openQuestions)",
+      "note": "The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtml(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordTableCell.AddHtml(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null) : IReadOnlyList<WordElement>",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.TableCells.cs",
+      "category": "authoring",
+      "notes": "Signature conforms apart from options rename and a string overload.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlConverterExtensions.AddHtmlAsync(WordTableCell cell, HtmlConversionDocument htmlDocument, HtmlToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "WordTableCell.AddHtmlAsync(string html | HtmlConversionDocument html, WordHtmlImportOptions options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<WordElement>>",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Html/WordHtmlConverterExtensions.TableCells.cs",
+      "category": "authoring",
+      "notes": "Signature conforms apart from options rename and a string overload.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Bulk authoring returns live imported Word elements in document order, not the receiver. Paragraphs retain the existing run-level Word projection; filled/replaced empty-cell paragraphs are included. Collection is read-only; handles remain editable."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.HtmlToWordOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordToHtmlOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlExportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Html/Options/WordToHtmlOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordToHtmlOptions.CreateSemanticDocumentProfile(OfficeVisualThemeKind theme = WordLike)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.Html.WordHtmlExportOptions.CreateSemanticDocumentProfile(OfficeTheme theme = ...)",
+      "reason": "The HTML-only OfficeVisualThemeKind is replaced by OfficeTheme.",
+      "file": "OfficeIMO.Word.Html/Options/WordToHtmlOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordToHtmlOptions.CreateDocumentRoundTripProfile(OfficeVisualThemeKind theme = Report)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.Html.WordHtmlExportOptions.CreateDocumentRoundTripProfile(OfficeTheme theme = ...)",
+      "reason": "The HTML-only OfficeVisualThemeKind is replaced by OfficeTheme.",
+      "file": "OfficeIMO.Word.Html/Options/WordToHtmlOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordToHtmlOptions.CreatePrintReviewProfile(OfficeVisualThemeKind theme = WordLike)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.Html.WordHtmlExportOptions.CreatePrintReviewProfile(OfficeTheme theme = ...)",
+      "reason": "The HTML-only OfficeVisualThemeKind is replaced by OfficeTheme.",
+      "file": "OfficeIMO.Word.Html/Options/WordToHtmlOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.HtmlToWordResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Html/HtmlToWordResult.cs",
+      "category": "conversion",
+      "phase": "A/B",
+      "applied": "phase-b-applied",
+      "note": "Hide the HTML evidence wrapper: only internal ConvertToWordWithEvidence sync/async methods return it; the README uses ToWord and OfficeConversionReport. The nonpackable editable-evidence tool directly names the wrapper. Public lifecycle/conversion routes continue using the shared Core contract."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.ImageProcessingMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlImageProcessingMode",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.TableCaptionPosition",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlTableCaptionPosition",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.NoteReferenceType",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlNoteReferenceType",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.SectionTagHandling",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlSectionTagHandling",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.StyleMissingEventArgs",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlStyleMissingEventArgs",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/StyleMissingEventArgs.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.HtmlTextBackgroundMode",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlTextBackgroundMode",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.HtmlUnsupportedCssHandling",
+      "kind": "enum",
+      "action": "rename",
+      "new": "OfficeIMO.Word.Html.WordHtmlUnsupportedCssHandling",
+      "reason": "Format types start with the format name. Adapter types use the {Format}{Target} prefix of their options.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "naming",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.HtmlConversionLimitException",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Word.Html.HtmlConversionLimitException (keep or fold into a Core OfficeConversionException)",
+      "reason": "Failures throw; keep the exception types only if they carry data callers branch on, else use OfficeConversionException from Core with an OfficeDiagnostic code.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "conversion",
+      "notes": "Name collides conceptually with OfficeIMO.Html exceptions; decide in M1/M4.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.HtmlUnsupportedCssException",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Word.Html.HtmlUnsupportedCssException (keep or fold into a Core OfficeConversionException)",
+      "reason": "Failures throw; keep the exception types only if they carry data callers branch on, else use OfficeConversionException from Core with an OfficeDiagnostic code.",
+      "file": "OfficeIMO.Word.Html/Options/HtmlToWordOptions.cs",
+      "category": "conversion",
+      "notes": "Name collides conceptually with OfficeIMO.Html exceptions; decide in M1/M4.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlCapabilityGalleryExtensions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Developer evidence tooling, not user API.",
+      "reason": "Capability-gallery generator used for documentation evidence.",
+      "file": "OfficeIMO.Word.Html/WordHtmlCapabilityGalleryExtensions.cs",
+      "category": "visibility",
+      "notes": "Candidate.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
+    },
+    {
+      "old": "OfficeIMO.Word.Html.WordHtmlCapabilityGalleryOptions",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "reason": "Options of the evidence tooling above.",
+      "file": "OfficeIMO.Word.Html/WordHtmlCapabilityGalleryOptions.cs",
+      "category": "visibility",
+      "notes": "Candidate.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Internal adapter implementation; existing friend access serves cross-package callers."
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Word.Html",
+      "to": "(none)",
+      "scope": "Conforming Word <-> HTML adapter",
+      "reason": "No move."
+    }
+  ],
+  "designResolutions": {
+    "formatEnum": "OfficeDocumentFormat; no OfficeFormat enum is introduced.",
+    "conversionDirection": "Instance extensions on the source document; no static From factories.",
+    "asyncReports": "OfficeConversionResult<T> carries the converted value and OfficeConversionReport.",
+    "frontDoorTarget": "OfficeIMO, its batch engine, OfficeIMO.Workflows and OfficeIMO.Workflows.IWork target netstandard2.0, net8.0 and net10.0, plus net472 through the existing Windows-only project condition (approved c526a10ad2). Modern-only route engines are conditionally referenced and registered.",
+    "frameworks": "Superseded by the approved c526a10ad2 design: retain netstandard2.0, net8.0, net10.0 and the original Windows-only net472 declaration; modern-only packages retain their original targets. Front door and Workflows gain the full set, with explicitly conditional modern engines.",
+    "modernAnalysis": "Directory.Build.targets enables IsAotCompatible, EnableTrimAnalyzer and EnableAotAnalyzer for packable production library builds targeting net8.0/net10.0. Qualification remains in progress; older targets do not enable those analyzers."
+  },
+  "phaseA": {
+    "status": "in-progress",
+    "scope": "Package boundaries, target frameworks, lifecycle, options, conversions and names."
+  },
+  "extraChanges": [
+    {
+      "subject": "Shared HTML evidence mapping",
+      "note": "The HTML owner freezes exact diagnostic severity, location, component and fidelity kind into OfficeConversionReport. Existing conversion kernels remain internal.",
+      "status": "applied"
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Async conversion entry points capture options before deferred work or resource awaits. The same snapshot supplies resource/size limits and final FailOnLoss acceptance; caller-owned template documents and callbacks retain their ownership."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical SaveAs output failures retain the completed conversion report through the shared internal output helper; cancellation continues to propagate unchanged."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "HTML row/cell traversal and serialized shadow-root traversal enumerate AngleSharp collections rather than binding their target-specific indexer member. This fixes MissingMethodException when a netstandard2.0 adapter is loaded with the runtime-selected modern AngleSharp asset, preserves traversal order and keeps linear traversal."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "HTML import uses the containing Paragraph of created hyperlinks to preserve subsequent formatting and insertion."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Verify HTML table round trips through the actual table rows and cell contents.",
+      "reason": "The format-wide styled table defaults legitimately emit table attributes. The existing bare<table> substring pinned attribute absence and checked only two loose letters. Retain the real conversion input, assert exactly one table with two rows and allfour cells through the existing parser dependency.",
+      "files": [
+        "OfficeIMO.Html.Tests/Html.HtmlConverter.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "fix",
+      "old": "Default HTML table column widths are assigned only below the converter cap.",
+      "new": "Apply the computed default column widths at the cap as well, before explicit source column and cell overrides.",
+      "reason": "The adopted Word table defaults fill the available section; relying on the previous implicit 2400-twip columns enlarges nested list-cell tables. Preserve selected section and host-cell sizing.",
+      "files": [
+        "OfficeIMO.Word.Html/Converters/HtmlToWordConverter.TableWidths.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Word-to-HTML table fixtures require attribute-free literal table and cell tags.",
+      "new": "Assert the emitted DOM table, header/body structure, cell text, order and absence of placeholder paragraphs.",
+      "reason": "Theme attributes are part of current styled-table output. Retain the actual structural and content round-trip contract.",
+      "files": [
+        "OfficeIMO.Html.Tests/Html.WordToHtml.cs"
+      ]
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  }
+}

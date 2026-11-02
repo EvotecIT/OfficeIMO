@@ -22,8 +22,8 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
             "<p>before <math" + label + "><mfrac><mrow><mi>x</mi><mo " + attributes
             + ">+</mo><mi>y</mi></mrow><mn>2</mn></mfrac></math> after</p>");
         HtmlToWordResult result = asynchronous
-            ? await source.ToWordDocumentResultAsync()
-            : source.ToWordDocumentResult();
+            ? await source.ConvertToWordWithEvidenceAsync()
+            : source.ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
         WordEquation equation = Assert.Single(document.Equations);
         Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
@@ -58,7 +58,7 @@ public sealed class HtmlWordMathOperatorSpacingLossTests {
             + "<annotation encoding='application/x-tex'>ignored alternate</annotation>"
             + "<annotation-xml encoding='application/mathml+xml'>"
             + "<math><mo lspace='.5em'>+</mo></math></annotation-xml></semantics></math>")
-            .ToWordDocumentResult();
+            .ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
 
         XNamespace math = "http://schemas.openxmlformats.org/officeDocument/2006/math";

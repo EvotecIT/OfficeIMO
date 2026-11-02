@@ -13,7 +13,7 @@ public class PowerPointChartImportedTextFormattingTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public void ImportedChartStylePreservesScriptFontsAndSchemaOrder(bool legend, bool replaceFont) {
-        using var source = PowerPointPresentation.Create();
+        using var source = PowerPointDocument.Create();
         PowerPointChart chart = source.AddSlide().AddChart().SetTitle("Imported title")
             .SetLegend(OfficeChartLegendPosition.Right)
             .SetTitleTextStyle(fontName: "Aptos")
@@ -29,14 +29,14 @@ public class PowerPointChartImportedTextFormattingTests {
         using var input = new MemoryStream();
         source.Save(input);
         input.Position = 0;
-        using var imported = PowerPointPresentation.Load(input);
+        using var imported = PowerPointDocument.Load(input);
         PowerPointChart actualChart = imported.Slides.Single().Charts.Single();
         if (legend) actualChart.SetLegendTextStyle(color: "123456", fontName: replaceFont ? "Arial" : null);
         else actualChart.SetTitleTextStyle(color: "123456", fontName: replaceFont ? "Arial" : null);
         using var output = new MemoryStream();
         imported.Save(output);
         output.Position = 0;
-        using var reopened = PowerPointPresentation.Load(output);
+        using var reopened = PowerPointDocument.Load(output);
         Assert.Empty(new OpenXmlValidator().Validate(reopened.OpenXmlDocument));
         C.Chart finalChart = reopened.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .ChartParts.Single().ChartSpace.GetFirstChild<C.Chart>()!;

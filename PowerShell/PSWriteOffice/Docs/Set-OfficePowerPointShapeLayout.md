@@ -9,19 +9,19 @@ schema: 2.0.0
 Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helpers.
 
 ## SYNTAX
-### Align (Default)
+### Alignment (Default)
 ```powershell
-Set-OfficePowerPointShapeLayout [-InputObject] <Object> -Align <PowerPointShapeAlignment> [-Slide <PowerPointSlide>] [-ToSlide] [-MarginPoints <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointShapeLayout [-InputObject] <Object[]> -Alignment <PowerPointShapeAlignment> [-Slide <PowerPointSlideSelector>] [-ToSlide] [-Margin <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Distribute
 ```powershell
-Set-OfficePowerPointShapeLayout [-InputObject] <Object> -Distribute <PowerPointShapeDistribution> [-Slide <PowerPointSlide>] [-CrossAxisAlign <PowerPointShapeAlignment>] [-SpacingPoints <Double>] [-ToSlide] [-MarginPoints <Double>] [-Center] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointShapeLayout [-InputObject] <Object[]> -Distribute <PowerPointShapeDistribution> [-Slide <PowerPointSlideSelector>] [-CrossAxisAlignment <PowerPointShapeAlignment>] [-Spacing <OfficeLength>] [-ToSlide] [-Margin <OfficeLength>] [-Center] [-PassThru] [<CommonParameters>]
 ```
 
 ### Grid
 ```powershell
-Set-OfficePowerPointShapeLayout [-InputObject] <Object> -Grid [-Slide <PowerPointSlide>] [-Columns <Int32>] [-Rows <Int32>] [-AutoGrid] [-GutterXPoints <double>] [-GutterYPoints <double>] [-Flow <PowerPointShapeGridFlow>] [-NoResize] [-ToSlide] [-MarginPoints <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointShapeLayout [-InputObject] <Object[]> -Grid [-Slide <PowerPointSlideSelector>] [-Columns <Int32>] [-Rows <Int32>] [-AutoGrid] [-GutterX <OfficeLength>] [-GutterY <OfficeLength>] [-Flow <PowerPointShapeGridFlow>] [-NoResize] [-ToSlide] [-Margin <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,20 +31,20 @@ Aligns, distributes, or arranges PowerPoint shapes using OfficeIMO layout helper
 
 ### EXAMPLE 1
 ```powershell
-PS> Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
-                Set-OfficePowerPointShapeLayout -Align Top
+PS> Get-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
+                Set-OfficePowerPointShapeLayout -Alignment Top
 ```
 
 Uses OfficeIMO.PowerPoint to align all matching shapes to the top edge of their selection bounds.
 
 ## PARAMETERS
 
-### -Align
+### -Alignment
 Alignment operation.
 
 ```yaml
 Type: PowerPointShapeAlignment
-Parameter Sets: Align
+Parameter Sets: Alignment
 Aliases: None
 Possible values: Left, Center, Right, Top, Middle, Bottom
 
@@ -103,7 +103,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CrossAxisAlign
+### -CrossAxisAlignment
 Optional cross-axis alignment for even distribution.
 
 ```yaml
@@ -167,11 +167,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -GutterXPoints
-Horizontal grid gutter in points.
+### -GutterX
+Horizontal grid gutter; bare numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Grid
 Aliases: None
 Possible values:
@@ -183,11 +183,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -GutterYPoints
-Vertical grid gutter in points.
+### -GutterY
+Vertical grid gutter; bare numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Grid
 Aliases: None
 Possible values:
@@ -200,11 +200,11 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-PowerPoint shapes or shape info records from Get-OfficePowerPointShape or Find-OfficePowerPointShape.
+PowerPoint shapes or shape info records from Get-OfficePowerPointShape.
 
 ```yaml
-Type: Object
-Parameter Sets: Align, Distribute, Grid
+Type: Object[]
+Parameter Sets: Alignment, Distribute, Grid
 Aliases: None
 Possible values:
 
@@ -215,12 +215,12 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -MarginPoints
-Use slide content bounds with the supplied margin in points.
+### -Margin
+Use slide content bounds with the supplied margin; bare numbers mean points.
 
 ```yaml
-Type: Double
-Parameter Sets: Align, Distribute, Grid
+Type: OfficeLength
+Parameter Sets: Alignment, Distribute, Grid
 Aliases: None
 Possible values:
 
@@ -252,7 +252,7 @@ Emit the arranged shapes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Align, Distribute, Grid
+Parameter Sets: Alignment, Distribute, Grid
 Aliases: None
 Possible values:
 
@@ -280,11 +280,11 @@ Accept wildcard characters: False
 ```
 
 ### -Slide
-Slide that owns raw PowerPointShape inputs. Shape info records carry their own slide.
+Native slide or one-based slide number; omission uses the supplied shapes' owning slide.
 
 ```yaml
-Type: PowerPointSlide
-Parameter Sets: Align, Distribute, Grid
+Type: PowerPointSlideSelector
+Parameter Sets: Alignment, Distribute, Grid
 Aliases: None
 Possible values:
 
@@ -295,11 +295,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SpacingPoints
-Fixed spacing between distributed shapes in points.
+### -Spacing
+Fixed spacing between distributed shapes; bare numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Distribute
 Aliases: None
 Possible values:
@@ -316,7 +316,7 @@ Use the full slide bounds instead of the current selection bounds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Align, Distribute, Grid
+Parameter Sets: Alignment, Distribute, Grid
 Aliases: None
 Possible values:
 
@@ -332,7 +332,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.Object`
+- `System.Object[]`
 
 ## OUTPUTS
 

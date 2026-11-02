@@ -4,7 +4,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private sealed class WorksheetPdfExportPlan {
-            public WorksheetPdfExportPlan(string sheetName, ExcelSheetPageSetup? pageSetup, ExcelSheet.ExcelHeaderFooterSnapshot? headerFooter, SheetExportData exportData, IReadOnlyList<WorksheetImageExportData> images, IReadOnlyList<WorksheetChartExportData> charts, bool hasTable, int exportedRows, IReadOnlyList<int> manualRowBreaks, IReadOnlyList<int> manualColumnBreaks, string bookmarkName, WorksheetGeometryData geometry, bool clipToExportRange) {
+            public WorksheetPdfExportPlan(string sheetName, ExcelSheetPageSetup? pageSetup, ExcelSheet.ExcelHeaderFooterInfo? headerFooter, SheetExportData exportData, IReadOnlyList<WorksheetImageExportData> images, IReadOnlyList<WorksheetChartExportData> charts, bool hasTable, int exportedRows, IReadOnlyList<int> manualRowBreaks, IReadOnlyList<int> manualColumnBreaks, string bookmarkName, WorksheetGeometryData geometry, bool clipToExportRange) {
                 SheetName = sheetName;
                 PageSetup = pageSetup;
                 HeaderFooter = headerFooter;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             public string SheetName { get; }
             public ExcelSheetPageSetup? PageSetup { get; }
-            public ExcelSheet.ExcelHeaderFooterSnapshot? HeaderFooter { get; }
+            public ExcelSheet.ExcelHeaderFooterInfo? HeaderFooter { get; }
             public SheetExportData ExportData { get; }
             public IReadOnlyList<WorksheetImageExportData> Images { get; }
             public IReadOnlyList<WorksheetChartExportData> Charts { get; }
@@ -35,12 +35,14 @@ namespace OfficeIMO.Excel.Pdf {
             public string BookmarkName { get; }
             public WorksheetGeometryData Geometry { get; }
             public bool ClipToExportRange { get; }
+            public WorksheetTextMeasurer? TextMeasurer { get; set; }
+            public Dictionary<WorksheetChartExportData, OfficeChartRenderingResult> ChartRenderings { get; } = new();
             public double[]? RowHeightPrefix { get; set; }
             public double[]? ColumnWidthPrefix { get; set; }
         }
 
         private sealed class SheetExportData {
-            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null, IReadOnlyList<int>? printTitleColumnIndexes = null, IReadOnlyList<int>? printTitleRowIndexes = null) {
+            public SheetExportData(object?[,] values, ExcelCellStyleInfo?[,]? styles, ExcelHyperlinkInfo?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, IReadOnlyList<StructuredTableVisualData> structuredTables, ConditionalFillData? conditionalFills = null, IReadOnlyList<int>? printTitleColumnIndexes = null, IReadOnlyList<int>? printTitleRowIndexes = null) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -59,8 +61,8 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             public object?[,] Values { get; }
-            public ExcelCellStyleSnapshot?[,]? Styles { get; }
-            public ExcelHyperlinkSnapshot?[,]? Hyperlinks { get; }
+            public ExcelCellStyleInfo?[,]? Styles { get; }
+            public ExcelHyperlinkInfo?[,]? Hyperlinks { get; }
             public string?[,]? CellReferences { get; }
             public MergeLayoutData? MergedCells { get; }
             public ColumnLayoutData? ColumnWidths { get; }
@@ -147,8 +149,8 @@ namespace OfficeIMO.Excel.Pdf {
                 double? defaultColumnWidth,
                 double baseColumnWidth,
                 double defaultRowHeight,
-                IReadOnlyList<ExcelColumnSnapshot> columns,
-                IReadOnlyList<ExcelRowSnapshot> rows,
+                IReadOnlyList<ExcelColumnInfo> columns,
+                IReadOnlyList<ExcelRowInfo> rows,
                 bool useWorksheetColumnWidths,
                 bool useWorksheetRowHeights,
                 bool respectHiddenRowsAndColumns) {
@@ -162,8 +164,8 @@ namespace OfficeIMO.Excel.Pdf {
                 DefaultRowHeight = defaultRowHeight;
                 Columns = columns;
                 Rows = rows;
-                RowsByIndex = new Dictionary<int, ExcelRowSnapshot>();
-                foreach (ExcelRowSnapshot row in rows) RowsByIndex[row.Index] = row;
+                RowsByIndex = new Dictionary<int, ExcelRowInfo>();
+                foreach (ExcelRowInfo row in rows) RowsByIndex[row.Index] = row;
                 UseWorksheetColumnWidths = useWorksheetColumnWidths;
                 UseWorksheetRowHeights = useWorksheetRowHeights;
                 RespectHiddenRowsAndColumns = respectHiddenRowsAndColumns;
@@ -177,25 +179,27 @@ namespace OfficeIMO.Excel.Pdf {
             public bool HasExplicitDefaultColumnWidth { get; }
             public double BaseColumnWidth { get; }
             public double? MaximumDigitWidthPoints { get; set; }
+            /// <summary>Excel's automatic heights for rows without a stored height, keyed by source row.</summary>
+            public Dictionary<int, double>? AutoRowHeights { get; set; }
             public double DefaultRowHeight { get; }
-            public IReadOnlyList<ExcelColumnSnapshot> Columns { get; }
-            public IReadOnlyList<ExcelRowSnapshot> Rows { get; }
-            public Dictionary<int, ExcelRowSnapshot> RowsByIndex { get; }
+            public IReadOnlyList<ExcelColumnInfo> Columns { get; }
+            public IReadOnlyList<ExcelRowInfo> Rows { get; }
+            public Dictionary<int, ExcelRowInfo> RowsByIndex { get; }
             public bool UseWorksheetColumnWidths { get; }
             public bool UseWorksheetRowHeights { get; }
             public bool RespectHiddenRowsAndColumns { get; }
         }
 
         private sealed class WorksheetChartExportData {
-            public WorksheetChartExportData(ExcelChartSnapshot snapshot) {
+            public WorksheetChartExportData(ExcelChartInfo snapshot) {
                 Snapshot = snapshot;
             }
 
-            public ExcelChartSnapshot Snapshot { get; }
+            public ExcelChartInfo Snapshot { get; }
         }
 
         private sealed class RangeExportData {
-            public RangeExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights) {
+            public RangeExportData(object?[,] values, ExcelCellStyleInfo?[,]? styles, ExcelHyperlinkInfo?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -206,8 +210,8 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             public object?[,] Values { get; }
-            public ExcelCellStyleSnapshot?[,]? Styles { get; }
-            public ExcelHyperlinkSnapshot?[,]? Hyperlinks { get; }
+            public ExcelCellStyleInfo?[,]? Styles { get; }
+            public ExcelHyperlinkInfo?[,]? Hyperlinks { get; }
             public string?[,]? CellReferences { get; }
             public MergeLayoutData? MergedCells { get; }
             public ColumnLayoutData? ColumnWidths { get; }

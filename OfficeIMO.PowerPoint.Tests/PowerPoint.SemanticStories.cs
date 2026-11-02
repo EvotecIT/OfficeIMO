@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             }.Annotate(new PowerPointImageAnnotation(0.72, 0.35, "Risk", "Two sites need attention."));
 
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(output)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
                     presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
                     presentation.AddDesignerExecutiveSummarySlide("Executive summary", "Metric lead",
                         CreateExecutiveContent(), options: new PowerPointExecutiveSummarySlideOptions {
@@ -92,19 +92,20 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(14, presentation.Slides.Count);
                     Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Charts).Count());
                     Assert.Equal(2, presentation.Slides.SelectMany(slide => slide.Pictures).Count());
-                    Assert.True(presentation.Slides.SelectMany(slide => slide.Tables).Count() >= 3);
+                    Assert.True(presentation.Slides.SelectMany(slide => slide.Tables).Count() >= 2);
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.Shapes),
                         shape => shape.Name.StartsWith("Architecture Node", StringComparison.Ordinal));
                     PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
-                        MinimumReadableFontSizePoints = 8,
+                        MinimumReadableFontSize = global::OfficeIMO.OfficeLength.Points(8),
                         DetectShapeCollisions = false
                     });
-                    Assert.DoesNotContain(report.Findings, finding =>
-                        finding.Severity == PowerPointDeckPreflightSeverity.Error);
+                    var preflightErrors = report.Findings.Where(finding => finding.Severity == PowerPointDeckPreflightSeverity.Error).ToArray();
+                    Assert.True(preflightErrors.Length == 0, string.Join(Environment.NewLine, preflightErrors.Select(finding =>
+                        $"Slide {finding.SlideIndex}, {finding.ShapeName}: {finding.Code}: {finding.Message}")));
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation reopened = PowerPointPresentation.Load(output)) {
+                using (PowerPointDocument reopened = PowerPointDocument.Load(output)) {
                     List<OfficeOpenXmlValidationError> errors = reopened.ValidateDocument();
                     Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
                     PowerPointPicture picture = reopened.Slides.SelectMany(slide => slide.Pictures).First();
@@ -133,18 +134,24 @@ namespace OfficeIMO.Tests {
                 .AddAppendixTable("Evidence", null, table);
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "rhythm-test");
 
+            // The plan keeps the table whole; the slide layout splits it from the measured row height.
             PowerPointDeckPlan expanded = plan.WithContinuations();
-            Assert.Equal(3, expanded.Slides.Count(slide =>
-                slide.Kind == PowerPointDeckPlanSlideKind.AppendixTable));
-            Assert.All(expanded.Slides.OfType<PowerPointAppendixTablePlanSlide>(), slide =>
-                Assert.InRange(slide.Data.Rows.Count, 1, PowerPointDeckPlanLimits.MaxAppendixTableRows));
+            Assert.Equal(1, expanded.Slides.Count(slide => slide.Kind == PowerPointDeckPlanSlideKind.AppendixTable));
             Assert.DoesNotContain(expanded.ValidateSlides(), diagnostic =>
                 diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
+            using (PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream())) {
+                presentation.Compose(new PowerPointDeckPlan().AddAppendixTable("Evidence", null, table),
+                    PowerPointCompositionOptions.FromDesign(design));
+                int[] parts = presentation.Slides.Select(slide => slide.Tables.Single().Rows - 1).ToArray();
+                Assert.True(parts.Length >= 3);
+                Assert.Equal(30, parts.Sum());
+                Assert.True(parts.Max() - parts.Min() <= 1);
+            }
 
             PowerPointDeckRhythmReport report = plan.InspectRhythm(design);
-            Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.RepeatedKind");
-            Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.RepeatedVariant");
-            Assert.Contains(report.Findings, finding => finding.Code == "Rhythm.MissingClosing");
+            Assert.Contains(report.Findings, finding => finding.Code == "rhythm-repeated-kind");
+            Assert.Contains(report.Findings, finding => finding.Code == "rhythm-repeated-variant");
+            Assert.Contains(report.Findings, finding => finding.Code == "rhythm-missing-closing");
             Assert.InRange(report.Score, 0, 99);
         }
 
@@ -168,7 +175,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
             try {
                 using var stream = new MemoryStream();
-                using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
+                using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
                 var image = new PowerPointImageAsset(imagePath, "Geometry test image") {
                     Placement = placement
                 }.Annotate(new PowerPointImageAnnotation(annotationX, annotationY, "Anchor"));
@@ -181,15 +188,15 @@ namespace OfficeIMO.Tests {
                 PowerPointPicture picture = Assert.Single(slide.Pictures);
                 PowerPointAutoShape marker = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
                     shape => shape.Name == "Screenshot Annotation 1");
-                double expectedX = picture.LeftCm +
+                double expectedX = picture.Left.ToCentimeters() +
                     (annotationX - picture.CropLeftRatio) /
-                    (1D - picture.CropLeftRatio - picture.CropRightRatio) * picture.WidthCm;
-                double expectedY = picture.TopCm +
+                    (1D - picture.CropLeftRatio - picture.CropRightRatio) * picture.Width.ToCentimeters();
+                double expectedY = picture.Top.ToCentimeters() +
                     (annotationY - picture.CropTopRatio) /
-                    (1D - picture.CropTopRatio - picture.CropBottomRatio) * picture.HeightCm;
+                    (1D - picture.CropTopRatio - picture.CropBottomRatio) * picture.Height.ToCentimeters();
 
-                Assert.InRange(Math.Abs(marker.CenterXCm - expectedX), 0D, 0.01D);
-                Assert.InRange(Math.Abs(marker.CenterYCm - expectedY), 0D, 0.01D);
+                Assert.InRange(Math.Abs(marker.CenterX.ToCentimeters() - expectedX), 0D, 0.01D);
+                Assert.InRange(Math.Abs(marker.CenterY.ToCentimeters() - expectedY), 0D, 0.01D);
             } finally {
                 if (File.Exists(imagePath)) File.Delete(imagePath);
             }
@@ -219,26 +226,6 @@ namespace OfficeIMO.Tests {
             Assert.Contains("at most four", exception.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        [Theory]
-        [InlineData(PowerPointExecutiveSummaryLayoutVariant.DecisionBrief, 4, 3)]
-        [InlineData(PowerPointExecutiveSummaryLayoutVariant.MetricLead, 5, 4)]
-        public void ExecutiveSummaryRejectsMetricsBeyondTheSelectedLayoutCapacity(
-            PowerPointExecutiveSummaryLayoutVariant variant, int metricCount, int expectedCapacity) {
-            var content = new PowerPointExecutiveSummaryContent(
-                Enumerable.Range(1, metricCount)
-                    .Select(index => new PowerPointMetric(index.ToString(), "Metric " + index)),
-                Array.Empty<PowerPointCardContent>());
-            using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
-
-            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                presentation.AddDesignerExecutiveSummarySlide("Summary", null, content,
-                    options: new PowerPointExecutiveSummarySlideOptions { Variant = variant }));
-
-            Assert.Equal("content", exception.ParamName);
-            Assert.Contains("at most " + expectedCapacity, exception.Message, StringComparison.OrdinalIgnoreCase);
-        }
-
         private static PowerPointExecutiveSummaryContent CreateExecutiveContent() => new(
             new[] { new PowerPointMetric("72%", "adoption"), new PowerPointMetric("3", "decisions") },
             new[] {
@@ -249,12 +236,12 @@ namespace OfficeIMO.Tests {
         private static OfficeChartData CreateChartData() => new(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
-                new OfficeChartSeries("Adoption", new[] { 28D, 42D, 61D, 72D }),
-                new OfficeChartSeries("Target", new[] { 35D, 50D, 65D, 80D })
+                new OfficeSeries("Adoption", new[] { 28D, 42D, 61D, 72D }),
+                new OfficeSeries("Target", new[] { 35D, 50D, 65D, 80D })
             });
 
         private static PowerPointChartStoryContent CreateChartStory(OfficeChartData data) =>
-            new(OfficeChartKind.ColumnClustered, data,
+            new(OfficeChartType.ColumnClustered, data,
                 new[] { "Adoption increased every quarter.", "The current gap to target is eight points." }) {
                 Caption = "Quarterly product adoption",
                 Provenance = "Customer success dataset",

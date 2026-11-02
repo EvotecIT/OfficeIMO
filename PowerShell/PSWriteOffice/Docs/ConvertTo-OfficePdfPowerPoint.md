@@ -11,7 +11,7 @@ Reconstructs a PowerPoint presentation from a PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfPowerPoint [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Options <PdfToPowerPointOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfPowerPoint [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Options <PowerPointPdfImportOptions>] [-Force] [-Open] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -80,7 +80,7 @@ Accept wildcard characters: False
 Advanced OfficeIMO PDF-to-PowerPoint reconstruction options.
 
 ```yaml
-Type: PdfToPowerPointOptions
+Type: PowerPointPdfImportOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -166,7 +166,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `System.IO.FileInfo`
-- `OfficeIMO.PowerPoint.Pdf.PdfPowerPointConversionReport`
+- `OfficeIMO.Pdf.PowerPoint.PdfPowerPointConversionReport`
 
 ## RELATED LINKS
 

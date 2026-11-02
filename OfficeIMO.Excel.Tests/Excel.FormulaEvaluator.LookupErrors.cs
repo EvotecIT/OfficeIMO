@@ -8,10 +8,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_IndexMatchFallbackFeedsDependentTotalsAndPersists() {
             using var document = ExcelDocument.Create();
-            var products = document.AddWorksheet("Products");
+            var products = document.AddSheet("Products");
             products.CellValue(2, 1, "P1");
             products.CellValue(2, 2, "Hardware");
-            var orders = document.AddWorksheet("Orders");
+            var orders = document.AddSheet("Orders");
             orders.CellValue(2, 1, "P1");
             orders.CellValue(3, 1, "PX");
             orders.CellValue(2, 3, 10d);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XLOOKUP(1,A1:A2,B1:B2,,0,NA())", "#N/A")]
         public void Test_FormulaEvaluator_LookupErrorsRemainTypedAndCatchable(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup");
+            var sheet = document.AddSheet("Lookup");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 2d);
             sheet.CellValue(1, 2, 10d);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         [InlineData("XLOOKUP(2,A1:A2,B1:B2)", "0")]
         public void Test_FormulaEvaluator_SelectedBlankLookupRetainsContextAndFallbackIsLazy(string formula, string count) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup");
+            var sheet = document.AddSheet("Lookup");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 2d);
             sheet.CellFormula(1, 4, formula);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
         [InlineData("\"\"", "", true)]
         public void Test_FormulaEvaluator_IndexMatchFallbackPreservesValueType(string fallback, string expected, bool isText) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup");
+            var sheet = document.AddSheet("Lookup");
             sheet.CellValue(1, 1, 1d);
             sheet.CellFormula(1, 4, $"IFERROR(INDEX(A1:A1,MATCH(9,A1:A1,0)),{fallback})");
             sheet.CellFormula(2, 4, "ISTEXT(D1)");
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
         [InlineData("MATCH(1,A1:A100001,NA())")]
         public void Test_FormulaEvaluator_UnsupportedLookupDoesNotActivateFallback(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup");
+            var sheet = document.AddSheet("Lookup");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(1, 4, 42d);
             sheet.CellFormula(1, 4, $"IFERROR({formula},99)");
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_OmittedLookupModesKeepTheirArgumentPositions() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Lookup");
+            var sheet = document.AddSheet("Lookup");
             sheet.CellValue(1, 1, 1d);
             sheet.CellValue(2, 1, 1d);
             sheet.CellValue(1, 2, 10d);

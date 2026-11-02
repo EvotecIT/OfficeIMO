@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,7 +27,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         return RunPreparedAsync(PrepareRequest(request), progress, cancellationToken);
     }
 
@@ -52,7 +53,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             failureStage = WorkflowFailureStage.Input;
             Report(progress, validated.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
-            IOfficeWorkflowStagingGuard? stagingGuard = validated.PublicationGuard as IOfficeWorkflowStagingGuard;
+            IOfficeStagingGuard? stagingGuard = validated.PublicationGuard as IOfficeStagingGuard;
             validated = await inputs.CaptureAsync(validated, cancellationToken).ConfigureAwait(false);
             if (validated.Registration is not null) inputs.ReportSourceCapture(diagnostics);
             inputBytes = new FileInfo(validated.InputPath).Length;
@@ -103,7 +104,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             stagingPath = Path.Combine(
                 outputDirectory,
                 "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-            await File.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
+            await OfficeRuntimeCompatibility.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, validated.Id, "validate-output", "Reopening the staged artifact", 0.72D);
@@ -113,7 +114,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 validated.OutputPdfLoadOptions,
                 cancellationToken).ConfigureAwait(false);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
-                "OutputReopened",
+                global::OfficeIMO.OfficeDiagnosticCodes.ConversionOutputReopened,
                 "The staged file was reopened successfully through its first-party OfficeIMO document API.",
                 stage: "validate-output",
                 details: new Dictionary<string, string>(StringComparer.Ordinal) {
@@ -122,7 +123,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 }));
             cancellationToken.ThrowIfCancellationRequested();
 
-            string outputSha256 = System.Convert.ToHexString(SHA256.HashData(artifact.Bytes)).ToLowerInvariant();
+            string outputSha256 = OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(artifact.Bytes)).ToLowerInvariant();
             Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
             inputs.Dispose();
             cancellationToken.ThrowIfCancellationRequested();
@@ -556,7 +557,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
             case ".epub":
-                await using (FileStream stream = OpenStagedArtifact(stagingPath)) {
+                using (FileStream stream = OpenStagedArtifact(stagingPath)) {
                     var publication = OfficeIMO.Epub.EpubPublication.Load(stream, cancellationToken: cancellationToken);
                     _ = publication.Write(cancellationToken: cancellationToken);
                 }
@@ -571,20 +572,20 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 }
             case ".doc":
             case ".docx":
-                await using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
                 using (WordDocument document = await WordDocument.LoadAsync(
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".xlsx":
-                await using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
                 using (ExcelDocument document = await ExcelDocument.LoadAsync(
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".pptx":
-                await using (FileStream stream = OpenStagedArtifact(stagingPath))
-                using (PowerPointPresentation document = await PowerPointPresentation.LoadAsync(
+                using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (PowerPointDocument document = await PowerPointDocument.LoadAsync(
                     stream,
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
@@ -595,9 +596,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken: cancellationToken).ConfigureAwait(false);
                 break;
             case ".md":
-                await using (FileStream stream = OpenStagedArtifact(stagingPath)) {
+                using (FileStream stream = OpenStagedArtifact(stagingPath)) {
                     using var reader = new StreamReader(stream, new UTF8Encoding(false, true));
-                    _ = MarkdownDoc.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
+                    _ = MarkdownDocument.Parse(await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false));
                 }
                 break;
             default:
@@ -634,19 +635,19 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private static PdfExportProfile ToPdfExportProfile(OfficeWorkflowOutputProfile profile) => profile switch {
-        OfficeWorkflowOutputProfile.Faithful => PdfExportProfile.Faithful,
-        OfficeWorkflowOutputProfile.Lightweight => PdfExportProfile.Lightweight,
-        OfficeWorkflowOutputProfile.PrintReady => PdfExportProfile.PrintReady,
-        OfficeWorkflowOutputProfile.TextOnly => PdfExportProfile.TextOnly,
+    private static PdfExportProfile ToPdfExportProfile(OfficeConversionProfile profile) => profile switch {
+        OfficeConversionProfile.Faithful => PdfExportProfile.Faithful,
+        OfficeConversionProfile.Lightweight => PdfExportProfile.Lightweight,
+        OfficeConversionProfile.PrintReady => PdfExportProfile.PrintReady,
+        OfficeConversionProfile.TextOnly => PdfExportProfile.TextOnly,
         _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported output profile.")
     };
 
-    private static PdfOptimizationProfile ToOptimizationProfile(OfficeWorkflowOutputProfile profile) => profile switch {
-        OfficeWorkflowOutputProfile.Faithful => PdfOptimizationProfile.Balanced,
-        OfficeWorkflowOutputProfile.Lightweight => PdfOptimizationProfile.MaximumCompression,
-        OfficeWorkflowOutputProfile.PrintReady => PdfOptimizationProfile.Archival,
-        OfficeWorkflowOutputProfile.TextOnly => throw new ArgumentException(
+    private static PdfOptimizationProfile ToOptimizationProfile(OfficeConversionProfile profile) => profile switch {
+        OfficeConversionProfile.Faithful => PdfOptimizationProfile.Balanced,
+        OfficeConversionProfile.Lightweight => PdfOptimizationProfile.MaximumCompression,
+        OfficeConversionProfile.PrintReady => PdfOptimizationProfile.Archival,
+        OfficeConversionProfile.TextOnly => throw new ArgumentException(
             "Lossless PDF optimization does not support the TextOnly output profile.", nameof(profile)),
         _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported output profile.")
     };
@@ -695,7 +696,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private static void EnforceInputLimit(string path, long size, OfficeWorkflowLimits limits) =>
+    private static void EnforceInputLimit(string path, long size, OfficeOperationLimits limits) =>
         EnforceInputLimit(path, size, limits.MaximumInputBytes);
 
     private static void EnforceInputLimit(string path, long size, long maximumBytes) {
@@ -707,7 +708,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
     private static byte[] ReadInput(
         string path,
-        OfficeWorkflowLimits limits,
+        OfficeOperationLimits limits,
         CancellationToken cancellationToken) =>
         OfficeWorkflowInputReader.ReadAllBytes(path, limits.MaximumInputBytes, cancellationToken);
 
@@ -717,7 +718,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private static string NormalizeExtension(string extension) => extension.StartsWith('.') ? extension : "." + extension;
+    private static string NormalizeExtension(string extension) => extension.StartsWith(".", StringComparison.Ordinal) ? extension : "." + extension;
 
     private static string DescribeOperation(OfficeWorkflowOperation operation) => operation switch {
         OfficeWorkflowOperation.AnalyzeWordImages => "Analyzing embedded Word images",
@@ -766,13 +767,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         string? ComparisonPath,
         string? OutputPath,
         OfficeWorkflowRoute? Route,
-        OfficeWorkflowConflictPolicy ConflictPolicy,
-        OfficeWorkflowOutputProfile OutputProfile,
-        OfficeWorkflowLimits Limits,
+        OfficePublicationPolicy ConflictPolicy,
+        OfficeConversionProfile OutputProfile,
+        OfficeOperationLimits Limits,
         PdfLoadOptions PdfLoadOptions,
         PdfLoadOptions ComparisonPdfLoadOptions,
         PdfLoadOptions OutputPdfLoadOptions,
-        IOfficeWorkflowPublicationGuard? PublicationGuard = null,
+        IOfficePublicationGuard? PublicationGuard = null,
         OfficeWorkflowStreamInput? InputStream = null,
         OfficeWorkflowStreamInput? ComparisonStream = null,
         OfficeWorkflowStreamOutput? OutputStream = null,
@@ -782,14 +783,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         IPdfExternalSigner? OutputSigner = null,
         PdfExternalSignatureOptions? OutputSignatureOptions = null,
         IPdfSignatureCryptographyProvider? OutputSignatureValidator = null,
-        OfficeWorkflowConversionOptions? ConversionOptions = null,
+        OfficeWorkflowRenderingOptions? ConversionOptions = null,
         OfficeScanCleanupOptions? ScanCleanup = null,
         OfficeWorkflowConversionRegistration? Registration = null,
-        IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null,
+        IOfficeConversionSettings? RegisteredConversionSettings = null,
         WordImageOptimizationOptions? WordImageOptimization = null,
         OfficeWorkflowDirectoryPackageInput? InputDirectoryPackage = null,
         PdfPageSelector? PageSelector = null,
         int MaximumExtractedPages = 100_000,
         PdfPageSelector? ComparisonExpectedPages = null,
-        PdfPageSelector? ComparisonActualPages = null);
+        PdfPageSelector? ComparisonActualPages = null,
+        OfficeConversionOptions? UnifiedConversionOptions = null);
 }

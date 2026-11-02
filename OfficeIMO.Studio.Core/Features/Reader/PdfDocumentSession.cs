@@ -196,7 +196,7 @@ internal sealed class PdfDocumentSession {
         }
 
         var options = new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Scale = scale,
             MaxPages = 1,
             // One page: its failure, such as a read or pixel limit, reaches the host as the typed exception.

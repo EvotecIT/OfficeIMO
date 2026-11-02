@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a preserved external cell cache section from an XCT record and its CRN records.
     /// </summary>
-    public sealed class LegacyXlsExternalCellCache {
+    internal sealed class LegacyXlsExternalCellCache {
         private readonly List<LegacyXlsExternalCachedCell> _cells = new();
 
         internal LegacyXlsExternalCellCache(int declaredCrnCount, int? sheetIndex, string? sheetName, bool linkValid) {

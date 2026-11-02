@@ -11,6 +11,33 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         [Fact]
+        public void TextRulerProjectionRetainsSourceStopsBeyondTheDrawingMlLimit() {
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true)) {
+                writer.Write(4U);
+                writer.Write((ushort)40);
+                for (short index = 0; index < 40; index++) {
+                    writer.Write((short)(index * 72));
+                    writer.Write((ushort)LegacyPptTabAlignment.Left);
+                }
+            }
+            byte[] payload = stream.ToArray();
+            var record = new LegacyPptRecord(payload, 0, 0, 0, 0x0FA6, 0, payload.Length);
+            LegacyPptTextRuler ruler = Assert.IsType<LegacyPptTextRuler>(
+                LegacyPptTextRulerReader.Read(record, out bool truncated));
+            Assert.False(truncated);
+            Assert.Equal(40, ruler.TabStops.Count);
+            Assert.True(ruler.HasUnprojectedFormatting);
+            LegacyPptTextBody body = LegacyPptTextStyleReader.Read("A\tB", 3, null, colorScheme: null,
+                fonts: null, ruler: ruler,
+                hasRulerRecord: true);
+            P.TextBody projected = LegacyPptTextProjection.CreateTextBody(body);
+            Assert.Equal(32, Assert.Single(projected.Descendants<A.TabStopList>()).ChildElements.Count);
+            Assert.Equal(40, ruler.TabStops.Count);
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(projected));
+        }
+
+        [Fact]
         public void TextStyleReader_RejectsTruncatedRunWithoutEscapingBounds() {
             byte[] payload = { 0x02, 0x00, 0x00, 0x00 };
             var record = new LegacyPptRecord(payload, 0, 0, 0, 0x0FA1, 0, payload.Length);

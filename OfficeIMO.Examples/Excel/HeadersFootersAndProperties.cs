@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Excel {
             doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
             doc.ApplicationProperties.Company = "Evotec";
 
-            var sheet = doc.AddWorksheet("Summary");
+            var sheet = doc.AddSheet("Summary");
 
             // Header/Footer text (tokens: &P page, &N pages, &A sheet name)
             sheet.SetHeaderFooter(
@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Excel {
             var logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
             if (File.Exists(logoPath)) {
                 var bytes = File.ReadAllBytes(logoPath);
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, bytes, contentType: "image/png", widthPoints: 96, heightPoints: 32);
+                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, bytes, contentType: "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             } else {
                 Console.WriteLine($"Logo file not found: {logoPath}");
             }

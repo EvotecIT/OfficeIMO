@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Tests {
     public partial class Excel {
         [Fact]
         public void DataReader_XmlTextBudgetRequiresPositiveLimitAndPreservesClonedOptions() {
-            var options = new ExcelReadOptions();
+            var options = new ExcelReaderOptions();
             Assert.Equal(32L * 1024L * 1024L, options.MaxXmlDataReaderBufferedCharacters);
             Assert.Throws<ArgumentOutOfRangeException>(() => options.MaxXmlDataReaderBufferedCharacters = 0);
             Assert.Throws<ArgumentOutOfRangeException>(() => options.MaxXmlDataReaderBufferedCharacters = -1);
@@ -24,10 +24,10 @@ namespace OfficeIMO.Excel.Tests {
                 "<row r=\"2\"><c r=\"A2\"><v>123</v></c>"
                 + "<c r=\"B2\" t=\"inlineStr\"><is><t>abc</t></is></c></row>", columns: 2);
             try {
-                var options = new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 5 };
+                var options = new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 5 };
                 using DbDataReader reader = firstAccess == "values"
-                    ? ExcelDocument.OpenDataReader(File.ReadAllBytes(path), options.Clone())
-                    : ExcelDocument.OpenDataReader(path, options);
+                    ? ExcelDocument.OpenReader(File.ReadAllBytes(path), options.Clone())
+                    : ExcelDocument.OpenReader(path, options);
                 Assert.True(reader.Read());
                 AssertXmlTextBudgetFailure(() => ReadXmlTextBudgetFirstValue(reader, firstAccess));
                 AssertXmlTextBudgetReaderIsTerminal(reader);
@@ -56,7 +56,7 @@ namespace OfficeIMO.Excel.Tests {
             };
             string path = CreateXmlTextBudgetWorkbook("<row r=\"2\">" + cell + "</row>");
             try {
-                using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                using DbDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                     MaxXmlDataReaderBufferedCharacters = 4096,
                     UseCachedFormulaResult = kind != "formula"
                 });
@@ -78,8 +78,8 @@ namespace OfficeIMO.Excel.Tests {
                 headerCells: "<c r=\"A1\" t=\"inlineStr\"><is><t>One</t></is></c>"
                     + "<c r=\"B1\" t=\"inlineStr\"><is><t>Two</t></is></c>");
             try {
-                using DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 6 });
+                using DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 6 });
                 Assert.Equal("One", reader.GetName(0));
                 Assert.Equal("Two", reader.GetName(1));
                 Assert.True(reader.Read());
@@ -112,14 +112,14 @@ namespace OfficeIMO.Excel.Tests {
         public void DataReader_XmlTextBudgetCountsDecodedRichTextCDataAndWhitespace(string cell, string expected) {
             string path = CreateXmlTextBudgetWorkbook("<row r=\"2\">" + cell + "</row>");
             try {
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = expected.Length })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = expected.Length })) {
                     Assert.True(reader.Read());
                     Assert.Equal(expected, reader.GetString(0));
                     Assert.Equal(expected, reader.GetValue(0));
                 }
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = expected.Length - 1 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = expected.Length - 1 })) {
                     Assert.True(reader.Read());
                     AssertXmlTextBudgetFailure(() => reader.GetString(0));
                     AssertXmlTextBudgetReaderIsTerminal(reader);
@@ -150,12 +150,12 @@ namespace OfficeIMO.Excel.Tests {
                         "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
                         + "<cellXfs count=\"2\"><xf numFmtId=\"0\"/><xf numFmtId=\"14\"/></cellXfs></styleSheet>"));
                 }
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     MaxXmlDataReaderBufferedCharacters = characters,
                     UseCachedFormulaResult = kind != "formula",
                     TreatDatesUsingNumberFormat = true
                 };
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path, options)) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path, options)) {
                     Assert.True(reader.Read());
                     if (kind == "formula") {
                         Assert.Equal("1+2", reader.GetString(0));
@@ -171,7 +171,7 @@ namespace OfficeIMO.Excel.Tests {
                     }
                 }
                 options.MaxXmlDataReaderBufferedCharacters = characters - 1;
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path, options)) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path, options)) {
                     Assert.True(reader.Read());
                     AssertXmlTextBudgetFailure(() => {
                         if (kind == "date") reader.GetDateTime(0);
@@ -195,14 +195,14 @@ namespace OfficeIMO.Excel.Tests {
                 ReplaceZipEntry(path, "xl/sharedStrings.xml", Encoding.UTF8.GetBytes(
                     "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\" uniqueCount=\"1\">"
                     + "<si><r><t>A&amp;B</t></r><r><t>🐢</t></r></si></sst>"));
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = expected.Length + 1 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = expected.Length + 1 })) {
                     Assert.True(reader.Read());
                     Assert.Equal(expected, reader.GetString(0));
                     Assert.Equal(expected, reader.GetValue(0));
                 }
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = expected.Length })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = expected.Length })) {
                     Assert.True(reader.Read());
                     AssertXmlTextBudgetFailure(() => reader.IsDBNull(0));
                     AssertXmlTextBudgetReaderIsTerminal(reader);
@@ -225,17 +225,17 @@ namespace OfficeIMO.Excel.Tests {
                 ReplaceZipEntry(path, "xl/sharedStrings.xml", Encoding.UTF8.GetBytes(
                     "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"2\" uniqueCount=\"1\">"
                     + "<si><t/></si></sst>"));
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = index.Length })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = index.Length })) {
                     Assert.True(reader.Read());
                     Assert.Equal(string.Empty, reader.GetString(0));
                     Assert.True(reader.Read());
                     Assert.Equal(string.Empty, reader.GetString(0));
                 }
                 AssertXmlTextBudgetFailure(() => {
-                    using DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                        new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = index.Length - 1 });
-                });
+                    using DbDataReader reader = ExcelDocument.OpenReader(path,
+                        new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = index.Length - 1 });
+ _ = reader.FieldCount;                 });
             } finally {
                 File.Delete(path);
             }
@@ -252,16 +252,16 @@ namespace OfficeIMO.Excel.Tests {
                 + whitespace + "</f><v>8</v></c></row>");
             try {
                 // Preparation reads formula text to recognize a follower, without materializing numeric v text.
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length })) {
                     Assert.Equal("A", reader.GetName(0));
                     Assert.True(reader.Read());
                     Assert.Equal(3, reader.GetInt32(0));
                     Assert.True(reader.Read());
                 }
                 // Materializing the follower also counts its one-character cached value.
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length + 1 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length + 1 })) {
                     Assert.True(reader.Read());
                     Assert.Equal(3, reader.GetInt32(0));
                     Assert.True(reader.Read());
@@ -270,9 +270,9 @@ namespace OfficeIMO.Excel.Tests {
                     Assert.Equal(8, reader.GetInt32(0));
                 }
                 AssertXmlTextBudgetFailure(() => {
-                    using DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                        new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length - 1 });
-                });
+                    using DbDataReader reader = ExcelDocument.OpenReader(path,
+                        new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = whitespace.Length - 1 });
+ _ = reader.FieldCount;                 });
             } finally {
                 File.Delete(path);
             }
@@ -286,19 +286,19 @@ namespace OfficeIMO.Excel.Tests {
             string path = CreateXmlTextBudgetWorkbook(
                 "<row r=\"2\"><c r=\"A2\" t=\"str\"><v>abc</v></c></row>");
             try {
-                var options = new ExcelReadOptions {
+                var options = new ExcelReaderOptions {
                     MaxXmlDataReaderBufferedCharacters = characters,
                     CellValueConverter = context => context.RawText != "abc" ? ExcelCellValue.NotHandled
                         : new ExcelCellValue(kind == "expanded" ? "expanded"
                             : kind == "sameReference" ? context.RawText : new string(context.RawText.ToCharArray()))
                 };
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path, options)) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path, options)) {
                     Assert.True(reader.Read());
                     Assert.Equal(kind == "expanded" ? "expanded" : "abc", reader.GetString(0));
                     Assert.False(reader.IsDBNull(0));
                 }
                 options.MaxXmlDataReaderBufferedCharacters = characters - 1;
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path, options)) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path, options)) {
                     Assert.True(reader.Read());
                     AssertXmlTextBudgetFailure(() => reader.GetValue(0));
                     AssertXmlTextBudgetReaderIsTerminal(reader);
@@ -316,13 +316,13 @@ namespace OfficeIMO.Excel.Tests {
             string path = CreateXmlTextBudgetWorkbook(
                 "<row r=\"2\"><c r=\"A2\" t=\"str\"><v>abc</v></c>" + replacement + "</row>");
             try {
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = characters })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = characters })) {
                     Assert.True(reader.Read());
                     Assert.Equal(replaceWithText ? (object)"x" : DBNull.Value, reader.GetValue(0));
                 }
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = characters - 1 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = characters - 1 })) {
                     Assert.True(reader.Read());
                     AssertXmlTextBudgetFailure(() => reader.IsDBNull(0));
                     AssertXmlTextBudgetReaderIsTerminal(reader);
@@ -340,9 +340,9 @@ namespace OfficeIMO.Excel.Tests {
                     + "<c r=\"B1\" t=\"inlineStr\"><is><t>Two</t></is></c>");
             try {
                 AssertXmlTextBudgetFailure(() => {
-                    using DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                        new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 5 });
-                });
+                    using DbDataReader reader = ExcelDocument.OpenReader(path,
+                        new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 5 });
+ _ = reader.FieldCount;                 });
             } finally {
                 File.Delete(path);
             }
@@ -360,8 +360,8 @@ namespace OfficeIMO.Excel.Tests {
             string path = CreateXmlTextBudgetWorkbook(rows);
             try {
                 // Header (1), both physical values (3 + 3), and final row value (1) total eight.
-                using (DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                    new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 8 })) {
+                using (DbDataReader reader = ExcelDocument.OpenReader(path,
+                    new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 8 })) {
                     Assert.True(reader.Read());
                     Assert.Equal("def", reader.GetString(0));
                     Assert.True(reader.Read());
@@ -369,9 +369,9 @@ namespace OfficeIMO.Excel.Tests {
                     else Assert.Equal("abc", reader.GetString(0));
                 }
                 AssertXmlTextBudgetFailure(() => {
-                    using DbDataReader reader = ExcelDocument.OpenDataReader(path,
-                        new ExcelReadOptions { MaxXmlDataReaderBufferedCharacters = 7 });
-                });
+                    using DbDataReader reader = ExcelDocument.OpenReader(path,
+                        new ExcelReaderOptions { MaxXmlDataReaderBufferedCharacters = 7 });
+ _ = reader.FieldCount;                 });
             } finally {
                 File.Delete(path);
             }
@@ -384,7 +384,7 @@ namespace OfficeIMO.Excel.Tests {
                 + "<c r=\"B2\" t=\"str\"><v>abc</v></c></row>", columns: 2);
             try {
                 using var cancellation = new CancellationTokenSource();
-                using DbDataReader reader = ExcelDocument.OpenDataReader(path, new ExcelReadOptions {
+                using DbDataReader reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions {
                     MaxXmlDataReaderBufferedCharacters = 4,
                     CancellationToken = cancellation.Token,
                     CellValueConverter = context => {
@@ -410,7 +410,7 @@ namespace OfficeIMO.Excel.Tests {
             try {
                 if (multipleSheets) {
                     using var document = ExcelDocument.Load(path);
-                    document.AddWorksheet("Other").CellValue(1, 1, 1);
+                    document.AddSheet("Other").CellValue(1, 1, 1);
                     document.Save();
                 }
                 string headers = headerCells ?? string.Concat(Enumerable.Range(0, columns).Select(column =>
@@ -440,7 +440,7 @@ namespace OfficeIMO.Excel.Tests {
         private static void AssertXmlTextBudgetFailure(Action action) {
             OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(action);
             Assert.Equal("excel", error.Owner);
-            Assert.Equal(nameof(ExcelReadOptions.MaxXmlDataReaderBufferedCharacters), error.LimitName);
+            Assert.Equal(nameof(ExcelReaderOptions.MaxXmlDataReaderBufferedCharacters), error.LimitName);
             Assert.True(error.Maximum > 0);
         }
 

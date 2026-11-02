@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Configures reusable proof checks for source-document to PDF conversion results.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfConversionProofOptions {
     private readonly List<string> _requiredTextMarkers = new List<string>();
     private readonly List<string> _requiredLogicalSignals = new List<string>();
@@ -47,10 +48,10 @@ public sealed class PdfConversionProofOptions {
     /// <summary>Expected page count for the generated PDF artifact.</summary>
     public int? RequiredPageCount { get; set; }
 
-    /// <summary>Expected page width in PDF points for every generated page.</summary>
+    /// <summary>Expected page width in page user-space units for every generated page.</summary>
     public double? RequiredPageWidth { get; set; }
 
-    /// <summary>Expected page height in PDF points for every generated page.</summary>
+    /// <summary>Expected page height in page user-space units for every generated page.</summary>
     public double? RequiredPageHeight { get; set; }
 
     /// <summary>Allowed point difference when comparing required page size.</summary>
@@ -498,7 +499,7 @@ public sealed class PdfConversionProofOptions {
         return this;
     }
 
-    /// <summary>Requires every generated PDF page to match the supplied size in PDF points.</summary>
+    /// <summary>Requires every generated PDF page to match the supplied size in page user-space units.</summary>
     public PdfConversionProofOptions RequirePageSize(double width, double height, double tolerance = 0.01D) {
         ValidatePositiveFinite(width, nameof(width), "PDF conversion proof page width must be a positive finite value.");
         ValidatePositiveFinite(height, nameof(height), "PDF conversion proof page height must be a positive finite value.");

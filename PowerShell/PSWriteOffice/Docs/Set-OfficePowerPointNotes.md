@@ -6,38 +6,62 @@ schema: 2.0.0
 ---
 # Set-OfficePowerPointNotes
 ## SYNOPSIS
-Sets speaker notes for a PowerPoint slide.
+Sets speaker notes on a native slide or in the current slide content block.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
-Set-OfficePowerPointNotes [-Text] <string> [-Slide <PowerPointSlide>] [-PassThru] [<CommonParameters>]
+Set-OfficePowerPointNotes [-Text] <string> [-Slide <PowerPointSlideSelector>] [-Document <PowerPointDocument>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Sets speaker notes for a PowerPoint slide.
+Sets speaker notes on a native slide or in the current slide content block.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointNotes.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Executive summary'
-    Set-OfficePowerPointNotes -Slide $slide -Text 'Keep this slide under five minutes and focus on decisions.'
+New-OfficePowerPoint -Path ./Review.pptx {
+    PowerPointSlide -Title 'Service review' {
+        PowerPointParagraph 'All regions healthy'
+        PowerPointNotes 'Pause for questions before discussing capacity.'
+    }
 }
 ```
 
-Writes speaker notes to a generated slide.
+
+### EXAMPLE 2
+```powershell
+Get-OfficePowerPointSlide -Document $deck -Slide 2 |
+    Set-OfficePowerPointNotes -Text 'Explain the margin before revenue.'
+Save-OfficePowerPoint -Document $deck
+```
+
 
 ## PARAMETERS
 
+### -Document
+Gets or sets the document for numeric selection; omission uses the enclosing document block.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PassThru
-Emit the object created or changed by the command.
+Gets or sets whether to return the selected native slide after editing.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -49,11 +73,11 @@ Accept wildcard characters: False
 ```
 
 ### -Slide
-Slide whose notes should be updated (optional inside DSL).
+Gets or sets a native slide or one-based position; omission uses the current slide content block.
 
 ```yaml
-Type: PowerPointSlide
-Parameter Sets: __AllParameterSets
+Type: PowerPointSlideSelector
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -65,11 +89,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Notes text to apply.
+Gets or sets the notes text; an empty string clears the notes.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -85,7 +109,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
+- `PSWriteOffice.Foundation.PowerPointSlideSelector`: A live slide or a one-based slide position in a document.
 
 ## OUTPUTS
 

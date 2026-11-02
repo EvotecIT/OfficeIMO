@@ -4,7 +4,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     /// <summary>
     /// Planning-time options for Excel to Google Sheets export.
     /// </summary>
-    public sealed class GoogleSheetsSaveOptions {
+    public sealed partial class GoogleSheetsSaveOptions {
         /// <summary>Gets or sets the Drive destination or existing spreadsheet target.</summary>
         public GoogleDriveFileLocation Location { get; set; } = new GoogleDriveFileLocation();
         /// <summary>Gets or sets an optional spreadsheet title; a blank value uses the source workbook name or <c>Workbook</c>.</summary>

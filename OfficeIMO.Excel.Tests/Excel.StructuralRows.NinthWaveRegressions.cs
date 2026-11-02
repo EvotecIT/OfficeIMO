@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MaterializesSharedFormulasWithImplicitCellReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var firstRow = new Row { RowIndex = 2U };
             firstRow.Append(
@@ -49,12 +49,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_DoesNotPreflightAbsoluteTwoCellDrawingAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Category");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");
             sheet.CellAt(2, 2).SetValue(1);
-            sheet.AddChartFromRange("A1:B2", row: 5, column: 4);
+            sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
             Xdr.WorksheetDrawing drawing = sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!;
             Xdr.OneCellAnchor oneCellAnchor = Assert.Single(drawing.Elements<Xdr.OneCellAnchor>());
@@ -62,12 +62,12 @@ namespace OfficeIMO.Tests {
                 new Xdr.FromMarker(
                     new Xdr.ColumnId("3"),
                     new Xdr.ColumnOffset("0"),
-                    new Xdr.RowId((A1.MaxRows - 1).ToString()),
+                    new Xdr.RowId((ExcelA1.MaxRows - 1).ToString()),
                     new Xdr.RowOffset("0")),
                 new Xdr.ToMarker(
                     new Xdr.ColumnId("8"),
                     new Xdr.ColumnOffset("0"),
-                    new Xdr.RowId((A1.MaxRows - 1).ToString()),
+                    new Xdr.RowId((ExcelA1.MaxRows - 1).ToString()),
                     new Xdr.RowOffset("0")),
                 oneCellAnchor.GetFirstChild<Xdr.GraphicFrame>()!.CloneNode(true),
                 new Xdr.ClientData()) {
@@ -78,15 +78,15 @@ namespace OfficeIMO.Tests {
 
             sheet.InsertRows(1);
 
-            Assert.Equal((A1.MaxRows - 1).ToString(), absoluteAnchor.FromMarker!.RowId!.Text);
-            Assert.Equal((A1.MaxRows - 1).ToString(), absoluteAnchor.ToMarker!.RowId!.Text);
+            Assert.Equal((ExcelA1.MaxRows - 1).ToString(), absoluteAnchor.FromMarker!.RowId!.Text);
+            Assert.Equal((ExcelA1.MaxRows - 1).ToString(), absoluteAnchor.ToMarker!.RowId!.Text);
         }
 
         [Fact]
         public void Test_StructuralRows_RewritesUnqualifiedExtendedChartFormulasOnlyOnEditedSheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet other = document.AddWorksheet("Other");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet other = document.AddSheet("Other");
             data.CellAt(2, 1).SetValue(1);
             other.CellAt(2, 1).SetValue(1);
 

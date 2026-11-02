@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes preserve-only ChartFrtInfo metadata for chart future-record ranges.
     /// </summary>
-    public sealed class LegacyXlsChartFutureRecordInfo {
+    internal sealed class LegacyXlsChartFutureRecordInfo {
         internal LegacyXlsChartFutureRecordInfo(byte originatorVersion, byte writerVersion, IReadOnlyList<LegacyXlsChartFutureRecordRange> ranges) {
             OriginatorVersion = originatorVersion;
             WriterVersion = writerVersion;

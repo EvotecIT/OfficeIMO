@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_QueryBackedTable_RefreshPreservesHeaderlessLayout() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "HeaderlessQuery",
                 WorksheetName = sheet.Name,
@@ -49,9 +49,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_SkipsSeparatelyQuotedThreeDimensionalQualifiers() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddWorksheet("SUM(A1)");
-            document.AddWorksheet("Last Sheet");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            document.AddSheet("SUM(A1)");
+            document.AddSheet("Last Sheet");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.CellFormula(1, 1, "'SUM(A1)':'Last Sheet'!B1");
             summary.CellFormula(2, 1, "SUM(B1)");
 
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             if (OperatingSystem.IsWindows()) return;
             string path = Path.Combine(_directoryWithFiles, "FileBackedPrivateStaging.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddWorksheet("Data").CellValue(1, 1, "private");
+                created.AddSheet("Data").CellValue(1, 1, "private");
                 created.Save(path);
             }
 

@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a task or summary with a duration expressed in working days.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Add-OfficeProjectTask [-Name] <string> -Document <ProjectDocument> [-DurationDays <Decimal>] [-ParentUid <Int32>] [-Summary] [-Manual] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Working duration in days.
 
 ```yaml
 Type: Decimal
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Use manual task scheduling instead of automatic scheduling.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Task name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Parent summary UID; omission adds a root task.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Create a summary task.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

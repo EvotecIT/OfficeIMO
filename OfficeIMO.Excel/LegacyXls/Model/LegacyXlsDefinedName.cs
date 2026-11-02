@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents a BIFF defined name whose formula can be projected to an A1 reference.
     /// </summary>
-    public sealed class LegacyXlsDefinedName {
+    internal sealed class LegacyXlsDefinedName {
         internal LegacyXlsDefinedName(string name, string reference, int? localSheetIndex, bool hidden, bool builtIn) {
             Name = name;
             Reference = reference;

@@ -169,22 +169,22 @@ internal sealed partial class OfficeImoAgentService {
         return result;
     }
 
-    private sealed class PdfRootPublicationGuard(AgentPathPolicy policy, IReadOnlyList<string> sources, Action<CancellationToken>? validateSourceIds = null) : IOfficeWorkflowPublicationGuard, IOfficeWorkflowStagingGuard {
-        public ValueTask EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
+    private sealed class PdfRootPublicationGuard(AgentPathPolicy policy, IReadOnlyList<string> sources, Action<CancellationToken>? validateSourceIds = null) : IOfficePublicationGuard, IOfficeStagingGuard {
+        public Task EnsureStagingDirectoryAllowedAsync(string directory, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             _ = policy.ResolveOutput(directory);
-            return ValueTask.CompletedTask;
+            return Task.CompletedTask;
         }
-        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
+        public Task<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             validateSourceIds?.Invoke(cancellationToken);
             string destination = policy.ResolveOutput(path);
             foreach (string source in sources) {
                 string current = policy.ResolveInput(source);
                 if (OfficeImoToolPathSafety.PathsEqual(current, destination) ||
-                    (isDirectory && OfficeImoToolPathSafety.IsSameOrChildPath(destination, current))) return ValueTask.FromResult(false);
+                    (isDirectory && OfficeImoToolPathSafety.IsSameOrChildPath(destination, current))) return Task.FromResult(false);
             }
-            return ValueTask.FromResult(true);
+            return Task.FromResult(true);
         }
     }
 }

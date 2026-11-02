@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
         return Math.Min(requestedRadius, limitingDimension / 2D);
     }
 
-    private static void DrawRoundedRowFill(StringBuilder sb, PdfColor color, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
+    private static void DrawRoundedRowFill(StringBuilder sb, global::OfficeIMO.OfficeColor color, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
         if (radius <= 0D || !(tl || tr || br || bl)) {
             DrawRowFill(sb, color, x, y, w, h, artifact);
             return;
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawRoundedRowRect(StringBuilder sb, PdfColor color, double widthStroke, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
+    private static void DrawRoundedRowRect(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
         if (radius <= 0D || !(tl || tr || br || bl)) {
             DrawRowRect(sb, color, widthStroke, x, y, w, h, artifact);
             return;
@@ -39,7 +39,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawRoundedStyledRowRect(StringBuilder sb, PdfColor color, double widthStroke, OfficeStrokeDashStyle dashStyle, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl) {
+    private static void DrawRoundedStyledRowRect(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, OfficeStrokeDashStyle dashStyle, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl) {
         var content = new ContentStreamBuilder(sb)
             .SaveState()
             .StrokeColor(color)
@@ -80,9 +80,9 @@ internal static partial class PdfWriter {
         if (bl) content.CubicTo(x, y + r - control, x + r - control, y, x + r, y);
     }
 
-    private static void DrawRoundedCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, double radius, double outerBorderWidth, bool tl, bool tr, bool br, bool bl, bool artifact = false, TableCellContentFrame? diagonalFrame = null) {
+    private static void DrawRoundedCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, double radius, double outerBorderWidth, bool tl, bool tr, bool br, bool bl, bool artifact = false, TableCellContentFrame? diagonalFrame = null, CollapsedTableBorders? collapsedBorders = null) {
         if (!(tl || tr || br || bl)) {
-            DrawCellBorder(sb, border, x, y, w, h, artifact, diagonalFrame: diagonalFrame);
+            DrawCellBorder(sb, border, x, y, w, h, artifact, diagonalFrame: diagonalFrame, collapsedBorders: collapsedBorders);
             return;
         }
 
@@ -96,7 +96,11 @@ internal static partial class PdfWriter {
         PdfCellBorderSide? bottom = border.Bottom ? ResolveCellBorderSide(border.BottomBorderSnapshot, border) : null;
         PdfCellBorderSide? left = border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null;
 
-        if (IsRenderableCellBorderSide(top)) {
+        if (collapsedBorders != null) {
+            QueueHorizontal(true, border.TopPriority, border.Top, top);
+            QueueHorizontal(false, border.BottomPriority, border.Bottom, bottom);
+        }
+        if (collapsedBorders == null && IsRenderableCellBorderSide(top)) {
             if (tl || tr) DrawRoundedCellBorderSide(sb, top!, outerBorderWidth, RoundedRectSide.Top, x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
             else DrawCellHBorder(sb, top, x, x2, y2, -1D, artifact, left, right);
         }
@@ -104,7 +108,7 @@ internal static partial class PdfWriter {
             if (tr || br) DrawRoundedCellBorderSide(sb, right!, outerBorderWidth, RoundedRectSide.Right, x, y, w, h, radius, tl, tr, br, bl, top, bottom, artifact);
             else DrawCellVBorder(sb, right, x2, y2, y, -1D, artifact, top, bottom);
         }
-        if (IsRenderableCellBorderSide(bottom)) {
+        if (collapsedBorders == null && IsRenderableCellBorderSide(bottom)) {
             if (br || bl) DrawRoundedCellBorderSide(sb, bottom!, outerBorderWidth, RoundedRectSide.Bottom, x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
             else DrawCellHBorder(sb, bottom, x, x2, y, 1D, artifact, left, right);
         }
@@ -120,21 +124,43 @@ internal static partial class PdfWriter {
             EndRoundedClip(sb);
             AppendArtifactEnd(sb, artifact);
         }
+        void QueueHorizontal(bool isTop, PdfCellBorderPriority priority, bool enabled, PdfCellBorderSide? side) {
+            double edgeY = isTop ? y2 : y;
+            collapsedBorders!.Add(isTop, priority, enabled, side, x, x2, edgeY, (output, start, end) => {
+                bool rounded = isTop ? tl || tr : bl || br;
+                if (!rounded) {
+                    DrawCellHBorder(output, side, start, end, edgeY, isTop ? -1D : 1D, artifact,
+                        start == x ? left : null, end == x2 ? right : null);
+                    return;
+                }
+                bool partial = start > x || end < x2;
+                var content = new ContentStreamBuilder(output);
+                if (partial) {
+                    double bleed = radius + side!.Width.ToPoints() * 4D;
+                    double clipLeft = start == x ? start - bleed : start;
+                    double clipRight = end == x2 ? end + bleed : end;
+                    content.SaveState().Rectangle(clipLeft, edgeY - bleed, clipRight - clipLeft, bleed * 2D).ClipPath().EndPath();
+                }
+                DrawRoundedCellBorderSide(output, side!, outerBorderWidth, isTop ? RoundedRectSide.Top : RoundedRectSide.Bottom,
+                    x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
+                if (partial) content.RestoreState();
+            });
+        }
     }
 
     private static void DrawRoundedCellBorderSide(StringBuilder sb, PdfCellBorderSide sideStyle, double outerBorderWidth, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, PdfCellBorderSide? startSide, PdfCellBorderSide? endSide, bool artifact) {
         if (sideStyle.LineStyle == PdfCellBorderLineStyle.TwoLine) {
             DrawRoundedPairedCellBorderSide(sb, sideStyle, side, x, y, w, h, radius, tl, tr, br, bl, startSide, endSide, artifact);
         } else {
-            DrawRoundedSideStrokeCore(sb, sideStyle.Color!.Value, sideStyle.Width, outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
+            DrawRoundedSideStrokeCore(sb, sideStyle.Color!.Value, sideStyle.Width.ToPoints(), outerBorderWidth, sideStyle.DashStyle, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
         }
     }
 
-    private static void DrawRoundedSideStroke(StringBuilder sb, PdfColor color, double width, double outerBorderWidth, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
+    private static void DrawRoundedSideStroke(StringBuilder sb, global::OfficeIMO.OfficeColor color, double width, double outerBorderWidth, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, bool artifact = false) {
         DrawRoundedSideStrokeCore(sb, color, width, outerBorderWidth, OfficeStrokeDashStyle.Solid, side, x, y, w, h, radius, tl, tr, br, bl, additionalInset: 0D, artifact);
     }
 
-    private static void DrawRoundedSideStrokeCore(StringBuilder sb, PdfColor color, double width, double outerBorderWidth, OfficeStrokeDashStyle dashStyle, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, double additionalInset, bool artifact) {
+    private static void DrawRoundedSideStrokeCore(StringBuilder sb, global::OfficeIMO.OfficeColor color, double width, double outerBorderWidth, OfficeStrokeDashStyle dashStyle, RoundedRectSide side, double x, double y, double w, double h, double radius, bool tl, bool tr, bool br, bool bl, double additionalInset, bool artifact) {
         if (width <= 0D) return;
 
         double r = Math.Min(radius, Math.Min(w, h) / 2D);

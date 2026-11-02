@@ -27,7 +27,7 @@ public sealed class PublisherDrawingBoundaryTests {
         string svg = document.ToSvg(file == "Simple.pub" ? 0 : 1);
         Assert.Contains("clip-path=", svg);
         Assert.Contains(file == "Simple.pub" ? "0123456789" : "Table on page 2", svg);
-        Assert.Equal(document.Pages.Count, PdfReadDocument.Open(document.ToPdfBytes()).Pages.Count);
+        Assert.Equal(document.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfBytes())).Pages.Count);
     }
 
     // Keep each native frame's dimensions while moving its left/top edge to -12 points.

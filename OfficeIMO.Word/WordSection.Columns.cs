@@ -27,7 +27,8 @@ public partial class WordSection {
                         throw new InvalidDataException("An explicit section column has an invalid following gap.");
                     space = gap;
                 }
-                definitions.Add(new WordSectionColumn(width, space));
+                definitions.Add(new WordSectionColumn(OfficeLength.Points(width / 20D),
+                    space.HasValue ? OfficeLength.Points(space.Value / 20D) : (OfficeLength?)null));
             }
             return definitions.AsReadOnly();
         }
@@ -48,9 +49,9 @@ public partial class WordSection {
             columns.ColumnCount = (short)(snapshot.Length == 0 ? currentCount ?? 1 : snapshot.Length);
             foreach (WordSectionColumn definition in snapshot) {
                 columns.Append(new Column {
-                    Width = definition.WidthTwips.ToString(CultureInfo.InvariantCulture),
-                    Space = definition.SpaceAfterTwips.HasValue
-                        ? new DocumentFormat.OpenXml.StringValue(definition.SpaceAfterTwips.Value.ToString(CultureInfo.InvariantCulture))
+                    Width = checked((int)definition.Width.ToTwips()).ToString(CultureInfo.InvariantCulture),
+                    Space = definition.SpaceAfter.HasValue
+                        ? new DocumentFormat.OpenXml.StringValue(checked((int)definition.SpaceAfter.Value.ToTwips()).ToString(CultureInfo.InvariantCulture))
                         : null
                 });
             }

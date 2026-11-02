@@ -9,10 +9,13 @@ public enum PdfRedactionMatchKind {
     /// <summary>Image XObject placement rectangle.</summary>
     ImagePlacement = 2,
     /// <summary>Vector path inside nested Form XObject content that the current redaction writer cannot safely remove.</summary>
-    VectorPath = 3
+    VectorPath = 3,
+    /// <summary>Form field whose value is cleared. Text holds the field name, never the value.</summary>
+    FormField = 4
 }
 
 /// <summary>Content intersecting a requested redaction area.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfRedactionMatch {
     internal PdfRedactionMatch(
         PdfRedactionMatchKind kind,
@@ -50,16 +53,16 @@ public sealed class PdfRedactionMatch {
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
 
-    /// <summary>Matched content left coordinate in PDF points.</summary>
+    /// <summary>Matched content left coordinate in page user-space units.</summary>
     public double X { get; }
 
-    /// <summary>Matched content bottom coordinate in PDF points.</summary>
+    /// <summary>Matched content bottom coordinate in page user-space units.</summary>
     public double Y { get; }
 
-    /// <summary>Matched content width in PDF points.</summary>
+    /// <summary>Matched content width in page user-space units.</summary>
     public double Width { get; }
 
-    /// <summary>Matched content height in PDF points.</summary>
+    /// <summary>Matched content height in page user-space units.</summary>
     public double Height { get; }
 
     /// <summary>Matched text, when available.</summary>
@@ -76,6 +79,13 @@ public sealed class PdfRedactionMatch {
 
     internal PdfImagePlacement? ImagePlacement { get; }
 
+    // Survive object renumbering, so verification can recognise this image's source data, and any
+    // /SMask or /Mask stream it carries, in the output.
+    internal IReadOnlyList<string> ImageDataSha256 { get; set; } = Array.Empty<string>();
+
+    internal PdfRedactionMatch WithText(string? text) => new PdfRedactionMatch(Kind, Area, PageNumber, X, Y, Width, Height,
+        text, Subtype, ObjectNumber, ResourceName, ImagePlacement) { ImageDataSha256 = ImageDataSha256 };
+
     internal bool RequiresRemoval => Area.ContentScope == PdfRedactionContentScope.TextAndUnderlay ||
-        Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation;
+        Kind is PdfRedactionMatchKind.TextBlock or PdfRedactionMatchKind.Annotation or PdfRedactionMatchKind.FormField;
 }

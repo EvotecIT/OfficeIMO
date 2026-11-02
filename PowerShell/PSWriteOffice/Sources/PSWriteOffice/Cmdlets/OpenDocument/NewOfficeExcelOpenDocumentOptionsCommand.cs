@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 ///   <code>$options = New-OfficeExcelOpenDocumentOptions -IncludeBasicStyles -MaximumRows 10000 -MaximumColumns 100
 /// ConvertTo-OfficeOpenDocument -Path .\Data.xlsx -OutputPath .\Data.ods -ExcelOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeExcelOpenDocumentOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeExcelOpenDocumentOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelOpenDocumentConversionOptions))]
 public sealed class NewOfficeExcelOpenDocumentOptionsCommand : PSCmdlet {
     /// <summary>Whether conversion loss is reported or rejected.</summary>

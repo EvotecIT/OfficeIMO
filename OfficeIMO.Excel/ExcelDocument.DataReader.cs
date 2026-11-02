@@ -10,19 +10,20 @@ namespace OfficeIMO.Excel {
         /// Opens an XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// Worksheets are exposed in workbook order through <see cref="DbDataReader.NextResult"/>.
         /// </summary>
-        public static ExcelWorkbookDataReader OpenDataReader(string path, ExcelReadOptions? options = null) {
+        public static ExcelWorkbookDataReader OpenReader(string path, ExcelReaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
 
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
+            if (effectiveOptions.Password is string password) return OpenEncryptedDataReader(path, password, effectiveOptions);
             return Path.GetExtension(path).ToLowerInvariant() switch {
                 ".xls" => ExcelWorkbookDataReader.OpenLegacy(path, effectiveOptions),
                 ".xlsb" => ExcelWorkbookDataReader.OpenBinary(path, effectiveOptions),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" =>
                     ExcelWorkbookDataReader.OpenOpenXml(path, effectiveOptions),
                 _ => throw new NotSupportedException(
-                    "OpenDataReader supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
+                    "OpenReader supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
             };
         }
 
@@ -33,12 +34,12 @@ namespace OfficeIMO.Excel {
         /// <param name="path">Workbook path.</param>
         /// <param name="options">Workbook metadata read limits and cancellation.</param>
         /// <returns>Readable worksheet names in workbook order.</returns>
-        public static IReadOnlyList<string> GetSheetNames(string path, ExcelReadOptions? options = null) {
+        internal static IReadOnlyList<string> GetSheetNames(string path, ExcelReaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
 
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             return ExcelWorkbookDataReader.ReadSheetNames(path, effectiveOptions);
         }
 
@@ -50,7 +51,7 @@ namespace OfficeIMO.Excel {
         /// <param name="stream">Readable workbook stream positioned at the workbook bytes to read.</param>
         /// <param name="options">Workbook reader options.</param>
         /// <returns>A forward-only reader whose results follow workbook worksheet order.</returns>
-        public static ExcelWorkbookDataReader OpenDataReader(Stream stream, ExcelReadOptions? options = null) {
+        public static ExcelWorkbookDataReader OpenReader(Stream stream, ExcelReaderOptions? options = null) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
@@ -58,7 +59,8 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
             }
 
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
+            if (effectiveOptions.Password is string password) return OpenEncryptedDataReader(stream, password, effectiveOptions);
             long originalPosition = stream.CanSeek ? stream.Position : 0L;
             byte[] bytes;
             try {
@@ -72,21 +74,22 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return OpenDataReader(bytes, effectiveOptions);
+            return OpenReader(bytes, effectiveOptions);
         }
 
         /// <summary>
         /// Opens an in-memory XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// </summary>
-        public static ExcelWorkbookDataReader OpenDataReader(byte[] bytes, ExcelReadOptions? options = null) {
+        internal static ExcelWorkbookDataReader OpenReader(byte[] bytes, ExcelReaderOptions? options = null) {
             if (bytes == null) {
                 throw new ArgumentNullException(nameof(bytes));
             }
 
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
+            if (effectiveOptions.Password is string password) return OpenEncryptedDataReader(bytes, password, effectiveOptions);
             if (bytes.LongLength > effectiveOptions.MaxInputBytes) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxInputBytes), effectiveOptions.MaxInputBytes,
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxInputBytes), effectiveOptions.MaxInputBytes,
                     $"Workbook input contains {bytes.LongLength} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
             }
 
@@ -101,8 +104,8 @@ namespace OfficeIMO.Excel {
         /// Creates a forward-only data reader over this open workbook document.
         /// The returned reader does not close the document.
         /// </summary>
-        public ExcelWorkbookDataReader CreateDataReader(ExcelReadOptions? options = null) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+        public ExcelWorkbookDataReader CreateDataReader(ExcelReaderOptions? options = null) {
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
             if (_spreadSheetDocument is null) {
                 throw new ObjectDisposedException(nameof(ExcelDocument));
@@ -116,23 +119,22 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Downloads an HTTP or HTTPS workbook and opens it as a forward-only data reader.
         /// </summary>
-        public static async Task<ExcelWorkbookDataReader> OpenDataReaderAsync(
+        public static async Task<ExcelWorkbookDataReader> OpenReaderAsync(
             Uri uri,
-            ExcelReadOptions? options = null,
-            ExcelHttpLoadOptions? httpOptions = null,
+            ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 effectiveOptions.CancellationToken);
             try {
                 byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(
                     uri,
-                    httpOptions,
+                    effectiveOptions.Transport,
                     linkedCancellation.Token,
                     effectiveOptions.MaxInputBytes).ConfigureAwait(false);
-                return OpenDataReader(bytes, effectiveOptions.WithCancellationToken(linkedCancellation.Token))
+                return OpenReader(bytes, effectiveOptions.WithCancellationToken(linkedCancellation.Token))
                     .OwnLifetime(linkedCancellation);
             } catch {
                 linkedCancellation.Dispose();

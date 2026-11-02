@@ -40,13 +40,13 @@ public sealed class PdfMirroredMarginResourceTests {
     }
 #endif
 
-    private static PdfOptions Options() => new() {
-        PageWidth = 300, PageHeight = 200,
-        MarginLeft = 40, MarginRight = 70, MarginTop = 20, MarginBottom = 20,
-        MirrorMargins = true, DefaultFontSize = 10
+    private static PdfCreateOptions Options() => new() {
+        PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+        MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(70), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+        MirrorMargins = true, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
     };
 
-    private static byte[] BuildDocument(PdfOptions options, int pages, bool nested, bool namedFont) {
+    private static byte[] BuildDocument(PdfCreateOptions options, int pages, bool nested, bool namedFont) {
         void AddPages(PdfContentBuilder content) {
             for (int page = 1; page <= pages; page++) {
                 if (page > 1) content.PageBreak();
@@ -57,7 +57,7 @@ public sealed class PdfMirroredMarginResourceTests {
             }
         }
         return PdfDocument.Create(builder => builder.Content(content => {
-            if (nested) content.Element(element => element.Padding(2, 5).Content(AddPages));
+            if (nested) content.Element(element => element.Padding(global::OfficeIMO.OfficeLength.Points(2), global::OfficeIMO.OfficeLength.Points(5)).Content(AddPages));
             else AddPages(content);
         }), options).ToBytes();
     }

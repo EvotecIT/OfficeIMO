@@ -28,7 +28,10 @@ namespace OfficeIMO.PowerPoint {
             return GetBackgroundCore(maximumImageBytes: null, imageReadLimit);
         }
 
-        private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes, Func<int>? imageReadLimit = null) {
+        /// <summary>Resolves fill colors for semantic exporters without opening or copying image part streams.</summary>
+        internal PowerPointSlideBackground GetBackgroundColors() => GetBackgroundCore(maximumImageBytes: null, includeImageData: false);
+
+        private PowerPointSlideBackground GetBackgroundCore(int? maximumImageBytes, Func<int>? imageReadLimit = null, bool includeImageData = true) {
             (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
             if (properties == null || !properties.HasChildren) {
                 BackgroundStyleReference? styleReference = GetResolvedBackgroundStyleReference().StyleReference;
@@ -53,7 +56,9 @@ namespace OfficeIMO.PowerPoint {
 
             A.BlipFill? blipFill = properties.GetFirstChild<A.BlipFill>();
             if (blipFill != null) {
-                return GetBackgroundImage(blipFill, ownerPart ?? _slidePart, imageReadLimit?.Invoke() ?? maximumImageBytes);
+                return includeImageData
+                    ? GetBackgroundImage(blipFill, ownerPart ?? _slidePart, imageReadLimit?.Invoke() ?? maximumImageBytes)
+                    : PowerPointSlideBackground.None();
             }
 
             A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();

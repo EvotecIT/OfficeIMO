@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a preserve-only DConRef record that points at a consolidation or PivotTable source range.
     /// </summary>
-    public sealed class LegacyXlsDataConsolidationReference {
+    internal sealed class LegacyXlsDataConsolidationReference {
         /// <summary>
         /// Creates decoded DConRef metadata.
         /// </summary>

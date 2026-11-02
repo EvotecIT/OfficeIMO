@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     string title = string.IsNullOrWhiteSpace(nativeSheet.Properties.Title)
                         ? $"Sheet{nativeSheet.Properties.Index + 1}"
                         : nativeSheet.Properties.Title;
-                    ExcelSheet sheet = document.AddWorksheet(title);
+                    ExcelSheet sheet = document.AddSheet(title);
                     sheetNames[nativeSheet.Properties.SheetId] = sheet.Name;
                     ApplySheetProperties(sheet, nativeSheet.Properties);
                     ApplyGridData(sheet, nativeSheet.Data, report);
@@ -205,7 +205,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (rowIndex > 1048576) break;
                 GoogleSheetsNativeDimensionProperties metadata = block.RowMetadata[offset];
                 if (metadata.PixelSize is int pixels && pixels > 0) {
-                    sheet.SetRowHeight(rowIndex, pixels * 72d / 96d);
+                    sheet.SetRowHeight(rowIndex, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(pixels * 72d / 96d)));
                 }
                 if (metadata.HiddenByUser == true) {
                     sheet.SetRowHidden(rowIndex, true);
@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (columnIndex > 16384) break;
                 GoogleSheetsNativeDimensionProperties metadata = block.ColumnMetadata[offset];
                 if (metadata.PixelSize is int pixels && pixels > 0) {
-                    sheet.SetColumnWidth(columnIndex, ConvertPixelsToExcelColumnWidth(pixels));
+                    sheet.SetColumnWidth(columnIndex, OfficeIMO.Excel.ExcelColumnWidth.Characters(ConvertPixelsToExcelColumnWidth(pixels)));
                 }
                 if (metadata.HiddenByUser == true) {
                     sheet.SetColumnHidden(columnIndex, true);
@@ -361,7 +361,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (text.Underline == true) sheet.CellUnderline(row, column);
                 if (text.Strikethrough == true) sheet.CellStrikethrough(row, column);
                 if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.CellFontName(row, column, text.FontFamily!);
-                if (text.FontSize is int fontSize && fontSize > 0) sheet.CellFontSize(row, column, fontSize);
+                if (text.FontSize is int fontSize && fontSize > 0) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(fontSize));
                 if (text.ForegroundColor != null) sheet.CellFontColor(row, column, ToHex(text.ForegroundColor));
             }
 
@@ -441,7 +441,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Underline = runFormat?.Underline ?? baseFormat?.Underline ?? false,
                 Strikethrough = runFormat?.Strikethrough ?? baseFormat?.Strikethrough ?? false,
                 FontName = runFormat?.FontFamily ?? baseFormat?.FontFamily,
-                FontSize = runFormat?.FontSize ?? baseFormat?.FontSize,
+                FontSize = (runFormat?.FontSize ?? baseFormat?.FontSize) is int points ? global::OfficeIMO.OfficeLength.Points(points) : (global::OfficeIMO.OfficeLength?)null,
                 FontColor = color == null ? null : ToHex(color),
             };
         }

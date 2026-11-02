@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             string? fileId = null;
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = source.AddWorksheet("RoundTrip");
+                    ExcelSheet sheet = source.AddSheet("RoundTrip");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "OfficeIMO");
                     sheet.CellFormula(2, 2, "SUM(1,2)");

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,8 +19,8 @@ namespace OfficeIMO.Examples.Word {
 
                 var pageSettings = document.PageSettings ?? throw new InvalidOperationException("Page settings are not initialized.");
 
-                Console.WriteLine(pageSettings.Height?.ToString() ?? "Height not set");
-                Console.WriteLine(pageSettings.Width?.ToString() ?? "Width not set");
+                Console.WriteLine(checked((uint?)(pageSettings.Height?.ToTwips()))?.ToString() ?? "Height not set");
+                Console.WriteLine(checked((uint?)(pageSettings.Width?.ToTwips()))?.ToString() ?? "Width not set");
                 Console.WriteLine(pageSettings.Code?.ToString() ?? "Code not set");
                 Console.WriteLine(pageSettings.PageSize?.ToString() ?? "Page size not set");
 

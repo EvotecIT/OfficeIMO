@@ -147,7 +147,7 @@ internal static partial class PdfWriter {
     // The multi-line branch is factored out so its lambda-free loop keeps the closure that would capture
     // these parameters off the single-line hot path — this method is called per token during wrapping,
     // and a captured lambda forces a display-class allocation on every call even when unused.
-    private static double MaxLineWidthForOptions(string text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings) {
+    private static double MaxLineWidthForOptions(string text, PdfStandardFont font, double fontSize, PdfCreateOptions? options, OfficeTextFeatureSettings? featureSettings) {
         // Seeded below the possible range (not 0) so the result equals the original LINQ .Max() exactly;
         // Split with a line break present always yields at least one element, so max is always assigned.
         double max = double.NegativeInfinity;
@@ -159,7 +159,7 @@ internal static partial class PdfWriter {
         return max;
     }
 
-    private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
+    private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfCreateOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
         text = text == null ? null : WithoutOptionalBreaks(text);
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
         if (!string.IsNullOrEmpty(text) && ContainsLineBreak(text!)) {
@@ -218,7 +218,7 @@ internal static partial class PdfWriter {
             (options != null && IsKerningEnabled(featureSettings) ? GetStandardFontKerningWidth(text, font, fontSize) : 0D);
     }
 
-    private static double MaxLineWidthForOptions(string text, PdfStandardFont fallbackFont, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options, OfficeTextFeatureSettings? featureSettings) {
+    private static double MaxLineWidthForOptions(string text, PdfStandardFont fallbackFont, PdfNamedFontFace? namedFont, double fontSize, PdfCreateOptions? options, OfficeTextFeatureSettings? featureSettings) {
         double max = double.NegativeInfinity;
         foreach (string line in text.Split(LayoutLineSeparators, StringSplitOptions.None)) {
             double width = EstimateSimpleTextWidthForOptions(line, fallbackFont, namedFont, fontSize, options, featureSettings);
@@ -233,7 +233,7 @@ internal static partial class PdfWriter {
         PdfStandardFont fallbackFont,
         PdfNamedFontFace? namedFont,
         double fontSize,
-        PdfOptions? options,
+        PdfCreateOptions? options,
         OfficeTextFeatureSettings? featureSettings = null) {
         text = text == null ? null : WithoutOptionalBreaks(text);
         featureSettings = options?.ResolveTextFeatureSettings(featureSettings) ?? featureSettings;
@@ -410,7 +410,7 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFontWidth(font)
     };
 
-    private static double GetDescenderForOptions(PdfStandardFont font, double fontSize, PdfOptions? options) {
+    private static double GetDescenderForOptions(PdfStandardFont font, double fontSize, PdfCreateOptions? options) {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
@@ -426,7 +426,7 @@ internal static partial class PdfWriter {
         return GetDescender(font, fontSize);
     }
 
-    private static double GetDescenderForOptions(PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options) {
+    private static double GetDescenderForOptions(PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfCreateOptions? options) {
         if (namedFont.HasValue &&
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -451,7 +451,7 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFontWidth(font)
     };
 
-    private static double GetAscenderForOptions(PdfStandardFont font, double fontSize, PdfOptions? options) {
+    private static double GetAscenderForOptions(PdfStandardFont font, double fontSize, PdfCreateOptions? options) {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
@@ -467,7 +467,7 @@ internal static partial class PdfWriter {
         return GetAscender(font, fontSize);
     }
 
-    private static double GetAscenderForOptions(PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfOptions? options) {
+    private static double GetAscenderForOptions(PdfStandardFont font, PdfNamedFontFace? namedFont, double fontSize, PdfCreateOptions? options) {
         if (namedFont.HasValue &&
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&

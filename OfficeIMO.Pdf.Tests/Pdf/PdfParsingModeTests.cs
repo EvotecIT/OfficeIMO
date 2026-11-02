@@ -11,7 +11,7 @@ public class PdfParsingModeTests {
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
 
-        PdfRepairDiagnostic repair = Assert.Single(document.RepairReport.Diagnostics, item => item.Code == "IncorrectStreamLength");
+        PdfRepairDiagnostic repair = Assert.Single(document.RepairReport.Diagnostics, item => item.Code == "incorrect-stream-length");
         Assert.Equal(4, repair.ObjectNumber);
         Assert.Contains("declares /Length 999", repair.Message, StringComparison.Ordinal);
         Assert.Contains("Recovered stream text", document.ExtractText(), StringComparison.Ordinal);
@@ -24,7 +24,7 @@ public class PdfParsingModeTests {
         PdfParseException exception = Assert.Throws<PdfParseException>(() =>
             PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
-        Assert.Equal("IncorrectStreamLength", exception.Code);
+        Assert.Equal("incorrect-stream-length", exception.Code);
         Assert.Equal(4, exception.ObjectNumber);
     }
 
@@ -36,8 +36,8 @@ public class PdfParsingModeTests {
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
             PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
-        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingStreamLength" && item.ObjectNumber == 4);
-        Assert.Equal("MissingStreamLength", strict.Code);
+        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "missing-stream-length" && item.ObjectNumber == 4);
+        Assert.Equal("missing-stream-length", strict.Code);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class PdfParsingModeTests {
         Assert.False(objects.ContainsKey(5));
         Assert.DoesNotContain(
             document.RepairReport.Diagnostics,
-            diagnostic => diagnostic.Code == "MissingEndObject");
+            diagnostic => diagnostic.Code == "missing-end-object");
     }
 
     [Fact]
@@ -75,8 +75,8 @@ public class PdfParsingModeTests {
         Assert.IsType<PdfNumber>(objects[6].Value);
         Assert.DoesNotContain(
             repairReport.Diagnostics,
-            diagnostic => diagnostic.Code == "MissingEndObject" ||
-                diagnostic.Code == "IncorrectStreamLength");
+            diagnostic => diagnostic.Code == "missing-end-object" ||
+                diagnostic.Code == "incorrect-stream-length");
     }
 
     [Fact]
@@ -206,7 +206,7 @@ public class PdfParsingModeTests {
         Assert.Equal("OK", PdfEncoding.Latin1GetString(followingStream.Data));
         Assert.Contains(
             repairReport.Diagnostics,
-            diagnostic => diagnostic.Code == "MissingEndObject" && diagnostic.ObjectNumber == 4);
+            diagnostic => diagnostic.Code == "missing-end-object" && diagnostic.ObjectNumber == 4);
     }
 
     [Fact]
@@ -221,8 +221,8 @@ public class PdfParsingModeTests {
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
             PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
-        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingEndObject" && item.ObjectNumber == 3);
-        Assert.Equal("MissingEndObject", strict.Code);
+        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "missing-end-object" && item.ObjectNumber == 3);
+        Assert.Equal("missing-end-object", strict.Code);
         Assert.Equal(3, strict.ObjectNumber);
     }
 
@@ -245,10 +245,10 @@ public class PdfParsingModeTests {
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
             PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
-        PdfRepairDiagnostic repair = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "InvalidStartXref");
+        PdfRepairDiagnostic repair = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "invalid-start-xref");
         Assert.Contains("rebuilt the object index", repair.Message, StringComparison.Ordinal);
         Assert.Contains("Cross-reference recovery", lenient.ExtractText(), StringComparison.Ordinal);
-        Assert.Equal("InvalidStartXref", strict.Code);
+        Assert.Equal("invalid-start-xref", strict.Code);
     }
 
     [Fact]
@@ -262,8 +262,8 @@ public class PdfParsingModeTests {
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
             PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
-        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingStartXref");
-        Assert.Equal("MissingStartXref", strict.Code);
+        Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "missing-start-xref");
+        Assert.Equal("missing-start-xref", strict.Code);
     }
 
     [Fact]
@@ -277,9 +277,9 @@ public class PdfParsingModeTests {
         PdfParseException strict = Assert.Throws<PdfParseException>(() => PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         Assert.Equal(2, lenient.Pages.Count);
-        PdfRepairDiagnostic diagnostic = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "IncorrectPageTreeCount");
+        PdfRepairDiagnostic diagnostic = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "incorrect-page-tree-count");
         Assert.True(diagnostic.WasRecovered);
-        Assert.Equal("IncorrectPageTreeCount", strict.Code);
+        Assert.Equal("incorrect-page-tree-count", strict.Code);
     }
 
     [Fact]
@@ -296,9 +296,9 @@ public class PdfParsingModeTests {
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
 
-        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "OddNameTreePairs" && !item.WasRecovered);
-        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "BrokenNamedDestination" && !item.WasRecovered);
-        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "OrphanedSemanticObjects" && item.ObjectNumber == 8 && !item.WasRecovered);
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "odd-name-tree-pairs" && !item.WasRecovered);
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "broken-named-destination" && !item.WasRecovered);
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "orphaned-semantic-objects" && item.ObjectNumber == 8 && !item.WasRecovered);
         Assert.True(document.RepairReport.DetectionOnlyCount >= 3);
     }
 
@@ -316,7 +316,7 @@ public class PdfParsingModeTests {
 
         PdfRepairDiagnostic orphan = Assert.Single(
             document.RepairReport.Diagnostics,
-            item => item.Code == "OrphanedSemanticObjects");
+            item => item.Code == "orphaned-semantic-objects");
         Assert.Equal(8, orphan.ObjectNumber);
     }
 
@@ -334,7 +334,7 @@ public class PdfParsingModeTests {
 
         PdfRepairDiagnostic orphan = Assert.Single(
             document.RepairReport.Diagnostics,
-            item => item.Code == "OrphanedSemanticObjects");
+            item => item.Code == "orphaned-semantic-objects");
         Assert.Equal(8, orphan.ObjectNumber);
     }
 
@@ -353,7 +353,7 @@ public class PdfParsingModeTests {
 
         PdfRepairDiagnostic orphan = Assert.Single(
             document.RepairReport.Diagnostics,
-            item => item.Code == "OrphanedSemanticObjects");
+            item => item.Code == "orphaned-semantic-objects");
         Assert.Equal(4, orphan.ObjectNumber);
         Assert.Contains("2 unreachable semantic object(s)", orphan.Message, StringComparison.Ordinal);
     }
@@ -371,7 +371,7 @@ public class PdfParsingModeTests {
 
         PdfRepairDiagnostic orphan = Assert.Single(
             document.RepairReport.Diagnostics,
-            item => item.Code == "OrphanedSemanticObjects");
+            item => item.Code == "orphaned-semantic-objects");
         Assert.Equal(5, orphan.ObjectNumber);
     }
 
@@ -388,9 +388,9 @@ public class PdfParsingModeTests {
 
         PdfReadDocument document = PdfReadDocument.Open(pdf);
 
-        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "InvalidNameTreeNode");
-        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "OddNameTreePairs");
-        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "BrokenNamedDestination");
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "invalid-name-tree-node");
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "odd-name-tree-pairs");
+        Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "broken-named-destination");
     }
 
     [Fact]
@@ -405,7 +405,7 @@ public class PdfParsingModeTests {
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
 
-        PdfRepairDiagnostic duplicate = Assert.Single(document.RepairReport.Diagnostics, item => item.Code == "DuplicateObjectIdentifier");
+        PdfRepairDiagnostic duplicate = Assert.Single(document.RepairReport.Diagnostics, item => item.Code == "duplicate-object-identifier");
         Assert.Equal(7, duplicate.ObjectNumber);
         Assert.True(duplicate.WasRecovered);
     }

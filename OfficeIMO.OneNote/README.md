@@ -160,25 +160,31 @@ Caller-owned streams stay open. Seekable read streams are restored to their orig
 The OneNote package maps a page once to `OfficeDrawing`. The page mapper measures hard and soft rich-text wrapping, exact line spacing, tables and cell content, inline/block math, images, and ink against the final canvas width. Automatic canvases expand from those measured bounds. The shared Drawing engine then owns SVG and pixel output, so PNG, JPEG, TIFF, and lossless WebP do not have separate OneNote renderers.
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.OneNote;
 using OfficeIMO.Drawing;
 
 OfficeDrawing canvas = page.ToDrawing();
 
-page.ToImage()
-    .AtDpi(144)
-    .AsPng()
-    .Save("page.png");
+var imageOptions1 = new OneNotePageRenderingOptions();
+imageOptions1.TargetDpi = 144;
+imageOptions1.Format = OfficeImageExportFormat.Png;
+page.SaveAsImage("page.png", imageOptions1);
 
-notebook.ToImages()
-    .AllPages()
-    .IncludeAttachmentPlaceholders()
-    .FitWithin(1600, 1200)
-    .AtDpi(144)
-    .AsTiff()
-    .Save("Notebook pages");
+var imageOptions2 = new OneNotePageBatchRenderingOptions();
+imageOptions2.PageIndex = 0;
+imageOptions2.PageCount = null;
+imageOptions2.IncludeAttachmentPlaceholders = true;
+imageOptions2.MaximumOutputWidth = 1600;
+imageOptions2.MaximumOutputHeight = 1200;
+imageOptions2.TargetDpi = 144;
+imageOptions2.Format = OfficeImageExportFormat.Tiff;
+notebook.SaveAsImages("Notebook pages", imageOptions2);
 ```
 
-The canvas includes positioned outlines, styled text, lists and tags, tables, images and printouts, ink, structured math, plus placeholders for attachments and recordings. Page and element RTL state flows into body, table, and inline-math alignment. `OneNotePageRenderingOptions` controls automatic page bounds, source-payload limits, the inherited `MaximumRasterPixels` output allocation ceiling, fonts, background color, ink/math settings, and feature inclusion. The fluent page and batch builders expose title, image, ink, math, and attachment-placeholder controls. The shared pre-allocation planner either reduces oversized PNG/JPEG/TIFF/WebP exports with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. Drawing directly decodes bounded PNG/APNG, JPEG, supported classic TIFF, uncompressed BMP, composited GIF, ordinary lossless VP8L WebP, and lossy VP8 WebP source pictures with optional raw or lossless-compressed alpha; set `ImageCodec` (or use `WithImageCodec(...)`) for animated WebP pixels and other unsupported variants or formats. Caller-codec use and visible decode fallbacks report the shared `IMAGE_SOURCE_*` diagnostic codes. Visual HTML can collect these warnings through `OneNoteVisualHtmlOptions.DiagnosticSink`. Section and notebook batch exports use `OneNotePageTraversal` so page selection and names follow native table-of-contents order.
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
+
+The canvas includes positioned outlines, styled text, lists and tags, tables, images and printouts, ink, structured math, plus placeholders for attachments and recordings. Page and element RTL state flows into body, table, and inline-math alignment. `OneNotePageRenderingOptions` controls automatic page bounds, source-payload limits, the inherited `MaximumRasterPixels` output allocation ceiling, fonts, background color, ink/math settings, and feature inclusion. The page and batch options expose title, image, ink, math, and attachment-placeholder controls. The shared pre-allocation planner either reduces oversized PNG/JPEG/TIFF/WebP exports with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. Drawing directly decodes bounded PNG/APNG, JPEG, supported classic TIFF, uncompressed BMP, composited GIF, ordinary lossless VP8L WebP, and lossy VP8 WebP source pictures with optional raw or lossless-compressed alpha; set `ImageCodec` for animated WebP pixels and other unsupported variants or formats. Caller-codec use and visible decode fallbacks report the shared `IMAGE_SOURCE_*` diagnostic codes. Visual HTML can collect these warnings through `OneNoteVisualHtmlOptions.DiagnosticSink`. Section and notebook batch exports use `OneNotePageTraversal` so page selection and names follow native table-of-contents order.
 
 ## Conversion and Reader packages
 

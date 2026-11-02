@@ -37,14 +37,14 @@ public sealed partial class OfficeWorkflowRunner {
         string outputExtension = Path.GetExtension(request.OutputStream?.Name ?? request.OutputPath!);
         if (string.Equals(outputExtension, ".pdf", StringComparison.OrdinalIgnoreCase)) {
             // Media has already been optimized once. PDF generation keeps its default image policy.
-            var conversion = word.ToPdfDocumentResult(new WordToPdfOptions(), token);
+            var conversion = word.ConvertToPdfWithEvidence(new WordPdfExportOptions(), token);
             (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token);
             AddConversionDiagnostics(evidence, diagnostics);
         } else {
             using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
             WordFileFormat format = string.Equals(outputExtension, ".doc", StringComparison.OrdinalIgnoreCase)
                 ? WordFileFormat.Doc : WordFileFormat.Docx;
-            word.SaveAsync(output, format, new WordSaveOptions { SignedDocumentPolicy = options.SignedDocumentPolicy }, token).GetAwaiter().GetResult();
+            word.SaveAsync(output, new WordSaveOptions { Format = format, SignedDocumentPolicy = options.SignedDocumentPolicy }, token).GetAwaiter().GetResult();
             bytes = output.ToArray();
         }
         return new OperationArtifact(bytes, summary, null, ConversionEvidence: evidence);

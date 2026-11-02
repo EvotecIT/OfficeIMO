@@ -48,10 +48,6 @@
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.IO.Compression" />
-  </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.DjVu\OfficeIMO.DjVu.csproj" />
@@ -64,4 +60,7 @@
   </ItemGroup>
 
   <ItemGroup><ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" /></ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
 </Project>

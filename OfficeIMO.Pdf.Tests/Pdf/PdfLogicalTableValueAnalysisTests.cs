@@ -18,14 +18,14 @@ public sealed class PdfLogicalTableValueAnalysisTests {
 
     [Fact]
     public void Extract_ProfilesRichTableValueKindsForAllAdapters() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
-                PageWidth = 760,
-                PageHeight = 360,
-                MarginLeft = 20,
-                MarginRight = 20,
-                MarginTop = 20,
-                MarginBottom = 20,
-                DefaultFontSize = 9
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(760),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
                 new[] { "Active", "Completion", "Due Date", "Start Time", "Quantity", "Owner" },
@@ -33,7 +33,7 @@ public sealed class PdfLogicalTableValueAnalysisTests {
                 new[] { "False", "100%", "2026-08-19", "17:45", "3", "Grace" }
             }, style: new PdfTableStyle {
                 HeaderRowCount = 1,
-                ColumnWidthPoints = new List<double?> { 80, 100, 110, 100, 90, 100 }
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(90), global::OfficeIMO.OfficeLength.Points(100) }
             })
             .ToBytes();
 

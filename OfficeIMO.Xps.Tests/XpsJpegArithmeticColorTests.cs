@@ -32,7 +32,7 @@ public sealed class XpsJpegArithmeticColorTests {
             var images = new[] {
                 OfficeDrawingRasterRenderer.Render(page.ToDrawing()),
                 OfficeDrawingRasterRenderer.Render(drawing!),
-                OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(loaded.ToPdf()).Pages[0].ToDrawing(), scale: 4D / 3D)
+                OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(loaded.ToPdf())).Pages[0].ToDrawing(), scale: 4D / 3D)
             };
             for (int y = 0; y < 19; y++) for (int x = 0; x < 35; x++) {
                 int at = (y * 35 + x) * 3;

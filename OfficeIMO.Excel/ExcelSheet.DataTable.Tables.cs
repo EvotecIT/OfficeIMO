@@ -94,20 +94,18 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            string startRef = A1.CellReference(startRow, startColumn);
-            string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + columnCount - 1);
+            string startRef = ExcelA1.CellReference(startRow, startColumn);
+            string endRef = ExcelA1.CellReference(startRow + rowsCount - 1, startColumn + columnCount - 1);
             string range = startRef + ":" + endRef;
 
             if (!TryInsertTabularRowSourceForDeferredMaterialization(source, startRow, startColumn, includeHeaders, ct, preserveMissingValues)) {
                 return string.Empty;
             }
 
-            string[]? headerNames = null;
-            if (includeHeaders) {
-                headerNames = new string[columnCount];
-                for (int i = 0; i < headerNames.Length; i++) {
-                    headerNames[i] = source.GetColumnName(i);
-                }
+            // Native table columns remain named when their worksheet header row is hidden.
+            var headerNames = new string[columnCount];
+            for (int i = 0; i < headerNames.Length; i++) {
+                headerNames[i] = source.GetColumnName(i);
             }
 
             AddTableAndGetName(
@@ -128,7 +126,7 @@ namespace OfficeIMO.Excel {
         /// Inserts a DataTable and immediately creates an Excel Table over the written range.
         /// Returns the A1-style range of the created table.
         /// </summary>
-        public string InsertDataTableAsTable(
+        internal string InsertDataTableAsTable(
             DataTable table,
             int startRow = 1,
             int startColumn = 1,
@@ -146,8 +144,8 @@ namespace OfficeIMO.Excel {
             }
 
             int colsCount = table.Columns.Count;
-            string startRef = A1.CellReference(startRow, startColumn);
-            string endRef = A1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
+            string startRef = ExcelA1.CellReference(startRow, startColumn);
+            string endRef = ExcelA1.CellReference(startRow + rowsCount - 1, startColumn + colsCount - 1);
             string range = startRef + ":" + endRef;
 
             _excelDocument.MaterializeDeferredDataSetImport(ct);
@@ -274,7 +272,7 @@ namespace OfficeIMO.Excel {
             }
 
             string? currentRange = table.Reference?.Value;
-            if (string.IsNullOrWhiteSpace(currentRange) || !A1.TryParseRange(currentRange!, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
+            if (string.IsNullOrWhiteSpace(currentRange) || !ExcelA1.TryParseRange(currentRange!, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
                 throw new InvalidOperationException($"Table '{tableName}' does not have a valid range.");
             }
 
@@ -297,7 +295,7 @@ namespace OfficeIMO.Excel {
 
             int appendStartRow = endRow + 1;
             int appendEndRow = endRow + appendTable.Rows.Count;
-            if (appendEndRow > A1.MaxRows) {
+            if (appendEndRow > ExcelA1.MaxRows) {
                 throw new InvalidOperationException($"Appending {appendTable.Rows.Count} rows would exceed the Excel row limit.");
             }
 
@@ -305,7 +303,7 @@ namespace OfficeIMO.Excel {
 
             InsertDataTable(appendTable, appendStartRow, startColumn, includeHeaders: false, mode, ct);
 
-            string updatedRange = A1.CellReference(startRow, startColumn) + ":" + A1.CellReference(appendEndRow, endColumn);
+            string updatedRange = ExcelA1.CellReference(startRow, startColumn) + ":" + ExcelA1.CellReference(appendEndRow, endColumn);
             WriteLock(() => {
                 table.Reference = updatedRange;
                 var autoFilter = table.GetFirstChild<AutoFilter>();
@@ -446,10 +444,10 @@ namespace OfficeIMO.Excel {
                     int rowIndex;
                     int columnIndex;
                     if (!string.IsNullOrEmpty(reference)) {
-                        (rowIndex, columnIndex) = A1.ParseCellRef(reference!);
+                        (rowIndex, columnIndex) = ExcelA1.ParseCellRef(reference!);
                     } else {
                         uint rawRowIndex = rowElement.RowIndex?.Value ?? 0U;
-                        rowIndex = rawRowIndex <= A1.MaxRows ? (int)rawRowIndex : 0;
+                        rowIndex = rawRowIndex <= ExcelA1.MaxRows ? (int)rawRowIndex : 0;
                         columnIndex = ordinalColumnIndex;
                     }
 
@@ -459,7 +457,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     string location = string.IsNullOrEmpty(reference)
-                        ? A1.ColumnIndexToLetters(columnIndex) + rowIndex.ToString(CultureInfo.InvariantCulture)
+                        ? ExcelA1.ColumnIndexToLetters(columnIndex) + rowIndex.ToString(CultureInfo.InvariantCulture)
                         : reference!;
                     throw new InvalidOperationException($"Cannot append to table '{tableName}' because cell {location} already contains worksheet data or formatting.");
                 }
@@ -529,11 +527,11 @@ namespace OfficeIMO.Excel {
             int rangeEndRow;
             int rangeEndColumn;
             if (normalized.IndexOf(':') >= 0) {
-                if (!A1.TryParseRange(normalized, out rangeStartRow, out rangeStartColumn, out rangeEndRow, out rangeEndColumn)) {
+                if (!ExcelA1.TryParseRange(normalized, out rangeStartRow, out rangeStartColumn, out rangeEndRow, out rangeEndColumn)) {
                     return false;
                 }
             } else {
-                (rangeStartRow, rangeStartColumn) = A1.ParseCellRef(normalized);
+                (rangeStartRow, rangeStartColumn) = ExcelA1.ParseCellRef(normalized);
                 rangeEndRow = rangeStartRow;
                 rangeEndColumn = rangeStartColumn;
             }

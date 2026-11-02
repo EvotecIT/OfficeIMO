@@ -9,7 +9,7 @@ public sealed class OdfTabLineLeader {
     /// <param name="type">none, single or double.</param>
     /// <param name="width">auto, normal, thin, medium, bold, thick, a positive integer, percentage or absolute ODF length.</param>
     /// <param name="color">Explicit RGB color; null writes font-color.</param>
-    /// <remarks>Shared projection uses an explicit approximation profile for named, integer and percentage widths. Absolute lengths retain their point width. A textual leader takes precedence.</remarks>
+    /// <remarks>Shared projection uses an explicit approximation profile for named, integer and percentage widths. Absolute lengths round to shared EMUs; positive widths below one EMU use one EMU. A textual leader takes precedence.</remarks>
     public OdfTabLineLeader(string style = "solid", string type = "single", string width = "auto", OdfColor? color = null) {
         Style = style; Type = type; Width = width; Color = color;
         _ = ToDrawingLeader();
@@ -44,8 +44,12 @@ public sealed class OdfTabLineLeader {
             else if (Width != null && OdfLength.Parse(Width).TryToPoints(out double length)) { points = length; fraction = .05D; }
             else throw new ArgumentException("Unknown ODF leader width.", nameof(Width));
         }
+        OfficeLength? physicalWidth = points.HasValue ? OfficeLength.Points(points.Value) : null;
+        // Keep valid native declarations positive when shared geometry rounds below its quantum.
+        if (points > 0D && physicalWidth == OfficeLength.Zero) physicalWidth = OfficeLength.Emus(1);
         // The shared constructor enforces positive finite widths before any geometry allocation.
         return new OfficeTextTabLineLeader(Type == "none" ? OfficeTextTabLineLeaderStyle.None : style,
-            Type == "double", points, fraction, Color.HasValue ? OfficeColor.Parse(Color.Value.ToString()) : null);
+            Type == "double", physicalWidth,
+            fraction, Color.HasValue ? OfficeColor.Parse(Color.Value.ToString()) : null);
     }
 }

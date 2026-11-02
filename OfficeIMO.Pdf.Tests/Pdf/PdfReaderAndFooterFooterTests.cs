@@ -15,7 +15,7 @@ public partial class PdfReaderAndFooterRegressionTests {
 
     [Fact]
     public void Footer_UsesConfiguredFooterFont() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
             ShowPageNumbers = true,
             FooterFormat = "Footer check",
@@ -47,7 +47,7 @@ public partial class PdfReaderAndFooterRegressionTests {
 
     [Fact]
     public void FooterFontResource_IsNotEmittedWhenFooterIsDisabled() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             FooterFont = PdfStandardFont.CourierBold,
             ShowPageNumbers = false
@@ -66,14 +66,14 @@ public partial class PdfReaderAndFooterRegressionTests {
 
     [Fact]
     public void FooterSegments_RenderWithoutShowPageNumbersFlag() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
             FooterFont = PdfStandardFont.HelveticaBold,
             FooterAlign = PdfAlign.Left,
-            FooterSegments = new System.Collections.Generic.List<FooterSegment> {
-                new FooterSegment(FooterSegmentKind.Text, "Direct footer"),
-                new FooterSegment(FooterSegmentKind.Text, " "),
-                new FooterSegment(FooterSegmentKind.PageNumber)
+            FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                new PdfFooterSegment(PdfFooterSegmentKind.Text, "Direct footer"),
+                new PdfFooterSegment(PdfFooterSegmentKind.Text, " "),
+                new PdfFooterSegment(PdfFooterSegmentKind.PageNumber)
             }
         };
 
@@ -91,11 +91,11 @@ public partial class PdfReaderAndFooterRegressionTests {
 
     [Fact]
     public void FooterSegments_ValidateFooterPlacementWithoutShowPageNumbersFlag() {
-        var options = new PdfOptions {
-            MarginBottom = 20,
-            FooterOffsetY = 21,
-            FooterSegments = new System.Collections.Generic.List<FooterSegment> {
-                new FooterSegment(FooterSegmentKind.Text, "Direct footer")
+        var options = new PdfCreateOptions {
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
+            FooterOffsetY = global::OfficeIMO.OfficeLength.Points(21),
+            FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                new PdfFooterSegment(PdfFooterSegmentKind.Text, "Direct footer")
             }
         };
 

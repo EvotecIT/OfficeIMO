@@ -11,18 +11,18 @@ namespace OfficeIMO.Tests.Pdf {
     public partial class PdfDocumentBuilderPageOptionsTests {
         [Fact]
         public void DifferentFirstPageHeaderFooter_UsesFirstPageContentThenRunningContent() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 ShowHeader = true,
                 HeaderFormat = "Running header {page}/{pages}",
                 ShowPageNumbers = true,
                 FooterFormat = "Running footer {page}/{pages}",
                 DifferentFirstPageHeaderFooter = true,
                 FirstPageHeaderFormat = "Cover header {page}/{pages}",
-                FirstPageFooterSegments = new System.Collections.Generic.List<FooterSegment> {
-                    new FooterSegment(FooterSegmentKind.Text, "Cover footer "),
-                    new FooterSegment(FooterSegmentKind.PageNumber),
-                    new FooterSegment(FooterSegmentKind.Text, "/"),
-                    new FooterSegment(FooterSegmentKind.TotalPages)
+                FirstPageFooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                    new PdfFooterSegment(PdfFooterSegmentKind.Text, "Cover footer "),
+                    new PdfFooterSegment(PdfFooterSegmentKind.PageNumber),
+                    new PdfFooterSegment(PdfFooterSegmentKind.Text, "/"),
+                    new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)
                 }
             };
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void DifferentFirstPageHeaderFooter_BlankFirstPageSuppressesRunningContent() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 ShowHeader = true,
                 HeaderFormat = "Running header",
                 ShowPageNumbers = true,
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests.Pdf {
 
     [Fact]
     public void ClearingFirstPageWatermarkDoesNotEnableBlankHeaderFooterVariant() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ShowHeader = true,
             HeaderFormat = "Running header"
         };
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests.Pdf {
 
     [Fact]
     public void DifferentOddAndEvenPagesHeaderFooter_UsesEvenContentAndKeepsFirstPagePrecedence() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 ShowHeader = true,
                 HeaderFormat = "Odd header {page}/{pages}",
                 ShowPageNumbers = true,
@@ -107,11 +107,11 @@ namespace OfficeIMO.Tests.Pdf {
                 FirstPageFooterFormat = "First footer {page}/{pages}",
                 DifferentOddAndEvenPagesHeaderFooter = true,
                 EvenPageHeaderFormat = "Even header {page}/{pages}",
-                EvenPageFooterSegments = new System.Collections.Generic.List<FooterSegment> {
-                    new FooterSegment(FooterSegmentKind.Text, "Even footer "),
-                    new FooterSegment(FooterSegmentKind.PageNumber),
-                    new FooterSegment(FooterSegmentKind.Text, "/"),
-                    new FooterSegment(FooterSegmentKind.TotalPages)
+                EvenPageFooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
+                    new PdfFooterSegment(PdfFooterSegmentKind.Text, "Even footer "),
+                    new PdfFooterSegment(PdfFooterSegmentKind.PageNumber),
+                    new PdfFooterSegment(PdfFooterSegmentKind.Text, "/"),
+                    new PdfFooterSegment(PdfFooterSegmentKind.TotalPages)
                 }
             };
 
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void DifferentFirstAndEvenPageWatermarks_UseMatchingPageVariant() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 DifferentFirstPageHeaderFooter = true,
                 DifferentOddAndEvenPagesHeaderFooter = true,
                 TextWatermark = new PdfTextWatermark("Odd watermark") { Opacity = 0.18 },
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void DifferentOddAndEvenPagesHeaderFooter_BlankEvenPagesSuppressRunningContent() {
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 ShowHeader = true,
                 HeaderFormat = "Odd header",
                 ShowPageNumbers = true,

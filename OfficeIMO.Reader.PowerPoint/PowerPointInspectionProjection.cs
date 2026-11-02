@@ -5,7 +5,7 @@ using System.Globalization;
 namespace OfficeIMO.Reader.PowerPoint;
 
 internal static class PowerPointInspectionProjection {
-    internal static OfficeDocumentReadResult Apply(PowerPointPresentation presentation, ReaderOptions options,
+    internal static OfficeDocumentReadResult Apply(PowerPointDocument presentation, ReaderOptions options,
         OfficeDocumentReadResult result, CancellationToken cancellationToken) {
         if (options.Inspection == null) return result;
         var builder = new ReaderInspectionMetadataBuilder(options, "powerpoint", cancellationToken);
@@ -19,7 +19,7 @@ internal static class PowerPointInspectionProjection {
                         ("author", comment.AuthorName), ("authorId", comment.AuthorId), ("parentId", comment.ParentId),
                         ("date", comment.Created?.ToString("O", CultureInfo.InvariantCulture)), ("status", comment.Status),
                         ("shapeId", comment.ShapeId?.ToString(CultureInfo.InvariantCulture)),
-                        ("x", comment.X?.ToString(CultureInfo.InvariantCulture)), ("y", comment.Y?.ToString(CultureInfo.InvariantCulture))));
+                        ("x", CommentCoordinate(comment.Kind, comment.X)), ("y", CommentCoordinate(comment.Kind, comment.Y))));
             }
             builder.Coverage("comments", "complete", "Classic and modern comments in the loaded presentation model.", new ReaderLocation { Path = path });
         }
@@ -50,5 +50,13 @@ internal static class PowerPointInspectionProjection {
             NativeInspectionProjection.InspectContentSafety(builder, safety =>
                 presentation.InspectLoadedContentSafety(safety, cancellationToken), path);
         return builder.Complete(result);
+    }
+
+    private static string? CommentCoordinate(PowerPointCommentKind kind, OfficeLength? value) {
+        if (!value.HasValue) return null;
+        // Preserve the metadata wire units: native eighth-points for classic, EMUs for modern.
+        long coordinate = kind == PowerPointCommentKind.Classic
+            ? PowerPointDocument.LengthToClassicCommentPosition(value.Value) : value.Value.ToEmus();
+        return coordinate.ToString(CultureInfo.InvariantCulture);
     }
 }

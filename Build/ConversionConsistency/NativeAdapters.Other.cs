@@ -20,7 +20,7 @@ internal static partial class NativeAdapters {
                 var imageOptions = Images<OneNotePageBatchRenderingOptions>(suite, profile);
                 imageOptions.DefaultFont = new OfficeFontInfo(suite.FontFamily, 11D);
                 var pdfOptions = new OneNoteVisualPdfOptions {
-                    PdfOptions = new PdfOptions().UseRenderingProfile(profile),
+                    PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile),
                     PageRendering = imageOptions, RasterScale = suite.Dpi / 72D
                 };
                 return Capture(document.ToVisualPdfDocumentResult(pdfOptions, token),
@@ -30,7 +30,7 @@ internal static partial class NativeAdapters {
                 var document = VisioDocument.Load(source);
                 var imageOptions = Images<VisioImageExportOptions>(suite, profile);
                 var pdfOptions = new VisioToPdfOptions {
-                    ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfOptions().UseRenderingProfile(profile) }
+                    ProjectionOptions = new PdfProjectionOptions { PdfOptions = new PdfCreateOptions().UseRenderingProfile(profile) }
                 };
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => document.ExportImages(format, imageOptions), token) with { PdfRoute = "native-semantic-projection" };
@@ -67,6 +67,6 @@ internal static partial class NativeAdapters {
         options.Mode = HtmlRenderMode.Paged;
         options.DefaultFontFamily = suite.FontFamily;
         options.Margins = HtmlRenderMargins.All(0);
-        options.PageSize = new OfficePageSize(contract.Pages[0].Width / (double)suite.Dpi, contract.Pages[0].Height / (double)suite.Dpi);
+        options.PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Width / (double)suite.Dpi), global::OfficeIMO.OfficeLength.Inches(contract.Pages[0].Height / (double)suite.Dpi));
     }
 }

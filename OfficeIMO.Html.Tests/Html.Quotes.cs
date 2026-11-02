@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void QuotesRoundTrip() {
             const string html = "<p>Before <q>quoted</q> after</p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
             Assert.Equal("HtmlQuote", runs[1].CharacterStyleId);
             Assert.Equal("HtmlQuote", runs[3].CharacterStyleId);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void EquationInsideQuoteRoundTripsInsideQuote() {
             const string html = "<p>Before <q>quoted <math aria-label=\"x=1\"><mi>x</mi><mo>=</mo><mn>1</mn></math> after</q> tail</p>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             string roundTrip = doc.ToHtml();
 

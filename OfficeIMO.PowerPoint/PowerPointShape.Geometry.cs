@@ -4,116 +4,25 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public abstract partial class PowerPointShape {
-        /// <summary>
-        ///     Horizontal position of the shape in EMUs.
-        /// </summary>
-        public long Left {
-            get => GetOffset().X?.Value ?? 0L;
-            set => GetOffset().X = value;
+        /// <summary>Left of the shape.</summary>
+        public OfficeLength Left {
+            get => OfficeLength.Emus(PeekOffset()?.X?.Value ?? 0L);
+            set => GetOffset().X = value.ToEmus();
         }
-
-        /// <summary>
-        ///     Horizontal position of the shape in points.
-        /// </summary>
-        public double LeftPoints {
-            get => PowerPointUnits.ToPoints(Left);
-            set => Left = PowerPointUnits.FromPoints(value);
+        /// <summary>Top of the shape.</summary>
+        public OfficeLength Top {
+            get => OfficeLength.Emus(PeekOffset()?.Y?.Value ?? 0L);
+            set => GetOffset().Y = value.ToEmus();
         }
-
-        /// <summary>
-        ///     Horizontal position of the shape in centimeters.
-        /// </summary>
-        public double LeftCm {
-            get => PowerPointUnits.ToCentimeters(Left);
-            set => Left = PowerPointUnits.FromCentimeters(value);
+        /// <summary>Width of the shape.</summary>
+        public OfficeLength Width {
+            get => OfficeLength.Emus(PeekExtents()?.Cx?.Value ?? 0L);
+            set => GetExtents().Cx = value.ToEmus();
         }
-
-        /// <summary>
-        ///     Horizontal position of the shape in inches.
-        /// </summary>
-        public double LeftInches {
-            get => PowerPointUnits.ToInches(Left);
-            set => Left = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Vertical position of the shape in EMUs.
-        /// </summary>
-        public long Top {
-            get => GetOffset().Y?.Value ?? 0L;
-            set => GetOffset().Y = value;
-        }
-
-        /// <summary>
-        ///     Vertical position of the shape in points.
-        /// </summary>
-        public double TopPoints {
-            get => PowerPointUnits.ToPoints(Top);
-            set => Top = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Vertical position of the shape in centimeters.
-        /// </summary>
-        public double TopCm {
-            get => PowerPointUnits.ToCentimeters(Top);
-            set => Top = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Vertical position of the shape in inches.
-        /// </summary>
-        public double TopInches {
-            get => PowerPointUnits.ToInches(Top);
-            set => Top = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Width of the shape in EMUs.
-        /// </summary>
-        public long Width {
-            get => GetExtents().Cx?.Value ?? 0L;
-            set => GetExtents().Cx = value;
-        }
-
-        /// <summary>
-        ///     Width of the shape in points.
-        /// </summary>
-        public double WidthPoints {
-            get => PowerPointUnits.ToPoints(Width);
-            set => Width = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Width of the shape in centimeters.
-        /// </summary>
-        public double WidthCm {
-            get => PowerPointUnits.ToCentimeters(Width);
-            set => Width = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Width of the shape in inches.
-        /// </summary>
-        public double WidthInches {
-            get => PowerPointUnits.ToInches(Width);
-            set => Width = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Height of the shape in EMUs.
-        /// </summary>
-        public long Height {
-            get => GetExtents().Cy?.Value ?? 0L;
-            set => GetExtents().Cy = value;
-        }
-
-        /// <summary>
-        ///     Height of the shape in points.
-        /// </summary>
-        public double HeightPoints {
-            get => PowerPointUnits.ToPoints(Height);
-            set => Height = PowerPointUnits.FromPoints(value);
+        /// <summary>Height of the shape.</summary>
+        public OfficeLength Height {
+            get => OfficeLength.Emus(PeekExtents()?.Cy?.Value ?? 0L);
+            set => GetExtents().Cy = value.ToEmus();
         }
 
         internal bool TryGetExportBoundsPoints(out double left, out double top, out double width, out double height) {
@@ -122,10 +31,10 @@ namespace OfficeIMO.PowerPoint {
             if (OwnerSlide != null && GetPlaceholderShape() is { } placeholder) {
                 PowerPointLayoutBox? bounds = OwnerSlide.GetExportPlaceholderBounds(placeholder);
                 if (bounds.HasValue) {
-                    left = bounds.Value.LeftPoints;
-                    top = bounds.Value.TopPoints;
-                    width = bounds.Value.WidthPoints;
-                    height = bounds.Value.HeightPoints;
+                    left = bounds.Value.Left.ToPoints();
+                    top = bounds.Value.Top.ToPoints();
+                    width = bounds.Value.Width.ToPoints();
+                    height = bounds.Value.Height.ToPoints();
                     return width > 0D && height > 0D;
                 }
             }
@@ -147,153 +56,29 @@ namespace OfficeIMO.PowerPoint {
             height = PowerPointUnits.ToPoints(cy);
             return true;
         }
-
-        /// <summary>
-        ///     Height of the shape in centimeters.
-        /// </summary>
-        public double HeightCm {
-            get => PowerPointUnits.ToCentimeters(Height);
-            set => Height = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Height of the shape in inches.
-        /// </summary>
-        public double HeightInches {
-            get => PowerPointUnits.ToInches(Height);
-            set => Height = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Right position of the shape in EMUs.
-        /// </summary>
-        public long Right {
+        /// <summary>Right of the shape.</summary>
+        public OfficeLength Right {
             get => Left + Width;
             set => Left = value - Width;
         }
-
-        /// <summary>
-        ///     Right position of the shape in points.
-        /// </summary>
-        public double RightPoints {
-            get => PowerPointUnits.ToPoints(Right);
-            set => Right = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Right position of the shape in centimeters.
-        /// </summary>
-        public double RightCm {
-            get => PowerPointUnits.ToCentimeters(Right);
-            set => Right = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Right position of the shape in inches.
-        /// </summary>
-        public double RightInches {
-            get => PowerPointUnits.ToInches(Right);
-            set => Right = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Bottom position of the shape in EMUs.
-        /// </summary>
-        public long Bottom {
+        /// <summary>Bottom of the shape.</summary>
+        public OfficeLength Bottom {
             get => Top + Height;
             set => Top = value - Height;
         }
-
-        /// <summary>
-        ///     Bottom position of the shape in points.
-        /// </summary>
-        public double BottomPoints {
-            get => PowerPointUnits.ToPoints(Bottom);
-            set => Bottom = PowerPointUnits.FromPoints(value);
+        /// <summary>CenterX of the shape.</summary>
+        public OfficeLength CenterX {
+            get => OfficeLength.Emus(Left.ToEmus() + (long)Math.Round(Width.ToEmus() / 2d));
+            set => Left = OfficeLength.Emus((long)Math.Round(value.ToEmus() - Width.ToEmus() / 2d));
+        }
+        /// <summary>CenterY of the shape.</summary>
+        public OfficeLength CenterY {
+            get => OfficeLength.Emus(Top.ToEmus() + (long)Math.Round(Height.ToEmus() / 2d));
+            set => Top = OfficeLength.Emus((long)Math.Round(value.ToEmus() - Height.ToEmus() / 2d));
         }
 
         /// <summary>
-        ///     Bottom position of the shape in centimeters.
-        /// </summary>
-        public double BottomCm {
-            get => PowerPointUnits.ToCentimeters(Bottom);
-            set => Bottom = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Bottom position of the shape in inches.
-        /// </summary>
-        public double BottomInches {
-            get => PowerPointUnits.ToInches(Bottom);
-            set => Bottom = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Horizontal center of the shape in EMUs.
-        /// </summary>
-        public long CenterX {
-            get => Left + (long)Math.Round(Width / 2d);
-            set => Left = (long)Math.Round(value - Width / 2d);
-        }
-
-        /// <summary>
-        ///     Horizontal center of the shape in points.
-        /// </summary>
-        public double CenterXPoints {
-            get => PowerPointUnits.ToPoints(CenterX);
-            set => CenterX = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Horizontal center of the shape in centimeters.
-        /// </summary>
-        public double CenterXCm {
-            get => PowerPointUnits.ToCentimeters(CenterX);
-            set => CenterX = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Horizontal center of the shape in inches.
-        /// </summary>
-        public double CenterXInches {
-            get => PowerPointUnits.ToInches(CenterX);
-            set => CenterX = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Vertical center of the shape in EMUs.
-        /// </summary>
-        public long CenterY {
-            get => Top + (long)Math.Round(Height / 2d);
-            set => Top = (long)Math.Round(value - Height / 2d);
-        }
-
-        /// <summary>
-        ///     Vertical center of the shape in points.
-        /// </summary>
-        public double CenterYPoints {
-            get => PowerPointUnits.ToPoints(CenterY);
-            set => CenterY = PowerPointUnits.FromPoints(value);
-        }
-
-        /// <summary>
-        ///     Vertical center of the shape in centimeters.
-        /// </summary>
-        public double CenterYCm {
-            get => PowerPointUnits.ToCentimeters(CenterY);
-            set => CenterY = PowerPointUnits.FromCentimeters(value);
-        }
-
-        /// <summary>
-        ///     Vertical center of the shape in inches.
-        /// </summary>
-        public double CenterYInches {
-            get => PowerPointUnits.ToInches(CenterY);
-            set => CenterY = PowerPointUnits.FromInches(value);
-        }
-
-        /// <summary>
-        ///     Gets or sets the shape bounds in EMUs.
+        ///     Gets or sets the shape bounds.
         /// </summary>
         public PowerPointLayoutBox Bounds {
             get => new PowerPointLayoutBox(Left, Top, Width, Height);
@@ -306,93 +91,42 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Sets position using points.
+        ///     Sets position with explicit lengths.
         /// </summary>
-        public void SetPositionPoints(double leftPoints, double topPoints) {
-            LeftPoints = leftPoints;
-            TopPoints = topPoints;
+        public void SetPosition(OfficeLength left, OfficeLength top) {
+            Left = left;
+            Top = top;
         }
 
         /// <summary>
-        ///     Sets position using centimeters.
+        ///     Sets size with explicit lengths.
         /// </summary>
-        public void SetPositionCm(double leftCm, double topCm) {
-            LeftCm = leftCm;
-            TopCm = topCm;
-        }
-
-        /// <summary>
-        ///     Sets position using inches.
-        /// </summary>
-        public void SetPositionInches(double leftInches, double topInches) {
-            LeftInches = leftInches;
-            TopInches = topInches;
-        }
-
-        /// <summary>
-        ///     Sets size using points.
-        /// </summary>
-        public void SetSizePoints(double widthPoints, double heightPoints) {
-            WidthPoints = widthPoints;
-            HeightPoints = heightPoints;
-        }
-
-        /// <summary>
-        ///     Sets size using centimeters.
-        /// </summary>
-        public void SetSizeCm(double widthCm, double heightCm) {
-            WidthCm = widthCm;
-            HeightCm = heightCm;
-        }
-
-        /// <summary>
-        ///     Sets size using inches.
-        /// </summary>
-        public void SetSizeInches(double widthInches, double heightInches) {
-            WidthInches = widthInches;
-            HeightInches = heightInches;
+        public void SetSize(OfficeLength width, OfficeLength height) {
+            Width = width;
+            Height = height;
         }
 
         /// <summary>
         ///     Resizes the shape while keeping the specified anchor fixed.
         /// </summary>
-        public void Resize(long width, long height, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
-            if (width < 0) {
+        public void Resize(OfficeLength width, OfficeLength height, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
+            long widthValue = width.ToEmus();
+            long heightValue = height.ToEmus();
+            if (widthValue < 0) {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }
-            if (height < 0) {
+            if (heightValue < 0) {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
             PowerPointLayoutBox bounds = Bounds;
             (double anchorX, double anchorY) = ResolveAnchorPoint(bounds, anchor);
-            (double offsetX, double offsetY) = ResolveAnchorOffset(width, height, anchor);
+            (double offsetX, double offsetY) = ResolveAnchorOffset(widthValue, heightValue, anchor);
 
-            Width = width;
-            Height = height;
-            Left = (long)Math.Round(anchorX - offsetX);
-            Top = (long)Math.Round(anchorY - offsetY);
-        }
-
-        /// <summary>
-        ///     Resizes the shape using points while keeping the specified anchor fixed.
-        /// </summary>
-        public void ResizePoints(double widthPoints, double heightPoints, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
-            Resize(PowerPointUnits.FromPoints(widthPoints), PowerPointUnits.FromPoints(heightPoints), anchor);
-        }
-
-        /// <summary>
-        ///     Resizes the shape using centimeters while keeping the specified anchor fixed.
-        /// </summary>
-        public void ResizeCm(double widthCm, double heightCm, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
-            Resize(PowerPointUnits.FromCentimeters(widthCm), PowerPointUnits.FromCentimeters(heightCm), anchor);
-        }
-
-        /// <summary>
-        ///     Resizes the shape using inches while keeping the specified anchor fixed.
-        /// </summary>
-        public void ResizeInches(double widthInches, double heightInches, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
-            Resize(PowerPointUnits.FromInches(widthInches), PowerPointUnits.FromInches(heightInches), anchor);
+            Width = OfficeLength.Emus(widthValue);
+            Height = OfficeLength.Emus(heightValue);
+            Left = OfficeLength.Emus((long)Math.Round(anchorX - offsetX));
+            Top = OfficeLength.Emus((long)Math.Round(anchorY - offsetY));
         }
 
         /// <summary>
@@ -403,9 +137,9 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(scale));
             }
 
-            long newWidth = (long)Math.Round(Width * scale);
-            long newHeight = (long)Math.Round(Height * scale);
-            Resize(newWidth, newHeight, anchor);
+            long newWidth = (long)Math.Round(Width.ToEmus() * scale);
+            long newHeight = (long)Math.Round(Height.ToEmus() * scale);
+            Resize(OfficeLength.Emus(newWidth), OfficeLength.Emus(newHeight), anchor);
         }
 
         /// <summary>
@@ -419,39 +153,38 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(scaleY));
             }
 
-            long newWidth = (long)Math.Round(Width * scaleX);
-            long newHeight = (long)Math.Round(Height * scaleY);
-            Resize(newWidth, newHeight, anchor);
+            long newWidth = (long)Math.Round(Width.ToEmus() * scaleX);
+            long newHeight = (long)Math.Round(Height.ToEmus() * scaleY);
+            Resize(OfficeLength.Emus(newWidth), OfficeLength.Emus(newHeight), anchor);
         }
 
         /// <summary>
-        ///     Moves the shape by the specified offsets in EMUs.
+        ///     Moves the shape by the specified offsets with explicit lengths.
         /// </summary>
-        public void MoveBy(long offsetX, long offsetY) {
+        public void MoveBy(OfficeLength offsetX, OfficeLength offsetY) {
             Left += offsetX;
             Top += offsetY;
         }
 
-        /// <summary>
-        ///     Moves the shape by the specified offsets in points.
-        /// </summary>
-        public void MoveByPoints(double offsetXPoints, double offsetYPoints) {
-            MoveBy(PowerPointUnits.FromPoints(offsetXPoints), PowerPointUnits.FromPoints(offsetYPoints));
-        }
+        // Reading a position must not write an empty transform: a placeholder without one inherits its layout's
+        // geometry, and an empty <a:off/> is invalid.
+        private A.Offset? PeekOffset() => Element switch {
+            Shape s => s.ShapeProperties?.Transform2D?.Offset,
+            ConnectionShape c => c.ShapeProperties?.Transform2D?.Offset,
+            Picture p => p.ShapeProperties?.Transform2D?.Offset,
+            GraphicFrame g => g.Transform?.Offset,
+            GroupShape g => g.GroupShapeProperties?.TransformGroup?.Offset,
+            _ => GetOffset()
+        };
 
-        /// <summary>
-        ///     Moves the shape by the specified offsets in centimeters.
-        /// </summary>
-        public void MoveByCm(double offsetXCm, double offsetYCm) {
-            MoveBy(PowerPointUnits.FromCentimeters(offsetXCm), PowerPointUnits.FromCentimeters(offsetYCm));
-        }
-
-        /// <summary>
-        ///     Moves the shape by the specified offsets in inches.
-        /// </summary>
-        public void MoveByInches(double offsetXInches, double offsetYInches) {
-            MoveBy(PowerPointUnits.FromInches(offsetXInches), PowerPointUnits.FromInches(offsetYInches));
-        }
+        private A.Extents? PeekExtents() => Element switch {
+            Shape s => s.ShapeProperties?.Transform2D?.Extents,
+            ConnectionShape c => c.ShapeProperties?.Transform2D?.Extents,
+            Picture p => p.ShapeProperties?.Transform2D?.Extents,
+            GraphicFrame g => g.Transform?.Extents,
+            GroupShape g => g.GroupShapeProperties?.TransformGroup?.Extents,
+            _ => GetExtents()
+        };
 
         private A.Offset GetOffset() {
             switch (Element) {
@@ -553,12 +286,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static (double x, double y) ResolveAnchorPoint(PowerPointLayoutBox bounds, PowerPointShapeAnchor anchor) {
-            double left = bounds.Left;
-            double top = bounds.Top;
-            double right = bounds.Right;
-            double bottom = bounds.Bottom;
-            double centerX = bounds.Left + bounds.Width / 2d;
-            double centerY = bounds.Top + bounds.Height / 2d;
+            double left = bounds.Left.ToEmus();
+            double top = bounds.Top.ToEmus();
+            double right = bounds.Right.ToEmus();
+            double bottom = bounds.Bottom.ToEmus();
+            double centerX = bounds.Left.ToEmus() + bounds.Width.ToEmus() / 2d;
+            double centerY = bounds.Top.ToEmus() + bounds.Height.ToEmus() / 2d;
 
             return anchor switch {
                 PowerPointShapeAnchor.TopLeft => (left, top),

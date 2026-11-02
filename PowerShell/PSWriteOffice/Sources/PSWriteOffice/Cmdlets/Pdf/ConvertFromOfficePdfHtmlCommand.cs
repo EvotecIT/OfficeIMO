@@ -3,6 +3,7 @@ using System.IO;
 using System.Management.Automation;
 using System.Text;
 using OfficeIMO.Html;
+using OfficeIMO.Pdf;
 using OfficeIMO.Html.Pdf;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
@@ -134,7 +135,7 @@ public sealed class ConvertFromOfficePdfHtmlCommand : PSCmdlet {
             }
 
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            document.SaveAsPdf(outputPath, options).RequireSuccess();
+            document.SaveAsPdf(outputPath, options);
             if (Open.IsPresent) {
                 FileOpenService.Open(outputPath);
             }
@@ -146,7 +147,8 @@ public sealed class ConvertFromOfficePdfHtmlCommand : PSCmdlet {
             return;
         }
 
-        WriteObject(document.ToPdfBytes(options), enumerateCollection: false);
+        using var pdf = document.ToPdf(options);
+        WriteObject(pdf.ToBytes(new PdfSaveOptions { AllowLoss = true }), enumerateCollection: false);
     }
 
     private HtmlToPdfOptions BuildOptions(string? htmlFileDirectory) {

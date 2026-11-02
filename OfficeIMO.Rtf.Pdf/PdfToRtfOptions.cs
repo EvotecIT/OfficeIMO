@@ -12,10 +12,10 @@ public sealed class PdfToRtfOptions {
     internal System.Threading.CancellationToken CancellationToken { get; set; }
     /// <summary>
     /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
-    /// Null uses <see cref="OfficeIMO.Pdf.PdfReadOptions.Default"/>. This setting is ignored when the source is already a
+    /// Null uses <see cref="OfficeIMO.Pdf.PdfLoadOptions"/>. This setting is ignored when the source is already a
     /// <see cref="OfficeIMO.Pdf.PdfDocumentReadResult"/>.
     /// </summary>
-    public OfficeIMO.Pdf.PdfReadOptions? ReadOptions { get; set; }
+    public OfficeIMO.Pdf.PdfLoadOptions? ReadOptions { get; set; }
 
     /// <summary>Whether PDF Info dictionary metadata should be copied into the RTF info destination.</summary>
     public bool IncludeMetadata { get; set; } = true;

@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.SetCellText(0, 0, "Record"); table.SetCellText(1, 0, "Example");
-            if (separateInside) table.StyleDetails!.SetBordersOutsideInside(WordBorderStyle.Single, 8, OfficeColor.Blue, WordBorderStyle.Single, 4, OfficeColor.Red);
-            else table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 8, OfficeColor.Blue);
+            if (separateInside) table.StyleDetails!.SetBordersOutsideInside(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(1), OfficeColor.Blue, WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(0.5), OfficeColor.Red);
+            else table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(1), OfficeColor.Blue);
             using var saved = WordDocument.Load(new MemoryStream(document.ToBytes()));
             Assert.Empty(saved.ValidateDocument());
             Assert.Equal("0000FF", saved.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).ColorHex);

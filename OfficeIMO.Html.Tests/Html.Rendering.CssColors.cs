@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
             item => item.Text == "Pale heading");
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Equal(51, heading.Color.A);

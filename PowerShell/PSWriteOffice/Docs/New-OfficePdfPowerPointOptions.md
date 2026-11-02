@@ -1,0 +1,371 @@
+---
+external help file: PSWriteOffice-help.xml
+Module Name: PSWriteOffice
+online version: https://github.com/EvotecIT/OfficeIMO
+schema: 2.0.0
+---
+# New-OfficePdfPowerPointOptions
+## SYNOPSIS
+Creates discoverable PDF-to-PowerPoint reconstruction settings.
+
+## SYNTAX
+### Default (Default)
+```powershell
+New-OfficePdfPowerPointOptions [-Mode <PowerPointPdfImportMode>] [-Page <OfficePageRange>] [-Dpi <Double>] [-MaxPages <Int32>] [-MaximumPixelCountPerPage <Int64>] [-MaxOutputBytesPerPage <Int64>] [-MaxTotalOutputBytes <Int64>] [-MaxEditableObjectsPerPage <Int32>] [-MaxRows <Int32>] [-MergePageContinuations] [-SuppressRepeatedBodyHeaderRows] [-MaxRowsPerSlide <Int32>] [-MaxColumnsPerSlide <Int32>] [-TableStyle <PowerPointTableStylePreset>] [-IncludeSourceTitles] [-IncludeColumnHeaderRows] [-BandedRows] [-AlignNumericColumns] [-EmptyPresentationTitle <string>] [-EmptyPresentationMessage <string>] [<CommonParameters>]
+```
+
+## DESCRIPTION
+Creates discoverable PDF-to-PowerPoint reconstruction settings.
+
+## EXAMPLES
+
+### EXAMPLE 1
+```powershell
+$options = New-OfficePdfPowerPointOptions -Page '1-5' -MaxPages 5
+Convert-OfficeDocument -Path ./Source.pdf -To PowerPoint -OutputPath ./Slides.pptx -Options $options
+```
+
+
+### EXAMPLE 2
+```powershell
+$options = New-OfficePdfPowerPointOptions -Mode VisualPages -Dpi 96 -MaximumPixelCountPerPage 2000000
+Convert-OfficeDocument -Path ./Review.pdf -To PowerPoint -OutputPath ./Review.pptx -Options $options
+```
+
+
+## PARAMETERS
+
+### -AlignNumericColumns
+Right-align inferred numeric columns.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -BandedRows
+Enable banded-row styling.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Dpi
+Raster resolution used by visual import.
+
+```yaml
+Type: Double
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EmptyPresentationMessage
+Message used when no supported content is detected.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -EmptyPresentationTitle
+Title used when no supported content is detected.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeColumnHeaderRows
+Add inferred column headers.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -IncludeSourceTitles
+Add source-page titles.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxColumnsPerSlide
+Maximum columns written to one slide; zero means unlimited.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxEditableObjectsPerPage
+Maximum editable objects reconstructed per page.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumPixelCountPerPage
+Maximum pixels per rendered page.
+
+```yaml
+Type: Int64
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxOutputBytesPerPage
+Maximum encoded bytes per rendered page.
+
+```yaml
+Type: Int64
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxPages
+Maximum pages imported.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxRows
+Maximum body rows imported per table; zero means unlimited.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxRowsPerSlide
+Maximum rows written to one slide; zero means unlimited.
+
+```yaml
+Type: Int32
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaxTotalOutputBytes
+Maximum aggregate encoded output bytes.
+
+```yaml
+Type: Int64
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MergePageContinuations
+Merge compatible table segments across pages.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Mode
+Visual, editable-table, hybrid, editable-content, or automatic import mode.
+
+```yaml
+Type: PowerPointPdfImportMode
+Parameter Sets: Default
+Aliases: None
+Possible values: VisualPages, EditableTables, HybridVisualAndEditableTables, EditableContent, Auto
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Page
+Optional one-based page ranges such as 1-3,5.
+
+```yaml
+Type: OfficePageRange
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SuppressRepeatedBodyHeaderRows
+Suppress repeated body header rows.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TableStyle
+PowerPoint table style.
+
+```yaml
+Type: PowerPointTableStylePreset
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### CommonParameters
+This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
+
+## INPUTS
+
+- `None`
+
+## OUTPUTS
+
+- `OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions`
+
+## RELATED LINKS
+
+- None

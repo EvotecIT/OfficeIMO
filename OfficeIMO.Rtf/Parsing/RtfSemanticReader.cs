@@ -160,7 +160,7 @@ internal static partial class RtfSemanticReader {
             if (destination == "pict") {
                 RtfImage? image = ReadPicture(group);
                 if (image != null) {
-                    AddPicture(image);
+                    AddImage(image);
                 }
 
                 return;
@@ -270,6 +270,10 @@ internal static partial class RtfSemanticReader {
 
         private void ApplyControlSymbol(RtfControlSymbol symbol, CharacterState state) {
             if (symbol.Symbol != '\'' && RtfTextDecoder.ConsumeFallback(state)) return;
+            if (symbol.IsParagraphBreak) {
+                FlushParagraphIfNeeded(force: true, state);
+                return;
+            }
             switch (symbol.Symbol) {
                 case '\\':
                 case '{':

@@ -18,7 +18,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ExportsSemanticWorksheetRichContent() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Sales");
+        ExcelSheet sheet = workbook.AddSheet("Sales");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "North");
@@ -29,8 +29,15 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(4, 2, 140.00);
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
-        sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, offsetXPixels: 9, offsetYPixels: 11, name: "Status Logo", altText: "Inline status marker");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Revenue Trend" });
+        sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(48),
+            Height = OfficeIMO.OfficeLength.Pixels(48),
+            OffsetX = OfficeIMO.OfficeLength.Pixels(9),
+            OffsetY = OfficeIMO.OfficeLength.Pixels(11),
+            Name = "Status Logo",
+            Description = "Inline status marker"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -43,22 +50,34 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("123.45", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-value-kind=\"number\" data-officeimo-value=\"123.45\"", html, StringComparison.Ordinal);
         Assert.Contains("--officeimo-accent", html, StringComparison.Ordinal);
-        Assert.Contains("officeimo-formulas", html, StringComparison.Ordinal);
+        // The formula travels with its cell; the formula inventory is opt-in.
+        Assert.DoesNotContain("officeimo-formulas", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-value-kind=\"formula\"", html, StringComparison.Ordinal);
         Assert.Contains("SUM(B2:B4)", html, StringComparison.Ordinal);
+        Assert.Contains("<figure class=\"officeimo-chart\"", html, StringComparison.Ordinal);
         Assert.Contains("Reviewed with finance", html, StringComparison.Ordinal);
         Assert.Contains("Revenue Trend", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-data", html, StringComparison.Ordinal);
         Assert.Contains(">South</th>", html, StringComparison.Ordinal);
         Assert.Contains(">Amount</th>", html, StringComparison.Ordinal);
         Assert.Contains("Inline status marker", html, StringComparison.Ordinal);
-        Assert.Contains("Offset: 9, 11", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Offset: 9, 11", html, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
+
+        string diagnosticHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
+            IncludeFormulaInventory = true,
+            IncludeObjectMetadata = true
+        });
+        Assert.Contains("officeimo-formulas", diagnosticHtml, StringComparison.Ordinal);
+        Assert.Contains("Offset: 9, 11", diagnosticHtml, StringComparison.Ordinal);
+        Assert.Contains("Type: ColumnClustered", diagnosticHtml, StringComparison.Ordinal);
     }
 
     [Fact]
     public void ExcelHtml_ExportsVisualReviewFromSharedSvgRenderer() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Visual");
+        ExcelSheet sheet = workbook.AddSheet("Visual");
         sheet.CellValue(1, 1, "Metric");
         sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "Ready");
@@ -66,8 +85,13 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 1, "Done");
         sheet.CellValue(3, 2, 18);
         sheet.SetComment(2, 2, "Visual comment proof", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.ColumnClustered, title: "Visual Chart");
-        sheet.AddImage(3, 3, OnePixelPng, widthPixels: 36, heightPixels: 36, name: "Visual Logo", altText: "Visual image marker");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Visual Chart" });
+        sheet.AddImage(3, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(36),
+            Height = OfficeIMO.OfficeLength.Pixels(36),
+            Name = "Visual Logo",
+            Description = "Visual image marker"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelVisualReview
@@ -86,13 +110,13 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_VisualWorkbookNamespacesEmbeddedSvgIdsPerWorksheet() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet first = workbook.AddWorksheet("One");
+        ExcelSheet first = workbook.AddSheet("One");
         first.CellValue(1, 1, "Shared label");
-        first.SetColumnWidth(1, 14);
+        first.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
-        ExcelSheet second = workbook.AddWorksheet("Two");
+        ExcelSheet second = workbook.AddSheet("Two");
         second.CellValue(1, 1, "Shared label");
-        second.SetColumnWidth(1, 14);
+        second.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelVisualReview
@@ -109,7 +133,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_CapabilityGalleryWritesSharedManifestForRichWorkbook() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Gallery");
+        ExcelSheet sheet = workbook.AddSheet("Gallery");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "North");
@@ -118,8 +142,13 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 2, 57);
         sheet.CellFormula(4, 2, "SUM(B2:B3)");
         sheet.SetComment(2, 2, "Gallery comment", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 150, type: ExcelChartType.ColumnClustered, title: "Gallery Chart");
-        sheet.AddImage(6, 1, OnePixelPng, widthPixels: 36, heightPixels: 36, name: "Gallery Logo", altText: "Gallery image");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(150), Title = "Gallery Chart" });
+        sheet.AddImage(6, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(36),
+            Height = OfficeIMO.OfficeLength.Pixels(36),
+            Name = "Gallery Logo",
+            Description = "Gallery image"
+        });
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = workbook.SaveHtmlCapabilityGallery(directory, new ExcelHtmlCapabilityGalleryOptions {
@@ -178,7 +207,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_LoadsSemanticRichWorkbookBackToNativeWorkbook() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Roundtrip");
+        ExcelSheet sheet = workbook.AddSheet("Roundtrip");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "North");
@@ -189,16 +218,27 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(4, 2, 140.00);
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 280, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Revenue Trend");
-        sheet.AddImage(7, 1, OnePixelPng, widthPixels: 48, heightPixels: 48, offsetXPixels: 9, offsetYPixels: 11, name: "Status Logo", altText: "Inline status marker");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Revenue Trend" });
+        sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(48),
+            Height = OfficeIMO.OfficeLength.Pixels(48),
+            OffsetX = OfficeIMO.OfficeLength.Pixels(9),
+            OffsetY = OfficeIMO.OfficeLength.Pixels(11),
+            Name = "Status Logo",
+            Description = "Inline status marker"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
             Theme = OfficeVisualThemeKind.Report
         });
 
-        Assert.Contains("Cell: 1, 5", html, StringComparison.Ordinal);
-        Assert.Contains("Size: 280x180", html, StringComparison.Ordinal);
+        var exportedHtml = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+        var chartFrame = Assert.Single(exportedHtml.QuerySelectorAll("[data-officeimo-layer-kind='chart']"));
+        Assert.Equal("1", chartFrame.GetAttribute("data-officeimo-row"));
+        Assert.Equal("5", chartFrame.GetAttribute("data-officeimo-column"));
+        Assert.Equal("280", chartFrame.GetAttribute("data-officeimo-width"));
+        Assert.Equal("180", chartFrame.GetAttribute("data-officeimo-height"));
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
             html,
             HtmlConversionDocumentOptions.CreateTrustedProfile()).ToExcelDocumentResult();
@@ -217,14 +257,14 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(importedSheet.GetFormulaCells(), formula => formula.CellReference == "B5" && formula.Formula == "SUM(B2:B4)");
         Assert.Contains(importedSheet.GetComments(), comment => comment.CellReference == "B2" && comment.Text == "Reviewed with finance" && comment.Author == "OfficeIMO");
         ExcelImage importedImage = Assert.Single(importedSheet.Images);
-        Assert.Equal(9, importedImage.OffsetXPixels);
-        Assert.Equal(11, importedImage.OffsetYPixels);
+        Assert.Equal(9, importedImage.OffsetX.ToPixels());
+        Assert.Equal(11, importedImage.OffsetY.ToPixels());
         ExcelChart importedChart = Assert.Single(importedSheet.Charts);
-        Assert.True(importedChart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(importedChart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(1, snapshot.RowIndex);
         Assert.Equal(5, snapshot.ColumnIndex);
-        Assert.Equal(280, snapshot.WidthPixels);
-        Assert.Equal(180, snapshot.HeightPixels);
+        Assert.Equal(280, snapshot.Width.ToPixels());
+        Assert.Equal(180, snapshot.Height.ToPixels());
         Assert.Equal(new[] { "North", "South", "West" }, snapshot.Data.Categories);
         ExcelChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
         Assert.Equal("Amount", importedSeries.Name);
@@ -250,15 +290,20 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsImageTransformsAbsoluteAnchorAndDrawingOrder() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Drawings");
+        ExcelSheet sheet = workbook.AddSheet("Drawings");
         sheet.CellValue(1, 1, "Category");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "A");
         sheet.CellValue(2, 2, 10);
         sheet.CellValue(3, 1, "B");
         sheet.CellValue(3, 2, 20);
-        sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 240, heightPixels: 140, type: ExcelChartType.ColumnClustered, title: "Layer base");
-        ExcelImage image = sheet.AddImageAbsolute(33, 44, OnePixelPng, widthPixels: 52, heightPixels: 48, name: "Layer image", altText: "Absolute layer");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(140), Title = "Layer base" });
+        ExcelImage image = sheet.AddImage(OfficeIMO.OfficeLength.Pixels(33), OfficeIMO.OfficeLength.Pixels(44), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(52),
+            Height = OfficeIMO.OfficeLength.Pixels(48),
+            Name = "Layer image",
+            Description = "Absolute layer"
+        });
         image.SetRotation(17.5).SetFlip(horizontal: true, vertical: true).SetCropRatio(0.125D, 0.25D, 0.0625D, 0.1875D);
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -280,11 +325,11 @@ public partial class HtmlOfficeAdapters {
         ExcelChart importedChart = Assert.Single(importedSheet.Charts);
         ExcelImage importedImage = Assert.Single(importedSheet.Images);
         Assert.True(importedImage.HasAbsoluteAnchor);
-        Assert.True(importedImage.TryGetAbsoluteAnchorBounds(out int x, out int y, out int width, out int height));
-        Assert.Equal(33, x);
-        Assert.Equal(44, y);
-        Assert.Equal(52, width);
-        Assert.Equal(48, height);
+        Assert.True(importedImage.TryGetAbsoluteAnchorBounds(out OfficeIMO.OfficeLength x, out OfficeIMO.OfficeLength y, out OfficeIMO.OfficeLength width, out OfficeIMO.OfficeLength height));
+        Assert.Equal(33, x.ToPixels());
+        Assert.Equal(44, y.ToPixels());
+        Assert.Equal(52, width.ToPixels());
+        Assert.Equal(48, height.ToPixels());
         Assert.Equal(17.5D, importedImage.RotationDegrees, 3);
         Assert.True(importedImage.FlipHorizontal);
         Assert.True(importedImage.FlipVertical);
@@ -298,9 +343,12 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RejectsCropPairsThatConsumeTheWholeImage() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Drawings");
+        ExcelSheet sheet = workbook.AddSheet("Drawings");
         sheet.CellValue(1, 1, "Seed");
-        sheet.AddImageAbsolute(10, 10, OnePixelPng, widthPixels: 40, heightPixels: 30)
+        sheet.AddImage(OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(40),
+            Height = OfficeIMO.OfficeLength.Pixels(30)
+        })
             .SetCropRatio(0.1D, 0D, 0.1D, 0D);
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -323,9 +371,17 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsTwoCellImageAnchors() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Anchors");
+        ExcelSheet sheet = workbook.AddSheet("Anchors");
         sheet.CellValue(1, 1, "Seed");
-        ExcelImage image = sheet.AddImageToRange("B2:D5", OnePixelPng, "image/png", offsetXPixels: 7, offsetYPixels: 8, endOffsetXPixels: 9, endOffsetYPixels: 10, name: "Range image", altText: "Two-cell anchor");
+        ExcelImage image = sheet.AddImage("B2:D5", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            OffsetX = OfficeIMO.OfficeLength.Pixels(7),
+            OffsetY = OfficeIMO.OfficeLength.Pixels(8),
+            EndOffsetX = OfficeIMO.OfficeLength.Pixels(9),
+            EndOffsetY = OfficeIMO.OfficeLength.Pixels(10),
+            Name = "Range image",
+            Description = "Two-cell anchor"
+        });
         image.SetRotation(12.5D).SetFlip(horizontal: true, vertical: false);
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -347,12 +403,12 @@ public partial class HtmlOfficeAdapters {
         Assert.True(importedImage.HasTwoCellAnchor);
         Assert.Equal(2, importedImage.RowIndex);
         Assert.Equal(2, importedImage.ColumnIndex);
-        Assert.Equal(7, importedImage.OffsetXPixels);
-        Assert.Equal(8, importedImage.OffsetYPixels);
+        Assert.Equal(7, importedImage.OffsetX.ToPixels());
+        Assert.Equal(8, importedImage.OffsetY.ToPixels());
         Assert.Equal(6, importedImage.ToRowIndex);
         Assert.Equal(5, importedImage.ToColumnIndex);
-        Assert.Equal(9, importedImage.ToOffsetXPixels);
-        Assert.Equal(10, importedImage.ToOffsetYPixels);
+        Assert.Equal(9, importedImage.ToOffsetX.ToPixels());
+        Assert.Equal(10, importedImage.ToOffsetY.ToPixels());
         Assert.Equal(12.5D, importedImage.RotationDegrees, 3);
         Assert.True(importedImage.FlipHorizontal);
     }
@@ -360,10 +416,10 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsSameCellTwoCellImageMarkers() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("SameCellAnchor");
+        ExcelSheet sheet = workbook.AddSheet("SameCellAnchor");
         sheet.CellValue(1, 1, "Seed");
-        sheet.AddImageToRange("B2:B2", OnePixelPng, "image/png", name: "Same-cell image", altText: "Same-cell anchor")
-            .SetTwoCellEndingMarker(2, 2, 3, 4);
+        sheet.AddImage("B2:B2", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions { ContentType = "image/png", Name = "Same-cell image", Description = "Same-cell anchor" })
+            .SetTwoCellEndingMarker(2, 2, OfficeIMO.OfficeLength.Pixels(3), OfficeIMO.OfficeLength.Pixels(4));
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -381,14 +437,14 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(2, importedImage.ColumnIndex);
         Assert.Equal(2, importedImage.ToRowIndex);
         Assert.Equal(2, importedImage.ToColumnIndex);
-        Assert.Equal(3, importedImage.ToOffsetXPixels);
-        Assert.Equal(4, importedImage.ToOffsetYPixels);
+        Assert.Equal(3, importedImage.ToOffsetX.ToPixels());
+        Assert.Equal(4, importedImage.ToOffsetY.ToPixels());
     }
 
     [Fact]
     public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Offset");
+        ExcelSheet sheet = workbook.AddSheet("Offset");
         sheet.CellValue(2, 2, "Region");
         sheet.CellValue(2, 3, "Amount");
         sheet.CellValue(3, 2, "North");
@@ -414,7 +470,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ExportsEmptySheetWithoutCreatingPlaceholderCell() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Empty");
+        workbook.AddSheet("Empty");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -436,9 +492,9 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ReportsTruncationWhenRetainedWindowContainsNoUsedCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Sparse");
-        sheet.CellValue(1, A1.MaxColumns, "Far column");
-        sheet.CellValue(A1.MaxRows, 1, "Far row");
+        ExcelSheet sheet = workbook.AddSheet("Sparse");
+        sheet.CellValue(1, ExcelA1.MaxColumns, "Far column");
+        sheet.CellValue(ExcelA1.MaxRows, 1, "Far row");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -455,9 +511,9 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsHiddenWorksheetVisibility() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet visible = workbook.AddWorksheet("Visible");
-        ExcelSheet hidden = workbook.AddWorksheet("Hidden");
-        ExcelSheet veryHidden = workbook.AddWorksheet("VeryHidden");
+        ExcelSheet visible = workbook.AddSheet("Visible");
+        ExcelSheet hidden = workbook.AddSheet("Hidden");
+        ExcelSheet veryHidden = workbook.AddSheet("VeryHidden");
         visible.CellValue(1, 1, "Visible");
         hidden.CellValue(1, 1, "Hidden");
         veryHidden.CellValue(1, 1, "Very hidden");
@@ -487,7 +543,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_DoesNotImportEmptyCellTextPlaceholdersAsValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Placeholders");
+        ExcelSheet sheet = workbook.AddSheet("Placeholders");
         sheet.CellValue(1, 1, "Left");
         sheet.CellValue(1, 3, "Right");
 
@@ -576,7 +632,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
         Assert.Equal("SUM(A1:A2)", snapshot.RawValue);
     }
@@ -584,7 +640,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsSemanticCellValueKinds() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Typed");
+        ExcelSheet sheet = workbook.AddSheet("Typed");
         sheet.CellValue(1, 1, "Label");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "Numeric text");
@@ -605,12 +661,12 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 2, out ExcelCellValueSnapshot? textSnapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 2, out ExcelNativeCellValueInfo? textSnapshot));
         Assert.Equal(ExcelCellValueKind.Text, textSnapshot!.Kind);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 2, out ExcelCellValueSnapshot? numberSnapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(3, 2, out ExcelNativeCellValueInfo? numberSnapshot));
         Assert.Equal(ExcelCellValueKind.Number, numberSnapshot!.Kind);
         Assert.Equal("123.45", numberSnapshot.RawValue);
-        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelCellValueSnapshot? boolSnapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(4, 2, out ExcelNativeCellValueInfo? boolSnapshot));
         Assert.Equal(ExcelCellValueKind.Boolean, boolSnapshot!.Kind);
         Assert.Equal("1", boolSnapshot.RawValue);
     }
@@ -618,7 +674,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsSemanticErrorCellValueKind() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Errors");
+        ExcelSheet sheet = workbook.AddSheet("Errors");
         sheet.CellValue(1, 1, "Error");
         sheet.CellError(2, 1, "#DIV/0!");
 
@@ -632,7 +688,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Error, snapshot!.Kind);
         Assert.Equal("#DIV/0!", snapshot.RawValue);
     }
@@ -640,22 +696,37 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_MaxRowsPerSheetFiltersFeatureInventoryToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Limited");
+        ExcelSheet sheet = workbook.AddSheet("Limited");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "Visible");
         sheet.CellFormula(2, 2, "1+1");
         sheet.SetComment(2, 1, "Visible comment", "OfficeIMO");
-        sheet.AddChartFromRange("A1:B2", row: 2, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Visible Chart");
-        sheet.AddImage(2, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Visible Image", altText: "Visible image");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Visible Chart" });
+        sheet.AddImage(2, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24),
+            Name = "Visible Image",
+            Description = "Visible image"
+        });
         sheet.CellValue(4, 1, "Truncated");
         sheet.CellFormula(4, 2, "99+1");
         sheet.CellValue(5, 1, "Also truncated");
         sheet.CellValue(5, 2, 25);
         sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
-        sheet.AddChartFromRange("A4:B5", row: 4, column: 4, widthPixels: 160, heightPixels: 90, type: ExcelChartType.ColumnClustered, title: "Truncated Chart");
-        sheet.AddImage(4, 3, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Image", altText: "Truncated image");
-        sheet.AddImageAbsolute(0, 2000, OnePixelPng, widthPixels: 24, heightPixels: 24, name: "Truncated Absolute Image", altText: "Truncated absolute image");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 4, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Truncated Chart" });
+        sheet.AddImage(4, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24),
+            Name = "Truncated Image",
+            Description = "Truncated image"
+        });
+        sheet.AddImage(OfficeIMO.OfficeLength.Pixels(0), OfficeIMO.OfficeLength.Pixels(2000), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24),
+            Name = "Truncated Absolute Image",
+            Description = "Truncated absolute image"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -695,7 +766,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument persisted = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         ExcelSheet importedSheet = Assert.Single(persisted.Sheets);
 
-        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
+        Assert.True(importedSheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.Text, snapshot!.Kind);
         Assert.Equal(value, snapshot.Text);
     }
@@ -728,11 +799,11 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Scatter");
+        ExcelSheet sheet = workbook.AddSheet("Scatter");
         var data = new ExcelChartData(
             new[] { "1.5", "2.5" },
-            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, ExcelChartType.Scatter) });
-        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, OfficeChartType.Scatter) });
+        sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Scatter" });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -744,7 +815,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
@@ -753,14 +824,14 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Scatter");
+        ExcelSheet sheet = workbook.AddSheet("Scatter");
         var data = new ExcelChartData(
             new[] { "1", "2", "3" },
             new[] {
-                new ExcelChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }, ExcelChartType.Scatter),
-                new ExcelChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D }, ExcelChartType.Scatter)
+                new ExcelChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }, OfficeChartType.Scatter),
+                new ExcelChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D }, OfficeChartType.Scatter)
             });
-        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+        sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Scatter" });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -771,7 +842,7 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Equal(new[] { 1D, 2D, 3D }, snapshot.Data.Series[0].XValues);
         Assert.Equal(new[] { 10D, 20D, 30D }, snapshot.Data.Series[0].Values);
         Assert.Equal(new[] { 4D, 5D }, snapshot.Data.Series[1].XValues);
@@ -781,11 +852,11 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelChart_ScatterSnapshotPrefersLiveRangesOverCachedValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("ScatterLive");
+        ExcelSheet sheet = workbook.AddSheet("ScatterLive");
         var data = new ExcelChartData(
             new[] { "1", "2" },
-            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, ExcelChartType.Scatter) });
-        ExcelChart chart = sheet.AddChart(data, row: 1, column: 5, widthPixels: 320, heightPixels: 180, type: ExcelChartType.Scatter, title: "Scatter");
+            new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, OfficeChartType.Scatter) });
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Scatter" });
         ExcelChartDataRange range = chart.DataRange!;
         ExcelSheet dataSheet = workbook[range.SheetName];
 
@@ -794,7 +865,7 @@ public partial class HtmlOfficeAdapters {
         dataSheet.CellValue(range.SeriesStartRow, range.SeriesStartColumn, 30D);
         dataSheet.CellValue(range.SeriesStartRow + 1, range.SeriesStartColumn, 40D);
 
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 3D, 4D }, series.XValues);
         Assert.Equal(new[] { 30D, 40D }, series.Values);
@@ -803,14 +874,14 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsComboChartSeriesTypesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Combo");
+        ExcelSheet sheet = workbook.AddSheet("Combo");
         var data = new ExcelChartData(
             new[] { "Q1", "Q2" },
             new[] {
-                new ExcelChartSeries("Sales", new[] { 10D, 20D }, ExcelChartType.ColumnClustered),
-                new ExcelChartSeries("Trend", new[] { 12D, 22D }, ExcelChartType.Line)
+                new ExcelChartSeries("Sales", new[] { 10D, 20D }, OfficeChartType.ColumnClustered),
+                new ExcelChartSeries("Trend", new[] { 12D, 22D }, OfficeChartType.Line)
             });
-        sheet.AddChart(data, row: 1, column: 1, widthPixels: 320, heightPixels: 180, type: ExcelChartType.ColumnClustered, title: "Combo");
+        sheet.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), Title = "Combo" });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -822,20 +893,20 @@ public partial class HtmlOfficeAdapters {
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Combo").Charts);
-        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
         Assert.Collection(
             snapshot.Data.Series,
-            series => Assert.Equal(ExcelChartType.ColumnClustered, series.ChartType),
-            series => Assert.Equal(ExcelChartType.Line, series.ChartType));
+            series => Assert.Equal(OfficeChartType.ColumnClustered, series.ChartType),
+            series => Assert.Equal(OfficeChartType.Line, series.ChartType));
     }
 
     [Fact]
     public void ExcelHtml_OmitsMixedRadialChartBeforeCreatingNativeArtifact() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Mixed");
-        sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
-            new ExcelChartSeries("Slice", new[] { 2D, 3D }, ExcelChartType.Pie)
-        }), row: 1, column: 1, type: ExcelChartType.Pie, title: "Mixed chart");
+        ExcelSheet sheet = workbook.AddSheet("Mixed");
+        sheet.AddChart(OfficeChartType.Pie, new ExcelChartData(new[] { "A", "B" }, new[] {
+            new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Pie)
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Title = "Mixed chart" });
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
@@ -854,10 +925,10 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_OmitsRadialSeriesUnderNonRadialChartBeforeCreatingNativeArtifact() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Mixed");
-        sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
-            new ExcelChartSeries("Slice", new[] { 2D, 3D }, ExcelChartType.Line)
-        }), row: 1, column: 1, type: ExcelChartType.Line, title: "Mixed chart");
+        ExcelSheet sheet = workbook.AddSheet("Mixed");
+        sheet.AddChart(OfficeChartType.Line, new ExcelChartData(new[] { "A", "B" }, new[] {
+            new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Line)
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Title = "Mixed chart" });
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
@@ -875,12 +946,12 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
-            new OfficeChartSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
+            new OfficeSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
         });
-        slide.AddChartPoints(OfficeChartKind.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -889,25 +960,25 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-x=\"1.5\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-x=\"2.5\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
     }
 
     [Fact]
     public void PowerPointHtml_RoundTripsBubbleChartSizesInSemanticChartData() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         OfficeColor seriesColor = OfficeColor.FromRgba(17, 34, 51, 128);
         OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
         OfficeColor outlineColor = OfficeColor.FromRgba(119, 136, 153, 64);
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1.5D, 2.5D },
                 new[] { 10D, 20D },
                 new[] { 4D, 9D },
@@ -915,8 +986,8 @@ public partial class HtmlOfficeAdapters {
                 new OfficeColor?[] { pointColor, null },
                 showInLegend: false,
                 markerOutlineColor: outlineColor,
-                markerOutlineWidth: 1.5D),
-            OfficeChartSeries.CreateBubble("No outline",
+                markerOutlineWidth: global::OfficeIMO.OfficeLength.Points(1.5D)),
+            OfficeSeries.CreateBubble("No outline",
                 new[] { 1.5D, 2.5D },
                 new[] { 8D, 16D },
                 new[] { 3D, 7D },
@@ -927,7 +998,7 @@ public partial class HtmlOfficeAdapters {
                 markerOutlineWidth: null,
                 showMarkerOutline: false)
         });
-        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)
+        slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) })
             .SetTitle("Bubble")
             .SetBubbleSizing(145U, OfficeChartBubbleSizeMode.Width);
 
@@ -957,13 +1028,13 @@ public partial class HtmlOfficeAdapters {
             StringComparison.Ordinal);
 
         HtmlToPowerPointResult result =
-            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Bubble, snapshot.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
-        OfficeChartSeries series = snapshot.Data.Series[0];
+        OfficeSeries series = snapshot.Data.Series[0];
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
         Assert.Equal(new[] { 4D, 9D }, series.BubbleSizes);
@@ -972,7 +1043,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(pointColor, series.PointColors![0]);
         Assert.Null(series.PointColors[1]);
         Assert.Equal(outlineColor, series.MarkerOutlineColor);
-        Assert.Equal(1.5D, series.MarkerOutlineWidth);
+        Assert.Equal(1.5D, series.MarkerOutlineWidth?.ToPoints());
         Assert.True(series.ShowMarkerOutline);
         Assert.False(snapshot.Data.Series[1].ShowMarkerOutline);
         Assert.Equal(145D, snapshot.BubbleScalePercent);
@@ -1000,12 +1071,12 @@ public partial class HtmlOfficeAdapters {
             """;
 
         HtmlToPowerPointResult result =
-            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart chart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Bubble, snapshot.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.All(snapshot.Data.Series, series => {
             Assert.Equal(3, series.XValues!.Count);
@@ -1016,26 +1087,38 @@ public partial class HtmlOfficeAdapters {
                           HtmlConversionDiagnosticCodes.ContentApproximated);
     }
 
-    [Fact]
-    public void PowerPointHtml_RejectsBubbleSizesWithoutXValues() {
-        using PowerPointPresentation presentation =
-            PowerPointPresentation.Create(new MemoryStream());
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData("1e20", false)]
+    [InlineData("0.00001", false)]
+    [InlineData("1e20", true)]
+    [InlineData("0.00001", true)]
+    public void PowerPointHtml_RejectsInvalidBubbleMetadata(string? outlineWidth, bool seriesOutline) {
+        using PowerPointDocument presentation =
+            PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1.5D, 2.5D },
                 new[] { 10D, 20D },
                 new[] { 4D, 9D })
         });
-        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140);
+        slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
-        }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
-          .Replace(" data-officeimo-x=\"2.5\"", string.Empty);
+        });
+        html = outlineWidth == null
+            ? html.Replace(" data-officeimo-x=\"1.5\"", string.Empty)
+                .Replace(" data-officeimo-x=\"2.5\"", string.Empty)
+            : seriesOutline
+                ? html.Replace(" data-officeimo-outline-width=", " data-officeimo-original-outline-width=")
+                    .Replace("<tbody><tr", "<tbody><tr data-officeimo-outline-width=\"" + outlineWidth + "\"")
+                : html.Replace("data-officeimo-x=\"1.5\"",
+                    "data-officeimo-x=\"1.5\" data-officeimo-point-outline-width=\"" + outlineWidth + "\"");
 
         HtmlToPowerPointResult result =
-            HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+            HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         Assert.Empty(imported.Slides[0].Charts);
         Assert.Contains(result.Report.Diagnostics,
@@ -1045,12 +1128,12 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RejectsXValuesOnMismatchedNonScatterSeries() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            new OfficeSeries("Actual", new[] { 10D, 20D })
         });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, data, 72, 96, 240, 140).SetTitle("Columns");
+        slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Columns");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1058,12 +1141,12 @@ public partial class HtmlOfficeAdapters {
         html = html.Replace("<td>10</td>", "<td data-officeimo-x=\"1\">10</td>")
             .Replace("<td>20</td>", string.Empty);
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(2, series.Values.Count);
         Assert.Null(series.XValues);
         Assert.Contains(result.Report.Diagnostics,
@@ -1072,13 +1155,13 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
-            new OfficeChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
-            new OfficeChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
+            new OfficeSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
+            new OfficeSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
         });
-        slide.AddChartPoints(OfficeChartKind.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1086,8 +1169,8 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-x=\"5\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { 1D, 2D, 3D }, snapshot.Data.Series[0].XValues);
@@ -1098,21 +1181,21 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_ExportsSemanticSlidesWithExtractionProof() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roadmap");
         slide.AddTextBox("HTML end to end");
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 140, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
+        slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(130), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1133,20 +1216,22 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("<td>18</td>", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void PowerPointHtml_ExportsPositionedReviewSlides() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+    [Theory]
+    [InlineData(OfficeChartType.Column, "ColumnClustered")]
+    [InlineData(OfficeChartType.Bar, "BarClustered")]
+    public void PowerPointHtml_ExportsPositionedReviewSlides(OfficeChartType type, string expectedKind) {
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Positioned", 72, 96, 240, 60);
+        slide.AddTextBox("Positioned",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.AltText = "Positioned image";
         }
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Positioned Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
+        slide.AddChart(type, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(180), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Positioned Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -1159,28 +1244,28 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-rendered", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-chart-kind=\"ColumnClustered\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-chart-kind=\"" + expectedKind + "\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Positioned Pipeline", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void PowerPointHtml_SemanticSlidesSkipHiddenShapesByDefault() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Visible briefing");
         PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
         hidden.Hidden = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture hiddenPicture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            PowerPointPicture hiddenPicture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
             hiddenPicture.Name = "Hidden image marker";
             hiddenPicture.Hidden = true;
         }
 
         OfficeChartData hiddenChartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new OfficeChartSeries("Hidden", new[] { 10D, 18D }) });
-        PowerPointChart hiddenChart = slide.AddChartPoints(OfficeChartKind.ColumnClustered, hiddenChartData, 120, 90, 240, 140);
+            new[] { new OfficeSeries("Hidden", new[] { 10D, 18D }) });
+        PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered, hiddenChartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(120), Top = global::OfficeIMO.OfficeLength.Points(90), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         hiddenChart.SetTitle("Hidden chart marker");
         hiddenChart.Hidden = true;
 
@@ -1205,9 +1290,9 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewIncludesInheritedLayoutShapes() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox layoutText = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
+        PowerPointTextBox layoutText = slide.AddTextBox("Layout footer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(24));
         P.Shape slideShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<P.Shape>()
             .Single(shape => shape.InnerText.Contains("Layout footer", StringComparison.Ordinal));
@@ -1227,9 +1312,9 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewPreservesPositionedTextBoxLineBreaks() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Agenda\n  Owner", 72, 96, 240, 60);
+        slide.AddTextBox("Agenda\n  Owner",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -1241,9 +1326,9 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewPreservesShapeFlipTransforms() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox textBox = slide.AddTextBoxPoints("Flipped", 72, 96, 240, 60);
+        PowerPointTextBox textBox = slide.AddTextBox("Flipped",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         textBox.Rotation = 12.5D;
         textBox.HorizontalFlip = true;
         textBox.VerticalFlip = true;
@@ -1257,17 +1342,17 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_CapabilityGalleryWritesSharedManifestForRichPresentation() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Gallery Roadmap");
-        slide.AddTextBoxPoints("Positioned proof", 72, 96, 240, 60);
+        slide.AddTextBox("Positioned proof",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         slide.Notes.Text = "Gallery notes";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.AltText = "Gallery picture";
         }
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 72, 280, 220, 80);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "Milestone";
         table.GetCell(0, 1).Text = "State";
         table.GetCell(1, 0).Text = "HTML";
@@ -1275,8 +1360,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Gallery Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
+        slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(180), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Gallery Pipeline");
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = presentation.SaveHtmlCapabilityGallery(directory, new PowerPointHtmlCapabilityGalleryOptions {
@@ -1338,18 +1423,18 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_LoadsSemanticRichPresentationBackToNativePresentation() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roundtrip Roadmap");
-        slide.AddTextBoxPoints("HTML end to end", 72, 96, 240, 60);
+        slide.AddTextBox("HTML end to end",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 72, 280, 220, 80);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "Milestone";
         table.GetCell(0, 1).Text = "State";
         table.GetCell(1, 0).Text = "HTML";
@@ -1357,8 +1442,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
+        slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(130), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1367,8 +1452,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("Position: 72pt, 180pt", html, StringComparison.Ordinal);
         Assert.Contains("Position: 180pt, 130pt", html, StringComparison.Ordinal);
         Assert.Contains("Size: 260pt x 150pt", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = imported.Slides[0];
 
         Assert.Equal(1, result.Slides);
@@ -1383,16 +1468,16 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(importedSlide.Tables, importedTable => importedTable.GetCell(1, 1).Text == "Rich proof");
         PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
         Assert.Equal("Reusable renderer badge", importedPicture.AltText);
-        Assert.Equal(72D, importedPicture.LeftPoints, 3);
-        Assert.Equal(180D, importedPicture.TopPoints, 3);
+        Assert.Equal(72D, importedPicture.Left.ToPoints(), 3);
+        Assert.Equal(180D, importedPicture.Top.ToPoints(), 3);
         PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
-        Assert.Equal(180D, importedChart.LeftPoints, 3);
-        Assert.Equal(130D, importedChart.TopPoints, 3);
-        Assert.Equal(260D, importedChart.WidthPoints, 3);
-        Assert.Equal(150D, importedChart.HeightPoints, 3);
+        Assert.Equal(180D, importedChart.Left.ToPoints(), 3);
+        Assert.Equal(130D, importedChart.Top.ToPoints(), 3);
+        Assert.Equal(260D, importedChart.Width.ToPoints(), 3);
+        Assert.Equal(150D, importedChart.Height.ToPoints(), 3);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
-        OfficeChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
+        OfficeSeries importedSeries = Assert.Single(snapshot.Data.Series);
         Assert.Equal("Actual", importedSeries.Name);
         Assert.Equal(new[] { 10D, 18D, 24D }, importedSeries.Values);
         Assert.Contains("Presenter reminder", importedSlide.Notes.Text, StringComparison.Ordinal);
@@ -1415,10 +1500,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsOffSlidePicturePosition() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, -18, -12, 72, 72);
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(-18), OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
         }
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1426,20 +1511,23 @@ public partial class HtmlOfficeAdapters {
         });
 
         Assert.Contains("Position: -18pt, -12pt", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
-        Assert.Equal(-18D, picture.LeftPoints, 3);
-        Assert.Equal(-12D, picture.TopPoints, 3);
+        Assert.Equal(-18D, picture.Left.ToPoints(), 3);
+        Assert.Equal(-12D, picture.Top.ToPoints(), 3);
     }
 
     [Fact]
     public void PowerPointHtml_RoundTripsPictureTransforms() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
+            // Exercise a deliberately stretched source frame rather than the contain default.
+            picture.SetSize(OfficeLength.Points(120), OfficeLength.Points(72));
+            picture.SetPosition(OfficeLength.Points(80), OfficeLength.Points(90));
             picture.Name = "Transformed picture";
             picture.AltText = "Transformed alt";
             picture.Rotation = 23.5D;
@@ -1456,15 +1544,15 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-flip-horizontal=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-flip-vertical=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-crop-left=\"0.10000000000000001\"", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         PowerPointPicture importedPicture = Assert.Single(imported.Slides[0].Pictures);
         Assert.Equal("Transformed alt", importedPicture.AltText);
-        Assert.Equal(80D, importedPicture.LeftPoints, 3);
-        Assert.Equal(90D, importedPicture.TopPoints, 3);
-        Assert.Equal(120D, importedPicture.WidthPoints, 3);
-        Assert.Equal(72D, importedPicture.HeightPoints, 3);
+        Assert.Equal(80D, importedPicture.Left.ToPoints(), 3);
+        Assert.Equal(90D, importedPicture.Top.ToPoints(), 3);
+        Assert.Equal(120D, importedPicture.Width.ToPoints(), 3);
+        Assert.Equal(72D, importedPicture.Height.ToPoints(), 3);
         Assert.Equal(23.5D, importedPicture.Rotation!.Value, 3);
         Assert.True(importedPicture.HorizontalFlip);
         Assert.True(importedPicture.VerticalFlip);
@@ -1476,10 +1564,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RejectsCropPairsThatConsumeTheWholePicture() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 40, 80, 60)
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(60))
                 .Crop(10D, 0D, 10D, 0D);
         }
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1490,8 +1578,8 @@ public partial class HtmlOfficeAdapters {
         html = System.Text.RegularExpressions.Regex.Replace(
             html, "data-officeimo-crop-right=\"[^\"]*\"", "data-officeimo-crop-right=\"0.75\"");
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
 
         Assert.Equal(0D, picture.CropLeftRatio);
@@ -1502,18 +1590,18 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsChartTransformsAndMixedDrawingOrder() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D }) });
-        PowerPointChart chart = slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 120, 90, 240, 140);
+            new[] { new OfficeSeries("Actual", new[] { 10D, 18D }) });
+        PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(120), Top = global::OfficeIMO.OfficeLength.Points(90), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         chart.SetTitle("Transform chart");
         chart.Rotation = 18.75D;
         chart.HorizontalFlip = true;
         chart.VerticalFlip = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 96, 100, 80, 64);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(64));
             picture.Name = "Top picture";
         }
 
@@ -1524,8 +1612,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-layer-kind=\"chart\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-layer-kind=\"picture\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rotation=\"18.75\"", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = imported.Slides[0];
 
         Assert.Equal(1, result.Charts);
@@ -1541,10 +1629,10 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_VisualReviewStretchesPositionedPicturesToAuthoredShape() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddPicturePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 50, 180, 60);
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(60));
         }
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1565,8 +1653,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         Assert.Equal(2, result.Slides);
         Assert.Equal(2, imported.Slides.Count);
@@ -1576,7 +1664,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_RoundTripsHiddenSlideStateWhenIncluded() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBox("Hidden briefing");
         slide.Hidden = true;
@@ -1588,8 +1676,8 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-hidden=\"true\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         Assert.True(importedSlide.Hidden);
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Hidden briefing", StringComparison.Ordinal));
@@ -1608,8 +1696,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointSlide slide = imported.Slides[0];
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes);
         PowerPointTable table = Assert.Single(slide.Tables);
@@ -1621,23 +1709,23 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointHtml_LoadPreservesChartKindFromSemanticInventory() {
-        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 12D }) });
-        slide.AddChartPoints(OfficeChartKind.Line, chartData, 72, 96, 240, 140).SetTitle("Trend");
+            new[] { new OfficeSeries("Actual", new[] { 10D, 12D }) });
+        slide.AddChart(OfficeChartType.Line, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Trend");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Line, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Line, snapshot.ChartKind);
     }
 
     [Fact]
@@ -1661,8 +1749,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1671,9 +1759,9 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Theory]
-    [InlineData("StackedLine", OfficeChartKind.LineStacked)]
-    [InlineData("StackedLine100", OfficeChartKind.LineStacked100)]
-    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, OfficeChartKind expectedKind) {
+    [InlineData("StackedLine", OfficeChartType.LineStacked)]
+    [InlineData("StackedLine100", OfficeChartType.LineStacked100)]
+    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, OfficeChartType expectedKind) {
         string html = $$"""
             <main>
               <section class="officeimo-slide">
@@ -1696,8 +1784,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1730,13 +1818,13 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.Equal(1, result.Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartKind);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
     }
 
@@ -1759,8 +1847,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         Assert.Equal(1, result.Notes);
         Assert.DoesNotContain("This is regular slide content", imported.Slides[0].Notes.Text, StringComparison.Ordinal);
@@ -1785,8 +1873,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
 
         string expected = string.Join(Environment.NewLine, "First line", string.Empty, "    Indented line", "Third line");
         Assert.Equal(1, result.Notes);
@@ -1812,8 +1900,8 @@ public partial class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Value;
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        using PowerPointDocument imported = result.Value;
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
 
         Assert.Equal(1, result.Pictures);

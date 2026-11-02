@@ -21,7 +21,7 @@ public partial class Word {
         using var document = WordDocument.Create(source);
         if (columns) document.Sections[0].ColumnCount = 2;
         WordParagraph heading = document.AddParagraph("PlainMarker ").SetStyle(style);
-        heading.FontSize = 12;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         heading.AddText("ItalicMarker ").Italic = true;
         heading.AddHyperLink("LinkedMarker", new Uri(uri), tooltip: "Heading link metadata");
         document.Save();
@@ -29,7 +29,7 @@ public partial class Word {
         WordHyperLink sourceLink = Assert.Single(reopened.Paragraphs[0].GetRuns(), run => run.IsHyperLink).Hyperlink!;
         string expectedContents = string.IsNullOrWhiteSpace(sourceLink.Tooltip) ? sourceLink.Text : sourceLink.Tooltip;
         string output = source + ".pdf";
-        reopened.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
+        reopened.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false });
         var logical = PdfDocumentReadResult.Load(File.ReadAllBytes(output));
         PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(uri));
         Assert.Equal(expectedContents, link.Contents);
@@ -49,13 +49,13 @@ public partial class Word {
         using var document = WordDocument.Create(source);
         if (columns) document.Sections[0].ColumnCount = 2;
         WordParagraph heading = document.AddParagraph("HeadingNoteMarker").SetStyle(style);
-        heading.FontSize = 12;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         heading.AddFootNote("FootnoteBodyMarker");
         heading.AddEndNote("EndnoteBodyMarker");
         document.Save();
         using var reopened = WordDocument.Load(source);
         string output = source + ".pdf";
-        reopened.SaveAsPdf(output, new WordToPdfOptions { IncludePageNumbers = false });
+        reopened.SaveAsPdf(output, new WordPdfExportOptions { IncludePageNumbers = false });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(output);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         // The heading and its raised note references are located by letters: one line may share a show operator.

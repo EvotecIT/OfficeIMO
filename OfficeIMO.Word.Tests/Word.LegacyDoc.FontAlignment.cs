@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Aligned text").VerticalCharacterAlignmentOnLine = alignment;
 
-            byte[] bytes = document.ToBytes(WordFileFormat.Doc);
+            byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
             byte[] stream = ReadCompoundStream(bytes, "WordDocument");
             Assert.True(ContainsBytePattern(stream, 0x39, 0x44, nativeValue, 0x00),
                 $"Expected sprmPWAlignFont to encode {alignment} as {nativeValue}.");

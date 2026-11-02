@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Duplicates this shape on its owning slide.
         /// </summary>
-        public PowerPointShape Duplicate(long offsetX = 0L, long offsetY = 0L) {
+        public PowerPointShape Duplicate(OfficeLength offsetX = default, OfficeLength offsetY = default) {
             if (OwnerSlide == null) {
                 throw new InvalidOperationException("Shape duplication requires a shape attached to a slide.");
             }
@@ -179,26 +179,8 @@ namespace OfficeIMO.PowerPoint {
             return OwnerSlide.DuplicateShape(this, offsetX, offsetY);
         }
 
-        /// <summary>
-        ///     Duplicates this shape on its owning slide and offsets it in centimeters.
-        /// </summary>
-        public PowerPointShape DuplicateCm(double offsetXCm, double offsetYCm) {
-            return Duplicate(PowerPointUnits.FromCentimeters(offsetXCm), PowerPointUnits.FromCentimeters(offsetYCm));
-        }
 
-        /// <summary>
-        ///     Duplicates this shape on its owning slide and offsets it in inches.
-        /// </summary>
-        public PowerPointShape DuplicateInches(double offsetXInches, double offsetYInches) {
-            return Duplicate(PowerPointUnits.FromInches(offsetXInches), PowerPointUnits.FromInches(offsetYInches));
-        }
 
-        /// <summary>
-        ///     Duplicates this shape on its owning slide and offsets it in points.
-        /// </summary>
-        public PowerPointShape DuplicatePoints(double offsetXPoints, double offsetYPoints) {
-            return Duplicate(PowerPointUnits.FromPoints(offsetXPoints), PowerPointUnits.FromPoints(offsetYPoints));
-        }
 
         private static bool IsDrawingElement(OpenXmlElement element) =>
             element is Shape or ConnectionShape or Picture or GraphicFrame or GroupShape;

@@ -6,6 +6,20 @@
     <TargetFrameworks>net10.0</TargetFrameworks>
   </PropertyGroup>
 
+  <!-- Exercise the legacy library graph from a modern test host without substituting
+       modern dependencies for the implementations under test. Normal package targets stay unchanged. -->
+  <PropertyGroup Condition="'$(OfficeIMOCompatibilityTarget)' == 'netstandard2.0' And '$(IsTestProject)' != 'true' And '$(OutputType)' != 'Exe' And $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO')) And $([System.String]::Copy(';$(TargetFrameworks);').Contains(';netstandard2.0;'))">
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <!-- Keep modern OfficeIMO library builds under trimming and NativeAOT analysis.
+       Tool source checkouts nested by CI retain their own compatibility policy. -->
+  <PropertyGroup Condition="('$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0') And '$(IsTestProject)' != 'true' And '$(IsPackable)' != 'false' And '$(OutputType)' == 'Library' And $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO'))">
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
+  </PropertyGroup>
+
   <!-- Keep shipped release binaries reproducible without embedding a maintainer's
        checkout path in portable PDB documents or CodeView content IDs. Limit the
        source mapping to packable production projects: non-packable test projects
@@ -50,9 +64,9 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
-  <!-- OfficeIMO 3.4 intentionally redesigns the 3.3 document, conversion, and PDF surfaces.
-       Keep reviewed breaks in explicit suppression files so any additional public API regression
-       fails package validation. -->
+  <!-- Compare redesigned document, conversion and PDF surfaces with the published 3.3 baseline.
+       Keep reviewed API changes in exact suppression records so additional public API regressions
+       fail package validation. -->
   <PropertyGroup Condition="
       '$(PackageId)' == 'OfficeIMO.Pdf'
       Or '$(PackageId)' == 'OfficeIMO.ChartForgeX'
@@ -79,4 +93,6 @@
     <CompatibilitySuppressionFilePath>$(MSBuildProjectDirectory)/CompatibilitySuppressions.xml</CompatibilitySuppressionFilePath>
   </PropertyGroup>
 
+  <!-- Keep intentional Tier 1 public API changes visible in source control. -->
+  <Import Project="$(MSBuildThisFileDirectory)Build/ApiMap/PublicApi.targets" />
 </Project>

@@ -127,7 +127,7 @@ semantic pipeline limit explicitly when a larger document is expected:
 ```csharp
 OfficeDocumentReader largePdfReader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler(new ReaderPdfOptions {
-        ReadOptions = new PdfReadOptions {
+        ReadOptions = new PdfLoadOptions {
             Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 2_500 }
         }
     })
@@ -166,25 +166,28 @@ foreach (var chunk in chunks.Where(chunk => chunk.Diagnostics != null)) {
 
 ### Project a normalized document into PDF
 
+Install the `OfficeIMO` front-door package for source-model conversion extensions.
+
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 
 OfficeDocumentReadResult normalized = reader.ReadDocument("manual.pdf");
-PdfDocumentConversionResult conversion = normalized.ToPdfDocumentResult(
+using PdfDocument conversion = normalized.ToPdf(
     new PdfProjectionOptions {
         PagePolicy = PdfProjectionPagePolicy.PreserveSourcePages,
         AssetPolicy = PdfProjectionAssetPolicy.EmbedSupportedImages,
         RasterDecodeOptions = new OfficeRasterDecodeOptions {
-            AnimationPolicy = OfficeRasterAnimationPolicy.RejectAnimated
+            FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
         },
         LinkPolicy = PdfProjectionLinkPolicy.PreserveUriLinks,
         FormPolicy = PdfProjectionFormPolicy.RenderCurrentValues
-    });
+    }, out OfficeConversionReport report);
 
-PdfSaveResult save = conversion.Save("normalized-manual.pdf");
-foreach (PdfConversionWarning warning in save.Warnings) {
+conversion.Save("normalized-manual.pdf", new PdfSaveOptions { AllowLoss = true });
+foreach (OfficeDiagnostic warning in report.Diagnostics) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```

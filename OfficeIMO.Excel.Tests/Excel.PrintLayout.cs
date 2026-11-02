@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.Report.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelPaperSize.A4, setup.PaperSize);
                 Assert.Equal(9U, setup.PaperSizeCode);
                 Assert.NotNull(setup.Margins);
-                Assert.Equal(0.25D, setup.Margins!.Left);
+                Assert.Equal(0.25D, setup.Margins!.Left.ToInches());
                 Assert.Equal("$A$1:$D$25", sheet.GetPrintArea());
 
                 ExcelPrintTitles titles = sheet.GetPrintTitles();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.ClearFit.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
                 sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {

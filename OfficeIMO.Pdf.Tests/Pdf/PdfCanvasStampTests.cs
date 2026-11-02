@@ -13,12 +13,12 @@ public class PdfCanvasStampTests {
 
         PdfDocument stamped = PdfDocument.Load(target).Stamp.Content((canvas, context) => {
             callbackCount++;
-            canvas.Text("Canvas page " + context.PageNumber, 36D, 36D, 220D, 30D, fontSize: 14D)
+            canvas.Text("Canvas page " + context.PageNumber, global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(14D))
                 .Table(new[] {
                     new[] { PdfTableCell.TextCell("Name"), PdfTableCell.TextCell("Value") },
                     new[] { PdfTableCell.TextCell("Mode"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("General visual canvas") }) }
-                }, 36D, 90D, Math.Min(420D, context.Width - 72D), 100D)
-                .Image(PdfPngTestImages.CreateRgbPng(20, 80, 180), 36D, 210D, 24D, 24D, alternativeText: "Blue marker");
+                }, global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(Math.Min(420D, context.Width.ToPoints() - 72D)), global::OfficeIMO.OfficeLength.Points(100D))
+                .Image(PdfPngTestImages.CreateRgbPng(20, 80, 180), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(210D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(24D), alternativeText: "Blue marker");
         });
 
         string text = stamped.Reader.Text();
@@ -39,7 +39,7 @@ public class PdfCanvasStampTests {
         PdfDocument target = PdfDocument.Load(encrypted, options);
 
         PdfOperationResult<PdfDocument> result = target.Stamp.ContentResult(
-            (canvas, _) => canvas.Text("Authorized canvas stamp", 30D, 30D, 260D, 30D),
+            (canvas, _) => canvas.Text("Authorized canvas stamp", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(260D), global::OfficeIMO.OfficeLength.Points(30D)),
             options: options);
 
         Assert.True(result.Succeeded, string.Join(Environment.NewLine, result.Diagnostics));
@@ -65,7 +65,7 @@ public class PdfCanvasStampTests {
 
         byte[] stamped = PdfDocument.Load(target).Stamp.Content((canvas, context) => {
             callbackCount++;
-            canvas.Text("Stamp page " + context.PageNumber, 30D, 30D, 180D, 24D);
+            canvas.Text("Stamp page " + context.PageNumber, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(24D));
         }).ToBytes();
 
         PdfReadDocument readback = PdfReadDocument.Open(stamped);
@@ -88,7 +88,7 @@ public class PdfCanvasStampTests {
         byte[] stamped = PdfDocument.Load(target).Stamp.Content(
             (canvas, _) => {
                 callbackCount++;
-                canvas.Text("Layer " + callbackCount, 30D, 30D + (callbackCount * 30D), 140D, 24D);
+                canvas.Text("Layer " + callbackCount, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D + (callbackCount * 30D)), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(24D));
             },
             new PdfCanvasStampOptions {
                 TargetPages = PdfPageSelector.Parse("1,1")
@@ -106,8 +106,8 @@ public class PdfCanvasStampTests {
         PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            target.Stamp.Content(canvas => canvas.Clip(0D, 0D, 100D, 100D, nested =>
-                nested.TextAnnotation("Interactive note", 10D, 10D))));
+            target.Stamp.Content(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), nested =>
+                nested.TextAnnotation("Interactive note", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D)))));
 
         Assert.Contains("visual content only", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -119,17 +119,17 @@ public class PdfCanvasStampTests {
         NotSupportedException linkException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Text(
                 new[] { PdfTextRun.Link("Link", "https://example.com") },
-                10D,
-                10D,
-                120D,
-                30D)));
+                global::OfficeIMO.OfficeLength.Points(10D),
+                global::OfficeIMO.OfficeLength.Points(10D),
+                global::OfficeIMO.OfficeLength.Points(120D),
+                global::OfficeIMO.OfficeLength.Points(30D))));
         NotSupportedException formException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Table(
                 new[] { new[] { PdfTableCell.WithFormFields("Field", new[] { PdfTableCellFormField.TextField("Entry") }) } },
-                10D,
-                50D,
-                160D,
-                50D)));
+                global::OfficeIMO.OfficeLength.Points(10D),
+                global::OfficeIMO.OfficeLength.Points(50D),
+                global::OfficeIMO.OfficeLength.Points(160D),
+                global::OfficeIMO.OfficeLength.Points(50D))));
 
         Assert.Contains("visual content only", linkException.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("visual content only", formException.Message, StringComparison.OrdinalIgnoreCase);
@@ -139,16 +139,16 @@ public class PdfCanvasStampTests {
     public void ContentRejectsTaggedStructureThatVisualImportCannotPreserve() {
         PdfDocument target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing page"));
         var taggedOptions = new PdfCanvasStampOptions().UseRenderingOptions(
-            new PdfOptions().SetTaggedStructureMode(PdfTaggedStructureMode.CatalogMarkers));
+            new PdfCreateOptions().SetTaggedStructureMode(PdfTaggedStructureMode.CatalogMarkers));
 
         NotSupportedException renderingException = Assert.Throws<NotSupportedException>(() =>
-            target.Stamp.Content(canvas => canvas.Text("Tagged text", 10D, 10D, 120D, 30D), taggedOptions));
+            target.Stamp.Content(canvas => canvas.Text("Tagged text", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(30D)), taggedOptions));
         NotSupportedException figureException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Figure("Tagged figure", nested =>
-                nested.Text("Figure", 10D, 10D, 120D, 30D))));
+                nested.Text("Figure", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(30D)))));
         NotSupportedException structureException = Assert.Throws<NotSupportedException>(() =>
             target.Stamp.Content(canvas => canvas.Structure(PdfCanvasStructureRole.Paragraph, nested =>
-                nested.Text("Structured paragraph", 10D, 10D, 180D, 30D))));
+                nested.Text("Structured paragraph", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(30D)))));
 
         Assert.Contains("structure", renderingException.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("structure", figureException.Message, StringComparison.OrdinalIgnoreCase);
@@ -157,19 +157,19 @@ public class PdfCanvasStampTests {
 
     [Fact]
     public void ContentIgnoresDocumentChromeFromRenderingOptions() {
-        var renderingOptions = new PdfOptions {
+        var renderingOptions = new PdfCreateOptions {
             ShowHeader = true,
             HeaderFormat = "Rendering-options header",
             ShowPageNumbers = true,
             FooterFormat = "Rendering-options footer",
-            BackgroundColor = PdfColor.FromRgb(240, 240, 240)
+            BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240)
         };
         var stampOptions = new PdfCanvasStampOptions().UseRenderingOptions(renderingOptions);
         PdfDocument target = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Existing body"));
 
         PdfDocument stamped = target.Stamp.Content(
-            canvas => canvas.Text("Callback content", 36D, 36D, 220D, 30D),
+            canvas => canvas.Text("Callback content", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(30D)),
             stampOptions);
 
         string text = stamped.Reader.Text();
@@ -205,7 +205,7 @@ public class PdfCanvasStampTests {
         }
 
         const string familyName = "Canvas Stamp Family";
-        var renderingOptions = new PdfOptions()
+        var renderingOptions = new PdfCreateOptions()
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(familyName, File.ReadAllBytes(fontPath)));
         var stampOptions = new PdfCanvasStampOptions()
             .UseRenderingOptions(renderingOptions);
@@ -216,10 +216,10 @@ public class PdfCanvasStampTests {
         PdfDocument stamped = PdfDocument.Load(target).Stamp.Content(
             canvas => canvas.Text(
                 new[] { PdfTextRun.Normal("Named font stamp", fontFamily: familyName) },
-                36D,
-                36D,
-                220D,
-                30D),
+                global::OfficeIMO.OfficeLength.Points(36D),
+                global::OfficeIMO.OfficeLength.Points(36D),
+                global::OfficeIMO.OfficeLength.Points(220D),
+                global::OfficeIMO.OfficeLength.Points(30D)),
             stampOptions);
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(stamped.ToBytes()));
@@ -234,7 +234,7 @@ public class PdfCanvasStampTests {
             OwnerPassword = ownerPassword,
             AllowedPermissions = PdfStandardPermissions.None
         };
-        return PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+        return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
     }

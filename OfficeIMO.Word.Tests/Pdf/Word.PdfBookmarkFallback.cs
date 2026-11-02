@@ -15,11 +15,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Load(path, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
         string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         var options = FootnoteDiagnosticOptions();
-        var callerPdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.TimesRoman };
+        var callerPdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.TimesRoman };
         options.PdfOptions = callerPdfOptions;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
 
-        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "NativeBookmarkTargetUnprojected");
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "native-bookmark-target-unprojected");
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -29,7 +29,7 @@ public partial class Word {
         Assert.Contains("Word-generated table text-box TOC overview", text, StringComparison.Ordinal);
         Assert.Contains("Word-generated table text-box TOC detail", text, StringComparison.Ordinal);
         PdfDocumentInfo navigation = PdfInspector.Inspect(bytes);
-        Assert.NotEmpty(navigation.LinkAnnotations.Where(link => link.DestinationName == "_Toc233703443"));
+        Assert.Contains(navigation.LinkAnnotations, link => link.DestinationName == "_Toc233703443");
         Assert.Single(navigation.NamedDestinations, target => target.Name == "_Toc233703443");
         Assert.DoesNotContain(navigation.LinkAnnotations, link => link.DestinationName == "_Toc233703444");
         Assert.DoesNotContain(navigation.NamedDestinations, target => target.Name == "_Toc233703444");
@@ -61,11 +61,11 @@ public partial class Word {
             string.Concat(document._wordprocessingDocument.MainDocumentPart.HeaderParts.Select(part => part.Header.OuterXml));
         var options = FootnoteDiagnosticOptions();
         options.FontFamily = "Courier";
-        var callerPdfOptions = new PdfOptions { DefaultFont = PdfStandardFont.Courier };
+        var callerPdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier };
         options.PdfOptions = callerPdfOptions;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
-        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code.StartsWith("NativeBookmarkTarget", StringComparison.Ordinal));
-        Assert.Equal("NativeBookmarkTargetUnprojected", warning.Code);
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
+        PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code.StartsWith("native-bookmark-target", StringComparison.Ordinal));
+        Assert.Equal("native-bookmark-target-unprojected", warning.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var bodyPage = pdf.GetPages().Single(page => page.Text.Contains("UNSAFE", StringComparison.Ordinal));
@@ -96,10 +96,15 @@ public partial class Word {
         Assert.Empty(document.ValidateDocument());
     }
 
-    [Fact]
-    public void SaveAsPdf_UnprojectedBodyAliasAndMissingSourceHaveDistinctLossDiagnostics() {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void SaveAsPdf_BodyAliasesRemainNavigableWhileMissingTargetsReportLoss(bool listItem, bool columns) {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
-        WordParagraph target = source.AddParagraph("TARGET");
+        if (columns) source.Sections[0].ColumnCount = 2;
+        WordParagraph target = listItem ? source.AddList(WordListStyle.Bulleted).AddItem("TARGET") : source.AddParagraph("TARGET");
         target._paragraph.InsertAt(new W.BookmarkStart { Id = "20", Name = "FirstTarget" }, 0);
         target._paragraph.Append(new W.BookmarkEnd { Id = "20" },
             new W.BookmarkStart { Id = "21", Name = "ExtraTarget" }, new W.BookmarkEnd { Id = "21" });
@@ -108,18 +113,19 @@ public partial class Word {
         source.AddParagraph(string.Empty).AddHyperLink("MISSINGLINK", "AbsentTarget");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string original = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "native-bookmark-target-unprojected");
         Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(result.Warnings, item => item.Code == "NativeBookmarkTargetUnprojected").LossKind);
-        Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(result.Warnings, item => item.Code == "NativeBookmarkTargetMissing").LossKind);
+            Assert.Single(result.Warnings, item => item.Code == "native-bookmark-target-missing").LossKind);
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         foreach (string token in new[] { "TARGET", "FIRSTLINK", "EXTRALINK", "MISSINGLINK" }) Assert.Contains(token, text, StringComparison.Ordinal);
         PdfDocumentInfo navigation = PdfInspector.Inspect(result.ToBytes());
-        Assert.Single(navigation.LinkAnnotations);
+        Assert.Equal(2, navigation.LinkAnnotations.Count);
         Assert.Single(navigation.NamedDestinations, item => item.Name == "FirstTarget");
-        Assert.Equal("FirstTarget", navigation.LinkAnnotations[0].DestinationName);
+        Assert.Single(navigation.NamedDestinations, item => item.Name == "ExtraTarget");
+        Assert.Contains(navigation.LinkAnnotations, link => link.DestinationName == "FirstTarget");
+        Assert.Contains(navigation.LinkAnnotations, link => link.DestinationName == "ExtraTarget");
         Assert.Equal(original, document._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
     }
 
@@ -135,17 +141,19 @@ public partial class Word {
         noteTarget._paragraph.Remove();
         note.Append(noteTarget._paragraph);
         noteTarget.AddBookmark("SupportedNote");
-        foreach (string name in new[] { "BeforeBreak", "AfterBreak", "SupportedNote" })
+        noteTarget._paragraph.Append(new W.BookmarkStart { Id = "22", Name = "SupportedNoteAlias" }, new W.BookmarkEnd { Id = "22" });
+        foreach (string name in new[] { "BeforeBreak", "AfterBreak", "SupportedNote", "SupportedNoteAlias" })
             source.AddParagraph(string.Empty).AddHyperLink("OPEN" + name.ToUpperInvariant(), name);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var main = document._wordprocessingDocument.MainDocumentPart!;
         string original = main.Document.OuterXml + main.FootnotesPart!.Footnotes!.OuterXml;
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(FootnoteDiagnosticOptions());
-        Assert.DoesNotContain(result.Warnings, item => item.Code.StartsWith("NativeBookmarkTarget", StringComparison.Ordinal));
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
+        Assert.DoesNotContain(result.Warnings, item => item.Code.StartsWith("native-bookmark-target", StringComparison.Ordinal));
         byte[] bytes = result.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         PdfDocumentInfo navigation = PdfInspector.Inspect(bytes);
-        foreach ((string name, string token) in new[] { ("BeforeBreak", "FIRSTTARGET"), ("AfterBreak", "SECONDTARGET"), ("SupportedNote", "NOTETARGET") }) {
+        foreach ((string name, string token) in new[] { ("BeforeBreak", "FIRSTTARGET"), ("AfterBreak", "SECONDTARGET"),
+            ("SupportedNote", "NOTETARGET"), ("SupportedNoteAlias", "NOTETARGET") }) {
             PdfNamedDestination destination = Assert.Single(navigation.NamedDestinations, item => item.Name == name);
             Assert.Single(navigation.LinkAnnotations, link => link.DestinationName == name);
             var page = pdf.GetPages().Single(item => item.Text.Contains(token, StringComparison.Ordinal));

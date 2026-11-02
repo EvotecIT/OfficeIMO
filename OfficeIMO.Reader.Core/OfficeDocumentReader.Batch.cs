@@ -19,14 +19,15 @@ public sealed partial class OfficeDocumentReader {
         ReaderBatchOptions? batchOptions = null,
         Action<ReaderDocumentReadOutcome>? onCompleted = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         using var readScope = ReaderReadScope.Enter(options);
+        var policy = new ReaderBatchReadPolicy(options, batchOptions);
         return await ReaderBatchExecutor.ExecuteAsync(
             paths,
-            batchOptions,
+            policy.BatchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
-            (index, path, token) => ReadDocumentOutcomeAsync(index, path, options, token),
+            (index, path, token) => ReadDocumentOutcomeAsync(index, path, policy, token),
             onCompleted,
             cancellationToken).ConfigureAwait(false);
     }
@@ -46,14 +47,15 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         ReaderBatchOptions? batchOptions = null,
         CancellationToken cancellationToken = default) {
-        options = DocumentReaderEngine.NormalizeOptions(options);
+        options = NormalizeReadOptions(options);
         using var readScope = ReaderReadScope.Enter(options);
+        var policy = new ReaderBatchReadPolicy(options, batchOptions);
         await ReaderBatchExecutor.ExecuteAsCompletedAsync(
             paths,
-            batchOptions,
+            policy.BatchOptions,
             MaxConcurrentReads,
             MaxConcurrentReads,
-            (index, path, token) => ReadDocumentOutcomeAsync(index, path, options, token),
+            (index, path, token) => ReadDocumentOutcomeAsync(index, path, policy, token),
             onCompleted,
             cancellationToken).ConfigureAwait(false);
     }
@@ -61,10 +63,10 @@ public sealed partial class OfficeDocumentReader {
     private async Task<ReaderDocumentReadOutcome> ReadDocumentOutcomeAsync(
         int index,
         string path,
-        ReaderOptions? options,
+        ReaderBatchReadPolicy policy,
         CancellationToken cancellationToken) {
         try {
-            OfficeDocumentReadResult document = await ReadDocumentAsync(path, options, cancellationToken)
+            OfficeDocumentReadResult document = await policy.ReadAsync(path, ReadDocumentAsync, cancellationToken)
                 .ConfigureAwait(false);
             return new ReaderDocumentReadOutcome(index, path, document, error: null);
         } catch (OperationCanceledException) {

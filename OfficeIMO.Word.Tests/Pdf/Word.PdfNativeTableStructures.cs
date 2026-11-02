@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -44,7 +45,7 @@ public partial class Word {
         }
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         double logicalX = Assert.Single(page.GetWords(), word => word.Text == "LogicalCell").BoundingBox.Left;
         bool alignRight = (token == "end") != rightToLeft;
@@ -68,11 +69,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordHeaderFooter? story = storyKind == "header" ? document.HeaderDefaultOrCreate :
             storyKind == "footer" ? document.FooterDefaultOrCreate : null;
-        WordTable table = story == null ? document.AddTable(1, 2) : story.AddTable(1, 2);
+        WordTable table = story == null ? document.AddTable(1, 2, WordTableStyle.TableGrid) : story.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
-        table.GridColumnWidth = new List<int> { 1600, 2400 };
-        table.Rows[0].Cells[0].Width = 1600;
-        table.Rows[0].Cells[1].Width = 2400;
+        table.GridColumnWidth = new List<int> { 1600, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1600) * 635)));
+        table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
         table.Rows[0].Cells[0].Paragraphs[0].Text = "LeftCell";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "ControlledCell";
         table.Rows[0].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Bottom;
@@ -91,7 +92,7 @@ public partial class Word {
             storyKind == "footer" ? loaded.Sections[0].ResolveDefaultFooter()!.Tables.Single() : loaded.Tables.Single();
         Assert.Equal(2, Assert.Single(loadedTable.Rows).Cells.Count);
         Assert.Equal(new[] { "LeftCell", "ControlledCell" }, loadedTable.Rows[0].Cells.Select(cell => cell.Paragraphs[0].Text));
-        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var page = Assert.Single(pdf.GetPages());
         var leftWord = Assert.Single(page.GetWords(), word => word.Text == "LeftCell");
         var controlledWord = Assert.Single(page.GetWords(), word => word.Text == "ControlledCell");
@@ -104,9 +105,9 @@ public partial class Word {
     [Fact]
     public void ContentControlCellSpansUseLogicalRowCellsAndExcludeNestedTables() {
         using WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(2, 2);
+        WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
-        table.GridColumnWidth = new List<int> { 2000, 2000 };
+        table.GridColumnWidth = new List<int> { 2000, 2000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         WordTableCell anchor = table.Rows[0].Cells[0];
         anchor.VerticalMerge = WordCellMerge.Restart;
         anchor.Paragraphs[0].Text = "MergedAnchor";
@@ -115,20 +116,20 @@ public partial class Word {
             W.TableCell first = row.Cells[0]._tableCell;
             first.Parent!.ReplaceChild(new W.SdtCell(new W.SdtContentCell((W.TableCell)first.CloneNode(true))), first);
         }
-        WordTable nested = table.Rows[0].Cells[1].AddTable(1, 3);
+        WordTable nested = table.Rows[0].Cells[1].AddTable(1, 3, WordTableStyle.TableGrid);
         nested.Rows[0].Cells[0].Paragraphs[0].Text = "NestedMarker";
         WordTableCell reloadedAnchor = table.Rows[0].Cells[0];
         Assert.Equal(2, reloadedAnchor.RowSpan);
         Assert.Equal(2, table.Rows[0].Cells.Count);
         Assert.Equal(3, Assert.Single(table.Rows[0].Cells[1].DirectNestedTables).Rows[0].Cells.Count);
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(NativeInputTableOptions()));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(NativeInputTableOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));
         Assert.Equal(1, text.Split(new[] { "MergedAnchor" }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, text.Split(new[] { "NestedMarker" }, StringSplitOptions.None).Length - 1);
     }
 
     private static WordTable AddNativeInputTable(WordDocument document, string marker) {
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 2000);
         table.Rows[0].Cells[0].Paragraphs[0].Text = marker;
         return table;
@@ -136,26 +137,24 @@ public partial class Word {
 
     private static void ConfigureNativeInputTable(WordTable table, int width) {
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = width;
-        table.GridColumnWidth = new List<int> { width };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(width) * 635)));
+        table.GridColumnWidth = new List<int> { width }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         foreach (WordTableRow row in table.Rows) {
             foreach (WordTableCell cell in row.Cells) {
-                cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.Width = width / row.Cells.Count;
-                cell.MarginLeftWidth = 0;
-                cell.MarginRightWidth = 0;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(width / row.Cells.Count) * 635)));
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+                cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].FontFamily = "Arial";
-                cell.Paragraphs[0].FontSize = 10;
-                cell.Paragraphs[0].LineSpacingBeforePoints = 0;
-                cell.Paragraphs[0].LineSpacingAfterPoints = 0;
+                cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(10);
+                cell.Paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
     }
 
-    private static WordToPdfOptions NativeInputTableOptions() => new() {
+    private static WordPdfExportOptions NativeInputTableOptions() => new() {
         IncludePageNumbers = false,
-        PageSize = new PdfCore.PageSize(400, 500),
-        Margins = PdfCore.PageMargins.Uniform(40)
+        PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(500)),
+        Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(40))
     };
 }

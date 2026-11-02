@@ -18,7 +18,7 @@ using OfficeIMO.Pdf;
 
 using var output = File.Create("report.pdf");
 PdfSaveResult saved = document.SavePdf(output, new XpsToPdfOptions {
-    PdfOptions = new PdfOptions().SetEncryption("document-password")
+    PdfOptions = new PdfCreateOptions().SetEncryption("document-password")
 }, cancellationToken);
 ```
 
@@ -44,7 +44,7 @@ visual brushes is excluded.
 Radial Repeat/Reflect brushes remain vector PDF shadings even when tangent
 bounds or high-frequency fields prevent finite stop expansion. Color interpolation,
 stop alpha and native outside-cone endpoint paint are retained. Print-condition
-conversion configured through `XpsToPdfOptions.PdfOptions` uses the caller-supplied
+conversion configured through `XpsToPdfOptions.PdfCreateOptions` uses the caller-supplied
 CMYK ICC profile and bounded vector color samples; alpha remains independent.
 This color conversion alone does not establish PDF/X conformance.
 

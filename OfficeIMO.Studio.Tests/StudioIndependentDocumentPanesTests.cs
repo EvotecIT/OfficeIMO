@@ -404,7 +404,7 @@ public sealed class StudioIndependentDocumentPanesTests {
     private static void Create(string path, string title, int pages) => PdfDocument.Create(document => {
         for (int page = 1; page <= pages; page++) {
             int number = page;
-            document.Page(p => p.Size(300, 400).Content(content => content.Item(item => item.Paragraph(text => text.Text($"{title} · page {number}")))));
+            document.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.Paragraph(text => text.Text($"{title} · page {number}")))));
         }
     }).Save(path);
     private static void Capture(Window window, string name) {

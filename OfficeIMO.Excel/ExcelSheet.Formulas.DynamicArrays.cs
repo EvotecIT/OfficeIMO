@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
             EnsureDynamicArrayWriteIndex();
             if (SpillOwnership.WriteRanges.Any(range => row >= range.Top && row <= range.Bottom
                 && column >= range.Left && column <= range.Right))
-                throw new InvalidOperationException($"Cell '{A1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
+                throw new InvalidOperationException($"Cell '{ExcelA1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
         }
 
         private Cell GetWritableValueCell(int row, int column) {
@@ -120,8 +120,8 @@ namespace OfficeIMO.Excel {
                 TryWriteRichFormulaError(anchor, "#SPILL!", plan);
             } else {
                 FormulaArrayValue array = plan.Array!;
-                anchor.CellFormula!.Reference = A1.CellReference(plan.Top, plan.Left) + ":"
-                    + A1.CellReference(plan.Bottom, plan.Right);
+                anchor.CellFormula!.Reference = ExcelA1.CellReference(plan.Top, plan.Left) + ":"
+                    + ExcelA1.CellReference(plan.Bottom, plan.Right);
                 for (int row = plan.Top; row <= plan.Bottom; row++)
                     for (int column = plan.Left; column <= plan.Right; column++) {
                         Cell cell = row == plan.Top && column == plan.Left ? anchor : GetCell(row, column);
@@ -160,12 +160,12 @@ namespace OfficeIMO.Excel {
             long bottom = (long)top + array.Rows - 1, right = (long)left + array.Columns - 1;
             var plan = new DynamicArrayPlan {
                 Owner = owner, Top = top, Left = left,
-                Bottom = bottom <= A1.MaxRows ? (int)bottom : top,
-                Right = right <= A1.MaxColumns ? (int)right : left,
-                ErrorColumns = right <= A1.MaxColumns ? array.Columns - 1 : 0,
-                ErrorRows = bottom <= A1.MaxRows ? array.Rows - 1 : 0
+                Bottom = bottom <= ExcelA1.MaxRows ? (int)bottom : top,
+                Right = right <= ExcelA1.MaxColumns ? (int)right : left,
+                ErrorColumns = right <= ExcelA1.MaxColumns ? array.Columns - 1 : 0,
+                ErrorRows = bottom <= ExcelA1.MaxRows ? array.Rows - 1 : 0
             };
-            if (bottom > A1.MaxRows || right > A1.MaxColumns) {
+            if (bottom > ExcelA1.MaxRows || right > ExcelA1.MaxColumns) {
                 plan.ErrorSubtype = 3;
             } else {
                 var target = (top, left, plan.Bottom, plan.Right);

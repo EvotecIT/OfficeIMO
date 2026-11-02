@@ -12,7 +12,7 @@ public sealed class MarkdownPdfPageDecoration {
     private MarkdownPdfPageDecorationKind _kind;
 
     /// <summary>Optional page background color applied before page content is rendered.</summary>
-    public PdfCore.PdfColor? BackgroundColor { get; set; }
+    public global::OfficeIMO.OfficeColor? BackgroundColor { get; set; }
 
     /// <summary>Optional page border applied before page content is rendered.</summary>
     public PdfCore.PdfPageBorder? PageBorder {
@@ -27,18 +27,18 @@ public sealed class MarkdownPdfPageDecoration {
     }
 
     /// <summary>
-    /// When true, explicit low-level PdfOptions values take precedence over this theme decoration.
+    /// When true, explicit low-level PdfCreateOptions values take precedence over this theme decoration.
     /// </summary>
     public bool RespectExistingPdfOptions { get; set; } = true;
 
     /// <summary>Creates the built-in report page decoration profile.</summary>
     public static MarkdownPdfPageDecoration Report() => new MarkdownPdfPageDecoration {
         _kind = MarkdownPdfPageDecorationKind.Report,
-        BackgroundColor = PdfCore.PdfColor.FromRgb(248, 250, 252),
+        BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
         PageBorder = new PdfCore.PdfPageBorder {
-            Color = PdfCore.PdfColor.FromRgb(147, 197, 253),
-            Width = 0.55,
-            Inset = 34,
+            Color = global::OfficeIMO.OfficeColor.FromRgb(147, 197, 253),
+            Width = global::OfficeIMO.OfficeLength.Points(0.55),
+            Inset = global::OfficeIMO.OfficeLength.Points(34),
             Opacity = 0.35
         }
     };
@@ -46,11 +46,11 @@ public sealed class MarkdownPdfPageDecoration {
     /// <summary>Creates the built-in technical document page decoration profile.</summary>
     public static MarkdownPdfPageDecoration TechnicalDocument() => new MarkdownPdfPageDecoration {
         _kind = MarkdownPdfPageDecorationKind.TechnicalDocument,
-        BackgroundColor = PdfCore.PdfColor.White,
+        BackgroundColor = global::OfficeIMO.OfficeColor.White,
         PageBorder = new PdfCore.PdfPageBorder {
-            Color = PdfCore.PdfColor.FromRgb(203, 213, 225),
-            Width = 0.5,
-            Inset = 36,
+            Color = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
+            Width = global::OfficeIMO.OfficeLength.Points(0.5),
+            Inset = global::OfficeIMO.OfficeLength.Points(36),
             Opacity = 0.42
         }
     };
@@ -81,7 +81,7 @@ public sealed class MarkdownPdfPageDecoration {
         _kind = _kind
     };
 
-    internal void Apply(PdfCore.PdfDocument pdf, PdfCore.PdfOptions options) {
+    internal void Apply(PdfCore.PdfDocument pdf, PdfCore.PdfCreateOptions options) {
         if (pdf == null) {
             throw new ArgumentNullException(nameof(pdf));
         }
@@ -105,16 +105,16 @@ public sealed class MarkdownPdfPageDecoration {
         }
     }
 
-    private bool ShouldApplyBackgroundColor(PdfCore.PdfOptions options) =>
+    private bool ShouldApplyBackgroundColor(PdfCore.PdfCreateOptions options) =>
         !RespectExistingPdfOptions || !options.BackgroundColor.HasValue;
 
-    private bool ShouldApplyBackgroundShapes(PdfCore.PdfOptions options) =>
+    private bool ShouldApplyBackgroundShapes(PdfCore.PdfCreateOptions options) =>
         !RespectExistingPdfOptions || options.PageBackgroundShapes == null || options.PageBackgroundShapes.Count == 0;
 
-    private bool ShouldApplyPageBorder(PdfCore.PdfOptions options) =>
+    private bool ShouldApplyPageBorder(PdfCore.PdfCreateOptions options) =>
         !RespectExistingPdfOptions || options.PageBorder == null;
 
-    private IReadOnlyList<PdfCore.PdfPageBackgroundShape> CreateEffectiveBackgroundShapes(PdfCore.PdfOptions options) {
+    private IReadOnlyList<PdfCore.PdfPageBackgroundShape> CreateEffectiveBackgroundShapes(PdfCore.PdfCreateOptions options) {
         var shapes = new List<PdfCore.PdfPageBackgroundShape>();
         switch (_kind) {
             case MarkdownPdfPageDecorationKind.Report:
@@ -134,76 +134,67 @@ public sealed class MarkdownPdfPageDecoration {
         return shapes;
     }
 
-    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateReportBackgroundShapes(PdfCore.PdfOptions options) {
-        yield return PdfCore.PdfPageBackgroundShape.TopBand(
+    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateReportBackgroundShapes(PdfCore.PdfCreateOptions options) {
+        // The band frames the title area of the first page. Continuation pages start with body content at the
+        // top margin, where a repeated band would cut through code blocks, figures and tables.
+        PdfCore.PdfPageBackgroundShape band = PdfCore.PdfPageBackgroundShape.TopBand(
             options.PageWidth,
             options.PageHeight,
-            110,
-            fill: PdfCore.PdfColor.FromRgb(239, 246, 255),
-            insetX: 34,
-            offsetY: 42,
-            cornerRadius: 20,
-            stroke: PdfCore.PdfColor.FromRgb(191, 219, 254),
-            strokeWidth: 0.55,
+            global::OfficeIMO.OfficeLength.Points(110),
+            fill: global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
+            insetX: global::OfficeIMO.OfficeLength.Points(34),
+            offsetY: global::OfficeIMO.OfficeLength.Points(42),
+            cornerRadius: global::OfficeIMO.OfficeLength.Points(20),
+            stroke: global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254),
+            strokeWidth: global::OfficeIMO.OfficeLength.Points(0.55),
             fillOpacity: 0.58,
             strokeOpacity: 0.45,
-            fillGradient: HorizontalGradient(PdfCore.PdfColor.FromRgb(239, 246, 255), PdfCore.PdfColor.White));
+            fillGradient: HorizontalGradient(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.White));
+        band.FirstPageOnly = true;
+        yield return band;
 
-        yield return PdfCore.PdfPageBackgroundShape.RightBand(
-            options.PageWidth,
-            options.PageHeight,
-            54,
-            fill: PdfCore.PdfColor.FromRgb(219, 234, 254),
-            insetY: 58,
-            offsetX: 34,
-            cornerRadius: 20,
-            fillOpacity: 0.24);
-
-        yield return PdfCore.PdfPageBackgroundShape.Ellipse(
-            Math.Max(0, options.PageWidth - 160),
-            Math.Max(0, options.PageHeight - 152),
-            112,
-            112,
-            fill: PdfCore.PdfColor.FromRgb(191, 219, 254),
-            fillOpacity: 0.22);
+        // Only the header band remains: side bands and ornaments sat behind body text and code,
+        // and filled blocks such as quotes cut visible holes into them.
     }
 
-    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfOptions options) {
-        yield return PdfCore.PdfPageBackgroundShape.TopBand(
+    private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfCreateOptions options) {
+        PdfCore.PdfPageBackgroundShape band = PdfCore.PdfPageBackgroundShape.TopBand(
             options.PageWidth,
             options.PageHeight,
-            78,
-            fill: PdfCore.PdfColor.FromRgb(248, 250, 252),
-            insetX: 36,
-            offsetY: 36,
-            cornerRadius: 14,
-            stroke: PdfCore.PdfColor.FromRgb(226, 232, 240),
-            strokeWidth: 0.45,
+            global::OfficeIMO.OfficeLength.Points(78),
+            fill: global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            insetX: global::OfficeIMO.OfficeLength.Points(36),
+            offsetY: global::OfficeIMO.OfficeLength.Points(36),
+            cornerRadius: global::OfficeIMO.OfficeLength.Points(14),
+            stroke: global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240),
+            strokeWidth: global::OfficeIMO.OfficeLength.Points(0.45),
             fillOpacity: 0.82,
             strokeOpacity: 0.55,
-            fillGradient: HorizontalGradient(PdfCore.PdfColor.FromRgb(248, 250, 252), PdfCore.PdfColor.White));
+            fillGradient: HorizontalGradient(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.White));
+        band.FirstPageOnly = true;
+        yield return band;
 
         yield return PdfCore.PdfPageBackgroundShape.LeftBand(
             options.PageWidth,
             options.PageHeight,
-            8,
-            fill: PdfCore.PdfColor.FromRgb(9, 105, 218),
-            insetY: 54,
-            offsetX: 36,
-            cornerRadius: 4,
+            global::OfficeIMO.OfficeLength.Points(8),
+            fill: global::OfficeIMO.OfficeColor.FromRgb(9, 105, 218),
+            insetY: global::OfficeIMO.OfficeLength.Points(54),
+            offsetX: global::OfficeIMO.OfficeLength.Points(36),
+            cornerRadius: global::OfficeIMO.OfficeLength.Points(4),
             fillOpacity: 0.18);
 
         yield return PdfCore.PdfPageBackgroundShape.Rectangle(
-            options.PageWidth - 120,
-            options.PageHeight - 88,
-            48,
-            6,
-            fill: PdfCore.PdfColor.FromRgb(9, 105, 218),
+            global::OfficeIMO.OfficeLength.Points(options.PageWidth.ToPoints() - 120),
+            global::OfficeIMO.OfficeLength.Points(options.PageHeight.ToPoints() - 88),
+            global::OfficeIMO.OfficeLength.Points(48),
+            global::OfficeIMO.OfficeLength.Points(6),
+            fill: global::OfficeIMO.OfficeColor.FromRgb(9, 105, 218),
             fillOpacity: 0.18);
     }
 
-    private static OfficeLinearGradient HorizontalGradient(PdfCore.PdfColor startColor, PdfCore.PdfColor endColor) =>
-        OfficeLinearGradient.Horizontal(startColor.ToOfficeColor(), endColor.ToOfficeColor());
+    private static OfficeLinearGradient HorizontalGradient(global::OfficeIMO.OfficeColor startColor, global::OfficeIMO.OfficeColor endColor) =>
+        OfficeLinearGradient.Horizontal(startColor, endColor);
 
     private static List<PdfCore.PdfPageBackgroundShape>? CloneBackgroundShapes(IEnumerable<PdfCore.PdfPageBackgroundShape>? shapes) {
         if (shapes == null) {

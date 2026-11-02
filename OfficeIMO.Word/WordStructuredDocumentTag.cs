@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -206,19 +206,19 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets the font size in points for the content control text.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 var runProperties = GetRunProperties();
                 if (runProperties?.FontSize?.Val != null &&
                     int.TryParse(runProperties.FontSize.Val, out var halfPoints)) {
-                    return halfPoints / 2;
+                    return global::OfficeIMO.OfficeLength.Emus((long)halfPoints * 6350);
                 }
                 return null;
             }
             set {
                 var runProperties = VerifyRunProperties();
                 if (value != null) {
-                    runProperties.FontSize = new FontSize { Val = (value * 2).ToString() };
+                    runProperties.FontSize = new FontSize { Val = checked((int)value.Value.ToHalfPoints()).ToString(System.Globalization.CultureInfo.InvariantCulture) };
                 } else {
                     runProperties.FontSize?.Remove();
                 }
@@ -368,7 +368,7 @@ namespace OfficeIMO.Word {
         /// Sets the font size in points and returns the instance for chaining.
         /// </summary>
         /// <param name="fontSize">Font size in points.</param>
-        public WordStructuredDocumentTag SetFontSize(int fontSize) {
+        public WordStructuredDocumentTag SetFontSize(global::OfficeIMO.OfficeLength fontSize) {
             FontSize = fontSize;
             return this;
         }

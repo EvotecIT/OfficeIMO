@@ -44,20 +44,20 @@ public class PdfEngineRoadmapFoundationTests {
     [Fact]
     public void ContextComponent_ReplaysThroughExistingDeferredPaginationPath() {
         var component = new PageAwareComponent();
-        PdfDocument document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 200,
-            PageHeight = 200,
-            MarginLeft = 20,
-            MarginTop = 20,
-            MarginRight = 20,
-            MarginBottom = 20,
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(200),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(200),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(20),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(20),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(20),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(20),
             CompressContentStreams = false
         });
 
         byte[] bytes = document
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .Spacer(100)
-            .Component(component, new PdfFlowOptions { MinimumRemainingHeight = 100 })
+            .Component(component, new PdfFlowOptions { MinimumRemainingHeight = global::OfficeIMO.OfficeLength.Points(100) })
             .ToBytes();
 
         Assert.Equal(2, component.Invocations);
@@ -70,7 +70,7 @@ public class PdfEngineRoadmapFoundationTests {
             .Paragraph(paragraph => paragraph.Text("Mutation portfolio"))
             .TextField("customer", value: "Ada")
             .ToBytes();
-        PdfDocument opened = PdfDocument.Load(bytes);
+        PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(bytes));
 
         PdfMutationPortfolioReport report = opened.AssessMutations(new[] {
             PdfMutationOperation.ModifyAnnotations,
@@ -98,7 +98,7 @@ public class PdfEngineRoadmapFoundationTests {
             yield return "customer";
         }
 
-        PdfMutationPortfolioReport report = PdfDocument.Load(bytes).AssessMutations(
+        PdfMutationPortfolioReport report = PdfDocument.Load(new System.IO.MemoryStream(bytes)).AssessMutations(
             new[] { PdfMutationOperation.ModifyCatalog, PdfMutationOperation.FillFormFields },
             FieldNames());
 
@@ -112,7 +112,7 @@ public class PdfEngineRoadmapFoundationTests {
             .Paragraph(paragraph => paragraph.Text("Producer compatibility"))
             .ToBytes();
 
-        PdfRenderCompatibilityReport report = PdfDocument.Load(bytes).AssessRenderCompatibility();
+        PdfRenderCompatibilityReport report = PdfDocument.Load(new System.IO.MemoryStream(bytes)).AssessRenderCompatibility();
 
         Assert.Same(PdfRenderCapabilities.Current, report.Manifest);
         Assert.Single(report.Pages);
@@ -123,7 +123,7 @@ public class PdfEngineRoadmapFoundationTests {
 
     [Fact]
     public void Save_ReportsBoundedPayloadSpillWithoutClaimingForwardOnlyLayout() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             ObjectBufferMemoryLimitBytes = 0,
             PageContentMemoryLimitBytes = 0
         };
@@ -131,7 +131,7 @@ public class PdfEngineRoadmapFoundationTests {
 
         PdfSaveResult result = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("Bounded serialization evidence"))
-            .Save(output);
+            .SaveWithEvidence(output);
 
         PdfSerializationReport report = Assert.IsType<PdfSerializationReport>(result.Serialization);
         Assert.True(report.PageContentSpilled);
@@ -375,7 +375,7 @@ public class PdfEngineRoadmapFoundationTests {
         };
 
         PdfDocumentConversionResult result = source.ToPdfDocumentResult(new PdfProjectionOptions {
-            PdfOptions = new PdfOptions().SetCatalogUriBase("https://officeimo.net/")
+            PdfOptions = new PdfCreateOptions().SetCatalogUriBase("https://officeimo.net/")
         });
         byte[] bytes = result.ToBytes();
 

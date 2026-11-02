@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Immutable evidence for one encoded PDF glyph in a positioned text span.</summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfTextGlyph {
     internal PdfTextGlyph(string text, int textStart, double x, double y, double advance,
         double paintedAdvance, byte[] encodedBytes) {
@@ -23,9 +24,9 @@ public sealed class PdfTextGlyph {
     public double X { get; }
     /// <summary>Glyph origin in page user-space points.</summary>
     public double Y { get; }
-    /// <summary>Baseline advance in points, including authored spacing.</summary>
+    /// <summary>Baseline advance in page user-space units, including authored spacing.</summary>
     public double Advance { get; }
-    /// <summary>Glyph width in points before additional character or word spacing.</summary>
+    /// <summary>Glyph width in page user-space units before additional character or word spacing.</summary>
     public double PaintedAdvance { get; }
     /// <summary>Original encoded PDF character code; callers cannot mutate the reader's bytes.</summary>
     public IReadOnlyList<byte> EncodedBytes { get; }

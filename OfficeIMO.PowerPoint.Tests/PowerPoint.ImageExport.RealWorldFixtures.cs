@@ -56,11 +56,11 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [MemberData(nameof(GetRealWorldFixtureBaselines))]
-        public void PowerPointImageExportRealWorldFixturesMatchPdfPageImages(PowerPointImageFixtureBaseline baseline) {
-            using PowerPointPresentation presentation = baseline.CreatePresentation();
+        public void PowerPointImageExportRealWorldFixturesPreserveTextColorsAndDimensions(PowerPointImageFixtureBaseline baseline) {
+            using PowerPointDocument presentation = baseline.CreateDocument();
             PowerPointSlide slide = presentation.Slides[0];
 
-            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+            PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             }
 
             foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Png, OfficeImageExportFormat.Jpeg, OfficeImageExportFormat.Svg }) {
-                AssertSharedPdfImageRoute(presentation, format);
+                AssertNativeImageRoute(presentation, format);
             }
 
             foreach (OfficeColor expectedColor in baseline.ExpectedRasterColors) {
@@ -91,45 +91,45 @@ namespace OfficeIMO.Tests {
         private static void AssertFixtureDiagnostics(IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
             OfficeImageExportDiagnostic[] all = diagnostics.ToArray();
             // These compact labels allow visible overflow. Any clipping or other loss still fails below.
-            foreach (OfficeImageExportDiagnostic diagnostic in all.Where(item => item.Code == "text-box-overflow")) {
+            foreach (OfficeImageExportDiagnostic diagnostic in all.Where(item => item.Code == "text-box-overflow" || item.Code == OfficeDiagnosticCodes.PowerpointTextOverflow)) {
                 Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind);
                 Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
             }
-            AssertNoUnexpectedDiagnostics(all.Where(item => item.Code != "text-box-overflow"));
+            AssertNoUnexpectedDiagnostics(all.Where(item => item.Code != "text-box-overflow" && item.Code != OfficeDiagnosticCodes.PowerpointTextOverflow));
         }
 
         public static IEnumerable<object[]> GetRealWorldFixtureBaselines() =>
             RealWorldFixtureBaselines.Select(item => new object[] { item });
 
-        private static PowerPointPresentation CreateDashboardFixture() {
+        private static PowerPointDocument CreateDashboardFixture() {
             var stream = new MemoryStream();
-            PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(320, 180);
+            PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointTextBox title = slide.AddTextBoxPoints("Executive Summary", 18, 12, 260, 24);
-            title.FontSize = 18;
+            PowerPointTextBox title = slide.AddTextBox("Executive Summary",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
+            title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             title.Color = "0F172A";
 
             AddMetricCard(slide, "Revenue", "$42M", "3B82F6", 18, 42);
             AddMetricCard(slide, "Retention", "96%", "10B981", 116, 42);
             AddMetricCard(slide, "Risk", "Low", "F59E0B", 214, 42);
 
-            PowerPointTable table = slide.AddTablePoints(4, 2, 18, 104, 132, 54);
-            table.SetColumnWidthsPoints(66, 66);
-            table.SetRowHeightsPoints(13.5, 13.5, 13.5, 13.5);
+            PowerPointTable table = slide.AddTable(4,2,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(104),global::OfficeIMO.OfficeLength.Points(132),global::OfficeIMO.OfficeLength.Points(54));
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(66));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(13.5),global::OfficeIMO.OfficeLength.Points(13.5),global::OfficeIMO.OfficeLength.Points(13.5),global::OfficeIMO.OfficeLength.Points(13.5));
             string[] regions = { "North", "South", "East", "West" };
             string[] values = { "12.4", "9.8", "11.6", "8.2" };
             for (int row = 0; row < regions.Length; row++) {
                 PowerPointTableCell region = table.GetCell(row, 0);
                 region.Text = regions[row];
-                region.FontSize = 8;
+                region.FontSize = global::OfficeIMO.OfficeLength.Points(8);
                 region.FillColor = row % 2 == 0 ? "F8FAFC" : "EEF2FF";
 
                 PowerPointTableCell value = table.GetCell(row, 1);
                 value.Text = values[row];
-                value.FontSize = 8;
+                value.FontSize = global::OfficeIMO.OfficeLength.Points(8);
                 value.FillColor = row % 2 == 0 ? "F8FAFC" : "EEF2FF";
             }
 
@@ -151,15 +151,15 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(99, 102, 241)
                 },
                 topDown: true));
-            slide.AddPicturePoints(image, OfficeImageFormat.Bmp, 276, 16, 24, 24);
+            slide.AddImage(image, OfficeImageFormat.Bmp, OfficeIMO.OfficeLength.Points(276), OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24));
 
             return presentation;
         }
 
-        private static PowerPointPresentation CreateProcessDiagramFixture() {
+        private static PowerPointDocument CreateProcessDiagramFixture() {
             var stream = new MemoryStream();
-            PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(320, 180);
+            PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("EFF6FF", "F8FAFC", 0D);
 
@@ -172,50 +172,50 @@ namespace OfficeIMO.Tests {
             AddConnector(slide, 162, 76, 10, 0);
             AddConnector(slide, 238, 76, 10, 0);
 
-            PowerPointTextBox note = slide.AddTextBoxPoints("OpenXML + Drawing only", 56, 120, 208, 20);
-            note.FontSize = 12;
+            PowerPointTextBox note = slide.AddTextBox("OpenXML + Drawing only",global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(208),global::OfficeIMO.OfficeLength.Points(20));
+            note.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             note.Color = "0F172A";
 
             return presentation;
         }
 
         private static void AddMetricCard(PowerPointSlide slide, string label, string value, string color, double left, double top) {
-            PowerPointAutoShape card = slide.AddRectanglePoints(left, top, 86, 46);
+            PowerPointAutoShape card = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(86), OfficeIMO.OfficeLength.Points(46));
             card.FillColor = "F8FAFC";
             card.OutlineColor = color;
-            card.OutlineWidthPoints = 1.5D;
+            card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
-            PowerPointAutoShape accent = slide.AddRectanglePoints(left, top, 4, 46);
+            PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(4), OfficeIMO.OfficeLength.Points(46));
             accent.FillColor = color;
             accent.OutlineColor = color;
-            accent.OutlineWidthPoints = 0D;
+            accent.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0D);
 
-            PowerPointTextBox labelBox = slide.AddTextBoxPoints(label, left + 8, top + 7, 68, 12);
-            labelBox.FontSize = 8;
+            PowerPointTextBox labelBox = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 7),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(12));
+            labelBox.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             labelBox.Color = "334155";
 
-            PowerPointTextBox valueBox = slide.AddTextBoxPoints(value, left + 8, top + 22, 68, 16);
-            valueBox.FontSize = 14;
+            PowerPointTextBox valueBox = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 22),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(16));
+            valueBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
             valueBox.Color = color;
         }
 
         private static void AddProcessNode(PowerPointSlide slide, string label, string color, double left, double top) {
-            PowerPointAutoShape node = slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, left, top, 66, 36);
+            PowerPointAutoShape node = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(66), OfficeIMO.OfficeLength.Points(36));
             node.FillColor = color;
             node.OutlineColor = "0F172A";
-            node.OutlineWidthPoints = 1D;
+            node.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1D);
 
-            PowerPointTextBox text = slide.AddTextBoxPoints(label, left + 4, top + 11, 58, 12);
-            text.TextMarginLeftPoints = text.TextMarginRightPoints = 0D;
-            text.TextMarginTopPoints = text.TextMarginBottomPoints = 0D;
-            text.FontSize = 8;
+            PowerPointTextBox text = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Points(left + 4),global::OfficeIMO.OfficeLength.Points(top + 11),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(12));
+            text.TextMarginLeft = text.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+            text.TextMarginTop = text.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
+            text.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             text.Color = "FFFFFF";
         }
 
         private static void AddConnector(PowerPointSlide slide, double left, double top, double width, double height) {
-            PowerPointAutoShape connector = slide.AddShapePoints(OfficePresetShapeType.Line, left, top, width, height);
+            PowerPointAutoShape connector = slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
             connector.OutlineColor = "0F172A";
-            connector.OutlineWidthPoints = 1.2D;
+            connector.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2D);
         }
 
         private static int CountNonBackgroundPixels(OfficeRasterImage image, OfficeColor background) {
@@ -235,12 +235,12 @@ namespace OfficeIMO.Tests {
             return count;
         }
 
-        private static string GetSnapshotPlainText(PowerPointSlideVisualSnapshot snapshot) =>
+        private static string GetSnapshotPlainText(PowerPointSlideVisualInfo snapshot) =>
             string.Concat(GetSnapshotTextSegments(snapshot).Select(segment => segment.Text));
 
-        private static IEnumerable<(PdfTextSpan Span, string Text)> GetSnapshotTextSegments(PowerPointSlideVisualSnapshot snapshot) {
-            PdfTextSpan? previous = null;
-            foreach (PdfTextSpan span in snapshot.TextSpans) {
+        private static IEnumerable<(PowerPointTextSpanInfo Span, string Text)> GetSnapshotTextSegments(PowerPointSlideVisualInfo snapshot) {
+            PowerPointTextSpanInfo? previous = null;
+            foreach (PowerPointTextSpanInfo span in snapshot.TextSpans) {
                 string text = System.Text.RegularExpressions.Regex.Replace(span.Text, @"\s+", " ");
                 if (text.Length == 0) continue;
                 // Preserve run boundaries within a line; a wrapped line separates logical words.
@@ -255,12 +255,12 @@ namespace OfficeIMO.Tests {
         public sealed class PowerPointImageFixtureBaseline {
             public PowerPointImageFixtureBaseline(
                 string name,
-                Func<PowerPointPresentation> createPresentation,
+                Func<PowerPointDocument> createPresentation,
                 IReadOnlyList<string> expectedTexts,
                 IReadOnlyList<OfficeColor> expectedRasterColors,
                 int expectedMinimumNonBackgroundPixels) {
                 Name = name;
-                CreatePresentation = createPresentation;
+                CreateDocument = createPresentation;
                 ExpectedTexts = expectedTexts;
                 ExpectedRasterColors = expectedRasterColors;
                 ExpectedMinimumNonBackgroundPixels = expectedMinimumNonBackgroundPixels;
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
 
             public string Name { get; }
 
-            public Func<PowerPointPresentation> CreatePresentation { get; }
+            public Func<PowerPointDocument> CreateDocument { get; }
 
             public IReadOnlyList<string> ExpectedTexts { get; }
 

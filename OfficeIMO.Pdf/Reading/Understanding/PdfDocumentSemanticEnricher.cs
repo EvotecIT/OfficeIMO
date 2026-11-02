@@ -120,11 +120,11 @@ internal static partial class PdfDocumentSemanticEnricher {
             }
             IReadOnlyList<PdfInferenceEvidence> evidence = captionRejected
                 ? imageRegion.Evidence.Where(static item =>
-                    !string.Equals(item.Code, "image-region.caption-proximity", StringComparison.Ordinal) &&
-                    !string.Equals(item.Code, "image-region.paint-order", StringComparison.Ordinal)).ToArray()
+                    !string.Equals(item.Code, "image-region-caption-proximity", StringComparison.Ordinal) &&
+                    !string.Equals(item.Code, "image-region-paint-order", StringComparison.Ordinal)).ToArray()
                 : imageRegion.Evidence;
             bool taggedFigure = evidence.Any(static item =>
-                string.Equals(item.Code, "image-region.tagged-figure", StringComparison.Ordinal));
+                string.Equals(item.Code, "image-region-tagged-figure", StringComparison.Ordinal));
             double confidence = captionRejected && !taggedFigure
                 ? Math.Min(imageRegion.Confidence, imageRegion.Placement.MarkedContentId.HasValue ? 0.9D : 0.75D)
                 : imageRegion.Confidence;
@@ -188,6 +188,19 @@ internal static partial class PdfDocumentSemanticEnricher {
                     ? PdfTextSimilarity.NormalizeSignaturePreservingDigits(region.Text)
                     : PdfTextSimilarity.NormalizeSignature(region.Text);
                 if (edge == PageEdge.None || signature.Length == 0) continue;
+                if (IsPageNumberText(region.Text)) {
+                    // A page number at the page edge is running content even on a single page, and its digits
+                    // change from page to page, so it never forms a repeated signature.
+                    elements[pageIndex][elementIndex] = WithEvidence(
+                        element,
+                        edge == PageEdge.Header ? PdfUnderstandingSemanticKind.Header : PdfUnderstandingSemanticKind.Footer,
+                        Math.Max(element.Confidence, 0.9D),
+                        new PdfInferenceEvidence(
+                            "semantic-page-number",
+                            "A short page-number pattern sits in the page header or footer band.",
+                            0.9D));
+                    continue;
+                }
                 candidates.Add(new PageEdgeCandidate(
                     pageIndex,
                     elementIndex,
@@ -215,10 +228,20 @@ internal static partial class PdfDocumentSemanticEnricher {
                 kind,
                 Math.Max(current.Confidence, 0.94D),
                 new PdfInferenceEvidence(
-                    candidate.Edge == PageEdge.Header ? "semantic.repeated-header" : "semantic.repeated-footer",
+                    candidate.Edge == PageEdge.Header ? "semantic-repeated-header" : "semantic-repeated-footer",
                     "Normalized geometry and exact digit-insensitive text signatures repeat across document pages.",
                     0.95D));
         }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex PageNumberPattern = new System.Text.RegularExpressions.Regex(
+        @"^(?:[\(\[\-\u2013\u2014]?\s*\d{1,5}\s*(?:(?:/|\||\p{L}{1,4})\s*\d{1,5})?\s*[\)\]\-\u2013\u2014]?|\p{L}{1,8}\.?\s*\d{1,5}\s*(?:/|\||\p{L}{1,4})\s*\d{1,5})$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+        TimeSpan.FromSeconds(1));
+
+    internal static bool IsPageNumberText(string? text) {
+        string value = text?.Trim() ?? string.Empty;
+        return value.Length > 0 && value.Length <= 24 && PageNumberPattern.IsMatch(value);
     }
 
     private static bool[] FindRepeatedPageEdgeCandidates(
@@ -366,7 +389,7 @@ internal static partial class PdfDocumentSemanticEnricher {
 
                 usedLines.Add(candidate.Key);
                 var evidence = new PdfInferenceEvidence(
-                    "semantic.outline-heading",
+                    "semantic-outline-heading",
                     "A page-targeted outline title matches this line at outline level " + outline.Level + ".",
                     0.98D);
                 if (candidate.Element.Region.Lines.Count == 1) {
@@ -514,7 +537,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                     Math.Max(region.Confidence, 0.96D),
                     region.Evidence.Concat(new[] {
                         new PdfInferenceEvidence(
-                            "image-region.tagged-figure",
+                            "image-region-tagged-figure",
                             "A tagged-PDF Figure structure element owns the image marked content.",
                             0.98D)
                     }),
@@ -624,7 +647,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 updated ??= source.ToArray();
                 updated[tableIndex] = candidate.WithAdditionalEvidence(
                     new PdfInferenceEvidence(
-                        "table.tagged-header-row",
+                        "table-tagged-header-row",
                         "Tagged-PDF THead or top-row TH structure identifies the first table row as column headers.",
                         0.99D),
                     0.98D);
@@ -698,10 +721,10 @@ internal static partial class PdfDocumentSemanticEnricher {
 
         IEnumerable<PdfInferenceEvidence> evidence = source.Evidence;
         if (!source.Evidence.Any(static item =>
-                string.Equals(item.Code, "semantic.list-marker", StringComparison.Ordinal))) {
+                string.Equals(item.Code, "semantic-list-marker", StringComparison.Ordinal))) {
             evidence = evidence.Concat(new[] {
                 new PdfInferenceEvidence(
-                    "semantic.list-marker",
+                    "semantic-list-marker",
                     "The split line begins with a bullet or numbered marker.",
                     0.4D)
             });
@@ -778,7 +801,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 current.Kind,
                 current.Confidence,
                 new PdfInferenceEvidence(
-                    "semantic.document-heading-font-tier",
+                    "semantic-document-heading-font-tier",
                     "The heading level was ranked from document-wide heading font tiers.",
                     0.8D),
                 level);
@@ -849,12 +872,33 @@ internal static partial class PdfDocumentSemanticEnricher {
 
     private static PdfUnderstandingSemanticElement WithTaggedEvidence(
         PdfUnderstandingSemanticElement current,
+        TaggedLineMatch match) {
+        // Producers often tag a document title as a plain paragraph (or a role map sends a custom "Title" role to
+        // P). A short region set materially larger than the body keeps its heading semantics.
+        if (match.Role.Kind == PdfUnderstandingSemanticKind.Paragraph &&
+            current.Kind == PdfUnderstandingSemanticKind.Heading &&
+            current.Region.Lines.Count <= 2 &&
+            current.Evidence.Any(static evidence => evidence.Code is "semantic.large-font" or "semantic.local-font-transition")) {
+            return WithEvidence(
+                current,
+                PdfUnderstandingSemanticKind.Heading,
+                current.Confidence,
+                new PdfInferenceEvidence(
+                    "semantic-tagged-paragraph-display-heading",
+                    "Tagged-PDF role " + match.Role.Name + " covers a short line set materially larger than the body text.",
+                    0.7D));
+        }
+        return WithTaggedEvidenceCore(current, match);
+    }
+
+    private static PdfUnderstandingSemanticElement WithTaggedEvidenceCore(
+        PdfUnderstandingSemanticElement current,
         TaggedLineMatch match) => WithEvidence(
             current,
             match.Role.Kind,
             Math.Max(current.Confidence, 0.96D),
             new PdfInferenceEvidence(
-                "semantic.tagged-pdf-role",
+                "semantic-tagged-pdf-role",
                 "Tagged-PDF role " + match.Role.Name + " owns marked content " +
                     string.Join(", ", match.MarkedContent.Select(static item => item.Format())) + ".",
                 0.98D),

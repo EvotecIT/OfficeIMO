@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             using (var sourceDocument = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetStream)) {
                 if (targetHasCommentedSheet) {
-                    ExcelSheet existing = targetDocument.AddWorksheet("Existing");
+                    ExcelSheet existing = targetDocument.AddSheet("Existing");
                     existing.CellValue(1, 1, "Existing");
                     existing.SetComment("A1", "Existing note", "Target Author");
                     existing.AddThreadedComment("B1", "Existing thread", "Target Author");
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             using var targetStream = new MemoryStream();
             using (var source = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var target = ExcelDocument.Create(targetStream)) {
-                ExcelSheet existing = target.AddWorksheet("Existing");
+                ExcelSheet existing = target.AddSheet("Existing");
                 existing.AddThreadedComment("A1", "Existing 1", "Other person 1");
                 existing.AddThreadedComment("A2", "Existing 2", "Other person 2");
                 existing.AddThreadedComment("A3", "Existing 3", "Other person 3");
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
             using (var target = ExcelDocument.Create(targetStream)) {
                 Assert.DoesNotContain(source._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!.Elements<Threaded.Person>(), x => x.Id == missingId);
                 Assert.Null(source["Report"].GetThreadedComments().Single(x => x.ParentId == null).Author);
-                var existing = target.AddWorksheet("Existing");
+                var existing = target.AddSheet("Existing");
                 existing.AddThreadedComment("A1", "Existing", "Unrelated");
                 var person = target._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!.Elements<Threaded.Person>().Single();
                 person.Id = missingId;
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             using var targetStream = new MemoryStream();
             using (var sourceDocument = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var targetDocument = ExcelDocument.Create(targetStream)) {
-                targetDocument.AddWorksheet("Existing").SetComment("A1", "Existing note", "Target Author");
+                targetDocument.AddSheet("Existing").SetComment("A1", "Existing note", "Target Author");
                 targetDocument.CopyWorksheetFrom(sourceDocument, "Report", "Copy", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions {
                     CopyMode = ExcelWorksheetCopyMode.Package
                 });
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             using var targetStream = new MemoryStream();
             using (var source = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
             using (var target = ExcelDocument.Create(targetStream)) {
-                var existing = target.AddWorksheet("Existing");
+                var existing = target.AddSheet("Existing");
                 existing.CellValue(1, 1, "Sales");
                 existing.CellValue(2, 1, 1);
                 existing.AddTable("A1:A2", true, "SalesTable", ExcelTableStyle.TableStyleMedium2);
@@ -314,16 +314,16 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "ChartExternalSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "ChartExternalTarget.xlsx");
             using (var source = ExcelDocument.Create(sourcePath)) {
-                var sheet = source.AddWorksheet("Report");
+                var sheet = source.AddSheet("Report");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Category");
                 sheet.CellValue(1, 2, "Series");
                 sheet.CellValue(2, 2, 1);
-                sheet.AddChartFromRange("A1:B2", 4, 1);
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new ExcelChartOptions { Row = 4, Column = 1 });
                 source.Save();
             }
             using (var target = ExcelDocument.Create(targetPath)) {
-                target.AddWorksheet("Existing");
+                target.AddSheet("Existing");
                 target.Save();
             }
             AddExternalWorkbookReference(sourcePath);
@@ -394,15 +394,15 @@ namespace OfficeIMO.Tests {
         private MemoryStream CreateRelatedPartCopySource() {
             var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "North");
                 sheet.CellValue(2, 2, 10);
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 20);
-                sheet.AddImage(5, 1, File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png")), "image/png", name: "Logo");
-                sheet.AddChartFromRange("A1:B3", 5, 4, title: "Sales");
+                sheet.AddImage(5, 1, File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png")), new ExcelImageOptions { ContentType = "image/png", Name = "Logo" });
+                sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 5, Column = 4, Title = "Sales" });
                 sheet.SetComment("D1", "Check the totals", "Reviewer");
                 ExcelThreadedCommentResult thread = sheet.AddThreadedComment("E1", "Is this final?", "Asker");
                 sheet.AddThreadedComment("E1", "Yes", "Answerer", parentId: thread.Id);
@@ -424,17 +424,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Check the totals", comment.Text);
             Assert.Equal("Reviewer", comment.Author);
 
-            IReadOnlyList<ExcelThreadedCommentSnapshot> threaded = sheet.GetThreadedComments();
+            IReadOnlyList<ExcelThreadedCommentInfo> threaded = sheet.GetThreadedComments();
             Assert.Equal(2, threaded.Count);
-            ExcelThreadedCommentSnapshot root = Assert.Single(threaded, _ => _.ParentId == null);
-            ExcelThreadedCommentSnapshot reply = Assert.Single(threaded, _ => _.ParentId != null);
+            ExcelThreadedCommentInfo root = Assert.Single(threaded, _ => _.ParentId == null);
+            ExcelThreadedCommentInfo reply = Assert.Single(threaded, _ => _.ParentId != null);
             Assert.Equal("E1", root.CellReference);
             Assert.Equal("Asker", root.Author);
             Assert.Equal("Is this final?", root.Text);
             Assert.Equal(root.Id, reply.ParentId);
             Assert.Equal("Answerer", reply.Author);
 
-            ExcelHyperlinkSnapshot hyperlink = sheet.GetHyperlinks()["F1"];
+            ExcelHyperlinkInfo hyperlink = sheet.GetHyperlinks()["F1"];
             Assert.True(hyperlink.IsExternal);
             Assert.Equal("https://example.com/report", hyperlink.Target);
         }

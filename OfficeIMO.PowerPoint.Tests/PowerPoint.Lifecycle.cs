@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
         public void Create_Path_IsDetachedUntilExplicitSave() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.AddSlide().AddTitle("Detached");
                     Assert.False(File.Exists(path));
                 }
                 Assert.False(File.Exists(path));
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
+                using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     presentation.AddSlide().AddTitle("Saved");
                     presentation.Save();
                 }
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Create_Detached_SaveWithoutDestinationFailsClearly() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.AddSlide();
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => presentation.Save());
             Assert.Contains("no associated destination", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Load_Stream_PreservesCallerPositionAndDoesNotWriteByDefault() {
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 presentation.AddSlide().AddTitle("Original");
                 presentation.Save();
             }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
             stream.Position = Math.Min(5, stream.Length);
             long originalPosition = stream.Position;
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
+            using (PowerPointDocument presentation = PowerPointDocument.Load(stream,
                        new PowerPointLoadOptions {
                            OpenSettings = new OfficeOpenXmlLoadSettings()
                        })) {
@@ -66,25 +66,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Load_ReadOnlyRejectsSaveOnDispose() {
+        public async Task ReadOnlySnapshotsDoNotEnableSavingToFilesOrStreams() {
+            const string password = "synthetic-readonly-snapshot-password";
             using var stream = new MemoryStream();
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            byte[] encrypted;
+            using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 presentation.AddSlide();
                 presentation.Save();
+                encrypted = presentation.ToBytes(new PowerPointSaveOptions { Password = password });
             }
 
-            Assert.Throws<ArgumentException>(() => PowerPointPresentation.Load(stream,
+            Assert.Throws<ArgumentException>(() => PowerPointDocument.Load(stream,
                 new PowerPointLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly,
                     PersistenceMode = DocumentPersistenceMode.SaveOnDispose
                 }));
+
+            using var encryptedSource = new MemoryStream(encrypted);
+            byte[] original = encryptedSource.ToArray();
+            using var readOnly = PowerPointDocument.Load(encryptedSource, new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly, Password = password });
+            using var captured = new MemoryStream(readOnly.ToBytes());
+            using var reopened = PowerPointDocument.Load(captured, new PowerPointLoadOptions { Password = password });
+            Assert.Single(reopened.Slides);
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".ppt");
+            try {
+                Assert.Throws<InvalidOperationException>(() => readOnly.Save(path));
+                Assert.Throws<InvalidOperationException>(() => readOnly.SaveCopy(path));
+                Assert.False(File.Exists(path));
+                using var destination = new MemoryStream(new byte[] { 1, 2, 3 });
+                Assert.Throws<InvalidOperationException>(() => readOnly.Save(destination));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => readOnly.SaveAsync(destination));
+                Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());
+                Assert.Equal(original, encryptedSource.ToArray());
+            } finally { if (File.Exists(path)) File.Delete(path); }
         }
 
         [Fact]
         public async Task SaveAsync_PathAndStreamProduceEquivalentReloadablePackages() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                await using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                await using PowerPointDocument presentation = PowerPointDocument.Create();
                 presentation.AddSlide().AddTitle("Async");
                 byte[] bytes = presentation.ToBytes();
                 Assert.NotEmpty(bytes);
@@ -93,9 +114,9 @@ namespace OfficeIMO.Tests {
                 await presentation.SaveAsync(stream);
                 await presentation.SaveAsync(path);
 
-                using PowerPointPresentation streamLoaded = PowerPointPresentation.Load(stream,
+                using PowerPointDocument streamLoaded = PowerPointDocument.Load(stream,
                     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
-                using PowerPointPresentation loaded = PowerPointPresentation.Load(path,
+                using PowerPointDocument loaded = PowerPointDocument.Load(path,
                     new PowerPointLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
                 Assert.Equal("Async", streamLoaded.Slides[0].TextBoxes.First().Text);
                 Assert.Equal("Async", loaded.Slides[0].TextBoxes.First().Text);
@@ -108,12 +129,12 @@ namespace OfficeIMO.Tests {
         public async Task SaveAsync_CanceledPathDoesNotCreateDestination() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
-                await using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                await using PowerPointDocument presentation = PowerPointDocument.Create();
                 presentation.AddSlide();
                 using var cancellation = new CancellationTokenSource();
                 cancellation.Cancel();
 
-                await Assert.ThrowsAsync<OperationCanceledException>(() =>
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                     presentation.SaveAsync(path, cancellationToken: cancellation.Token));
                 Assert.False(File.Exists(path));
             } finally {
@@ -124,7 +145,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Load_Stream_HonorsCancellationDuringInputCopy() {
             byte[] bytes;
-            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+            using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide().AddTitle("Cancellation boundary");
                 bytes = source.ToBytes();
             }
@@ -134,7 +155,7 @@ namespace OfficeIMO.Tests {
                 cancellation.Cancel);
 
             Assert.ThrowsAny<OperationCanceledException>(() =>
-                PowerPointPresentation.Load(stream,
+                PowerPointDocument.Load(stream,
                     new PowerPointLoadOptions(), cancellation.Token));
             Assert.True(stream.BulkReadObserved);
         }

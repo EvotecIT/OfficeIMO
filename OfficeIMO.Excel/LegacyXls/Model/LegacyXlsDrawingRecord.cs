@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a preserve-only drawing or object BIFF record discovered during legacy XLS import.
     /// </summary>
-    public sealed class LegacyXlsDrawingRecord {
+    internal sealed class LegacyXlsDrawingRecord {
         /// <summary>
         /// Creates drawing BIFF record metadata.
         /// </summary>

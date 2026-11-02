@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel {
                 var arrays = WorksheetRoot.Descendants<CellFormula>()
                     .Where(formula => formula.FormulaType?.Value == CellFormulaValues.Array)
                     .Select(formula => formula.Reference?.Value).Where(reference => reference != null)
-                    .Select(reference => A1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
+                    .Select(reference => ExcelA1.TryParseRange(reference!, out int top, out int left, out int bottom, out int right)
                         ? (Top: top, Left: left, Bottom: bottom, Right: right) : default).ToArray();
                 var arrayIndex = new ExcelCellRangeIndex<bool>(arrays.Select(range => (range.Top, range.Left, range.Bottom, range.Right, true)));
                 foreach (var cell in WorksheetRoot.Descendants<Cell>()) {
@@ -550,17 +550,17 @@ namespace OfficeIMO.Excel {
         /// Authors a dynamic array at one anchor cell. Calculation determines its bounded spill range.
         /// </summary>
         public void SetDynamicArrayFormula(string a1Cell, string formula) {
-            var (row, column) = A1.ParseCellRef(a1Cell);
-            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns)
+            var (row, column) = ExcelA1.ParseCellRef(a1Cell);
+            if (row < 1 || row > ExcelA1.MaxRows || column < 1 || column > ExcelA1.MaxColumns)
                 throw new ArgumentOutOfRangeException(nameof(a1Cell));
-            string anchor = A1.CellReference(row, column);
+            string anchor = ExcelA1.CellReference(row, column);
             SetArrayFormulaCore(anchor + ":" + anchor, formula, dynamic: true);
         }
 
         private void SetArrayFormulaCore(string a1Range, string formula, bool dynamic) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
@@ -584,7 +584,7 @@ namespace OfficeIMO.Excel {
                 }
                 _excelDocument.MarkFormulaAuthored(
                     _worksheetPart,
-                    A1.CellReference(r1, c1),
+                    ExcelA1.CellReference(r1, c1),
                     retainedCachedValue: retainsCachedValue);
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
@@ -605,8 +605,8 @@ namespace OfficeIMO.Excel {
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             int r2;
             int c2;
-            if (!A1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
-                (r1, c1) = A1.ParseCellRef(a1Range);
+            if (!ExcelA1.TryParseRange(a1Range, out int r1, out int c1, out r2, out c2)) {
+                (r1, c1) = ExcelA1.ParseCellRef(a1Range);
                 if (r1 <= 0 || c1 <= 0) {
                     throw new ArgumentException($"Invalid A1 range '{a1Range}'.", nameof(a1Range));
                 }
@@ -634,7 +634,7 @@ namespace OfficeIMO.Excel {
                 }
                 _excelDocument.MarkFormulaAuthored(
                     _worksheetPart,
-                    A1.CellReference(r1, c1),
+                    ExcelA1.CellReference(r1, c1),
                     retainedCachedValue: retainsCachedValue);
             });
         }
@@ -644,7 +644,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ClearArrayFormula(string a1RangeOrCell) {
             var bounds = a1RangeOrCell.IndexOf(':') >= 0
-                ? A1.ParseRange(a1RangeOrCell)
+                ? ExcelA1.ParseRange(a1RangeOrCell)
                 : CellAsRange(a1RangeOrCell);
 
             WriteLock(() => {

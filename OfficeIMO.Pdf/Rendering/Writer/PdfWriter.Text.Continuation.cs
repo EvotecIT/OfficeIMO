@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
                 segment.Color,
                 segment.Italic,
                 segment.Strike,
-                segment.FontSize,
+                global::OfficeIMO.OfficeLength.Points(segment.FontSize),
                 segment.Font,
                 segment.Uri,
                 segment.Contents,
@@ -75,7 +75,7 @@ internal static partial class PdfWriter {
                 decorationColor: segment.DecorationColor);
             if (preserveTab && segment.SourceTabRun != null) run = run.WithRelativeTabFrom(segment.SourceTabRun);
             if (HasRichTextSpacing(segment.HorizontalTextScaling, segment.CharacterSpacing))
-                run = run.WithHorizontalTextScaling(segment.HorizontalTextScaling).WithCharacterSpacing(segment.CharacterSpacing);
+                run = run.WithHorizontalTextScaling(segment.HorizontalTextScaling).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(segment.CharacterSpacing));
             if (!segment.FeatureSettings.Equals(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default))
                 run = run.WithFeatureSettings(segment.FeatureSettings);
             if (segment.TextDirection != OfficeIMO.Drawing.OfficeTextDirection.Auto)

@@ -109,7 +109,7 @@ namespace OfficeIMO.Excel {
             if (seriesCount == 4) {
                 if (bars == null) {
                     bars = new UpDownBars(
-                        new GapWidth { Val = (UInt16Value)150U },
+                        new GapWidth { Val = (UInt16Value)(uint)OfficeTheme.Default.ChartStyle.BarGapPercent },
                         new UpBars(),
                         new DownBars());
                     OpenXmlElement? insertBefore = stockChart.GetFirstChild<AxisId>();

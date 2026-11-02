@@ -5,6 +5,7 @@ using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Epub;
 using PSWriteOffice.Services;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Epub;
 
@@ -13,13 +14,10 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <summary>Adds an image, font, stylesheet or media payload without executing it.</summary>
 ///   <code>$book | Add-OfficeEpubResource -Path ./cover.png -Id cover -MediaType image/png</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeEpubResource")]
+[Cmdlet(VerbsCommon.Add, "OfficeEpubResource", DefaultParameterSetName = "Default")]
+[Alias("EpubResource")]
 [OutputType(typeof(EpubManifestItem))]
-public sealed class AddOfficeEpubResourceCommand : PSCmdlet {
-    /// <summary>Live editable publication.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
-    public EpubPublication Publication { get; set; } = null!;
-
+public sealed class AddOfficeEpubResourceCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <summary>Literal payload path.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Path { get; set; } = string.Empty;
@@ -47,11 +45,12 @@ public sealed class AddOfficeEpubResourceCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        EpubPublication publication = GetDocument();
         var path = OfficeFileCommandUtilities.ResolvePath(this, Path);
         using var source = File.OpenRead(path);
         if (source.Length > MaxInputBytes) throw new InvalidDataException("The resource exceeds MaxInputBytes.");
         byte[] payload = OfficeStreamReader.ReadAllBytes(source, MaxInputBytes);
-        var resource = Publication.AddResource(Id, ContainerPath ?? "EPUB/assets/" + System.IO.Path.GetFileName(path), MediaType, payload);
+        var resource = publication.AddResource(Id, ContainerPath ?? "EPUB/assets/" + System.IO.Path.GetFileName(path), MediaType, payload);
         if (PassThru.IsPresent) WriteObject(resource);
     }
 }

@@ -37,6 +37,11 @@ public sealed class PdfDocumentRenderer {
         PdfLoadOptions? loadOptions = null) =>
         _document.Reader.LayoutDebugOverlay(pageNumber, options, layoutOptions, loadOptions);
 
+    /// <summary>Renders a transparent diagnostic overlay to PNG within the supplied element and raster-pixel budgets.</summary>
+    public byte[] LayoutDebugOverlayPng(int pageNumber, double scale = 1D,
+        PdfLayoutDebugOverlayOptions? options = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? loadOptions = null) =>
+        _document.Reader.LayoutDebugOverlayPng(pageNumber, scale, options, layoutOptions, loadOptions);
+
     /// <summary>Returns managed-renderer capability diagnostics for a one-based page.</summary>
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics(int pageNumber) =>
         CapabilityDiagnostics(pageNumber, null);
@@ -52,14 +57,6 @@ public sealed class PdfDocumentRenderer {
         PdfPageInteractionOptions? options = null,
         PdfLoadOptions? loadOptions = null) =>
         _document.Reader.Interactions(pageNumber, options, loadOptions);
-
-    /// <summary>Exports all pages or a caller-ordered selection through the shared image-export contract.</summary>
-    public IReadOnlyList<OfficeImageExportResult> ExportImages(
-        OfficeImageExportFormat format,
-        PdfImageExportOptions? options = null,
-        PdfPageSelection? selection = null,
-        CancellationToken cancellationToken = default) =>
-        _document.Reader.ExportImages(format, options, selection, cancellationToken: cancellationToken);
 
     /// <summary>Renders all pages or a caller-ordered selection through the managed batch renderer.</summary>
     public IReadOnlyList<PdfPageRenderResult> Pages(

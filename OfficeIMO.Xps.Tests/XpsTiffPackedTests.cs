@@ -25,7 +25,7 @@ public sealed class XpsTiffPackedTests {
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var native = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             var svgImage = OfficeDrawingRasterRenderer.Render(drawing!, background: OfficeColor.White);
-            var pdfImage = OfficeDrawingRasterRenderer.Render(PdfReadDocument.Open(document.ToPdf()).Pages[0].ToDrawing(),
+            var pdfImage = OfficeDrawingRasterRenderer.Render(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages[0].ToDrawing(),
                 scale: 4D / 3D, background: OfficeColor.White);
             int bits = int.Parse(fields[1]), photo = int.Parse(fields[2]), mask = (1 << bits) - 1;
             for (int y = 0; y < 17; y++) for (int x = 0; x < 19; x++) {

@@ -4,8 +4,8 @@ using OfficeIMO.Markdown;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 internal static class GfmHtmlComparison {
-    public static HtmlOptions CreatePlainHtmlOptions() {
-        HtmlOptions options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+    public static MarkdownHtmlExportOptions CreatePlainHtmlOptions() {
+        MarkdownHtmlExportOptions options = MarkdownHtmlExportOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AdditionalAllowedLinkSchemes.Add("xmpp");
         return options;
     }

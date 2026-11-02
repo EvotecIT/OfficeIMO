@@ -49,7 +49,7 @@ public sealed class OpenDocumentPdfConversionContracts {
             Assert.Single(result.SourceConversionReports));
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
-        Assert.Contains("Direct ODT PDF", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Direct ODT PDF", PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(projection.Mappings, mapping =>
             mapping.Feature == "source-tracked-changes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -71,13 +71,13 @@ public sealed class OpenDocumentPdfConversionContracts {
 
         PdfDocumentConversionResult result = source.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
-        string text = PdfReadDocument.Open(bytes).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText();
         OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
             Assert.Single(result.SourceConversionReports));
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(bytes, 0, 4));
         Assert.Contains("Quarter total", text, StringComparison.Ordinal);
-        Assert.Single(PdfReadDocument.Open(bytes).Pages);
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(bytes)).Pages);
         Assert.Contains(projection.Mappings, mapping =>
             mapping.Status == OdfConversionMappingStatus.Converted);
         Assert.DoesNotContain(result.Warnings, warning =>
@@ -94,7 +94,7 @@ public sealed class OpenDocumentPdfConversionContracts {
 
         PdfDocumentConversionResult result = source.ToPdfDocumentResult();
         byte[] bytes = result.ToBytes();
-        string text = PdfReadDocument.Open(bytes).ExtractText();
+        string text = PdfDocument.Load(new System.IO.MemoryStream(bytes)).ExtractText();
         OdfConversionReport projection = Assert.IsType<OdfConversionReport>(
             Assert.Single(result.SourceConversionReports));
 

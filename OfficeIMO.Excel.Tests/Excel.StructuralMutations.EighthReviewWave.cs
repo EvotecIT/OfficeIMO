@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests {
             ExcelCellShiftDirection direction,
             bool inserting) {
             using var document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellValue(1, 1, 1);
             data.CellValue(1, 2, 2);
             data.CellValue(2, 1, 3);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
             string insertionCell,
             string shiftedCell) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Parameter parameter = AttachCellBackedConnection(document, sheet, parameterCell);
 
             sheet.InsertCells(insertionCell, direction);
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_RemapAndRemoveLegacyCommentVml() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(1, 1, "Move me", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             int[] before = ReadCommentVmlAnchor(vmlPart);
@@ -84,8 +84,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutations_RemapInternalHyperlinkTargets() {
             using var document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellValue(2, 2, "Target");
             var hyperlink = new Hyperlink { Reference = "D1", Location = "Data!B2" };
             summary.WorksheetPart.Worksheet.Append(new Hyperlinks(hyperlink));
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralMutations_RemapNamedSheetViewFilterRanges() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             Xnsv.NsvFilter filter = AddNamedSheetViewFilter(sheet, "A1:C10");
 
             sheet.DeleteColumns(3);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         [InlineData(false)]
         public void Test_FormulaInspection_HonorsPackageRecalculationFlags(bool workbookLevel) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellFormula(1, 2, "A1*2");
             Cell formulaCell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()

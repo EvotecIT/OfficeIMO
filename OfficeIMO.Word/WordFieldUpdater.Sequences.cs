@@ -213,15 +213,15 @@ namespace OfficeIMO.Word {
             WordFieldFormat? format = GetLastMeaningfulFormat(formatSwitches);
 
             switch (format) {
-                case WordFieldFormat.Roman:
+                case WordFieldFormat.UpperRoman:
                     return ToRoman(value).ToUpperInvariant();
-                case WordFieldFormat.roman:
+                case WordFieldFormat.LowerRoman:
                     return ToRoman(value).ToLowerInvariant();
                 case WordFieldFormat.Ordinal:
                     return ToOrdinal(value);
-                case WordFieldFormat.Alphabetical:
+                case WordFieldFormat.LowerLetter:
                     return ToAlphabetic(value, uppercase: false);
-                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.UpperLetter:
                     return ToAlphabetic(value, uppercase: true);
                 case WordFieldFormat.Hex:
                     return ToHex(value);

@@ -5,11 +5,12 @@ namespace OfficeIMO.Html;
 /// <summary>Exports HTML surfaces from the same paged layout and PDF scene as PDF conversion.</summary>
 public static partial class HtmlImageExportExtensions {
     /// <summary>Renders one selected surface to the requested image format with dimensions and diagnostics.</summary>
-    public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0) {
+    public static OfficeImageExportResult ExportImage(this HtmlConversionDocument document, OfficeImageExportFormat format, HtmlRenderOptions? options = null, int pageIndex = 0, CancellationToken cancellationToken = default) {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
-        return HtmlRenderEngine.ExecuteWithDeadline(resolved, CancellationToken.None, operationCancellationToken => {
+        resolved.PageSelection = null;
+        return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
             OfficeImageExportResult? image = null;
             HtmlRenderResultImageExtensions.ExportImagesCore(
@@ -50,6 +51,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        resolved.PageSelection = null;
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
             HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
                 document, request, resolved, operationCancellationToken).ConfigureAwait(false);
@@ -91,7 +93,7 @@ public static partial class HtmlImageExportExtensions {
             async operationCancellationToken => {
                 rendered = await HtmlRenderEngine.ExecuteCoreAsync(document, request, resolved, operationCancellationToken).ConfigureAwait(false);
                 operationCancellationToken.ThrowIfCancellationRequested();
-                return rendered.Document.Pages.Count;
+                return HtmlRenderResultImageExtensions.ResolveSelection(rendered, resolved).Count;
             },
             async (accept, operationCancellationToken) => {
                 await HtmlRenderResultImageExtensions.ExportImagesCoreAsync(

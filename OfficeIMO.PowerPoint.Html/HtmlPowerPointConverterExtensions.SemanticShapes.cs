@@ -136,7 +136,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             ReadSemanticShapeGeometry(source, left, top, width, height, budget, result,
                 out left, out top, out width, out height);
         }
-        PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
+        PptCore.PowerPointTextBox textBox = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
             ApplySemanticList(textBox, semanticBlock, result,
                 options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
@@ -290,7 +290,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!string.IsNullOrWhiteSpace(exactFontFamily)) target.FontName = exactFontFamily;
         else if (TryGetTargetCss(css, "font-family", out string family)) target.FontName = NormalizeSemanticFontName(family);
         if (TryParseSemanticPixels(TryGetTargetCss(css, "font-size", out string size) ? size : null, out double pixels)) {
-            target.FontSizePoints = Math.Max(1D, pixels * 0.75D);
+            target.FontSize = global::OfficeIMO.OfficeLength.Points(Math.Max(1D, pixels * 0.75D));
         }
         if (TryGetTargetCss(css, "color", out string color)) {
             string normalized = NormalizeSemanticColor(color);
@@ -462,7 +462,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         string fontName = NormalizeSemanticFontName(source.Style?.GetValue("font-family"));
         if (fontName.Length > 0) target.FontName = fontName;
         if (TryParseSemanticPixels(source.Style?.GetValue("font-size"), out double pixels)) {
-            target.FontSizePoints = Math.Max(1D, pixels * 0.75D);
+            target.FontSize = global::OfficeIMO.OfficeLength.Points(Math.Max(1D, pixels * 0.75D));
         }
         string resolvedHyperlink = HtmlUrlPolicyEvaluator.ResolveUrl(source.Hyperlink, null, hyperlinkPolicy);
         if (!string.IsNullOrWhiteSpace(resolvedHyperlink)

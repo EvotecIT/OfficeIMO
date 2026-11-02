@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Diagnostic confidence and geometry signals for a normalized logical PDF table.
 /// </summary>
+/// <remarks>Native page coordinates use default user-space units: one unit is /UserUnit physical points (1/72 inch each), defaulting to 1. Local text/font and matrix values retain their native coordinate spaces. Explicit visual projections use their documented coordinates.</remarks>
 public sealed class PdfLogicalTableDiagnostics {
     internal PdfLogicalTableDiagnostics(
         string detectionKind,
@@ -62,22 +63,22 @@ public sealed class PdfLogicalTableDiagnostics {
     /// <summary>Number of expected source cells that were empty or unavailable.</summary>
     public int MissingCellCount { get; }
 
-    /// <summary>Left edge of the detected table geometry in PDF points.</summary>
+    /// <summary>Left edge of the detected table geometry in page user-space units.</summary>
     public double XStart { get; }
 
-    /// <summary>Right edge of the detected table geometry in PDF points.</summary>
+    /// <summary>Right edge of the detected table geometry in page user-space units.</summary>
     public double XEnd { get; }
 
-    /// <summary>Top baseline coordinate of the detected table geometry in PDF points.</summary>
+    /// <summary>Top baseline coordinate of the detected table geometry in page user-space units.</summary>
     public double YTop { get; }
 
-    /// <summary>Bottom baseline coordinate of the detected table geometry in PDF points.</summary>
+    /// <summary>Bottom baseline coordinate of the detected table geometry in page user-space units.</summary>
     public double YBottom { get; }
 
-    /// <summary>Detected table width in PDF points.</summary>
+    /// <summary>Detected table width in page user-space units.</summary>
     public double Width => Math.Max(0D, XEnd - XStart);
 
-    /// <summary>Detected table height in PDF points.</summary>
+    /// <summary>Detected table height in page user-space units.</summary>
     public double Height => Math.Abs(YTop - YBottom);
 
     /// <summary>True when table and column coordinates were available.</summary>
@@ -181,9 +182,9 @@ public sealed class PdfLogicalTableDiagnostics {
     }
 
     private static PdfInferenceEvidence[] BuildEvidence(string detectionKind, double schemaConfidence, double cellCompleteness, double geometryConfidence) => new[] {
-        new PdfInferenceEvidence("table.detection-kind", "The table was produced by the " + detectionKind + " detector.", 0.5D),
-        new PdfInferenceEvidence("table.schema-confidence", "Schema confidence is " + schemaConfidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (schemaConfidence * 2D) - 1D),
-        new PdfInferenceEvidence("table.cell-completeness", "Cell completeness is " + cellCompleteness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (cellCompleteness * 2D) - 1D),
-        new PdfInferenceEvidence("table.geometry-confidence", "Column geometry confidence is " + geometryConfidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (geometryConfidence * 2D) - 1D)
+        new PdfInferenceEvidence("table-detection-kind", "The table was produced by the " + detectionKind + " detector.", 0.5D),
+        new PdfInferenceEvidence("table-schema-confidence", "Schema confidence is " + schemaConfidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (schemaConfidence * 2D) - 1D),
+        new PdfInferenceEvidence("table-cell-completeness", "Cell completeness is " + cellCompleteness.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (cellCompleteness * 2D) - 1D),
+        new PdfInferenceEvidence("table-geometry-confidence", "Column geometry confidence is " + geometryConfidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + ".", (geometryConfidence * 2D) - 1D)
     };
 }

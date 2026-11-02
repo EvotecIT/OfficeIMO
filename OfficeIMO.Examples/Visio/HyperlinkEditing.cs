@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using OfficeIMO.Visio;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class HyperlinkEditing {

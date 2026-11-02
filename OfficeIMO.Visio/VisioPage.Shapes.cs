@@ -333,8 +333,8 @@ namespace OfficeIMO.Visio {
             shape.NameU = "Text Box";
             shape.LinePattern = 0;
             shape.FillPattern = 0;
-            shape.LineColor = OfficeIMO.Drawing.OfficeColor.Transparent;
-            shape.FillColor = OfficeIMO.Drawing.OfficeColor.Transparent;
+            shape.LineColor = OfficeIMO.OfficeColor.Transparent;
+            shape.FillColor = OfficeIMO.OfficeColor.Transparent;
             shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
             shape.SetUserCell(VisioSemanticUserCells.DiagramAdornmentRole, VisioSemanticUserCells.UserAdornmentRole, "STR", prompt: "OfficeIMO diagram adornment role");
             return shape;

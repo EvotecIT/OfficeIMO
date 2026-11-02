@@ -4,20 +4,20 @@ namespace OfficeIMO.Pdf;
 /// Reusable list style for bullet and numbered list typography and rhythm.
 /// </summary>
 public sealed class PdfListStyle {
-    private double? _fontSize;
+    private global::OfficeIMO.OfficeLength? _fontSize;
     private double? _lineHeight;
 
     /// <summary>Explicit line spacing. When set, this overrides <see cref="LineHeight"/>.</summary>
     public PdfLineSpacing? LineSpacing { get; set; }
-    private double _leftIndent;
-    private double? _markerGap;
-    private double? _markerWidth;
-    private double? _markerFontSize;
+    private global::OfficeIMO.OfficeLength _leftIndent;
+    private global::OfficeIMO.OfficeLength? _markerGap;
+    private global::OfficeIMO.OfficeLength? _markerWidth;
+    private global::OfficeIMO.OfficeLength? _markerFontSize;
     private string? _markerFontFamily;
     private PdfAlign? _markerAlign;
-    private double _spacingBefore;
-    private double? _spacingAfter;
-    private double? _itemSpacing;
+    private global::OfficeIMO.OfficeLength _spacingBefore;
+    private global::OfficeIMO.OfficeLength? _spacingAfter;
+    private global::OfficeIMO.OfficeLength? _itemSpacing;
 
     // Word numbering aligns marker ink at the hanging-indent anchor. Ordinary
     // PDF lists continue to align within their reserved marker column.
@@ -27,10 +27,10 @@ public sealed class PdfListStyle {
     internal OfficeIMO.Drawing.OfficeTextFeatureSettings? MarkerFeatureSettings { get; set; }
 
     /// <summary>List font size in points. When null the writer uses the current default font size.</summary>
-    public double? FontSize {
+    public global::OfficeIMO.OfficeLength? FontSize {
         get => _fontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(FontSize), "List font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue((value?.ToPoints()), nameof(FontSize), "List font size must be a positive finite value.");
             _fontSize = value;
         }
     }
@@ -45,63 +45,63 @@ public sealed class PdfListStyle {
     }
 
     /// <summary>Horizontal inset from the list frame to the marker, in points.</summary>
-    public double LeftIndent {
+    public global::OfficeIMO.OfficeLength LeftIndent {
         get => _leftIndent;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(LeftIndent), "List left indent must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(LeftIndent), "List left indent must be a non-negative finite value.");
             _leftIndent = value;
         }
     }
 
     /// <summary>Horizontal gap between the marker and text, in points. When null the writer uses one space advance.</summary>
-    public double? MarkerGap {
+    public global::OfficeIMO.OfficeLength? MarkerGap {
         get => _markerGap;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(MarkerGap), "List marker gap must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue((value?.ToPoints()), nameof(MarkerGap), "List marker gap must be a non-negative finite value.");
             _markerGap = value;
         }
     }
 
     /// <summary>Optional marker column width, in points. When null the writer estimates the width from the marker text.</summary>
-    public double? MarkerWidth {
+    public global::OfficeIMO.OfficeLength? MarkerWidth {
         get => _markerWidth;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(MarkerWidth), "List marker width must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue((value?.ToPoints()), nameof(MarkerWidth), "List marker width must be a non-negative finite value.");
             _markerWidth = value;
         }
     }
 
     /// <summary>Vertical space before the list, in points.</summary>
-    public double SpacingBefore {
+    public global::OfficeIMO.OfficeLength SpacingBefore {
         get => _spacingBefore;
         set {
-            ValidateNonNegativeFiniteValue(value, nameof(SpacingBefore), "List spacing before must be a non-negative finite value.");
+            ValidateNonNegativeFiniteValue(value.ToPoints(), nameof(SpacingBefore), "List spacing before must be a non-negative finite value.");
             _spacingBefore = value;
         }
     }
 
     /// <summary>Vertical space after the list, in points. When null the writer uses the item spacing.</summary>
-    public double? SpacingAfter {
+    public global::OfficeIMO.OfficeLength? SpacingAfter {
         get => _spacingAfter;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(SpacingAfter), "List spacing after must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue((value?.ToPoints()), nameof(SpacingAfter), "List spacing after must be a non-negative finite value.");
             _spacingAfter = value;
         }
     }
 
     /// <summary>Vertical space between list items, in points. When null the writer uses a small fraction of the line height.</summary>
-    public double? ItemSpacing {
+    public global::OfficeIMO.OfficeLength? ItemSpacing {
         get => _itemSpacing;
         set {
-            ValidateOptionalNonNegativeFiniteValue(value, nameof(ItemSpacing), "List item spacing must be a non-negative finite value.");
+            ValidateOptionalNonNegativeFiniteValue((value?.ToPoints()), nameof(ItemSpacing), "List item spacing must be a non-negative finite value.");
             _itemSpacing = value;
         }
     }
 
     /// <summary>List marker and text color. A list block color overrides this value.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
     /// <summary>Optional list marker color. When null the marker uses the list block color or list text color.</summary>
-    public PdfColor? MarkerColor { get; set; }
+    public global::OfficeIMO.OfficeColor? MarkerColor { get; set; }
     /// <summary>Optional horizontal alignment of the marker inside the marker column. When null, bullets use left alignment and numbered lists use right alignment.</summary>
     public PdfAlign? MarkerAlign {
         get => _markerAlign;
@@ -127,10 +127,10 @@ public sealed class PdfListStyle {
         }
     }
     /// <summary>Optional marker font size in points. When null the marker uses the list font size.</summary>
-    public double? MarkerFontSize {
+    public global::OfficeIMO.OfficeLength? MarkerFontSize {
         get => _markerFontSize;
         set {
-            ValidateOptionalPositiveFiniteValue(value, nameof(MarkerFontSize), "List marker font size must be a positive finite value.");
+            ValidateOptionalPositiveFiniteValue((value?.ToPoints()), nameof(MarkerFontSize), "List marker font size must be a positive finite value.");
             _markerFontSize = value;
         }
     }
@@ -174,7 +174,7 @@ public sealed class PdfListStyle {
     }
 
     internal double GetFontSize(double defaultFontSize) {
-        return FontSize ?? defaultFontSize;
+        return (FontSize?.ToPoints()) ?? defaultFontSize;
     }
 
     internal double GetLeading(double fontSize) {
@@ -182,15 +182,15 @@ public sealed class PdfListStyle {
     }
 
     internal double GetMarkerGap(double defaultGap) {
-        return MarkerGap ?? defaultGap;
+        return (MarkerGap?.ToPoints()) ?? defaultGap;
     }
 
     internal double GetItemSpacing(double leading) {
-        return ItemSpacing ?? leading * 0.15D;
+        return (ItemSpacing?.ToPoints()) ?? leading * 0.15D;
     }
 
     internal double GetSpacingAfter(double itemSpacing) {
-        return SpacingAfter ?? itemSpacing;
+        return (SpacingAfter?.ToPoints()) ?? itemSpacing;
     }
 
     private static void ValidateNonNegativeFiniteValue(double value, string paramName, string message) {

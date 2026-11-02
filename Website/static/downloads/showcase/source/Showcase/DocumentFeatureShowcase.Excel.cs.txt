@@ -13,17 +13,17 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static ExcelSheet PrepareSheet(ExcelDocument document, string title, string subtitle) {
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.MergeRange("A1:F1");
         sheet.Cell(1, 1, title);
         sheet.CellBold(1, 1, true);
-        sheet.CellFontSize(1, 1, 20);
+        sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:F2");
         sheet.Cell(2, 1, subtitle);
         sheet.CellFontColor(2, 1, "526179");
         for (int column = 1; column <= 6; column++) {
-            sheet.SetColumnWidth(column, column == 1 ? 24 : 17);
+            sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 ? 24 : 17));
         }
         return sheet;
     }
@@ -97,8 +97,7 @@ internal static partial class DocumentFeatureShowcase {
             sheet.Cell(index + 5, 2, new[] { 42, 58, 67, 81 }[index]);
             sheet.Cell(index + 5, 3, new[] { 45, 55, 65, 75 }[index]);
         }
-        sheet.AddChartFromRange("A4:C8", row: 10, column: 1, widthPixels: 620, heightPixels: 300,
-            type: ExcelChartType.ColumnClustered, title: "Actual vs target");
+        sheet.AddChart(OfficeChartType.ColumnClustered, "A4:C8", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 1, Width = OfficeLength.Pixels(620), Height = OfficeLength.Pixels(300), Title = "Actual vs target" });
         SaveExcelExample(document, sheet, folder, "A1:F27");
     }
 

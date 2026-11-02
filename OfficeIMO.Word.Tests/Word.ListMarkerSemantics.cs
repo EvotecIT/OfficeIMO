@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -20,9 +21,9 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal(2, items.Length);
         Assert.All(items, paragraph => Assert.False(WordDocumentTraversal.GetListInfo(paragraph)!.Value.Ordered));
         Assert.All(WordDocumentTraversal.BuildListMarkers(document).Values, marker => Assert.Equal("•", marker.Marker));
-        Assert.Equal("- Test\n- Test", document.ToMarkdown().Trim());
+        Assert.Equal("- Test\n- Test", document.ToMarkdown().ToMarkdown().Replace("\r\n", "\n").Trim());
 
-        WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+        WordDocumentVisualInfo snapshot = document.CreateVisualSnapshot();
         string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
         Assert.Equal(2, text.Count(character => character == '•'));
         Assert.Equal(2, text.Split(new[] { "Test" }, StringSplitOptions.None).Length - 1);
@@ -39,25 +40,25 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.False(info.Ordered);
         Assert.Equal("Wingdings", info.MarkerFontFamily);
         Assert.Equal("▪", WordDocumentTraversal.BuildListMarkers(document)[nestedItem].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("▪", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("\uf0a7", pdfText, StringComparison.Ordinal);
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
         Assert.DoesNotContain("\uf0a7", html, StringComparison.Ordinal);
-        Assert.Contains("list-style-type:'▪'", html, StringComparison.Ordinal);
+        Assert.Contains("list-style-type:'▪\\a0\\a0 '", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void WordAuthoredBulletsExportAsUnorderedHtmlAndReadablePdf() {
         using WordDocument document = WordDocument.Load(IssueDocumentPath);
-        string html = document.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
         Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<ol", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("\uf0b7", html, StringComparison.Ordinal);
         Assert.Contains("list-style-type:disc", html, StringComparison.OrdinalIgnoreCase);
 
         using var output = new MemoryStream();
-        document.SaveAsPdfResult(output);
+        document.ConvertToPdfWithEvidence().Save(output);
         byte[] pdf = output.ToArray();
         string text = PdfReadDocument.Open(pdf).ExtractText();
         Assert.Equal(2, text.Split(new[] { "Test" }, StringSplitOptions.None).Length - 1);
@@ -71,7 +72,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddHeadersAndFooters();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph cell = table.Rows[0].Cells[0].Paragraphs[0];
         cell.Text = "Cell marker";
         AttachToList(cell, list.NumberId);
@@ -84,7 +85,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("•", markers[cell].Marker);
         Assert.Equal("•", markers[textBox.Paragraphs[0]].Marker);
         Assert.Equal("•", markers[header].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })), new PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
         Assert.Contains("• Cell marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("• Box marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("• Header marker", pdfText, StringComparison.Ordinal);
@@ -101,7 +102,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[0], list.NumberId);
         document.AddParagraph("Body");
 
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false })).ExtractText();
+        string pdfText = PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).ExtractText();
         Assert.Contains("Before ◆ Header box marker", pdfText, StringComparison.Ordinal);
         Assert.Contains("After", pdfText, StringComparison.Ordinal);
         Assert.True(pdfText.IndexOf("Header box marker", StringComparison.Ordinal) < pdfText.IndexOf("After", StringComparison.Ordinal));
@@ -117,7 +118,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordTextBox box = document.AddParagraph("Box host").AddTextBox("Inside box", WordImageTextWrapping.Square);
         WordParagraph inside = box.Paragraphs[0];
         AttachToList(inside, list.NumberId);
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph inCell = table.Rows[0].Cells[0].Paragraphs[0];
         inCell.Text = "Inside table";
         AttachToList(inCell, list.NumberId);
@@ -129,7 +130,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("2.", markers[inside].Marker);
         Assert.Equal("3.", markers[inCell].Marker);
         Assert.Equal("4.", markers[after].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("1. Before box", pdfText, StringComparison.Ordinal);
         Assert.Contains("2. Inside box", pdfText, StringComparison.Ordinal);
         Assert.Contains("3. Inside table", pdfText, StringComparison.Ordinal);
@@ -141,7 +142,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordTextBox box = table.Rows[0].Cells[0].Paragraphs[0].AddTextBox("Inside cell box", WordImageTextWrapping.Square);
         WordParagraph inside = box.Paragraphs[0];
         AttachToList(inside, list.NumberId);
@@ -190,7 +191,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordTextBox box = document.AddTextBox("Styled box");
         AttachToList(box.Paragraphs[0], list.NumberId);
 
-        var spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans();
+        var spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("*", StringComparison.Ordinal));
         Assert.InRange(marker.FontSize, 17.5D, 18.5D);
         Assert.True(marker.IsBold);
@@ -216,7 +217,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         var markers = WordDocumentTraversal.BuildListMarkers(document);
         Assert.Equal("1.", markers[first].Marker);
         Assert.Equal("2.", markers[second].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Equal(1, pdfText.Split(new[] { "1." }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, pdfText.Split(new[] { "2." }, StringSplitOptions.None).Length - 1);
         Assert.Equal(1, pdfText.Split(new[] { "continued" }, StringSplitOptions.None).Length - 1);
@@ -243,7 +244,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("1.", markers[first].Marker);
         Assert.Equal("2.", markers[new WordParagraph(document, emptyElement)].Marker);
         Assert.Equal("3.", markers[third].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("1.", pdfText, StringComparison.Ordinal);
         Assert.Contains("2.", pdfText, StringComparison.Ordinal);
         Assert.Contains("3.", pdfText, StringComparison.Ordinal);
@@ -287,16 +288,16 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
         WordListLevel level = list.Numbering.Levels[0];
         level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
-        level.IndentationLeft = 2160;
-        level.IndentationHanging = 360;
-        WordTable table = document.AddTable(1, 1);
-        table.Width = 7000;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+        table.Width = WordTableWidth.Length(OfficeLength.Points(350));
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 7000;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7000) * 635)));
         cell.Paragraphs[0].Text = "PlainCell";
         AttachToList(cell.AddParagraph("CellStyle"), list.NumberId);
 
-        var spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans();
+        var spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans();
         PdfTextSpan marker = Assert.Single(spans, span => span.Text.Contains("*", StringComparison.Ordinal));
         PdfTextSpan plain = Assert.Single(spans, span => span.Text == "PlainCell");
         Assert.True(marker.X > plain.X + 45D);
@@ -528,7 +529,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal(2, info.Level);
         Assert.False(info.Ordered);
         Assert.Equal("■", WordDocumentTraversal.BuildListMarkers(document)[item].Marker);
-        Assert.Contains("- Linked square", document.ToMarkdown(), StringComparison.Ordinal);
+        Assert.Contains("- Linked square", document.ToMarkdown().ToMarkdown(), StringComparison.Ordinal);
         Assert.Contains("<ul", document.ToHtml(), StringComparison.OrdinalIgnoreCase);
 
         Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
@@ -558,10 +559,10 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal("1.", WordDocumentTraversal.BuildListMarkers(document)[numbered].Marker);
         Assert.Equal("■", WordDocumentTraversal.BuildListMarkers(document)[bullet].Marker);
         Assert.Equal(string.Empty, WordDocumentTraversal.BuildListMarkers(document)[unmarked].Marker);
-        string pdfText = PdfReadDocument.Open(document.ToPdfBytes()).ExtractText();
+        string pdfText = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText();
         Assert.Contains("No marker", pdfText, StringComparison.Ordinal);
         Assert.DoesNotContain("• No marker", pdfText, StringComparison.Ordinal);
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         Assert.Contains("No marker", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("- No marker", markdown, StringComparison.Ordinal);
         string html = document.ToHtml();
@@ -579,7 +580,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.AddItem("Unmarked child", 1);
         list.AddItem("Marked grandchild", 2);
 
-        string markdown = document.ToMarkdown();
+        string markdown = document.ToMarkdown().ToMarkdown();
         Assert.Contains("Parent", markdown, StringComparison.Ordinal);
         Assert.Contains("Unmarked child", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("- Unmarked child", markdown, StringComparison.Ordinal);
@@ -594,19 +595,19 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 2160;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("PlainBody");
         list.AddItem("UnmarkedBody");
-        WordTable table = document.AddTable(1, 1);
-        table.Width = 7000;
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+        table.Width = WordTableWidth.Length(OfficeLength.Points(350));
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 7000;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7000) * 635)));
         cell.Paragraphs[0].Text = "PlainCell";
         WordParagraph unmarkedCell = cell.AddParagraph("UnmarkedCell");
         AttachToList(unmarkedCell, list.NumberId);
 
-        var spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans();
+        var spans = PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages[0].GetTextSpans();
         double plainBodyX = Assert.Single(spans, span => span.Text == "PlainBody").X;
         double unmarkedBodyX = Assert.Single(spans, span => span.Text == "UnmarkedBody").X;
         double plainCellX = Assert.Single(spans, span => span.Text == "PlainCell").X;
@@ -620,8 +621,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 2160;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("Plain image line");
         list.AddItem("Unmarked image line");
 
@@ -635,18 +636,16 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessItemsKeepTheirIndentInSplitTableRows() {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        list.Numbering.Levels[0].IndentationHanging = 360;
-        WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 3600;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = new List<int> { 3600 };
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
+        table.ColumnWidth = new List<int> { 3600 }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Plain cell line";
         for (int index = 1; index <= 14; index++) {
@@ -654,7 +653,7 @@ public sealed partial class WordListMarkerSemanticsTests {
             AttachToList(item, list.NumberId);
         }
 
-        IReadOnlyList<WordDocumentVisualSnapshot> pages = document.CreateVisualSnapshots();
+        IReadOnlyList<WordDocumentVisualInfo> pages = document.CreateVisualSnapshots();
         Assert.True(pages.Count > 1, "Expected the table row to continue on another page.");
         PdfTextSpan plain = Assert.Single(pages[0].TextSpans,
             span => span.Text.Contains("Plain cell line", StringComparison.Ordinal));
@@ -670,32 +669,29 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessSplitTableTextStaysBeforeNonTextContent(bool useImage) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        WordTable outer = document.AddTable(1, 1);
-        outer.WidthType = WordTableWidthUnit.Dxa;
-        outer.Width = 3600;
-        outer.ColumnWidthType = WordTableWidthUnit.Dxa;
-        outer.ColumnWidth = new List<int> { 3600 };
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
+        outer.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
+        outer.ColumnWidth = new List<int> { 3600 }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
         WordTableCell cell = outer.Rows[0].Cells[0];
         WordParagraph before = cell.Paragraphs[0];
         before.Text = "BeforeNested " + string.Join(" ", Enumerable.Repeat("wrapped", 8));
         AttachToList(before, list.NumberId);
         if (useImage) {
-            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"),
-                20, 20, description: "Ordered image");
+            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20), options: new OfficeIMO.Word.WordImageOptions { Description = "Ordered image" });
         } else {
-            WordTable nested = cell.AddTable(1, 1);
+            WordTable nested = cell.AddTable(1, 1, WordTableStyle.TableGrid);
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested block";
         }
         for (int index = 0; index < 15; index++) cell.AddParagraph("Following line " + index);
 
-        var layout = new WordToPdfOptions { IncludePageNumbers = false };
-        byte[] bytes = document.ToPdfBytes(layout);
+        var layout = new WordPdfExportOptions { IncludePageNumbers = false };
+        byte[] bytes = document.ToPdf(layout).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var beforeWords = pdf.GetPages().SelectMany(page => page.GetWords()
             .Where(word => word.Text == "BeforeNested" || word.Text == "wrapped")
@@ -736,8 +732,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.False(info.Ordered);
         Assert.True(info.PictureBulletId > 0);
         Assert.Equal("•", WordDocumentTraversal.BuildListMarkers(document)[item].Marker);
-        PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions { IncludePageNumbers = false });
-        Assert.Contains(result.Warnings, warning => warning.Code == "NativePictureBulletTextFallback");
+        PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false });
+        Assert.Contains(result.Warnings, warning => warning.Code == "native-picture-bullet-text-fallback");
         Assert.Contains("•", PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
     }
 }

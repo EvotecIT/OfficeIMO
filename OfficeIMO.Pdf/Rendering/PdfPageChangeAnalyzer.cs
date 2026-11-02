@@ -5,7 +5,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Finds inserted, deleted, reordered, and visually changed page candidates through the managed PDF renderer.</summary>
-public static class PdfPageChangeAnalyzer {
+internal static class PdfPageChangeAnalyzer {
     /// <summary>Aligns pages in two PDFs using exact rendered pixels at the configured scale.</summary>
     public static PdfPageChangeReport Analyze(
         byte[] expectedPdf,

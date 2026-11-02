@@ -11,14 +11,14 @@ namespace OfficeIMO.Tests {
             using WordDocument word = WordDocument.Create();
             WordParagraph paragraph = word.AddParagraph("Before");
             using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));
-            WordImage image = paragraph.AddText("").InsertImage(pixels, "image.png", 80, 40);
-            image.CropLeft = -5000;
+            WordImage image = paragraph.AddText("").AddImage(pixels, "image.png", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
+            image.CropLeftRatio = ((double?)(-5000)) / 100000D;
             paragraph.AddText("After");
 
-            var result = word.ToPdfDocumentResult();
-            var warning = Assert.Single(result.Report.Warnings, warning => warning.Code == "NativeImageCropApproximated");
+            var result = word.ConvertToPdfWithEvidence();
+            var warning = Assert.Single(result.Report.Warnings, warning => warning.Code == "native-image-crop-approximated");
             Assert.Equal("inline image", warning.Source);
-            Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code is "NativeBodyImageUnavailable" or "NativeBodyImageUnsupported");
+            Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code is "native-body-image-unavailable" or "NativeBodyImageUnsupported");
             Assert.Single(PdfImageExtractor.ExtractImagePlacements(result.Value.ToBytes()));
         }
 
@@ -33,13 +33,13 @@ namespace OfficeIMO.Tests {
             var paragraph = story == "cell" ? word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] :
                 story == "header" ? word.Sections[0].Header.Default!.AddParagraph() : word.AddParagraph();
             paragraph.Text = "Before";
-            paragraph.AddText("").AddImage(new Uri("https://example.invalid/image.png"), 80, 80);
+            paragraph.AddText("").AddImage(new Uri("https://example.invalid/image.png"), OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(80));
             paragraph.AddText("After");
-            var result = word.ToPdfDocumentResult();
-            var warning = Assert.Single(result.Report.Warnings, warning => warning.Code == "NativeBodyImageUnavailable");
+            var result = word.ConvertToPdfWithEvidence();
+            var warning = Assert.Single(result.Report.Warnings, warning => warning.Code == "native-body-image-unavailable");
             if (story == "body") Assert.Equal("body paragraph image", warning.Source);
             // Running headers are artifacts; include that paint when testing retained header content.
-            var read = PdfReadDocument.Open(result.Value.ToBytes(), new PdfLoadOptions { IncludeArtifactText = true });
+            var read = PdfReadDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }), new PdfLoadOptions { IncludeArtifactText = true });
             Assert.Contains("BeforeAfter", read.ExtractText());
             Assert.Empty(read.ExtractImages());
         }

@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             var timings = new List<string>();
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.OnTiming = (operation, _) => timings.Add(operation);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(1, 2, "Integer");
             sheet.CellValue(1, 3, "Decimal");
@@ -33,17 +33,17 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(row, 4, (row & 1) == 0);
             }
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 
             Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            var readOptions = new ExcelReadOptions();
+            var readOptions = new ExcelReaderOptions();
             using (LegacyXlsTabularWorkbook indexedWorkbook = LegacyXlsTabularWorkbook.Open(workbook, readOptions))
             using (var indexedReader = Assert.IsType<LegacyXlsTabularDataReader>(
                        indexedWorkbook.OpenTable("Data", hasHeaderRow: true, readOptions))) {
                 Assert.True(indexedReader.UsedIndexedDiscovery);
             }
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal(4, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));
             Assert.Equal("Integer", reader.GetName(1));
@@ -68,14 +68,14 @@ namespace OfficeIMO.Tests {
             var messages = new List<string>();
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.OnInfo = messages.Add;
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "When");
             sheet.CellValue(2, 1, expected);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 
             Assert.Contains(messages, message => message.Contains("requires materialization or preflight", StringComparison.Ordinal));
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetDateTime(0));
             Assert.False(reader.Read());
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_DirectTabularSave_DoesNotBypassUnsupportedPackagePartPreflight() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 42);
             CustomXmlPart customXmlPart = document._spreadSheetDocument.WorkbookPart!
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             }
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(
-                () => document.ToBytes(ExcelFileFormat.Xls));
+                () => document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
 
             Assert.Contains("custom XML parts", exception.Message, StringComparison.Ordinal);
             Assert.NotEqual(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 var timings = new List<string>();
                 using ExcelDocument document = ExcelDocument.Create();
                 document.Execution.OnTiming = (operation, _) => timings.Add(operation);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 256; row++) {
                     sheet.CellValue(row, 1, row - 1);
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                 includeAutoFilter: false);
             Assert.True(document.HasDeferredDirectDataSetImport);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             Assert.True(document.HasDeferredDirectDataSetImport);
@@ -161,9 +161,9 @@ namespace OfficeIMO.Tests {
                 expectedDataRowAfterLast: 0,
                 expectedDimensionFirstRow: 0,
                 expectedDimensionRowAfterLast: 65);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 workbook,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(3, reader.FieldCount);
             int rowCount = 0;
             while (reader.Read()) {
@@ -209,12 +209,12 @@ namespace OfficeIMO.Tests {
                 includeHeaders: false,
                 includeAutoFilter: false);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 workbook,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(columnCount, reader.FieldCount);
             int actualRows = 0;
             while (reader.Read()) {
@@ -278,9 +278,9 @@ namespace OfficeIMO.Tests {
                 createTables: false,
                 includeAutoFilter: false);
 
-            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
             Assert.Equal(3, reader.FieldCount);
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task LegacyXls_DirectTabularSave_HonorsPreCanceledAsyncStreamWrite() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 1);
             using var destination = new MemoryStream();
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task LegacyXls_DirectTabularSave_ObservesCancellationBeforeSharedStringSerialization() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             for (int row = 2; row <= 4096; row++) {
                 sheet.CellValue(row, 1, "Unique value " + row);
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
             try {
                 using ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 256; row++) {
                     sheet.CellValue(row, 1, row - 1);
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
                 using (LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(path)) {
                     Assert.False(result.Workbook.HasRefreshAllMarker);
                 }
-                using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+                using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
                 Assert.Equal("Value", reader.GetName(0));
                 Assert.True(reader.Read());
                 Assert.Equal(1, reader.GetInt32(0));
@@ -397,14 +397,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_GeneralWriter_IndexesSparseCoordinateBandsAndFormattingOnlyRows() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sparse");
+            ExcelSheet sheet = document.AddSheet("Sparse");
             sheet.CellValue(10, 1, "First");
-            sheet.SetRowHeight(65, 21d);
+            sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
             sheet.CellValue(100, 1, "Last");
 
-            byte[] workbook = document.ToBytes(
-                ExcelFileFormat.Xls,
-                new ExcelSaveOptions { DisableFastPackageWriter = true });
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
 
             AssertBiffIndexMatchesDimensions(
                 workbook,
@@ -412,9 +410,9 @@ namespace OfficeIMO.Tests {
                 expectedDataRowAfterLast: 100,
                 expectedDimensionFirstRow: 9,
                 expectedDimensionRowAfterLast: 100);
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(
                 workbook,
-                new ExcelReadOptions { HasHeaderRow = false });
+                new ExcelReaderOptions { HasHeaderRow = false });
             Assert.True(reader.Read());
             Assert.Equal("First", reader.GetString(0));
             int rowCount = 1;
@@ -427,13 +425,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_GeneralWriter_LeavesIndexDataBoundsEmptyForFormattingOnlySheet() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("FormattingOnly");
-            sheet.SetColumnWidth(1, 18d);
-            sheet.SetRowHeight(65, 21d);
+            ExcelSheet sheet = document.AddSheet("FormattingOnly");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18d));
+            sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
 
-            byte[] workbook = document.ToBytes(
-                ExcelFileFormat.Xls,
-                new ExcelSaveOptions { DisableFastPackageWriter = true });
+            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
 
             AssertBiffIndexMatchesDimensions(
                 workbook,
@@ -444,7 +440,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertSingleValue(string path, int expected) {
-            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(path);
             Assert.Equal("Value", reader.GetName(0));
             Assert.True(reader.Read());
             Assert.Equal(expected, reader.GetInt32(0));

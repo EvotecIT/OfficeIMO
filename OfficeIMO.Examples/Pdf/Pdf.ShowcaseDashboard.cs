@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using System.Globalization;
 using System.IO;
 
 namespace OfficeIMO.Examples.Pdf {
@@ -7,17 +8,10 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ShowcaseDashboard(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Dashboard.pdf");
 
-            var options = new PdfOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 9.5,
-                DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
-                HeaderFormat = "Northwind Support - Q3 operations review (sample data)",
+            var options = new PdfCreateOptions {
+                HeaderFormat = "Northwind Support \u2013 Q3 operations review (sample data)",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
                 FooterFormat = "Page {page} of {pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
@@ -27,29 +21,29 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(document => {
                     #region Excerpt:executive-pdf-dashboard
                     document.Page(page => {
-                        page.Size(PageSizes.A4).Landscape().Margin(42, 38, 42, 42);
-                        page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
+                        page.Size(PdfPageSizes.A4).Landscape().Margin(global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(38), global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(42));
+                        page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = global::OfficeIMO.OfficeLength.Points(5) });
                         page.Content(content => {
-                            content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));
-                            content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = 10 }));
+                            content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left));
+                            content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = OfficeLength.Points(10) }));
 
                             // Four KPI panels share the row width.
                             content.Row(row => {
-                                row.Gap(14)
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("94.2%").FontSize(9.5).Text("\nSLA attainment (target 92%)"), MetricPanel(PdfColor.FromRgb(236, 253, 245), PdfColor.FromRgb(22, 163, 74)), PdfAlign.Left, PdfColor.FromRgb(22, 101, 52)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("1.8 h").FontSize(9.5).Text("\nMean first response"), MetricPanel(PdfColor.FromRgb(239, 246, 255), PdfColor.FromRgb(37, 99, 235)), PdfAlign.Left, PdfColor.FromRgb(30, 64, 175)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("37").FontSize(9.5).Text("\nOpen escalations"), MetricPanel(PdfColor.FromRgb(255, 251, 235), PdfColor.FromRgb(217, 119, 6)), PdfAlign.Left, PdfColor.FromRgb(146, 64, 14)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("0").FontSize(9.5).Text("\nCritical blockers"), MetricPanel(PdfColor.FromRgb(248, 250, 252), PdfColor.FromRgb(100, 116, 139)), PdfAlign.Left, PdfColor.FromRgb(51, 65, 85)));
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(14))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("94.2%").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nSLA attainment (target 92%)"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("1.8 h").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nMean first response"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("37").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nOpen escalations"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(22)).Bold("0").FontSize(global::OfficeIMO.OfficeLength.Points(9.5)).Text("\nCritical blockers"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85)));
                             });
 
-                            content.Spacer(12);
+                            content.Spacer(global::OfficeIMO.OfficeLength.Points(12));
 
                             // Chart and table on the left, narrative and decisions on the right.
                             content.Row(row => {
-                                row.Gap(18)
+                                row.Gap(global::OfficeIMO.OfficeLength.Points(18))
                                     .PercentColumn(58, column => {
                                         column.Paragraph(p => p.Bold("Tickets resolved per month"), style: SectionLabel());
-                                        column.Drawing(CreateTrendDrawing(), PdfAlign.Left, spacingBefore: 2, spacingAfter: 8);
+                                        column.Drawing(CreateTrendDrawing(), PdfAlign.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
                                         column.Table(CreateServiceRows(), style: ServiceTableStyle());
                                     })
                                     .PercentColumn(42, column => {
@@ -57,18 +51,18 @@ namespace OfficeIMO.Examples.Pdf {
                                         column.PanelParagraph(
                                             p => p.Text("SLA attainment finished above the 92% target in all three months while resolved volume grew 15%. Integrations is the only service line below target, and its response time is the main driver."),
                                             new PdfPanelStyle {
-                                                Background = PdfColor.FromRgb(248, 250, 252),
-                                                BorderColor = PdfColor.FromRgb(203, 213, 225),
-                                                BorderWidth = 0.7,
-                                                PaddingX = 10,
-                                                PaddingY = 8
+                                                Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
+                                                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.7),
+                                                PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                                                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
                                             });
                                         column.Bullets(new[] {
                                             "Resolved tickets: 2,617, up from 2,274 last quarter.",
                                             "Security and Billing answer in about an hour.",
                                             "Integrations answers in 3.1 h against a 2 h goal.",
                                             "No critical blockers are open at quarter end."
-                                        }, style: new PdfListStyle { SpacingAfter = 4, ItemSpacing = 2 });
+                                        }, style: new PdfListStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), ItemSpacing = global::OfficeIMO.OfficeLength.Points(2) });
                                         column.Table(CreateDecisionRows(), style: DecisionTableStyle());
                                     });
                             });
@@ -88,70 +82,70 @@ namespace OfficeIMO.Examples.Pdf {
             }
         }
 
-        private static PdfPanelStyle MetricPanel(PdfColor background, PdfColor border) {
+        private static PdfPanelStyle MetricPanel(global::OfficeIMO.OfficeColor background, global::OfficeIMO.OfficeColor border) {
             return new PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
-                BorderWidth = 0.8,
-                PaddingX = 10,
-                PaddingY = 8
+                BorderWidth = global::OfficeIMO.OfficeLength.Points(0.8),
+                PaddingX = global::OfficeIMO.OfficeLength.Points(10),
+                PaddingY = global::OfficeIMO.OfficeLength.Points(8)
             };
         }
 
         private static PdfParagraphStyle SectionLabel() {
-            return new PdfParagraphStyle { SpacingBefore = 0, SpacingAfter = 4, LineHeight = 1.1 };
+            return new PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(4), LineHeight = 1.1 };
         }
+
+        // The chart fills the 58 % column so its right edge lines up with the table below:
+        // (842 pt landscape A4 - 84 pt margins - 18 pt gap) x 58 %.
+        private const double TrendChartWidth = (842D - 84D - 18D) * 0.58D;
 
         private static OfficeDrawing CreateTrendDrawing() {
-            var drawing = new OfficeDrawing(390, 168);
-            var label = new OfficeFontInfo("Helvetica", 8);
-            var muted = OfficeColor.FromRgb(100, 116, 139);
-
-            var frame = OfficeShape.RoundedRectangle(390, 168, 8);
-            frame.FillColor = OfficeColor.FromRgb(255, 255, 255);
-            frame.StrokeColor = OfficeColor.FromRgb(203, 213, 225);
-            frame.StrokeWidth = 0.8;
-            drawing.AddShape(frame, 0, 0);
-
-            // Baseline at y = 140; 1 px of bar height is 8 tickets.
-            for (int i = 0; i < 4; i++) {
-                var grid = OfficeShape.Line(0, 0, 340, 0);
-                grid.StrokeColor = OfficeColor.FromRgb(226, 232, 240);
-                grid.StrokeWidth = 0.5;
-                drawing.AddShape(grid, 28, 32 + i * 36);
-            }
-
-            string[] months = { "July", "August", "September" };
-            int[] resolved = { 812, 871, 934 };
-            for (int i = 0; i < resolved.Length; i++) {
-                double height = resolved[i] / 8.0;
-                double x = 66 + i * 104;
-                var bar = OfficeShape.RoundedRectangle(64, height, 4);
-                bar.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.FromRgb(14, 165, 233), OfficeColor.FromRgb(37, 99, 235));
-                bar.StrokeWidth = 0;
-                drawing.AddShape(bar, x, 140 - height);
-                drawing.AddText(resolved[i].ToString("N0"), x, 140 - height + 16, 64, 12, new OfficeFontInfo("Helvetica", 9, OfficeFontStyle.Bold), OfficeColor.FromRgb(255, 255, 255), OfficeTextAlignment.Center);
-                drawing.AddText(months[i], x, 146, 64, 12, label, muted, OfficeTextAlignment.Center);
-            }
-
-            // Target line: 850 tickets a month.
-            var target = OfficeShape.Line(0, 0, 340, 0);
-            target.StrokeColor = OfficeColor.FromRgb(15, 23, 42);
-            target.StrokeWidth = 1.2;
-            target.StrokeDashStyle = OfficeStrokeDashStyle.Dash;
-            drawing.AddShape(target, 28, 140 - 850 / 8.0);
-            drawing.AddText("Target 850", 318, 140 - 850 / 8.0 - 12, 60, 11, label, OfficeColor.FromRgb(15, 23, 42), OfficeTextAlignment.Right);
-
-            return drawing;
+            // The shared chart renderer gives round axis steps, readable labels and no decoration.
+            var data = new OfficeChartData(
+                new[] { "July", "August", "September" },
+                new[] {
+                    new OfficeSeries("Resolved", new[] { 812D, 871D, 934D }, null, OfficeColor.FromRgb(37, 99, 235)),
+                    new OfficeSeries("Target", new[] { 850D, 850D, 850D }, null, OfficeColor.FromRgb(15, 23, 42), null,
+                        showMarkers: false, strokeWidth: OfficeLength.Points(1.2D), strokeDashStyle: OfficeStrokeDashStyle.Dash,
+                        renderKind: OfficeChartType.Line)
+                });
+            var style = new OfficeChartStyle(
+                fontFamily: "Helvetica",
+                backgroundColor: OfficeColor.White,
+                showBorder: false,
+                gridLineColor: OfficeColor.FromRgb(226, 232, 240),
+                gridLineWidth: 0.5D,
+                textColor: OfficeColor.FromRgb(30, 41, 59),
+                mutedTextColor: OfficeColor.FromRgb(100, 116, 139),
+                valueAxisColor: OfficeColor.Transparent,
+                categoryAxisColor: OfficeColor.FromRgb(203, 213, 225))
+                // Values sit in white at the foot of each bar, clear of the dashed target line across the bar tops.
+                .WithDataLabelTextColor(OfficeColor.White);
+            var layout = new OfficeChartLayout(
+                legendPosition: OfficeChartLegendPosition.Top,
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelSeriesIndexes: new[] { 0 },
+                dataLabelPosition: OfficeChartDataLabelPosition.InsideBase,
+                verticalAxisNumberFormat: "#,##0");
+            var chart = new OfficeChartSnapshot("Tickets resolved per month", null, OfficeChartType.ColumnClustered, data,
+                width: OfficeLength.Points(TrendChartWidth), height: OfficeLength.Points(180D), style: style, layout: layout);
+            return OfficeChartDrawingRenderer.Render(chart, useMinimumCanvas: false);
         }
 
-        private static string[][] CreateServiceRows() {
+        private static PdfTableCell[][] CreateServiceRows() {
+            OfficeThemePalette palette = OfficeTheme.Default.Palette;
+            PdfTableCell Status(string status) => PdfTableCell.RichTextCell(new[] {
+                PdfTextRun.Bolded(status, status == "Watch" ? palette.Warning : palette.Success)
+            });
+            PdfTableCell T(string value) => PdfTableCell.TextCell(value);
             return new[] {
-                new[] { "Service line", "SLA", "Response", "Change", "Status" },
-                new[] { "Billing", "96.1%", "1.2 h", "+2.4 pts", "On target" },
-                new[] { "Onboarding", "93.4%", "1.9 h", "+1.1 pts", "On target" },
-                new[] { "Integrations", "89.7%", "3.1 h", "-1.8 pts", "Watch" },
-                new[] { "Security", "97.0%", "0.9 h", "+0.3 pts", "On target" }
+                new[] { T("Service line"), T("SLA"), T("Response"), T("Change"), T("Status") },
+                new[] { T("Billing"), T("96.1%"), T("1.2 h"), T("+2.4 pts"), Status("On target") },
+                new[] { T("Onboarding"), T("93.4%"), T("1.9 h"), T("+1.1 pts"), Status("On target") },
+                new[] { T("Integrations"), T("89.7%"), T("3.1 h"), T("-1.8 pts"), Status("Watch") },
+                new[] { T("Security"), T("97.0%"), T("0.9 h"), T("+0.3 pts"), Status("On target") }
             };
         }
         private static PdfTableCell[][] CreateDecisionRows() {
@@ -164,44 +158,35 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfTableStyle ServiceTableStyle() {
-            return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
-                BorderWidth = 0.4,
-                RowSeparatorColor = PdfColor.FromRgb(226, 232, 240),
-                RowSeparatorWidth = 0.45,
-                CellPaddingX = 7,
-                CellPaddingY = 5,
-                HeaderFontSize = 9.5,
-                FontSize = 9,
-                RightAlignNumeric = true,
-                ColumnWidthWeights = new List<double> { 1.6, 0.8, 1.0, 1.0, 1.1 },
-                Alignments = new List<PdfColumnAlign> {
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = OfficeLength.Points(7);
+            style.CellPaddingY = OfficeLength.Points(5);
+            style.CellPaddingTop = OfficeLength.Points(5);
+            style.CellPaddingBottom = OfficeLength.Points(5);
+            style.FontSize = OfficeLength.Points(9);
+            style.RightAlignNumeric = true;
+            style.ColumnWidthWeights = new List<double> { 1.6, 0.8, 1.0, 1.0, 1.1 };
+            style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Left
-                }
-            };
+                };
+            return style;
         }
 
         private static PdfTableStyle DecisionTableStyle() {
-            return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(30, 64, 175),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(239, 246, 255),
-                BorderColor = PdfColor.FromRgb(191, 219, 254),
-                BorderWidth = 0.45,
-                CellPaddingX = 7,
-                CellPaddingY = 5,
-                HeaderRowCount = 1,
-                FontSize = 8.7,
-                LineHeight = 1.15,
-                ColumnWidthWeights = new List<double> { 1.0, 2.1 }
-            };
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = OfficeLength.Points(7);
+            style.CellPaddingY = OfficeLength.Points(5);
+            style.CellPaddingTop = OfficeLength.Points(5);
+            style.CellPaddingBottom = OfficeLength.Points(5);
+            style.HeaderRowCount = 1;
+            style.FontSize = OfficeLength.Points(8.7);
+            style.LineHeight = 1.15;
+            style.ColumnWidthWeights = new List<double> { 1.0, 2.1 };
+            return style;
         }
     }
 }

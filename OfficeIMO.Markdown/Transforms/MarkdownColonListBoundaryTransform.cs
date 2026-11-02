@@ -10,15 +10,15 @@ namespace OfficeIMO.Markdown;
 /// </remarks>
 /// <example>
 /// <code>
-/// var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+/// var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
 /// options.DocumentTransforms.Add(new MarkdownColonListBoundaryTransform());
 ///
-/// var document = MarkdownReader.Parse("Next step:- **Item**", options);
+/// var document = MarkdownDocument.Parse("Next step:- **Item**", options);
 /// </code>
 /// </example>
 public sealed class MarkdownColonListBoundaryTransform : IMarkdownDocumentTransform {
     /// <inheritdoc />
-    public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+    public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }

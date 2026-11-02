@@ -9,9 +9,9 @@ namespace OfficeIMO.MarkdownRenderer;
 public static partial class MarkdownRenderer {
     /// <summary>
     /// Parses Markdown using renderer preprocessing and renderer-owned AST transforms,
-    /// returning the final <see cref="MarkdownDoc"/> that would be rendered to HTML.
+    /// returning the final <see cref="MarkdownDocument"/> that would be rendered to HTML.
     /// </summary>
-    public static MarkdownDoc ParseDocument(
+    public static MarkdownDocument ParseDocument(
         string markdown,
         MarkdownRendererOptions? options = null,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics = null,
@@ -24,7 +24,7 @@ public static partial class MarkdownRenderer {
             }
 
             markdown = PrepareMarkdown(markdown, options, renderErrorAsException: true);
-            var doc = MarkdownReader.Parse(markdown, readerOptions);
+            var doc = MarkdownDocument.Parse(markdown, readerOptions);
             return ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null, sourceMarkdown: markdown);
         }
 
@@ -99,7 +99,7 @@ public static partial class MarkdownRenderer {
         string markdown,
         MarkdownRendererOptions? options = null) {
         var result = ParseDocumentResult(markdown, options);
-        var parseResult = new MarkdownParseResult(
+        var parseResult = new MarkdownParseInfo(
             result.Document,
             result.SyntaxTree,
             result.FinalSyntaxTree,
@@ -121,14 +121,14 @@ public static partial class MarkdownRenderer {
     /// </summary>
     public static string RenderBodyHtml(string markdown, MarkdownRendererOptions? options = null) {
         options ??= new MarkdownRendererOptions();
-        var htmlOptions = options.HtmlOptions ?? new HtmlOptions { Kind = HtmlKind.Fragment };
+        var htmlOptions = options.HtmlOptions ?? new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment };
         var readerOptions = CreateEffectiveReaderOptions(options);
         try {
             markdown = PrepareMarkdown(markdown, options, renderErrorAsException: false, htmlOptions);
         } catch (MarkdownPreparationOverflowException ex) {
             return ex.OverflowHtml;
         }
-        MarkdownDoc doc;
+        MarkdownDocument doc;
         if (RequiresSyntaxBackedParse(options, readerOptions)) {
             var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, readerOptions);
             var transformDiagnostics = new List<MarkdownDocumentTransformDiagnostic>(parseResult.TransformDiagnostics);
@@ -161,7 +161,7 @@ public static partial class MarkdownRenderer {
                 parseResult.ReferenceLinkDefinitions,
                 parseResult.AbbreviationDefinitions);
         } else {
-            doc = MarkdownReader.Parse(markdown, readerOptions);
+            doc = MarkdownDocument.Parse(markdown, readerOptions);
         }
 
         var priorBaseUri = htmlOptions.BaseUri;
@@ -180,7 +180,7 @@ public static partial class MarkdownRenderer {
 
         string html;
         try {
-            html = doc.ToHtmlFragment(htmlOptions) ?? string.Empty;
+            html = doc.ToHtml(htmlOptions) ?? string.Empty;
         } finally {
             htmlOptions.BaseUri = priorBaseUri;
             htmlOptions.CodeBlockHtmlRenderer = priorCodeBlockHtmlRenderer;
@@ -222,7 +222,7 @@ public static partial class MarkdownRenderer {
         return html ?? string.Empty;
     }
 
-    private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownReaderOptions readerOptions) {
+    private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownLoadOptions readerOptions) {
         var htmlOptions = options.HtmlOptions;
         return options.DocumentTransforms.Count > 0
                || readerOptions.DocumentTransforms.Count > 0

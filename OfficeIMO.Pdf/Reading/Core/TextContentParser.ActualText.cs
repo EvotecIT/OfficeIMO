@@ -8,6 +8,7 @@ internal static partial class TextContentParser {
         dictionary.Items.TryGetValue("OfficeIMOLogicalBounds", out object? value) && value is bool flag && flag;
 
     internal sealed partial class MarkedContentState {
+        private readonly bool _allowExactGlyphMapping;
         internal bool PreserveAnchorGeometry { get; }
         private List<PdfTextSpan>? _invisibleAnchorOwner;
         private int _invisibleAnchorIndex;
@@ -99,9 +100,16 @@ internal static partial class TextContentParser {
         /// <summary>Commits only a closed, completely mapped replacement in its original stream.</summary>
         internal void CompleteLogicalPaintExtent(List<PdfTextSpan> owner) {
             if (!_logicalPaintRejected && _hasLogicalPaint && ReferenceEquals(owner, _logicalLayoutOwner) &&
-                _logicalLayoutText != null && _logicalPaintCharacters == _logicalLayoutText.Length &&
-                _logicalPaintExtent > owner[_logicalLayoutIndex].Advance) {
-                owner[_logicalLayoutIndex].SetLogicalLayoutAdvance(_logicalPaintExtent);
+                _logicalLayoutText != null && _logicalPaintCharacters == _logicalLayoutText.Length) {
+                PdfTextSpan span = owner[_logicalLayoutIndex];
+                if (_logicalPaintExtent > span.Advance) span.SetLogicalLayoutAdvance(_logicalPaintExtent);
+                // A closed inline scope can repeat an already mapped ligature without replacing it.
+                // Extra shows, nested replacements and different logical text reject this proof above.
+                if (_allowExactGlyphMapping && span.Text.Length > 0 &&
+                    string.Equals(span.SourceActualText, span.Text, StringComparison.Ordinal) &&
+                    string.Equals(span.RestampText, span.Text, StringComparison.Ordinal)) {
+                    span.MarkExactActualTextGlyphMapping();
+                }
             }
         }
 

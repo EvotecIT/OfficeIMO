@@ -23,7 +23,7 @@ namespace OfficeIMO.Word {
             if (options.Mode == WordComparisonRedlineMode.InPlaceTarget &&
                 result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape)) {
                 result.AddLimitation(new WordComparisonLimitation(
-                    "Redline.Shape.InPlaceTextFallback",
+                    "redline-shape-in-place-text-fallback",
                     "DrawingML shape findings are represented by tracked textual evidence in in-place redlines; native drawing move or replacement revision markup is not synthesized.",
                     result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape && finding.ChangeKind != WordComparisonChangeKind.Inserted),
                     result.Findings.Any(finding => finding.Scope == WordComparisonScope.Shape && finding.ChangeKind != WordComparisonChangeKind.Deleted)));

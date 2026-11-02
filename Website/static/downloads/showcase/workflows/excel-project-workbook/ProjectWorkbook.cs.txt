@@ -8,11 +8,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ProjectWorkbook {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet summary = document.AddWorksheet("Summary");
-        ExcelSheet delivery = document.AddWorksheet("Delivery");
+        ExcelSheet summary = document.AddSheet("Summary");
+        ExcelSheet delivery = document.AddSheet("Delivery");
         summary.MergeRange("A1:D1");
         summary.Cell(1, 1, "Project workbook / weekly delivery");
-        summary.CellFontSize(1, 1, 20);
+        summary.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
         summary.CellBold(1, 1, true);
         summary.CellFontColor(1, 1, "17365D");
         string[] labels = { "Discovery", "Build", "Pilot", "Handover" };
@@ -22,8 +22,8 @@ internal static class ProjectWorkbook {
             summary.Cell(4, column + 1, headers[column]);
             summary.CellBackground(4, column + 1, "17365D");
             summary.CellFontColor(4, column + 1, "FFFFFF");
-            summary.SetColumnWidth(column + 1, column == 0 ? 30 : 22);
-            delivery.SetColumnWidth(column + 1, column == 0 ? 30 : 22);
+            summary.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 30 : 22));
+            delivery.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 0 ? 30 : 22));
         }
         for (int index = 0; index < labels.Length; index++) {
             int row = index + 2;

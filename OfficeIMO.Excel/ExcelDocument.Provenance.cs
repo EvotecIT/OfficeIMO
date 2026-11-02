@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>Validates and inspects encoded workbook bytes without accessing the filesystem.</summary>
-    public static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "workbook.xlsx", OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(byte[] data, string fileName = "workbook.xlsx", OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.Inspect(data, fileName, options, ValidatePackage);
 
     private const string SignatureOriginContentType = "application/vnd.openxmlformats-package.digital-signature-origin";
@@ -21,7 +21,7 @@ public partial class ExcelDocument {
     private const string ExtendedPropertiesRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties";
 
     /// <summary>Inspects C2PA and IPTC provenance in a saved Open XML workbook and its supported embedded images.</summary>
-    public static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
+    internal static OfficeProvenanceReport InspectProvenance(string filePath, OfficeProvenanceOptions? options = null) =>
         OfficeProvenancePackageMutation.InspectFile(filePath, options, ValidatePackage);
 
     /// <summary>Removes selected provenance and atomically writes an Open XML workbook.</summary>

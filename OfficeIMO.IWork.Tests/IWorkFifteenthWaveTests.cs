@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         using var bytes = new MemoryStream();
         result.Value.Save(bytes);
         bytes.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         Assert.Equal(30d, Assert.Single(Assert.Single(reopened.Slides).Tables).Rotation);
     }
 

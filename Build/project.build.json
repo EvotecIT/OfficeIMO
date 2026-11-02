@@ -142,6 +142,10 @@
     "OfficeIMO.Word.Html": "3.5.X",
     "OfficeIMO.Word.Markdown": "3.5.X",
     "OfficeIMO.Word.Pdf": "3.5.X",
+    "OfficeIMO": "3.5.X",
+    "OfficeIMO.Pdf.Word": "3.5.X",
+    "OfficeIMO.Pdf.PowerPoint": "3.5.X",
+    "OfficeIMO.Pdf.Excel": "3.5.X",
     "OfficeIMO.Word.Rtf": "3.5.X",
     "OfficeIMO.Workflows": "3.5.X",
     "OfficeIMO.Workflows.IWork": "3.5.X"

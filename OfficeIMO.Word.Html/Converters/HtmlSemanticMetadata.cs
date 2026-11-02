@@ -14,6 +14,17 @@ namespace OfficeIMO.Word.Html {
             paragraph._paragraph.AddAnnotation(new HtmlBlockquoteCiteAnnotation(cite!));
         }
 
+        internal static void MarkBlockquote(WordParagraph paragraph) {
+            if (paragraph._paragraph == null || paragraph._paragraph.Annotation<HtmlBlockquoteAnnotation>() != null) {
+                return;
+            }
+
+            paragraph._paragraph.AddAnnotation(new HtmlBlockquoteAnnotation());
+        }
+
+        internal static bool IsMarkedBlockquote(WordParagraph paragraph) =>
+            paragraph._paragraph?.Annotation<HtmlBlockquoteAnnotation>() != null;
+
         internal static bool TryGetBlockquoteCite(WordParagraph paragraph, out string cite) {
             cite = string.Empty;
             var annotation = paragraph._paragraph?.Annotation<HtmlBlockquoteCiteAnnotation>();
@@ -97,6 +108,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             internal string DateTime { get; }
+        }
+
+        private sealed class HtmlBlockquoteAnnotation {
         }
 
         private sealed class HtmlBlockquoteCiteAnnotation {

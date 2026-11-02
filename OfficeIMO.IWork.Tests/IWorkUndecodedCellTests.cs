@@ -106,11 +106,11 @@ public sealed partial class IWorkBoundaryTests {
             using ExcelDocument reopened = ExcelDocument.Load(saved);
             marker = Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
         } else {
-            using var automatic = source.ToPowerPointPresentationResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointPresentationResult(options); report = partial.Report;
+            using var partial = source.ToPowerPointDocumentResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
-            using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+            using PowerPointDocument reopened = PowerPointDocument.Load(saved);
             marker = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Text;
         }
         Assert.True(report.IsPartialEditableReconstruction);

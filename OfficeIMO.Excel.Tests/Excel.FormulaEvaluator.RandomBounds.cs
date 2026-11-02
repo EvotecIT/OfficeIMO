@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [InlineData(-9007199254740991d, -9007199254740988d)]
         public void Test_FormulaEvaluator_RandomBetweenExactIntegerBounds(double lower, double upper) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Random");
+            var sheet = document.AddSheet("Random");
             sheet.CellValue(1, 1, lower); sheet.CellValue(2, 1, upper);
             sheet.CellFormula(1, 2, "RANDBETWEEN(A1,A2)");
             sheet.CellFormula(2, 2, "B1-B1");
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaEvaluator_RandomBetweenLargeReversedAndUnqualifiedBounds() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Limits");
+            var sheet = document.AddSheet("Limits");
             sheet.CellFormula(1, 1, "RANDBETWEEN(9007199254740991,-9007199254740991)");
             sheet.CellFormula(2, 1, "IFERROR(A1,99)");
             foreach (int row in new[] { 3, 4 }) sheet.CellValue(row, 1, 42d);

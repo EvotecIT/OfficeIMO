@@ -17,9 +17,9 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </p>
 """;
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             SmartHref = true
-        }));
+        }).ToMarkdown());
 
         Assert.Contains("https://example.com user@example.com [+15551234567](tel:+15551234567) [Docs](https://example.com/docs)", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("[https://example.com]", markdown, StringComparison.Ordinal);
@@ -36,11 +36,11 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </article>
 """;
 
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         options.ExcludeSelectors.Add(".ad");
         options.ElementFilters.Add(element => string.Equals(element.GetAttribute("data-skip"), "true", StringComparison.Ordinal));
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
 
         Assert.Equal("Keep", markdown);
     }
@@ -54,12 +54,12 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </html>
 """;
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://docs.example/root/")
         };
         options.ExcludeSelectors.Add("base");
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
 
         Assert.Equal("[Guide](https://docs.example/root/guide)", markdown);
     }
@@ -68,13 +68,13 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_TagAliases_MapUnsupportedTagsToBuiltInConverters() {
         const string html = "<p><highlight>Important</highlight> and <custom-bold>bold</custom-bold></p>";
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             PreserveUnsupportedInlineHtml = false
         };
         options.TagAliases["highlight"] = "mark";
         options.TagAliases["custom-bold"] = "strong";
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
 
         Assert.Equal("==Important== and **bold**", markdown);
     }
@@ -83,11 +83,11 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_TagAliases_MapStructuredChildrenToBuiltInConverters() {
         const string html = "<custom-list><custom-item>First</custom-item><custom-item><strong>Second</strong></custom-item></custom-list>";
 
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         options.TagAliases["custom-list"] = "ul";
         options.TagAliases["custom-item"] = "li";
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
 
         Assert.Equal("- First\n- **Second**", markdown);
     }
@@ -103,7 +103,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </custom-figure>
 """;
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/docs/")
         };
         options.TagAliases["custom-figure"] = "figure";
@@ -111,7 +111,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         options.TagAliases["custom-img"] = "img";
         options.TagAliases["custom-caption"] = "figcaption";
 
-        var document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
+        var document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("https://example.com/docs/media/photo.png", image.Path);
@@ -128,14 +128,14 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </custom-picture>
 """;
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/docs/")
         };
         options.TagAliases["custom-picture"] = "picture";
         options.TagAliases["custom-source"] = "source";
         options.TagAliases["custom-img"] = "img";
 
-        var document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
+        var document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
         var source = Assert.Single(image.PictureSources);
 
@@ -151,12 +151,12 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 <p><custom-img src="photo.png" alt="Photo"></custom-img></p>
 """;
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/docs/")
         };
         options.TagAliases["custom-img"] = "img";
 
-        var document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
+        var document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("https://example.com/docs/photo.png", image.Path);
@@ -171,11 +171,11 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </picture>
 """;
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/docs/")
         };
 
-        var document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
+        var document = HtmlConversionDocument.Parse(html).ToMarkdown(options);
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("https://example.com/docs/real.png", image.Path);
@@ -187,10 +187,10 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_PassThroughTags_PreserveOriginalHtmlEvenForKnownTags() {
         const string html = "<p>Keep <strong>literal</strong></p>";
 
-        var options = new HtmlToMarkdownOptions();
+        var options = new MarkdownHtmlImportOptions();
         options.PassThroughTags.Add("strong");
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
 
         Assert.Equal("Keep <strong>literal</strong>", markdown);
     }
@@ -199,34 +199,34 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_UnknownBlockHandling_CanBypassDropPreserveOrRaise() {
         const string html = "<x-card><p>Inner <strong>text</strong></p></x-card>";
 
-        string bypassed = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Bypass
-        }));
-        string dropped = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Drop
-        }));
-        string preserved = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Preserve
-        }));
-        string bypassedInlineOnly = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse("<custom-widget><strong>Custom</strong> payload</custom-widget>").ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Bypass
-        }));
-        string droppedInlineOnly = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse("<custom-widget><strong>Custom</strong> payload</custom-widget>").ToMarkdown(new HtmlToMarkdownOptions {
+        string bypassed = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Bypass
+        }).ToMarkdown());
+        string dropped = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Drop
+        }).ToMarkdown());
+        string preserved = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Preserve
+        }).ToMarkdown());
+        string bypassedInlineOnly = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse("<custom-widget><strong>Custom</strong> payload</custom-widget>").ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Bypass
+        }).ToMarkdown());
+        string droppedInlineOnly = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse("<custom-widget><strong>Custom</strong> payload</custom-widget>").ToMarkdown(new MarkdownHtmlImportOptions {
             PreserveUnsupportedBlocks = false,
-            UnknownBlockHandling = HtmlUnknownTagHandling.Drop
-        }));
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Drop
+        }).ToMarkdown());
 
         Assert.Equal("Inner **text**", bypassed);
         Assert.Equal("**Custom** payload", bypassedInlineOnly);
         Assert.Equal(string.Empty, droppedInlineOnly);
         Assert.Equal(string.Empty, dropped);
         Assert.Contains("<x-card>", preserved, StringComparison.Ordinal);
-        Assert.Throws<NotSupportedException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Raise
+        Assert.Throws<NotSupportedException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Raise
         }));
-        Assert.Throws<NotSupportedException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<custom-widget>payload</custom-widget>").ToMarkdown(new HtmlToMarkdownOptions {
+        Assert.Throws<NotSupportedException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<custom-widget>payload</custom-widget>").ToMarkdown(new MarkdownHtmlImportOptions {
             PreserveUnsupportedBlocks = false,
-            UnknownBlockHandling = HtmlUnknownTagHandling.Raise
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Raise
         }));
     }
 
@@ -234,15 +234,15 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_UnknownInlineHandling_CanBypassDropPreserveOrRaise() {
         const string html = "<p>Before <x-chip>inside</x-chip> after</p>";
 
-        string bypassed = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownInlineHandling = HtmlUnknownTagHandling.Bypass
-        }));
-        string dropped = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownInlineHandling = HtmlUnknownTagHandling.Drop
-        }));
-        string preserved = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownInlineHandling = HtmlUnknownTagHandling.Preserve
-        }));
+        string bypassed = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownInlineHandling = MarkdownHtmlUnknownTagHandling.Bypass
+        }).ToMarkdown());
+        string dropped = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownInlineHandling = MarkdownHtmlUnknownTagHandling.Drop
+        }).ToMarkdown());
+        string preserved = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownInlineHandling = MarkdownHtmlUnknownTagHandling.Preserve
+        }).ToMarkdown());
 
         Assert.Equal("Before inside after", bypassed);
         Assert.Contains("Before", dropped, StringComparison.Ordinal);
@@ -250,8 +250,8 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         Assert.DoesNotContain("inside", dropped, StringComparison.Ordinal);
         Assert.DoesNotContain("x-chip", dropped, StringComparison.Ordinal);
         Assert.Equal("Before <x-chip>inside</x-chip> after", preserved);
-        Assert.Throws<NotSupportedException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownInlineHandling = HtmlUnknownTagHandling.Raise
+        Assert.Throws<NotSupportedException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownInlineHandling = MarkdownHtmlUnknownTagHandling.Raise
         }));
     }
 
@@ -259,15 +259,15 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_UnknownInlineFlow_DoesNotCreateParagraphBoundaries() {
         const string html = "Hello <x-chip>world</x-chip>!";
 
-        string bypassed = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Bypass
-        }));
-        string dropped = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
-            UnknownBlockHandling = HtmlUnknownTagHandling.Drop
-        }));
-        string preservedInline = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
+        string bypassed = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Bypass
+        }).ToMarkdown());
+        string dropped = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+            UnknownBlockHandling = MarkdownHtmlUnknownTagHandling.Drop
+        }).ToMarkdown());
+        string preservedInline = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
             PreserveUnsupportedBlocks = false
-        }));
+        }).ToMarkdown());
 
         Assert.Equal("Hello world!", bypassed);
         Assert.Equal("Hello !", dropped);
@@ -283,7 +283,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </article>
 """;
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreateGitHubFlavoredMarkdownProfile()));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(MarkdownHtmlImportOptions.CreateGitHubFlavoredMarkdownProfile()).ToMarkdown());
 
         Assert.Contains("https://example.com", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("[https://example.com]", markdown, StringComparison.Ordinal);
@@ -302,7 +302,9 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 </article>
 """;
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreateCommonMarkProfile()));
+        using var destination = new MemoryStream();
+        OfficeIMO.Html.HtmlConversionDocument.Parse(html).SaveAsMarkdown(destination, MarkdownHtmlImportOptions.CreateCommonMarkProfile());
+        string markdown = Normalize(Encoding.UTF8.GetString(destination.ToArray()));
 
         Assert.Contains("[https://example.com](https://example.com)", markdown, StringComparison.Ordinal);
         Assert.Contains("<del>old</del>", markdown, StringComparison.Ordinal);
@@ -321,7 +323,9 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_CommonMarkProfile_EscapesLineStartsThatWouldBecomeBlocks() {
         const string html = "<p># not heading</p><p>- not list</p>";
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreateCommonMarkProfile()));
+        using var destination = new MemoryStream();
+        OfficeIMO.Html.HtmlConversionDocument.Parse(html).SaveAsMarkdown(destination, MarkdownHtmlImportOptions.CreateCommonMarkProfile());
+        string markdown = Normalize(Encoding.UTF8.GetString(destination.ToArray()));
 
         Assert.Equal("\\# not heading\n\n\\- not list", markdown);
     }
@@ -330,12 +334,12 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     public void HtmlToMarkdown_TagAliases_UnwrapRejectedAnchorHrefs() {
         const string html = "<custom-link href=\"javascript:alert(1)\"><img src=\"ok.png\" alt=\"Ok\"></custom-link>";
 
-        var options = new HtmlToMarkdownOptions {
+        var options = new MarkdownHtmlImportOptions {
             BaseUri = new Uri("https://example.com/docs/")
         };
         options.TagAliases["custom-link"] = "a";
 
-        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options));
+        string markdown = Normalize(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(options).ToMarkdown());
 
         Assert.Equal("![Ok](https://example.com/docs/ok.png)", markdown);
         Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);

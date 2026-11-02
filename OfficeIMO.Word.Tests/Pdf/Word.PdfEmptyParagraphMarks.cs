@@ -49,8 +49,8 @@ public partial class Word {
             StyleName = new W.StyleName { Val = "Hidden Blank" }, BasedOn = new W.BasedOn { Val = "Normal" },
             StyleRunProperties = new W.StyleRunProperties(new W.Vanish())
         });
-        WordTableCell? cell = table ? source.AddTable(1, 1).Rows[0].Cells[0] : null;
-        if (followingTable) source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("A", removeExistingParagraphs: true);
+        WordTableCell? cell = table ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0] : null;
+        if (followingTable) source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].AddParagraph("A", removeExistingParagraphs: true);
         else if (cell == null) source.AddParagraph("A"); else cell.AddParagraph("A", removeExistingParagraphs: true);
         if (kind != "none") {
             WordParagraph blank = cell == null ? source.AddParagraph() : cell.AddParagraph();
@@ -67,13 +67,13 @@ public partial class Word {
                 blank._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
                     new W.Vanish { Val = kind == "hidden-mark" });
             }
-            if (spacingAfter > 0D) blank.LineSpacingAfterPoints = spacingAfter;
+            if (spacingAfter > 0D) blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         }
         if (cell == null) source.AddParagraph("B"); else cell.AddParagraph("B");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
-        using var pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
         Assert.DoesNotContain("SECRET", pdf.GetPage(1).Text);
         return Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y -

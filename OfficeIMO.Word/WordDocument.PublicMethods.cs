@@ -66,8 +66,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Adds default headers and footers to the document.
         /// </summary>
-        public void AddHeadersAndFooters() {
-            WordHeadersAndFooters.AddHeadersAndFooters(this);
+        /// <returns>The attached default header and footer.</returns>
+        public (WordHeader Header, WordFooter Footer) AddHeadersAndFooters() {
+            return WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         /// <summary>
@@ -114,8 +115,8 @@ namespace OfficeIMO.Word {
         /// <param name="addStyle">Whether to apply hyperlink style.</param>
         /// <param name="tooltip">Tooltip for the hyperlink.</param>
         /// <param name="history">Whether to track link history.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        /// <returns>The created <see cref="WordHyperLink"/>.</returns>
+        public WordHyperLink AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Text cannot be null or empty.", nameof(text));
             }
@@ -135,8 +136,8 @@ namespace OfficeIMO.Word {
         /// <param name="addStyle">Whether to apply hyperlink style.</param>
         /// <param name="tooltip">Tooltip for the hyperlink.</param>
         /// <param name="history">Whether to track link history.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        /// <returns>The created <see cref="WordHyperLink"/>.</returns>
+        public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Text cannot be null or empty.", nameof(text));
             }
@@ -146,57 +147,6 @@ namespace OfficeIMO.Word {
             }
 
             return this.AddParagraph().AddHyperLink(text, anchor, addStyle, tooltip, history);
-        }
-
-        /// <summary>
-        /// Downloads an image from the specified URL and inserts it into the document.
-        /// </summary>
-        /// <param name="url">URL of the image to download.</param>
-        /// <param name="width">Optional width for the image.</param>
-        /// <param name="height">Optional height for the image.</param>
-        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
-        /// <returns>The created <see cref="WordImage"/>.</returns>
-        public async Task<WordImage> AddImageFromUrlAsync(
-            string url,
-            double? width = null,
-            double? height = null,
-            CancellationToken cancellationToken = default) {
-            return await AddImageFromUrlCoreAsync(url, width, height, null, cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Downloads an image with explicit remote-network policy and inserts it into the document.
-        /// </summary>
-        public Task<WordImage> AddImageFromUrlAsync(
-            string url,
-            double? width,
-            double? height,
-            OfficeRemoteImageLoadOptions remoteImageOptions,
-            CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            return AddImageFromUrlCoreAsync(url, width, height, remoteImageOptions, cancellationToken);
-        }
-
-        private async Task<WordImage> AddImageFromUrlCoreAsync(
-            string url,
-            double? width,
-            double? height,
-            OfficeRemoteImageLoadOptions? remoteImageOptions,
-            CancellationToken cancellationToken) {
-            OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
-            using var ms = image.ToStream();
-            var paragraph = AddParagraph();
-            paragraph.AddImage(ms, image.FileName, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
-        }
-
-        /// <summary>
-        /// Inserts a VML image into the document.
-        /// </summary>
-        public WordImage AddImageVml(string filePathImage, double? width = null, double? height = null) {
-            var paragraph = AddParagraph();
-            paragraph.AddImageVml(filePathImage, width, height);
-            return paragraph.Image ?? throw new InvalidOperationException("Image was not added to the paragraph.");
         }
 
         /// <summary>
@@ -218,7 +168,7 @@ namespace OfficeIMO.Word {
         /// <param name="width">The width.</param>
         /// <param name="height">The height.</param>
         /// <returns>WordChart</returns>
-        public WordChart AddChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             var paragraph = this.AddParagraph();
             var chartInstance = new WordChart(this, paragraph, title, roundedCorners, width, height);
             return chartInstance;
@@ -227,11 +177,11 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
         /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
-        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.Drawing.OfficeColor)"/> or
+        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.OfficeColor)"/> or
         /// <see cref="WordChart.AddLine"/> to add data. The call to <c>AddChartAxisX</c> must be performed
         /// before adding any series so both chart types share the same axes.
         /// </summary>
-        public WordChart AddComboChart(string title = "", bool roundedCorners = false, int width = 600, int height = 600) {
+        public WordChart AddComboChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
             return AddChart(title, roundedCorners, width, height);
         }
 
@@ -269,7 +219,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color of the symbol.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, int? fontSize = null) {
+        public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, global::OfficeIMO.OfficeLength? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, colorHex, fontSize);
         }
 
@@ -282,7 +232,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, global::OfficeIMO.OfficeLength? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
         }
 
@@ -302,14 +252,14 @@ namespace OfficeIMO.Word {
         /// WordList list = document.AddCustomBulletList(
         ///     WordListLevelKind.BulletSquareSymbol,
         ///     "Courier New",
-        ///     OfficeIMO.Drawing.OfficeColor.Red,
-        ///     fontSize: 16);
+        ///     OfficeIMO.OfficeColor.Red,
+        ///     fontSize: global::OfficeIMO.OfficeLength.Points(16));
         ///
         /// list.AddItem("Custom bullet item");
         /// document.Save();
         /// ]]></code>
         /// </example>
-        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, global::OfficeIMO.OfficeLength? fontSize = null) {
             return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
         }
 
@@ -340,9 +290,9 @@ namespace OfficeIMO.Word {
         /// <code><![CDATA[
         /// using WordDocument document = WordDocument.Create(filePath);
         ///
-        /// WordList list = document.AddCustomList()
-        ///     .AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14)
-        ///     .AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+        /// WordList list = document.AddCustomList();
+        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: global::OfficeIMO.OfficeLength.Points(14));
+        /// list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: global::OfficeIMO.OfficeLength.Points(10));
         ///
         /// list.AddItem("First level item");
         /// list.AddItem("Fifth level item", 4);
@@ -388,7 +338,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns to create.</param>
         /// <param name="tableStyle">Optional table style to apply.</param>
         /// <returns>The inserted <see cref="WordTable"/> instance.</returns>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
             return wordTable;
         }
@@ -400,7 +350,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns to create.</param>
         /// <param name="tableStyle">Optional table style to apply.</param>
         /// <returns>The newly created <see cref="WordTable"/>.</returns>
-        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             return WordTable.Create(this, rows, columns, tableStyle);
         }
 
@@ -471,13 +421,22 @@ namespace OfficeIMO.Word {
         /// <param name="tableOfContentStyle">Optional style to use when creating the table of contents.</param>
         /// <param name="minLevel">Minimum heading level to include (1..9).</param>
         /// <param name="maxLevel">Maximum heading level to include (1..9).</param>
+        /// <param name="title">Optional title replacing the template title.</param>
+        /// <param name="insertAtTop">Places the table of contents before existing body content.</param>
         /// <returns>The created <see cref="WordTableOfContent"/> instance.</returns>
         public WordTableOfContent AddTableOfContent(
             WordTableOfContentsStyle tableOfContentStyle = WordTableOfContentsStyle.Template1,
             int minLevel = 1,
-            int maxLevel = 3) {
+            int maxLevel = 3,
+            string? title = null,
+            bool insertAtTop = false) {
             WordTableOfContent wordTableContent = new WordTableOfContent(this, tableOfContentStyle, minLevel, maxLevel);
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
+            if (title != null) wordTableContent.Text = title;
+            if (insertAtTop) {
+                wordTableContent.SdtBlock.Remove();
+                body.PrependChild(wordTableContent.SdtBlock);
+            }
             _tableOfContentIndex = body.ChildElements.ToList().IndexOf(wordTableContent.SdtBlock);
             _tableOfContentStyle = tableOfContentStyle;
             return wordTableContent;
@@ -549,44 +508,37 @@ namespace OfficeIMO.Word {
         /// Adds a basic shape to the document in a new paragraph.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points or line end X.</param>
-        /// <param name="heightPt">Height in points or line end Y.</param>
-        /// <param name="fillColor">Fill color in hex format.</param>
-        /// <param name="strokeColor">Stroke color in hex format.</param>
-        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="width">Width or line end X.</param>
+        /// <param name="height">Height or line end Y.</param>
+        /// <param name="fillColor">Fill color; white when omitted.</param>
+        /// <param name="strokeColor">Stroke color; black when omitted.</param>
+        /// <param name="strokeWeight">Stroke thickness; one point when omitted.</param>
         /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         /// <returns>The created <see cref="WordShape"/>.</returns>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
+        public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
+            OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
+            WordShape.ValidateVmlColors(fillColor, strokeColor);
             var paragraph = AddParagraph();
-            return paragraph.AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
-        }
-
-        /// <summary>
-        /// Adds a basic shape to the document using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
-        /// </summary>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
+            return paragraph.AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }
 
         /// <summary>
         /// Adds a DrawingML shape to the document in a new paragraph.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points.</param>
-        /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
+        /// <param name="width">Width.</param>
+        /// <param name="height">Height.</param>
+        public WordShape AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) {
             var paragraph = AddParagraph();
-            return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt);
+            return paragraph.AddShapeDrawing(shapeType, width, height);
         }
 
         /// <summary>
         /// Adds a DrawingML shape anchored at an absolute position on the page in a new paragraph.
         /// </summary>
-        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeLength left, OfficeLength top) {
             var paragraph = AddParagraph();
-            return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt, leftPt, topPt);
+            return paragraph.AddShapeDrawing(shapeType, width, height, left, top);
         }
 
         /// <summary>
@@ -609,7 +561,7 @@ namespace OfficeIMO.Word {
         /// <param name="size">Line width in eighths of a point.</param>
         /// <param name="space">Space above and below the line.</param>
         /// <returns>The paragraph containing the line.</returns>
-        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.Drawing.OfficeColor? color = null, uint size = 12, uint space = 1) {
+        public WordParagraph AddHorizontalLine(WordBorderStyle? lineType = null, OfficeIMO.OfficeColor? color = null, uint size = 12, uint space = 1) {
             lineType ??= WordBorderStyle.Single;
             return this.AddParagraph().AddHorizontalLine(lineType.Value, color, size, space);
         }
@@ -680,8 +632,8 @@ namespace OfficeIMO.Word {
         /// Inserts a bookmark in a new paragraph.
         /// </summary>
         /// <param name="bookmarkName">Name of the bookmark.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddBookmark(string bookmarkName) {
+        /// <returns>The created <see cref="WordBookmark"/>.</returns>
+        public WordBookmark AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
@@ -689,9 +641,9 @@ namespace OfficeIMO.Word {
         /// Inserts a citation field referencing the specified source tag.
         /// </summary>
         /// <param name="sourceTag">Tag of the bibliographic source.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddCitation(string sourceTag) {
-            var field = new CitationField { SourceTag = sourceTag };
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddCitation(string sourceTag) {
+            var field = new WordCitationField { SourceTag = sourceTag };
             return this.AddParagraph().AddField(field);
         }
 
@@ -703,8 +655,8 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <param name="parameters">Additional switch parameters.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
         }
 
@@ -715,8 +667,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordFieldFormat">Optional field format.</param>
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(fieldCode, wordFieldFormat, customFormat!, advanced);
         }
 
@@ -725,8 +677,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="builder">Field builder instance.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddField(WordFieldBuilder builder, bool advanced = false) {
             return this.AddParagraph().AddField(builder, advanced);
         }
 
@@ -735,8 +687,15 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="omml">OMML markup for the equation.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddEquation(string omml) {
-            return this.AddParagraph().AddEquation(omml);
+        public WordEquation AddEquation(string omml) {
+            WordParagraph paragraph = this.AddParagraph();
+            try {
+                return paragraph.AddEquation(omml);
+            } catch {
+                // Invalid OMML must not leave an empty paragraph behind.
+                paragraph._paragraph.Remove();
+                throw;
+            }
         }
 
         /// <summary>
@@ -744,10 +703,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="imageFilePath">Preview image path.</param>
-        /// <param name="width">Optional width in points.</param>
-        /// <param name="height">Optional height in points.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+        /// <param name="width">Optional physical width; defaults to 64.8 points.</param>
+        /// <param name="height">Optional physical height; defaults to 64.8 points.</param>
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null) {
             return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath, width, height);
         }
 
@@ -756,8 +715,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="options">Embedding options.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             return this.AddParagraph().AddEmbeddedObject(filePath, options);
         }
 

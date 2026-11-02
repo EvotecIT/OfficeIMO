@@ -31,10 +31,10 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] compressed = CreateCompressionProbe(compressContentStreams: true);
         string rawCompressed = Encoding.ASCII.GetString(compressed);
         string text = PdfReadDocument.Open(compressed).ExtractText();
-        PdfOptions options = new PdfOptions {
+        PdfCreateOptions options = new PdfCreateOptions {
             CompressContentStreams = true
         };
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.True(compressed.Length < uncompressed.Length, $"Expected compressed PDF to be smaller. Uncompressed: {uncompressed.Length}, compressed: {compressed.Length}.");
         Assert.Contains("/Filter /FlateDecode", rawCompressed, StringComparison.Ordinal);
@@ -46,14 +46,14 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void StandardFontToUnicodeMaps_CanBeEmittedForGeneratedPdfText() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 IncludeStandardFontToUnicodeMaps = true
             })
             .Paragraph(p => p.Text("Cafe é and Euro €"))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfReadDocument.Open(bytes).ExtractText();
-        PdfOptions clone = new PdfOptions {
+        PdfCreateOptions clone = new PdfCreateOptions {
             IncludeStandardFontToUnicodeMaps = true
         }.Clone();
 
@@ -68,7 +68,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void XmpMetadata_CanBeEmittedAndSynchronizedWithInfoDictionary() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 IncludeXmpMetadata = true
             })
             .Meta(
@@ -81,7 +81,7 @@ public partial class PdfDocumentVisualQualityTests {
         string raw = Encoding.UTF8.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfOptions clone = new PdfOptions {
+        PdfCreateOptions clone = new PdfCreateOptions {
             IncludeXmpMetadata = true
         }.Clone();
 
@@ -113,7 +113,7 @@ public partial class PdfDocumentVisualQualityTests {
             RegistryName = "https://officeimo.dev/pdf/output-intents",
             Info = "Dependency-free test profile"
         };
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             OutputIntent = outputIntent
         };
         profile[36] = 0;
@@ -124,7 +124,7 @@ public partial class PdfDocumentVisualQualityTests {
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Contains("/OutputIntents [", raw, StringComparison.Ordinal);
         Assert.Contains("/Type /OutputIntent /S /GTS_PDFA1", raw, StringComparison.Ordinal);
@@ -142,7 +142,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OutputIntent_CanUseBuiltInSrgbProfileAndRemainRewriteSafe() {
-        var options = new PdfOptions().SetSrgbOutputIntent();
+        var options = new PdfCreateOptions().SetSrgbOutputIntent();
         byte[] mutableProfileCopy = PdfIccProfiles.SrgbIec6196621;
         mutableProfileCopy[36] = 0;
 
@@ -189,7 +189,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var gray = new PdfOutputIntent(grayProfile, "Gray profile");
         var cmyk = new PdfOutputIntent(cmykProfile, "CMYK profile");
-        var options = new PdfOptions().SetSrgbOutputIntent();
+        var options = new PdfCreateOptions().SetSrgbOutputIntent();
         grayProfile[36] = 0;
 
         Assert.Equal(1, gray.ColorComponents);
@@ -203,13 +203,13 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), ""));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile()) { Info = "" });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), policy: (PdfOutputIntentPolicy)99));
-        Assert.NotNull(typeof(PdfOptions).GetMethod("SetOutputIntent", new[] { typeof(byte[]), typeof(string) }));
+        Assert.NotNull(typeof(PdfCreateOptions).GetMethod("SetOutputIntent", new[] { typeof(byte[]), typeof(string) }));
         Assert.Null(typeof(PdfDocument).GetMethod("OutputIntent", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance));
     }
 
     [Fact]
     public void DocumentLanguage_CanBeEmittedAndInspected() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 Language = "en-US"
             })
             .Paragraph(p => p.Text("Language body."))
@@ -217,7 +217,7 @@ public partial class PdfDocumentVisualQualityTests {
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfOptions clone = new PdfOptions {
+        PdfCreateOptions clone = new PdfCreateOptions {
             Language = "pl-PL"
         }.Clone();
 
@@ -225,13 +225,13 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal("en-US", info.CatalogLanguage);
         Assert.Equal("en-US", preflight.DocumentInfo!.CatalogLanguage);
         Assert.Equal("pl-PL", clone.Language);
-        Assert.Throws<ArgumentException>(() => new PdfOptions { Language = "" });
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions { Language = "" });
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().Language("bad\u0001lang"));
     }
 
     [Fact]
     public void PageLabels_CanBeEmittedAndInspected() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             IncludePageLabels = true,
             PageNumberStyle = PdfPageNumberStyle.UpperRoman,
             PageNumberStart = 3,
@@ -248,7 +248,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
         PdfPageLabel label = Assert.Single(info.PageLabels);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Contains("/PageLabels ", raw, StringComparison.Ordinal);
         Assert.Contains("/S /R", raw, StringComparison.Ordinal);
@@ -272,13 +272,13 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal("A-", extractedLabel.Prefix);
         Assert.Equal(4, extractedLabel.StartNumber);
 
-        Assert.Throws<ArgumentException>(() => new PdfOptions { PageLabelPrefix = "" });
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions { PageLabelPrefix = "" });
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().PageLabels("bad\u0001prefix"));
     }
 
     [Fact]
     public void PageLabelRanges_CanBeEmittedClonedInspectedAndReindexed() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .AddPageLabelRange(3, PdfPageNumberStyle.Arabic, 1)
             .AddPageLabelRange(1, PdfPageNumberStyle.LowerRoman, 1, "front-");
 
@@ -293,7 +293,7 @@ public partial class PdfDocumentVisualQualityTests {
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Contains("/PageLabels ", raw, StringComparison.Ordinal);
         Assert.Contains("/Nums [0 << /S /r /St 1 /P <66726F6E742D> >> 2 << /S /D /St 1 >>]", raw, StringComparison.Ordinal);
@@ -323,7 +323,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void CatalogView_CanBeEmittedClonedInspectedAndPreservedOnExtraction() {
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .SetCatalogView(PdfCatalogPageMode.FullScreen, PdfCatalogPageLayout.TwoColumnLeft);
 
         byte[] bytes = PdfDocument.Create(options)
@@ -337,7 +337,7 @@ public partial class PdfDocumentVisualQualityTests {
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         Assert.Contains("/PageMode /UseThumbs", raw, StringComparison.Ordinal);
         Assert.Contains("/PageLayout /SinglePage", raw, StringComparison.Ordinal);
@@ -353,13 +353,13 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal("UseThumbs", extractedInfo.CatalogPageMode);
         Assert.Equal("SinglePage", extractedInfo.CatalogPageLayout);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions { CatalogPageMode = (PdfCatalogPageMode)99 });
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions { CatalogPageLayout = (PdfCatalogPageLayout)99 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions { CatalogPageMode = (PdfCatalogPageMode)99 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions { CatalogPageLayout = (PdfCatalogPageLayout)99 });
     }
 
     [Fact]
     public void OpenAction_CanBeEmittedClonedInspectedAndFilteredOnExtraction() {
-        var options = new PdfOptions().SetOpenAction(pageNumber: 2, destinationTop: 700D);
+        var options = new PdfCreateOptions().SetOpenAction(pageNumber: 2, destinationTop: 700D);
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("First page."))
@@ -409,7 +409,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void OpenAction_CanEmitFitAndFitHorizontalDestinations() {
-        byte[] fitBytes = PdfDocument.Create(new PdfOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.Fit))
+        byte[] fitBytes = PdfDocument.Create(new PdfCreateOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.Fit))
             .Paragraph(p => p.Text("Fit page."))
             .ToBytes();
         string fitRaw = Encoding.ASCII.GetString(fitBytes);
@@ -453,9 +453,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(36D, fitVerticalOpenAction.DestinationLeft);
         Assert.Null(fitVerticalOpenAction.DestinationTop);
 
-        byte[] wideFitVerticalBytes = PdfDocument.Create(new PdfOptions {
-                PageWidth = 200D,
-                PageHeight = 200D
+        byte[] wideFitVerticalBytes = PdfDocument.Create(new PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(200D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(200D)
             })
             .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitVertical, destinationLeft: 300D)
             .Paragraph(p => p.Text("Fit vertical can use one coordinate."))
@@ -478,7 +478,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(320D, fitRectangleOpenAction.DestinationRight);
         Assert.Equal(640D, fitRectangleOpenAction.DestinationTop);
 
-        byte[] fitBoundingBoxBytes = PdfDocument.Create(new PdfOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.FitBoundingBox))
+        byte[] fitBoundingBoxBytes = PdfDocument.Create(new PdfCreateOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.FitBoundingBox))
             .Paragraph(p => p.Text("Fit bounding box page."))
             .ToBytes();
         string fitBoundingBoxRaw = Encoding.ASCII.GetString(fitBoundingBoxBytes);
@@ -510,7 +510,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] invoiceXml = Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice>42</rsm:CrossIndustryInvoice>");
         byte[] sourceText = Encoding.UTF8.GetBytes("Generated from OfficeIMO");
 
-        byte[] bytes = PdfDocument.Create(new PdfOptions()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions()
                 .AddEmbeddedFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML"))
             .AttachFile("source.txt", sourceText, "text/plain", PdfAssociatedFileRelationship.Source)
             .Paragraph(p => p.Text("Embedded file proof."))
@@ -554,7 +554,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(2, file.Data[1]);
         Assert.Equal("Supplement", PdfEmbeddedFileDictionaryBuilder.GetRelationshipName(file.Relationship));
 
-        var options = new PdfOptions().AddEmbeddedFile(file);
+        var options = new PdfCreateOptions().AddEmbeddedFile(file);
         file.FileName = "changed.txt";
         PdfEmbeddedFile stored = Assert.Single(options.EmbeddedFiles);
         stored.FileName = "snapshot.txt";
@@ -565,8 +565,8 @@ public partial class PdfDocumentVisualQualityTests {
         options.ClearEmbeddedFiles();
         Assert.Empty(options.EmbeddedFiles);
 
-        Assert.Throws<ArgumentNullException>(() => new PdfOptions().AddEmbeddedFile(null!));
-        Assert.Throws<ArgumentException>(() => new PdfOptions()
+        Assert.Throws<ArgumentNullException>(() => new PdfCreateOptions().AddEmbeddedFile(null!));
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions()
             .AddEmbeddedFile("note.txt", new byte[] { 1 })
             .AddEmbeddedFile("note.txt", new byte[] { 2 }));
         Assert.Throws<ArgumentException>(() => new PdfEmbeddedFile("folder/note.txt", new byte[] { 1 }));
@@ -578,10 +578,10 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void FileVersion_CanEmitPdf17HeaderAndCloneOptions() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17
         };
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         byte[] bytes = PdfDocument.Create()
             .FileVersion(PdfFileVersion.Pdf17)
@@ -591,23 +591,23 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
         Assert.StartsWith("%PDF-1.7", Encoding.ASCII.GetString(bytes));
         Assert.Equal("1.7", PdfInspector.Inspect(bytes).HeaderVersion);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfCreateOptions {
             FileVersion = (PdfFileVersion)99
         });
     }
 
     [Fact]
     public void ComplianceProfile_ValidatesAndClonesOptions() {
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             FileVersion = PdfFileVersion.Pdf17,
             ComplianceProfile = PdfComplianceProfile.PdfA3U,
             IncludeXmpMetadata = true,
             IncludeStandardFontToUnicodeMaps = true
         };
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
 
         var invalidException = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PdfOptions {
+            new PdfCreateOptions {
                 ComplianceProfile = (PdfComplianceProfile)999
             });
 
@@ -621,13 +621,13 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void EmbeddedStandardFonts_SnapshotDataAndRejectInvalidInputs() {
         var data = new byte[] { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-        var options = new PdfOptions()
+        var options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Snapshot Font");
         data[0] = 255;
         PdfEmbeddedFont embeddedFont = options.EmbeddedFonts[PdfStandardFont.Helvetica];
         byte[] readback = embeddedFont.Data;
         readback[1] = 255;
-        PdfOptions clone = options.Clone();
+        PdfCreateOptions clone = options.Clone();
         var renderException = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Create(options)
                 .Paragraph(p => p.Text("Invalid embedded font"))
@@ -637,7 +637,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(1, embeddedFont.Data[1]);
         Assert.Equal("Snapshot Font", clone.EmbeddedFonts[PdfStandardFont.Helvetica].FontName);
         Assert.True(clone.CompressEmbeddedFonts);
-        Assert.Throws<ArgumentException>(() => new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, Array.Empty<byte>()));
+        Assert.Throws<ArgumentException>(() => new PdfCreateOptions().EmbedStandardFont(PdfStandardFont.Helvetica, Array.Empty<byte>()));
         Assert.Contains("TrueType font", renderException.Message, StringComparison.Ordinal);
     }
 
@@ -649,13 +649,13 @@ public partial class PdfDocumentVisualQualityTests {
         }
 
         byte[] fontData = File.ReadAllBytes(fontPath);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressEmbeddedFonts = true
             })
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMOEmbeddedArial")
             .Paragraph(p => p.Text("Embedded font Cafe é and Euro €"))
             .ToBytes();
-        byte[] uncompressed = PdfDocument.Create(new PdfOptions {
+        byte[] uncompressed = PdfDocument.Create(new PdfCreateOptions {
                 CompressEmbeddedFonts = false
             })
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMOEmbeddedArial")
@@ -694,7 +694,7 @@ public partial class PdfDocumentVisualQualityTests {
         }
 
         byte[] fontData = File.ReadAllBytes(fontPath);
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressEmbeddedFonts = true,
                 CompressContentStreams = false
             })

@@ -10,15 +10,6 @@ internal static class PowerPointTextRunService
     internal static void ValidateRuns(object[] runs, bool allowHyperlinks)
         => ValidateRuns(OfficeTextRunParser.ParseMany(runs), allowHyperlinks);
 
-    internal static void ApplyRuns(PowerPointTextBox textBox, object[] runs)
-    {
-        var parsedRuns = OfficeTextRunParser.ParseMany(runs);
-        ValidateRuns(parsedRuns, allowHyperlinks: true);
-        textBox.Text = string.Empty;
-        var paragraph = textBox.Paragraphs.Count > 0 ? textBox.Paragraphs[0] : textBox.AddParagraph();
-        ApplyRuns(paragraph, parsedRuns, allowHyperlinks: true);
-    }
-
     internal static void ApplyRuns(PowerPointTableCell cell, object[] runs)
     {
         var parsedRuns = OfficeTextRunParser.ParseMany(runs);
@@ -40,24 +31,6 @@ internal static class PowerPointTextRunService
         }
     }
 
-    private static void ApplyRuns(PowerPointParagraph paragraph, OfficeTextRunSpec[] runs, bool allowHyperlinks)
-    {
-        var first = true;
-        foreach (var spec in runs)
-        {
-            var run = first && paragraph.Runs.Count > 0 && string.IsNullOrEmpty(paragraph.Runs[0].Text)
-                ? paragraph.Runs[0]
-                : paragraph.AddRun(ToPowerPointText(spec));
-            if (first && string.IsNullOrEmpty(run.Text))
-            {
-                run.Text = ToPowerPointText(spec);
-            }
-
-            ApplyStyle(run, spec, allowHyperlinks);
-            first = false;
-        }
-    }
-
     private static string ToPowerPointText(OfficeTextRunSpec run)
         => run.IsLineBreak ? Environment.NewLine : run.IsTab ? "\t" : run.Text;
 
@@ -68,7 +41,7 @@ internal static class PowerPointTextRunService
         run.Underline = spec.Underline;
         run.Strikethrough = spec.Strike;
         run.FontSize = spec.FontSize.HasValue
-            ? (int)Math.Round(spec.FontSize.Value)
+            ? global::OfficeIMO.OfficeLength.Points((int)Math.Round(spec.FontSize.Value))
             : null;
         run.FontName = !string.IsNullOrWhiteSpace(spec.FontName)
             ? spec.FontName

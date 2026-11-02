@@ -13,15 +13,15 @@ public sealed class PdfRunSpacingTableSizingTests {
     public void TableShrinkingPreservesTabsAsLayoutControls(bool separateRun, bool styled) {
         PdfTextRun Text(string text) {
             var run = PdfTextRun.Normal(text);
-            return styled ? run.WithHorizontalTextScaling(50D).WithCharacterSpacing(1D) : run;
+            return styled ? run.WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)) : run;
         }
         var runs = separateRun ? new[] { Text("A"), PdfTextRun.Tab(), Text("B") } : new[] { Text("A\tB") };
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = 12D };
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
         byte[] Render(bool shrink) => PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(runs) }
         }, style: new PdfTableStyle {
-            FontSize = 12D, ShrinkTextToFit = shrink, HeaderRowCount = 0,
-            ColumnWidthPoints = new() { 100D }, CellPaddingX = 0D, CellPaddingY = 0D
+            FontSize = global::OfficeIMO.OfficeLength.Points(12D), ShrinkTextToFit = shrink, HeaderRowCount = 0,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D)
         }).ToBytes();
         using var natural = PdfPigDocument.Open(Render(false));
         using var shrunk = PdfPigDocument.Open(Render(true));
@@ -44,14 +44,14 @@ public sealed class PdfRunSpacingTableSizingTests {
     [InlineData(50D, 1D, 30D, false)]
     [InlineData(200D, -1D, 11.25D, false)]
     public void TableRunShrinkingUsesScaledGlyphsAndFixedTracking(double scale, double tracking, double expectedSize, bool explicitSize) {
-        var options = new PdfOptions { DefaultFont = PdfStandardFont.Courier, MarginLeft = 36D, MarginRight = 36D };
-        PdfTextRun run = new PdfTextRun("MMMMMMMM", font: PdfStandardFont.Courier, fontSize: explicitSize ? 30D : null)
-            .WithHorizontalTextScaling(scale).WithCharacterSpacing(tracking);
+        var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, MarginLeft = global::OfficeIMO.OfficeLength.Points(36D), MarginRight = global::OfficeIMO.OfficeLength.Points(36D) };
+        PdfTextRun run = new PdfTextRun("MMMMMMMM", font: PdfStandardFont.Courier, fontSize: ((double?)(explicitSize ? 30D : null) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null))
+            .WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(tracking));
         byte[] bytes = PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { run }) }
         }, style: new PdfTableStyle {
-            FontSize = 30D, MinimumShrinkFontSize = 1D, ShrinkTextToFit = true,
-            ColumnWidthPoints = new() { 100D }, CellPaddingX = 0D, CellPaddingY = 0D, HeaderRowCount = 0
+            FontSize = global::OfficeIMO.OfficeLength.Points(30D), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(1D), ShrinkTextToFit = true,
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) }, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0D), CellPaddingY = global::OfficeIMO.OfficeLength.Points(0D), HeaderRowCount = 0
         }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters;

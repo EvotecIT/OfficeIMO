@@ -530,7 +530,7 @@ public sealed class PdfResourceBudgetSecurityTests {
         var spans = new[] { new PdfTextSpan(hostile, "F1", 12, 0, 100, hostile.Length) };
         var timer = Stopwatch.StartNew();
 
-        StructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
+        PdfStructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
 
         timer.Stop();
         Assert.Empty(page.LeaderRows);
@@ -542,7 +542,7 @@ public sealed class PdfResourceBudgetSecurityTests {
         const string text = "Contents.... ９";
         var spans = new[] { new PdfTextSpan(text, "F1", 12, 0, 100, text.Length) };
 
-        StructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
+        PdfStructuredPage page = ContentStructureExtractor.Extract(spans, new TextLayoutEngine.Options());
 
         (string title, int pageNumber) = Assert.Single(page.Toc);
         Assert.Equal("Contents", title);

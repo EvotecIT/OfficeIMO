@@ -75,14 +75,8 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
         if (reportStage is not null) {
             document.Execution.OnTiming = reportStage;
         }
-        ExcelSheet sheet = document.AddWorksheet("Data");
-        sheet.InsertObjects(
-            _rows,
-            ("Id", static row => row.Id),
-            ("Region", static row => row.Region),
-            ("Owner", static row => row.Owner),
-            ("Amount", static row => row.Amount),
-            ("Active", static row => row.Active));
+        ExcelSheet sheet = document.AddSheet("Data");
+        sheet.WriteData(_rows, ("Id", static row => row.Id), ("Region", static row => row.Region), ("Owner", static row => row.Owner), ("Amount", static row => row.Amount), ("Active", static row => row.Active));
         ReportProfileStage(reportStage, stageWatch, "AddSheetAndInsertObjects");
 
         byte[] workbook = document.ToBytes(Format);
@@ -178,7 +172,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
     }
 
     private void Validate(byte[] workbook) {
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(workbook);
         string[] headers = ["Id", "Region", "Owner", "Amount", "Active"];
         if (reader.FieldCount != headers.Length) {
             throw new InvalidDataException($"{Format} exposed {reader.FieldCount} fields instead of {headers.Length}.");

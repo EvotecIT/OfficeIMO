@@ -116,8 +116,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets the layout bounds used by a group for its children.
+        ///     Gets the layout bounds used by a group for its children as OfficeLength values.
         /// </summary>
+        /// <param name="groupShape">Group whose native child coordinate space is inspected.</param>
+        /// <returns>The native child region, or the selection bounds when no complete child transform exists.</returns>
         public PowerPointLayoutBox GetGroupChildBounds(PowerPointGroupShape groupShape) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
@@ -125,30 +127,6 @@ namespace OfficeIMO.PowerPoint {
 
             IReadOnlyList<PowerPointShape> children = GetGroupChildren(groupShape);
             return GetGroupChildBounds(groupShape, children);
-        }
-
-        /// <summary>
-        ///     Gets the layout bounds used by a group for its children in centimeters.
-        /// </summary>
-        public PowerPointLayoutBox GetGroupChildBoundsCm(PowerPointGroupShape groupShape) {
-            PowerPointLayoutBox bounds = GetGroupChildBounds(groupShape);
-            return PowerPointLayoutBox.FromCentimeters(bounds.LeftCm, bounds.TopCm, bounds.WidthCm, bounds.HeightCm);
-        }
-
-        /// <summary>
-        ///     Gets the layout bounds used by a group for its children in inches.
-        /// </summary>
-        public PowerPointLayoutBox GetGroupChildBoundsInches(PowerPointGroupShape groupShape) {
-            PowerPointLayoutBox bounds = GetGroupChildBounds(groupShape);
-            return PowerPointLayoutBox.FromInches(bounds.LeftInches, bounds.TopInches, bounds.WidthInches, bounds.HeightInches);
-        }
-
-        /// <summary>
-        ///     Gets the layout bounds used by a group for its children in points.
-        /// </summary>
-        public PowerPointLayoutBox GetGroupChildBoundsPoints(PowerPointGroupShape groupShape) {
-            PowerPointLayoutBox bounds = GetGroupChildBounds(groupShape);
-            return PowerPointLayoutBox.FromPoints(bounds.LeftPoints, bounds.TopPoints, bounds.WidthPoints, bounds.HeightPoints);
         }
 
         /// <summary>
@@ -203,8 +181,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Distributes child shapes with fixed spacing within the group's bounds.
         /// </summary>
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <param name="center">Whether to center the arranged shapes within the target bounds.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeGroupChildrenWithSpacing(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution,
-            long spacingEmus, bool center = false) {
+            OfficeLength spacing, bool center = false) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
             }
@@ -215,14 +198,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             DistributeShapesWithSpacing(children, distribution, GetGroupChildBounds(groupShape, children),
-                spacingEmus, center);
+                spacing, center);
         }
 
         /// <summary>
         ///     Distributes child shapes with fixed spacing within the group's bounds using options.
         /// </summary>
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="distribution">Axis along which shapes are distributed.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void DistributeGroupChildrenWithSpacing(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution,
-            PowerPointShapeSpacingOptions options) {
+            PowerPointShapeSpacingOptions? options) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
             }
@@ -238,7 +224,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Stacks child shapes within the group's bounds.
         /// </summary>
-        public void StackGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeStackDirection direction, long spacingEmus) {
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void StackGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeStackDirection direction, OfficeLength spacing) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
             }
@@ -248,14 +238,17 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            StackShapes(children, direction, GetGroupChildBounds(groupShape, children), spacingEmus);
+            StackShapes(children, direction, GetGroupChildBounds(groupShape, children), spacing);
         }
 
         /// <summary>
         ///     Stacks child shapes within the group's bounds using options.
         /// </summary>
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="direction">Axis along which the stack grows.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void StackGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeStackDirection direction,
-            PowerPointShapeStackOptions options) {
+            PowerPointShapeStackOptions? options) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
             }
@@ -271,8 +264,16 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges child shapes into a grid within the group's bounds.
         /// </summary>
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="columns">Number of grid columns, greater than zero.</param>
+        /// <param name="rows">Number of grid rows, greater than zero.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeGroupChildrenInGrid(PowerPointGroupShape groupShape, int columns, int rows,
-            long gutterX = 0L, long gutterY = 0L, bool resizeToCell = true,
+            OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
@@ -290,7 +291,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges child shapes into an auto-sized grid within the group's bounds.
         /// </summary>
-        public void ArrangeGroupChildrenInGridAuto(PowerPointGroupShape groupShape, long gutterX = 0L, long gutterY = 0L,
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="gutterX">Nonnegative horizontal gap between cells. The default is zero.</param>
+        /// <param name="gutterY">Nonnegative vertical gap between cells. The default is zero.</param>
+        /// <param name="resizeToCell">Whether each shape is resized to its grid cell.</param>
+        /// <param name="flow">Order used to fill grid cells.</param>
+        /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
+        public void ArrangeGroupChildrenInGridAuto(PowerPointGroupShape groupShape, OfficeLength gutterX = default, OfficeLength gutterY = default,
             bool resizeToCell = true, PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
@@ -308,7 +315,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Arranges child shapes into an auto-sized grid within the group's bounds using options.
         /// </summary>
-        public void ArrangeGroupChildrenInGridAuto(PowerPointGroupShape groupShape, PowerPointShapeGridOptions options) {
+        /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
+        /// <param name="options">Layout settings, or null to use the default settings.</param>
+        public void ArrangeGroupChildrenInGridAuto(PowerPointGroupShape groupShape, PowerPointShapeGridOptions? options) {
             if (groupShape == null) {
                 throw new ArgumentNullException(nameof(groupShape));
             }
@@ -330,11 +339,11 @@ namespace OfficeIMO.PowerPoint {
             long? cy = transform?.ChildExtents?.Cy?.Value;
 
             if (x.HasValue && y.HasValue && cx.HasValue && cy.HasValue) {
-                return new PowerPointLayoutBox(x.Value, y.Value, cx.Value, cy.Value);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(x.Value),OfficeIMO.OfficeLength.Emus(y.Value),OfficeIMO.OfficeLength.Emus(cx.Value),OfficeIMO.OfficeLength.Emus(cy.Value));
             }
 
             if (children.Count == 0) {
-                return new PowerPointLayoutBox(0, 0, 0, 0);
+                return new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0));
             }
 
             return GetSelectionBounds(children);

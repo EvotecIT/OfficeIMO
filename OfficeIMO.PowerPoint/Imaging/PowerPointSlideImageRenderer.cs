@@ -52,15 +52,10 @@ namespace OfficeIMO.PowerPoint {
                 double widthPoints = widthEmus.HasValue
                     ? widthEmus.Value / 12700D
                     : 1D;
-                target.StrokeWidth = mapping.MapStrokeWidth(widthPoints);
-                A.PresetLineDashValues? dash = localOutline?
-                    .GetFirstChild<A.PresetDash>()?.Val?.Value;
-                if (!dash.HasValue
-                    && localOutline?.GetFirstChild<A.CustomDash>() == null) {
-                    dash = themeOutline?.GetFirstChild<A.PresetDash>()?
-                        .Val?.Value;
-                }
-                target.StrokeDashStyle = MapDash(dash);
+                // Group extents scale shape coordinates; the existing slide export contract
+                // retains authored outline widths for shapes and connectors.
+                target.StrokeWidth = widthPoints;
+                ApplyStrokeDash(target, source, localOutline, themeOutline, diagnostics);
                 ApplyStrokeLineCapAndJoin(target, localOutline, themeOutline);
                 ApplyLineMarkers(target, localOutline, themeOutline);
             } else {
@@ -95,6 +90,29 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor? resolved = source.ResolveOutlineColorForExport();
             color = resolved.GetValueOrDefault();
             return resolved.HasValue;
+        }
+
+        /// <summary>Converts DrawingML dash percentages to exact lengths in the authored stroke width.</summary>
+        private static void ApplyStrokeDash(OfficeShape target, PowerPointShape source,
+            A.Outline? localOutline, A.Outline? themeOutline, List<OfficeImageExportDiagnostic> diagnostics) {
+            A.Outline? outline = localOutline?.GetFirstChild<A.PresetDash>() != null
+                || localOutline?.GetFirstChild<A.CustomDash>() != null ? localOutline : themeOutline;
+            target.StrokeDashStyle = MapDash(outline?.GetFirstChild<A.PresetDash>()?.Val?.Value);
+            A.CustomDash? custom = outline?.GetFirstChild<A.CustomDash>();
+            if (custom == null || target.StrokeWidth <= 0D) return;
+
+            var pattern = new List<double>();
+            foreach (A.DashStop stop in custom.Elements<A.DashStop>()) {
+                pattern.Add(target.StrokeWidth * (stop.DashLength?.Value ?? 0) / 100000D);
+                pattern.Add(target.StrokeWidth * (stop.SpaceLength?.Value ?? 0) / 100000D);
+            }
+            if (pattern.Any(value => value < 0D) || !pattern.Any(value => value > 0D)) {
+                AddUnsupportedShapeDiagnostic(diagnostics, source,
+                    "Rendered a PowerPoint custom dash pattern without valid positive lengths as a solid outline.",
+                    OfficeConversionLossKind.Approximation);
+                return;
+            }
+            target.SetStrokeDashArray(pattern);
         }
 
         private static void ApplyStrokeLineCapAndJoin(OfficeShape target,
@@ -253,8 +271,8 @@ namespace OfficeIMO.PowerPoint {
                 return OfficeTextParagraphIndent.Empty;
             }
 
-            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMarginPoints ?? 0D));
-            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.IndentPoints ?? 0D));
+            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMargin?.ToPoints() ?? 0D));
+            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.Indent?.ToPoints() ?? 0D));
             return firstLine > 0D || leftMargin > 0D
                 ? new OfficeTextParagraphIndent(firstLine, leftMargin)
                 : OfficeTextParagraphIndent.Empty;
@@ -262,15 +280,20 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme, paragraph);
-            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme);
+            if (markerRun && paragraph != null)
+                color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, textBox, color);
+            OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme, paragraph);
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
-                mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
+                mapping.MapFontSize(markerRun ? paragraph?.BulletSize?.ToPoints() ?? run?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18 : run?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18),
                 color,
                 run?.Bold == true,
                 run?.Italic == true,
                 run?.Underline == true,
-                (markerRun ? paragraph?.BulletFontName : null) ?? run?.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
+                PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                    (markerRun ? paragraph?.BulletFontName : null) ?? run?.FontName ?? textBox.FontName,
+                    run?.OwnerPart ?? paragraph?.OwnerPart ?? textBox.RelationshipOwnerPart)
+                    ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                 run?.Strikethrough == true,
                 backgroundColor,
                 MapUnderlineStyle(run?.UnderlineStyle),
@@ -431,9 +454,13 @@ namespace OfficeIMO.PowerPoint {
                 ?? OfficeColor.Black;
         }
 
-        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) =>
-            PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
-                run?.RunProperties?.GetFirstChild<A.Highlight>(), textBox);
+        private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, PowerPointTextBox textBox,
+            A.ColorScheme? colorScheme, PowerPointParagraph? paragraph = null) {
+            if (run != null) paragraph ??= textBox.Paragraphs.FirstOrDefault(item =>
+                ReferenceEquals(item.Paragraph, run.Run.Parent ?? run.RunProperties?.Parent?.Parent));
+            return PowerPointEffectiveRunStyleResolver.ResolveTextColorElementForExport(
+                PowerPointEffectiveRunStyleResolver.ResolveHighlightElement(run, paragraph, textBox.TextBody?.ListStyle, textBox.MasterTextStyle), textBox);
+        }
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {
             if (alignment == PowerPointTextAlignment.Center) {
@@ -501,10 +528,10 @@ namespace OfficeIMO.PowerPoint {
             List<OfficeImageExportDiagnostic> diagnostics,
             PowerPointShape shape,
             string message,
-            OfficeConversionLossKind lossKind = OfficeConversionLossKind.Omission) {
+            OfficeConversionLossKind lossKind = OfficeConversionLossKind.Omission, string? diagnosticCode = null) {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
-                PowerPointImageExportDiagnosticCodes.UnsupportedShape,
+                diagnosticCode ?? PowerPointImageExportDiagnosticCodes.UnsupportedShape,
                 message,
                 DescribeShape(shape),
                 lossKind));

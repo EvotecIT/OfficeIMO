@@ -17,8 +17,8 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Contains("Voyager Overview", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
@@ -29,10 +29,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
 
         HtmlConversionException strictFailure = Assert.Throws<HtmlConversionException>(() =>
-            HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
                 FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
-            }));
+            })).ToBytes());
         Assert.Contains(strictFailure.Diagnostics,
             diagnostic => diagnostic.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
     }
@@ -48,7 +48,7 @@ public sealed partial class HtmlRenderingTests {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
         options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         Assert.Contains(result.Report.Warnings,
             warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
         string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
@@ -72,8 +72,8 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument
             .Parse("<p style='font-family:CallerIcon'>" + glyph + " Voyager</p>")
-            .ToPdfDocumentResult(options);
-        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+            .ConvertToPdfWithEvidence(options);
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Contains(glyph, extracted, StringComparison.Ordinal);
         Assert.Contains("Voyager", extracted, StringComparison.Ordinal);
@@ -98,8 +98,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderLogicalTextGroup>(),
             group => group.Text.Contains(glyph + glyph, StringComparison.Ordinal));
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.Equal(1, extracted.Count(character => character == glyph[0]));
         Assert.Contains(result.Report.Warnings,
@@ -118,8 +118,8 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlToPdfOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        string extracted = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
 
         Assert.DoesNotContain("\uF42B", extracted, StringComparison.Ordinal);
         if (expectedText.Length > 0) Assert.Contains(expectedText, extracted, StringComparison.Ordinal);
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.True(FontFallbackRunHasInk(svgRaster, run), run.Font.FamilyName);
             Assert.True(FontFallbackRunHasInk(pngRaster!, run), run.Font.FamilyName);
         }
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         Assert.Contains(emoji + "\u05D0" + emoji, read.ExtractText(), StringComparison.Ordinal);
         Assert.Equal(pngBytes, Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(read, OfficeImageExportFormat.Png,
@@ -530,10 +530,10 @@ public sealed partial class HtmlRenderingTests {
             + "\") format('truetype')}p{font-family:'Pdf Web Demo',sans-serif}</style><p>EmbeddedWebFontMarker</p>";
         HtmlToPdfOptions options = new HtmlToPdfOptions();
 
-        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
 
-        Assert.Contains("EmbeddedWebFontMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("EmbeddedWebFontMarker", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
@@ -561,11 +561,11 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         HtmlToPdfOptions options = new HtmlToPdfOptions();
 
-        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderPathClipGroup);
-        Assert.Contains("ClippedSvgFontMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("ClippedSvgFontMarker", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
@@ -581,7 +581,7 @@ public sealed partial class HtmlRenderingTests {
             + "' alt='scoped font sample'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions())).ToBytes();
 
         HtmlRenderDrawing drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Contains(DrawingTestTraversal.Elements(drawing.InnerDrawing).OfType<OfficeDrawingText>(), text => text.Text == "A");
@@ -604,7 +604,7 @@ public sealed partial class HtmlRenderingTests {
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg();
         var pdfOptions = new HtmlToPdfOptions();
         pdfOptions.PdfOptions.CompressContentStreams = false;
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes();
 
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         OfficeDrawingGroup logicalPaint = Assert.Single(
@@ -625,7 +625,7 @@ public sealed partial class HtmlRenderingTests {
             }
         Assert.True(redPaint && bluePaint, "The SVG must retain both ends of the painted glyph gradient.");
         Assert.Contains("/ActualText", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Contains("AB", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("AB", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
     }
 
@@ -641,15 +641,17 @@ public sealed partial class HtmlRenderingTests {
         options.ResourcePolicy.AllowSystemFontEmbedding = false;
         options.PdfOptions.CompressContentStreams = false;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
-        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("Scoped"), rawPdf);
+        // The unicode-range resource key is private; the PDF exposes its embedded program's name.
+        string embeddedName = PdfCore.PdfOpenTypeFontInspector.Inspect(fontData).FontName;
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape(embeddedName), rawPdf);
         Assert.True(
             rawPdf.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal)
             || rawPdf.Contains("/BaseFont /Helvetica", StringComparison.Ordinal),
             "The uncovered run must use a standard fallback rather than the constrained embedded face.");
-        Assert.Contains("B", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("B", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -702,14 +704,14 @@ public sealed partial class HtmlRenderingTests {
             + "');background-size:120px 24px;background-repeat:repeat\"></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions());
         byte[] pdf = result.ToBytes();
 
         HtmlRenderDrawing background = Assert.Single(
             rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>(),
             visual => visual.Source != null && visual.Source.Contains(":background-image", StringComparison.Ordinal));
         Assert.Single(background.InnerDrawing.Elements.OfType<OfficeDrawingTilingPattern>());
-        Assert.Contains("TiledFontMarker", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("TiledFontMarker", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.True(PdfCore.PdfDiagnostics.Analyze(pdf).EmbeddedFontCount > 0);
         Assert.DoesNotContain(result.Report.Warnings, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
@@ -754,7 +756,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlToPdfOptions options = new HtmlToPdfOptions();
         options.ResourcePolicy.AllowSystemFontEmbedding = false;
 
-        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
@@ -795,10 +797,10 @@ public sealed partial class HtmlRenderingTests {
                 .Append("</p>");
         }
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html.ToString()).ToPdfDocumentResult(new HtmlToPdfOptions());
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html.ToString()).ConvertToPdfWithEvidence(new HtmlToPdfOptions());
         byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
-        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
 
         foreach (string family in families) {
             Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape(family + "-Regular"), rawPdf);
@@ -828,16 +830,16 @@ public sealed partial class HtmlRenderingTests {
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         };
         options.ResourcePolicy.AllowSystemFontEmbedding = false;
-        for (int index = 0; index < PdfCore.PdfOptions.MaximumNamedFontFamilies - 1; index++) {
+        for (int index = 0; index < PdfCore.PdfCreateOptions.MaximumNamedFontFamilies - 1; index++) {
             options.PdfOptions.RegisterNamedFontFamily(
                 new PdfCore.PdfEmbeddedFontFamily("Reserved" + index.ToString(), new byte[] { 0 }));
         }
 
         PdfCore.PdfDocumentConversionResult result =
-            HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+            HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
-        string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        string extracted = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
 
         Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("WithinBudget-Regular"), rawPdf);
         Assert.DoesNotMatch(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("BeyondBudget-Regular"), rawPdf);

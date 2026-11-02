@@ -34,7 +34,7 @@ public class PdfStructuredReadCompleteBenchmarks {
 
 internal sealed class PdfStructuredReadBenchmarkScenario {
     private byte[] _pdf = null!;
-    private PdfReadOptions _options = null!;
+    private PdfLoadOptions _options = null!;
 
     internal void Setup(PdfBenchmarkScale scale, PdfReadProfile profile) {
         PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(scale);
@@ -58,7 +58,8 @@ internal sealed class PdfStructuredReadBenchmarkScenario {
         PdfUnderstandingBenchmarkValidation.Observe(ReadDocument());
 
     private PdfDocumentReadResult ReadDocument() {
-        PdfDocument document = PdfDocument.Load(_pdf);
+        using var documentStream = new MemoryStream(_pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(documentStream);
         return document.Read(_options);
     }
 }
@@ -66,13 +67,13 @@ internal sealed class PdfStructuredReadBenchmarkScenario {
 internal static class PdfUnderstandingBenchmarkReadOptions {
     private const long DefaultDocumentWorkUnits = 10_000_000L;
 
-    internal static PdfReadOptions Create(PdfReadProfile profile, int pageCount) {
+    internal static PdfLoadOptions Create(PdfReadProfile profile, int pageCount) {
         // The labelled 100-page fixture intentionally exercises quadratic document-wide
         // similarity work. Raise only this benchmark-owned ceiling; production defaults remain bounded.
         long documentWorkUnits = Math.Max(
             DefaultDocumentWorkUnits,
             checked((long)pageCount * pageCount * 20_000L));
-        return new PdfReadOptions {
+        return new PdfLoadOptions {
             Profile = profile,
             Pipeline = new PdfUnderstandingPipelineOptions {
                 MaxDocumentWorkUnits = documentWorkUnits

@@ -1065,15 +1065,15 @@ namespace OfficeIMO.Tests {
                     field.ResultText == "Network Status");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
-                    field.FormatSwitches.Contains(WordFieldFormat.Roman) &&
+                    field.FormatSwitches.Contains(WordFieldFormat.UpperRoman) &&
                     field.ResultText == "XII");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
-                    field.FormatSwitches.Contains(WordFieldFormat.roman) &&
+                    field.FormatSwitches.Contains(WordFieldFormat.LowerRoman) &&
                     field.ResultText == "xii");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
-                    field.FormatSwitches.Contains(WordFieldFormat.ALPHABETICAL) &&
+                    field.FormatSwitches.Contains(WordFieldFormat.UpperLetter) &&
                     field.ResultText == "AA");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
@@ -1101,7 +1101,7 @@ namespace OfficeIMO.Tests {
                     field.ResultText == "1,234.50");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
-                    field.FormatSwitches.Contains(WordFieldFormat.Roman) &&
+                    field.FormatSwitches.Contains(WordFieldFormat.UpperRoman) &&
                     field.ResultText == "stale-roman");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
@@ -1114,7 +1114,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Quote &&
                     field.InstructionText.Contains(@"\# ""0000""", StringComparison.Ordinal) &&
-                    field.FormatSwitches.Contains(WordFieldFormat.Roman) &&
+                    field.FormatSwitches.Contains(WordFieldFormat.UpperRoman) &&
                     field.ResultText == "stale-mixed-picture-format");
             }
         }
@@ -1527,8 +1527,8 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Lower reference: ").AddField(WordFieldType.Ref, WordFieldFormat.Lower, parameters: new List<string> { "TextBookmark" });
                 document.AddParagraph("First cap reference: ").AddField(WordFieldType.Ref, WordFieldFormat.FirstCap, parameters: new List<string> { "TextBookmark" });
                 document.AddParagraph("Caps reference: ").AddField(WordFieldType.Ref, WordFieldFormat.Caps, parameters: new List<string> { "TextBookmark" });
-                document.AddParagraph("Roman page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.roman, parameters: new List<string> { "PageBookmark" });
-                document.AddParagraph("Alphabetic page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.ALPHABETICAL, parameters: new List<string> { "PageBookmark" });
+                document.AddParagraph("Roman page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.LowerRoman, parameters: new List<string> { "PageBookmark" });
+                document.AddParagraph("Alphabetic page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.UpperLetter, parameters: new List<string> { "PageBookmark" });
                 document.AddParagraph("Ordinal page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.Ordinal, parameters: new List<string> { "PageBookmark" });
                 document.AddParagraph("Hex page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.Hex, parameters: new List<string> { "HexPageBookmark" });
                 document.AddParagraph("Cardinal text page reference: ").AddField(WordFieldType.PageRef, WordFieldFormat.CardText, parameters: new List<string> { "PageBookmark" });

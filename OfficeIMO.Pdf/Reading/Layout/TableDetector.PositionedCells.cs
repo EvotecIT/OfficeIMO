@@ -1,12 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class TableDetector {
-    internal static List<StructuredTable> DetectPositionedCellTables(
+    internal static List<PdfStructuredTable> DetectPositionedCellTables(
         IReadOnlyList<TextLayoutEngine.TextLine> lines,
         double? pageHeight = null,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
-        var result = new List<StructuredTable>();
+        Action? cancellationCheck = null,
+        IReadOnlyList<TextLayoutEngine.TextLine>? completePageLines = null) {
+        var result = new List<PdfStructuredTable>();
         var group = new List<PositionedRow>();
         int inspectedLines = 0;
         int inspectedCells = 0;
@@ -37,12 +38,14 @@ internal static partial class TableDetector {
         }
 
         AddPositionedGroup(result, group);
-        AddWrappedPositionedCellTables(result, lines, pageHeight, consumeWork, cancellationCheck);
+        // Earlier band fragments must not hide their header and first row from
+        // the complete wrapped-cell candidate that can supersede them.
+        AddWrappedPositionedCellTables(result, completePageLines ?? lines, pageHeight, consumeWork, cancellationCheck);
         return result;
     }
 
     private static void AddWrappedPositionedCellTables(
-        List<StructuredTable> result,
+        List<PdfStructuredTable> result,
         IReadOnlyList<TextLayoutEngine.TextLine> lines,
         double? pageHeight,
         Action<long>? consumeWork,
@@ -81,11 +84,13 @@ internal static partial class TableDetector {
     }
 
     private static void TryAddWrappedPositionedCellTable(
-        List<StructuredTable> result,
+        List<PdfStructuredTable> result,
         List<(TextLayoutEngine.TextLine Line, PositionedRow Row)> anchors,
         List<TextLayoutEngine.TextLine> lines,
         Action<long>? consumeWork,
-        Action? cancellationCheck) {
+        Action? cancellationCheck,
+        bool allowSingleBodyRow = false,
+        bool allowUnwrappedHeader = false) {
         cancellationCheck?.Invoke();
         if (anchors.Count < 2 ||
             anchors.Any(candidate => candidate.Row.Cells.Count != anchors[0].Row.Cells.Count)) return;
@@ -117,11 +122,11 @@ internal static partial class TableDetector {
 
         double left = occupiedFrom[0];
         double right = occupiedTo[columnCount - 1];
-        var columns = new List<StructuredTableColumn>(columnCount);
+        var columns = new List<PdfStructuredTableColumn>(columnCount);
         double columnLeft = left;
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             double columnRight = columnIndex < splits.Length ? splits[columnIndex] : right;
-            columns.Add(new StructuredTableColumn { From = columnLeft, To = columnRight });
+            columns.Add(new PdfStructuredTableColumn { From = columnLeft, To = columnRight });
             columnLeft = columnRight;
         }
         string[] firstAnchorCells = anchors[0].Row.Cells
@@ -141,19 +146,16 @@ internal static partial class TableDetector {
                 break;
             }
         }
-        bool firstAnchorIsHeader = anchors.Count >= 3 &&
-            hasWrappedBodyEvidence &&
+        bool firstAnchorIsHeader = (anchors.Count >= 3 || allowSingleBodyRow) &&
             LooksLikeHeaderRow(firstAnchorCells) &&
-            (HasEmphasizedText(anchors[0].Line) || !firstAnchorCells.Any(IsTabularValue));
-        double headerBottom;
+            (HasEmphasizedText(anchors[0].Line) || hasWrappedBodyEvidence && !firstAnchorCells.Any(IsTabularValue));
         List<TextLayoutEngine.TextLine> headerLines;
         int firstBodyAnchorIndex;
         if (firstAnchorIsHeader) {
-            headerBottom = (anchors[0].Row.Y + anchors[1].Row.Y) / 2D;
             headerLines = new List<TextLayoutEngine.TextLine> { anchors[0].Line };
             firstBodyAnchorIndex = 1;
         } else {
-            headerBottom = anchors[0].Row.Y + rowPitch / 2D;
+            double headerBottom = anchors[0].Row.Y + rowPitch / 2D;
             double headerTop = anchors[0].Row.Y + rowPitch;
             headerLines = SelectWrappedCellLines(
                 lines,
@@ -172,7 +174,7 @@ internal static partial class TableDetector {
             firstAnchorIsHeader ? anchors[0].Row.Y : anchors[0].Row.Y + rowPitch);
         if (!LooksLikeHeaderRow(Header)) return;
 
-        var table = new StructuredTable {
+        var table = new PdfStructuredTable {
             YTop = headerLines.Max(static line => line.Y),
             YBottom = anchors[anchors.Count - 1].Row.Y - rowPitch / 2D,
             Kind = "wrapped-positioned-cells-bounded"
@@ -181,14 +183,22 @@ internal static partial class TableDetector {
         table.Rows.Add(Header);
         var sourceLines = new List<TextLayoutEngine.TextLine> { HeaderSource };
         var sourceRuns = new List<PdfTextSpan>(HeaderSource.Spans);
+        bool hasCategoricalHeaderEvidence = firstAnchorIsHeader && anchors.Count >= 4 && HasEmphasizedText(anchors[0].Line);
+        double firstBodyY = anchors[firstBodyAnchorIndex].Row.Y;
+        double headerBodyBoundary = (headerLines.Min(static line => line.Y) + firstBodyY) / 2D;
+        HashSet<int> centeredAnchors = FindCenteredWrappedAnchors(anchors, lines, splits,
+            firstBodyAnchorIndex, headerBodyBoundary, rowPitch, left, right, consumeWork, cancellationCheck);
 
         for (int anchorIndex = firstBodyAnchorIndex; anchorIndex < anchors.Count; anchorIndex++) {
             cancellationCheck?.Invoke();
-            double upper = anchorIndex == 0
-                ? headerBottom
+            // Leading body text establishes centred anchors. Otherwise a full
+            // baseline starts its row, whose wrapped lines precede the next anchor.
+            double upper = !centeredAnchors.Contains(anchorIndex) ? anchors[anchorIndex].Row.Y + 1.5D
+                : anchorIndex == firstBodyAnchorIndex ? headerBodyBoundary
                 : (anchors[anchorIndex - 1].Row.Y + anchors[anchorIndex].Row.Y) / 2D;
             double lower = anchorIndex + 1 < anchors.Count
-                ? (anchors[anchorIndex].Row.Y + anchors[anchorIndex + 1].Row.Y) / 2D
+                ? !centeredAnchors.Contains(anchorIndex + 1) ? anchors[anchorIndex + 1].Row.Y + 1.5D
+                    : (anchors[anchorIndex].Row.Y + anchors[anchorIndex + 1].Row.Y) / 2D
                 : anchors[anchorIndex].Row.Y - rowPitch / 2D;
             List<TextLayoutEngine.TextLine> bodyLines = SelectWrappedCellLines(
                 lines,
@@ -204,7 +214,7 @@ internal static partial class TableDetector {
                 splits,
                 anchors[anchorIndex].Row.Y);
             if (Row.Count(static cell => !string.IsNullOrWhiteSpace(cell)) != columnCount ||
-                !Row.Any(IsTabularValue)) return;
+                !Row.Any(IsTabularValue) && !hasCategoricalHeaderEvidence) return;
             table.Rows.Add(Row);
             sourceLines.Add(Source);
             sourceRuns.AddRange(Source.Spans);
@@ -226,13 +236,13 @@ internal static partial class TableDetector {
         table.SourceLines = sourceLines;
         table.SourceRuns = sourceRuns.Distinct().ToArray();
         if (!HasValidatedRows(table, sourceLines) ||
-            result.Any(existing => IsSubsumedByPositionedTable(table, existing))) return;
-        result.RemoveAll(existing => IsSubsumedByPositionedTable(existing, table));
+            result.Any(existing => IsSubsumedByPositionedTable(table, existing, consumeWork, cancellationCheck))) return;
+        result.RemoveAll(existing => IsSubsumedByPositionedTable(existing, table, consumeWork, cancellationCheck));
         result.Add(table);
     }
 
     private static void AppendTrailingPartialNumericRows(
-        StructuredTable table,
+        PdfStructuredTable table,
         List<TextLayoutEngine.TextLine> sourceLines,
         List<PdfTextSpan> sourceRuns,
         IReadOnlyList<TextLayoutEngine.TextLine> lines,
@@ -459,20 +469,20 @@ internal static partial class TableDetector {
         return gap > Math.Max(36D, median * 2.5D);
     }
 
-    private static void AddPositionedGroup(List<StructuredTable> result, List<PositionedRow> rows) {
+    private static void AddPositionedGroup(List<PdfStructuredTable> result, List<PositionedRow> rows) {
         if (rows.Count < 3 || !LooksLikePositionedTable(rows)) return;
         if (TryPartitionPositionedRows(rows, out List<PositionedRow>? left, out List<PositionedRow>? right)) {
             AddPositionedGroup(result, left);
             AddPositionedGroup(result, right);
             return;
         }
-        var table = new StructuredTable {
+        var table = new PdfStructuredTable {
             YTop = rows[0].Y,
             YBottom = rows[rows.Count - 1].Y,
             Kind = "positioned-cells-bounded"
         };
         for (int columnIndex = 0; columnIndex < rows[0].Cells.Count; columnIndex++) {
-            table.Columns.Add(new StructuredTableColumn {
+            table.Columns.Add(new PdfStructuredTableColumn {
                 From = rows.Min(row => row.Cells[columnIndex].From),
                 To = rows.Max(row => row.Cells[columnIndex].To)
             });
@@ -485,7 +495,7 @@ internal static partial class TableDetector {
             .SelectMany(static cell => cell.SourceRuns)
             .Distinct()
             .ToArray();
-        if (!HasNarrativeColumnEvidence(table)) result.Add(table);
+        if (!HasHangingListColumnEvidence(table) && !HasNarrativeColumnEvidence(table)) result.Add(table);
     }
 
     private static bool TryPartitionPositionedRows(

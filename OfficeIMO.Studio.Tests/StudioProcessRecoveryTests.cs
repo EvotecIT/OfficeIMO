@@ -13,7 +13,7 @@ public sealed partial class StudioProcessRecoveryTests {
         Directory.CreateDirectory(root);
         try {
             string source = Path.Combine(root, "source.pdf");
-            PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(source);
+            PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(source);
             byte[] original = File.ReadAllBytes(source);
             using (var writer = Start(scenario == "private-verify" ? "private-write" : "write", root)) {
                 Task<string> errors = writer.StandardError.ReadToEndAsync();

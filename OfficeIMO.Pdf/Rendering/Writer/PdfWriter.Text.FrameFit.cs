@@ -5,7 +5,7 @@ internal static partial class PdfWriter {
     // column needs the last line's font box, including the paragraph mark and
     // inline objects, without reserving that trailing distance below it.
     private static double ResolveImportedLineFrameFitHeight(RichLine line,
-        PdfStandardFont baseFont, double fontSize, PdfOptions? options, PdfLineSpacing spacing) {
+        PdfStandardFont baseFont, double fontSize, PdfCreateOptions? options, PdfLineSpacing spacing) {
         double descent = 0D;
         bool hasDescent = false;
         foreach (RichSeg segment in line) {
@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
                     hasDescent = true;
                 }
             } else if (segment.InlineElement is { } inline && !UsesInlineRunTextMetrics(inline)) {
-                descent = Math.Max(descent, -inline.BaselineOffset);
+                descent = Math.Max(descent, -inline.BaselineOffset.ToPoints());
                 hasDescent = true;
             } else if (segment.ContributesLineBoxDescent) {
                 GetRichRunLineMetrics(segment.Font, segment.NamedFont, segment.FontSize, segment.Baseline,

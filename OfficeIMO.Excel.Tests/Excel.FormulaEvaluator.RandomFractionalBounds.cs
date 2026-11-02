@@ -15,7 +15,7 @@ public partial class Excel {
     [InlineData("RANDBETWEEN(2147483647.1,2147483648.9)", 2147483648d)]
     public void RandomBetween_fractional_bounds_with_one_integer_produce_that_integer(string formula, double expected) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Bounds");
+        var sheet = document.AddSheet("Bounds");
         sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
         Assert.Equal(1, document.Calculate());
         Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>());
@@ -29,7 +29,7 @@ public partial class Excel {
     [Fact]
     public void RandomBetween_fractional_references_use_integer_intersection_after_edits() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Bounds");
+        var sheet = document.AddSheet("Bounds");
         sheet.CellValue(1, 1, 1.1d); sheet.CellValue(1, 2, 3.9d);
         sheet.CellFormula(1, 3, "RANDBETWEEN(A1,B1)");
         sheet.CellFormula(1, 4, "C1-C1");
@@ -53,7 +53,7 @@ public partial class Excel {
     [Fact]
     public void RandomBetween_empty_integral_intervals_preserve_caches_and_reversed_bounds_are_typed_errors() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Bounds");
+        var sheet = document.AddSheet("Bounds");
         string[] expressions = { "RANDBETWEEN(1.1,1.9)", "RANDBETWEEN(-1.9,-1.1)",
             "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(2147483648.1,2147483648.9)" };
         for (int index = 0; index < expressions.Length; index++) {

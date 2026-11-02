@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// Reads a single-column A1 range (e.g., "B2:B1000") as a typed sequence.
         /// </summary>
         public IEnumerable<object?> ReadColumn(string a1Range, CancellationToken ct = default) {
-            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             if (c1 != c2) throw new ArgumentException("ReadColumn expects a single-column A1 range (e.g., 'B2:B100').", nameof(a1Range));
 
             bool canCancel = ct.CanBeCanceled;

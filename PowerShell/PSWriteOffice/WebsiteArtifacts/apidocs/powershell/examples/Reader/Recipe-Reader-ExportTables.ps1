@@ -5,9 +5,9 @@ $rows = @(
     [pscustomobject]@{ Service = 'Messaging'; Owner = 'Collaboration' }
 )
 
-WordNew -Path $source {
+New-OfficeWord -Path $source {
     WordParagraph -Text 'Service ownership' -Style Heading1
     WordTable -InputObject $rows -Style TableGrid
 }
 
-Get-OfficeDocumentTable -Path $source -AsExport -OutputDirectory $output
+Export-OfficeDocumentAsset -Type Table -Path $source -OutputDirectory $output

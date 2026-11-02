@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Tables.Catalog.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet1 = document.AddWorksheet("SheetOne");
+                var sheet1 = document.AddSheet("SheetOne");
                 sheet1.CellValue(1, 1, "Name");
                 sheet1.CellValue(1, 2, "Value");
                 sheet1.CellValue(2, 1, "A");
                 sheet1.CellValue(2, 2, 1d);
                 sheet1.AddTable("A1:B2", true, "TableOne", ExcelTableStyle.TableStyleMedium9);
 
-                var sheet2 = document.AddWorksheet("SheetTwo");
+                var sheet2 = document.AddSheet("SheetTwo");
                 sheet2.CellValue(1, 1, "Name");
                 sheet2.CellValue(1, 2, "Value");
                 sheet2.CellValue(1, 3, "Count");
@@ -51,7 +51,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Name", "Value" }, tableOne.Columns.Select(column => column.Name).ToArray());
 
                 var tableTwo = tables.Single(t => t.Name == "TableTwo");
-                Assert.Equal("A1:C2", tableTwo.Range);
+                // SetTableTotalsByName added the totals row below the single data row.
+                Assert.Equal("A1:C3", tableTwo.Range);
                 Assert.Equal("SheetTwo", tableTwo.SheetName);
                 Assert.Equal(1, tableTwo.SheetIndex);
                 Assert.True(tableTwo.TotalsRowShown);

@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes a preserve-only PivotTable BIFF record and any shallow fields decoded from it.
     /// </summary>
-    public sealed class LegacyXlsPivotTableRecord {
+    internal sealed class LegacyXlsPivotTableRecord {
         /// <summary>
         /// Creates PivotTable BIFF record metadata.
         /// </summary>
@@ -928,8 +928,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         private static string FormatRange(ushort firstRow, ushort lastRow, ushort firstColumn, ushort lastColumn) {
-            string start = A1.CellReference(firstRow + 1, firstColumn + 1);
-            string end = A1.CellReference(lastRow + 1, lastColumn + 1);
+            string start = ExcelA1.CellReference(firstRow + 1, firstColumn + 1);
+            string end = ExcelA1.CellReference(lastRow + 1, lastColumn + 1);
             return start == end ? start : start + ":" + end;
         }
 

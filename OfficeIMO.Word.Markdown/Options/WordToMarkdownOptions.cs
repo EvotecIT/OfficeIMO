@@ -2,7 +2,14 @@ namespace OfficeIMO.Word.Markdown {
     /// <summary>
     /// Provides settings that control how a Word document is converted to Markdown.
     /// </summary>
-    public class WordToMarkdownOptions {
+    public class WordMarkdownExportOptions {
+        internal WordMarkdownExportOptions CloneForConversion() => (WordMarkdownExportOptions)MemberwiseClone();
+
+        /// <summary>Rejects fidelity loss before returning the target document or writing its destination.</summary>
+        public bool FailOnLoss { get; set; }
+
+        internal Action<WordMarkdownConversionDiagnostic>? DiagnosticSink { get; set; }
+
         /// <summary>
         /// Font family whose runs should be rendered as inline code. When <c>null</c>,
         /// <see cref="WordFontResolver.Resolve(string)"/> is used with "monospace" to determine the code font.
@@ -21,12 +28,13 @@ namespace OfficeIMO.Word.Markdown {
 
         /// <summary>
         /// Determines how images are exported during Markdown conversion.
-        /// Default is <see cref="ImageExportMode.Base64"/>.
+        /// Default is <see cref="WordMarkdownImageExportMode.Base64"/>. Saving to a path without options writes images
+        /// as files next to the Markdown file.
         /// </summary>
-        public ImageExportMode ImageExportMode { get; set; } = ImageExportMode.Base64;
+        public WordMarkdownImageExportMode ImageExportMode { get; set; } = WordMarkdownImageExportMode.Base64;
 
         /// <summary>
-        /// When <see cref="ImageExportMode"/> is set to <see cref="ImageExportMode.File"/>,
+        /// When <see cref="WordMarkdownImageExportMode"/> is set to <see cref="WordMarkdownImageExportMode.File"/>,
         /// images are written to this directory. If not specified, the current working directory is used.
         /// </summary>
         public string? ImageDirectory { get; set; }
@@ -52,25 +60,25 @@ namespace OfficeIMO.Word.Markdown {
 
         /// <summary>
         /// Controls how Word page breaks are represented in Markdown.
-        /// Default is <see cref="MarkdownPageBreakMode.SemanticBlock"/> so the break can round-trip.
+        /// Default is <see cref="WordMarkdownPageBreakMode.SemanticBlock"/> so the break can round-trip.
         /// </summary>
-        public MarkdownPageBreakMode PageBreakMode { get; set; } = MarkdownPageBreakMode.SemanticBlock;
+        public WordMarkdownPageBreakMode PageBreakMode { get; set; } = WordMarkdownPageBreakMode.SemanticBlock;
 
         /// <summary>
         /// Controls how converter-detected Word content without a native Markdown representation is handled.
-        /// Default is <see cref="MarkdownUnsupportedContentMode.WarnOnly"/>.
+        /// Default is <see cref="WordMarkdownUnsupportedContentMode.WarnOnly"/>.
         /// </summary>
-        public MarkdownUnsupportedContentMode UnsupportedContentMode { get; set; } = MarkdownUnsupportedContentMode.WarnOnly;
+        public WordMarkdownUnsupportedContentMode UnsupportedContentMode { get; set; } = WordMarkdownUnsupportedContentMode.WarnOnly;
 
         /// <summary>
         /// Controls whether supported visual content, such as charts, is rendered as Markdown image fallbacks.
-        /// Default is <see cref="MarkdownVisualFallbackMode.None"/> to keep Markdown semantic unless requested.
+        /// Default is <see cref="WordMarkdownVisualFallbackMode.None"/> to keep Markdown semantic unless requested.
         /// </summary>
-        public MarkdownVisualFallbackMode VisualFallbackMode { get; set; } = MarkdownVisualFallbackMode.None;
+        public WordMarkdownVisualFallbackMode VisualFallbackMode { get; set; } = WordMarkdownVisualFallbackMode.None;
 
         /// <summary>
         /// Directory used for generated visual fallback resources when <see cref="VisualFallbackMode"/>
-        /// is <see cref="MarkdownVisualFallbackMode.SvgFile"/>. When saving to a Markdown file and this
+        /// is <see cref="WordMarkdownVisualFallbackMode.SvgFile"/>. When saving to a Markdown file and this
         /// is not set, resources are written to a sidecar folder next to the Markdown file.
         /// </summary>
         public string? VisualFallbackDirectory { get; set; }
@@ -89,7 +97,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Enables exporting section headers and footers as semantic fenced blocks instead of omitting them.
         /// The fenced payload contains markdown for the header/footer body and can be reparsed with
-        /// <see cref="CreateReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile)"/>.
+        /// <see cref="WordMarkdownImportOptions.CreateReaderOptions"/>.
         /// </summary>
         public bool IncludeHeadersAndFootersAsSemanticBlocks { get; set; }
 
@@ -98,9 +106,9 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         /// <param name="profile">Base markdown reader profile to start from.</param>
         /// <returns>Configured reader options.</returns>
-        public OfficeIMO.Markdown.MarkdownReaderOptions CreateReaderOptions(
-            OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile profile = OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO) {
-            var options = OfficeIMO.Markdown.MarkdownReaderOptions.CreateProfile(profile);
+        internal OfficeIMO.Markdown.MarkdownLoadOptions CreateReaderOptions(
+            OfficeIMO.Markdown.MarkdownLoadOptions.MarkdownDialectProfile profile = OfficeIMO.Markdown.MarkdownLoadOptions.MarkdownDialectProfile.OfficeIMO) {
+            var options = OfficeIMO.Markdown.MarkdownLoadOptions.CreateProfile(profile);
             WordMarkdownSemanticBlocks.ConfigureReaderOptions(options);
             return options;
         }

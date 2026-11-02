@@ -41,13 +41,15 @@ string html = MarkdownRenderer.RenderBodyHtml(markdown, options);
 ### Register matching HTML round-trip hints
 
 ```csharp
+using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer.SamplePlugin;
 
-var htmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+var htmlOptions = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
 SampleMarkdownRenderer.ApplyHtmlRoundTripHints(htmlOptions);
 
-string markdown = html.ToMarkdown(htmlOptions);
+using var document = HtmlConversionDocument.Parse(html).ToMarkdown(htmlOptions);
+string markdown = document.ToMarkdown();
 ```
 
 ## What it demonstrates

@@ -26,12 +26,13 @@ internal static partial class PdfStamper {
         var selectedPages = NormalizePageNumbers(effectiveOptions.PageNumbers, document.Pages.Count);
         var selectedSet = new HashSet<int>(selectedPages);
         var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
+        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        StampFont stampFont = PrepareStampFont(effectiveOptions, text, objects, ref nextObjectNumber);
         var additionalObjects = new List<PdfPageExtractor.AdditionalObject> {
-            new PdfPageExtractor.AdditionalObject(FontPseudoObjectNumber, BuildFontObject(effectiveOptions.Font))
+            new PdfPageExtractor.AdditionalObject(FontPseudoObjectNumber, stampFont.Font)
         };
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string fontResourceName = GetAvailableFontResourceName(objects, pageObjectNumbers);
-        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -46,10 +47,11 @@ internal static partial class PdfStamper {
             var stampStream = BuildStampStream(
                 text,
                 fontResourceName,
-                page.GetPageSize().Width,
-                page.GetPageSize().Height,
+                page,
                 effectiveOptions,
-                watermarkDefaults: false);
+                watermarkDefaults: false,
+                stampFont.GlyphHex,
+                stampFont.TextWidth);
 
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(stampPseudoId, stampStream));
             overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
@@ -146,12 +148,13 @@ internal static partial class PdfStamper {
         var selectedPages = NormalizePageNumbers(effectiveOptions.PageNumbers, document.Pages.Count);
         var selectedSet = new HashSet<int>(selectedPages);
         var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
+        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        StampFont stampFont = PrepareStampFont(effectiveOptions, text, objects, ref nextObjectNumber);
         var additionalObjects = new List<PdfPageExtractor.AdditionalObject> {
-            new PdfPageExtractor.AdditionalObject(FontPseudoObjectNumber, BuildFontObject(effectiveOptions.Font))
+            new PdfPageExtractor.AdditionalObject(FontPseudoObjectNumber, stampFont.Font)
         };
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string fontResourceName = GetAvailableFontResourceName(objects, pageObjectNumbers);
-        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -162,15 +165,15 @@ internal static partial class PdfStamper {
 
             var page = document.Pages[i];
             if (!effectiveOptions.BehindContent) IsolateExistingContents(objects, pageObjectNumbers[i], ref nextObjectNumber);
-            var size = page.GetPageSize();
             int stampPseudoId = -1000 - pageNumber;
             var stampStream = BuildStampStream(
                 text,
                 fontResourceName,
-                size.Width,
-                size.Height,
+                page,
                 effectiveOptions,
-                watermarkDefaults: true);
+                watermarkDefaults: true,
+                stampFont.GlyphHex,
+                stampFont.TextWidth);
 
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(stampPseudoId, stampStream));
             overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
@@ -243,11 +246,48 @@ internal static partial class PdfStamper {
         string fullOutputPath = ValidateOutputPath(outputPath);
         WriteOutput(fullOutputPath, WatermarkText(ReadPath(inputPath, options?.CancellationToken ?? default), text, options), options?.CancellationToken ?? default);
     }
+    private readonly struct StampFont {
+        internal StampFont(PdfObject font, string? glyphHex, double? textWidth) {
+            Font = font;
+            GlyphHex = glyphHex;
+            TextWidth = textWidth;
+        }
+
+        internal PdfObject Font { get; }
+        internal string? GlyphHex { get; }
+        internal double? TextWidth { get; }
+    }
+
+    // Stamped text uses the same installed font as text written by OfficeIMO.Pdf, embedded as a subset,
+    // so it matches the page and the result stays valid for archival profiles.
+    private static StampFont PrepareStampFont(PdfTextStampOptions options, string text, Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber) {
+        PdfStandardFont font = options.Font;
+        PdfStandardFont slot = PdfStandardFontMapper.GetFontFamily(font);
+        if (options.EmbedFont &&
+            (slot == PdfStandardFont.Helvetica || slot == PdfStandardFont.TimesRoman || slot == PdfStandardFont.Courier) &&
+            PdfCreateOptions.TryResolveDefaultEmbeddedFontFamily(slot, out PdfEmbeddedFontFamily? family) && family != null) {
+            string name = font.ToString();
+            bool bold = name.Contains("Bold");
+            bool italic = name.Contains("Italic") || name.Contains("Oblique");
+            byte[]? face = bold && italic ? family.BoldItalicSnapshot ?? family.BoldSnapshot
+                : bold ? family.BoldSnapshot
+                : italic ? family.ItalicSnapshot
+                : null;
+            face ??= family.RegularSnapshot;
+            if (PdfFormFiller.TryCreateEmbeddedTextFont(face, family.FamilyName, text, options.FontSize.ToPoints(), objects, ref nextObjectNumber,
+                    out PdfObject type0Font, out string glyphHex, out double textWidth)) {
+                return new StampFont(type0Font, glyphHex, textWidth);
+            }
+        }
+
+        return new StampFont(BuildFontObject(font), null, null);
+    }
+
     private static PdfTextStampOptions BuildWatermarkOptions(PdfTextStampOptions? options) {
         if (options is null) {
             return new PdfTextStampOptions {
-                FontSize = 64,
-                Color = PdfColor.LightGray,
+                FontSize = global::OfficeIMO.OfficeLength.Points(64),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D),
                 RotationDegrees = -45,
                 Font = PdfStandardFont.HelveticaBold
             };

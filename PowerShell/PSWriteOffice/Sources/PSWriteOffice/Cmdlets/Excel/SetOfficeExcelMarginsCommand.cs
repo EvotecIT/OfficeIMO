@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Management.Automation;
 using OfficeIMO.Excel;
 using PSWriteOffice.Services.Excel;
@@ -90,12 +91,12 @@ public sealed class SetOfficeExcelMarginsCommand : PSCmdlet
             }
 
             sheet.SetMargins(
-                left: Left.Value,
-                right: Right.Value,
-                top: Top.Value,
-                bottom: Bottom.Value,
-                header: Header ?? 0.3,
-                footer: Footer ?? 0.3);
+                left: OfficeLength.Inches(Left.Value),
+                right: OfficeLength.Inches(Right.Value),
+                top: OfficeLength.Inches(Top.Value),
+                bottom: OfficeLength.Inches(Bottom.Value),
+                header: OfficeLength.Inches(Header ?? 0.3),
+                footer: OfficeLength.Inches(Footer ?? 0.3));
         }
 
         if (PassThru.IsPresent)

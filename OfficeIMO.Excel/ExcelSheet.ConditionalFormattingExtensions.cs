@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel {
                 DifferentialFontStrike = ReadDifferentialBoolean(font?.Strike),
                 DifferentialFontUnderline = ReadDifferentialBoolean(font?.Underline),
                 DifferentialFontName = font?.FontName?.Val?.Value,
-                DifferentialFontSize = font?.FontSize?.Val?.Value,
+                DifferentialFontSize = font?.FontSize?.Val?.Value is double fontSize ? OfficeLength.Points(fontSize) : null,
                 DifferentialBorder = RemoveDifferentialColorOnlyBorderSides(
                     BuildBorderSnapshot(differential?.Border, workbookPart)),
                 Formulas = rule.Elements<Xm.Formula>().Select(formula => formula.Text ?? string.Empty).ToArray(),

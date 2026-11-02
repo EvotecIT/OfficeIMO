@@ -128,7 +128,7 @@ public class RtfEffectiveFormattingRegressionTests {
     [Fact]
     public void Pdf_And_Word_Use_Resolved_Style_Formatting() {
         RtfDocument document = RtfDocument.Read(Input).Document;
-        OfficeIMO.Pdf.PdfDocument pdf = document.ToPdfDocument();
+        OfficeIMO.Pdf.PdfDocument pdf = document.ToPdf();
         OfficeIMO.Pdf.RichParagraphBlock paragraph = Assert.IsType<OfficeIMO.Pdf.RichParagraphBlock>(pdf.Blocks.First());
         Assert.True(paragraph.Runs.First(run => run.Text == "Inherited ").Bold);
         Assert.False(paragraph.Runs.First(run => run.Text == "Cleared").Bold);

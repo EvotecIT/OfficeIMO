@@ -40,19 +40,19 @@ public sealed class PdfShapeBoundsResourceTests {
         shape.StrokeLineCap = OfficeStrokeLineCap.Round;
         shape.SetStrokeDashArray(new[] { .0625, .0625 });
         var report = new PdfConversionReport();
-        byte[] bytes = PdfDocument.Create(new PdfOptions {
-            PageWidth = 200, PageHeight = 200, MarginLeft = 10, MarginRight = 10,
-            MarginTop = 30, MarginBottom = 30, HeaderOffsetY = 0, FooterOffsetY = 0
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = OfficeLength.Points(200), PageHeight = OfficeLength.Points(200), MarginLeft = OfficeLength.Points(10), MarginRight = OfficeLength.Points(10),
+            MarginTop = OfficeLength.Points(30), MarginBottom = OfficeLength.Points(30), HeaderOffsetY = OfficeLength.Points(0), FooterOffsetY = OfficeLength.Points(0)
         }.ReportDiagnosticsTo(report)).Compose(c => c.Page(page => {
             if (footer) page.Footer(builder => builder.Shape(shape));
             else page.Header(builder => builder.Shape(shape));
             page.Content(builder => builder.Paragraph(paragraph => paragraph.Text("MARKER")));
-        })).ToBytes();
+        })).ToBytes(new PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("MARKER", PdfReadDocument.Open(bytes).ExtractText());
-        var warning = Assert.Single(report.Warnings, warning => warning.Code == "HeaderFooterPaintBoundsUnmeasured");
+        var warning = Assert.Single(report.Warnings, warning => warning.Code == "header-footer-paint-bounds-unmeasured");
         Assert.Equal(OfficeConversionLossKind.Unassessed, warning.LossKind);
-        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "header-footer-page-bounds-clipped");
     }
 
     [Fact]

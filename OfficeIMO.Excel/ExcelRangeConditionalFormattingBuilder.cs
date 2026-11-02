@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeColor = OfficeIMO.Drawing.OfficeColor;
+using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Excel {
     /// <summary>

@@ -265,19 +265,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointChartSnapshotKind MapAdvancedSnapshotKind(
-            OfficeChartKind kind) => kind switch {
-                OfficeChartKind.ColumnClustered => PowerPointChartSnapshotKind.ClusteredColumn,
-                OfficeChartKind.ColumnStacked => PowerPointChartSnapshotKind.StackedColumn,
-                OfficeChartKind.ColumnStacked100 => PowerPointChartSnapshotKind.StackedColumn100,
-                OfficeChartKind.BarClustered => PowerPointChartSnapshotKind.ClusteredBar,
-                OfficeChartKind.BarStacked => PowerPointChartSnapshotKind.StackedBar,
-                OfficeChartKind.BarStacked100 => PowerPointChartSnapshotKind.StackedBar100,
-                OfficeChartKind.Area => PowerPointChartSnapshotKind.Area,
-                OfficeChartKind.AreaStacked => PowerPointChartSnapshotKind.StackedArea,
-                OfficeChartKind.AreaStacked100 => PowerPointChartSnapshotKind.StackedArea100,
-                OfficeChartKind.LineStacked => PowerPointChartSnapshotKind.StackedLine,
-                OfficeChartKind.LineStacked100 => PowerPointChartSnapshotKind.StackedLine100,
-                OfficeChartKind.Pie => PowerPointChartSnapshotKind.Pie,
+            OfficeChartType kind) => kind switch {
+                OfficeChartType.ColumnClustered => PowerPointChartSnapshotKind.ClusteredColumn,
+                OfficeChartType.ColumnStacked => PowerPointChartSnapshotKind.StackedColumn,
+                OfficeChartType.ColumnStacked100 => PowerPointChartSnapshotKind.StackedColumn100,
+                OfficeChartType.BarClustered => PowerPointChartSnapshotKind.ClusteredBar,
+                OfficeChartType.BarStacked => PowerPointChartSnapshotKind.StackedBar,
+                OfficeChartType.BarStacked100 => PowerPointChartSnapshotKind.StackedBar100,
+                OfficeChartType.Area => PowerPointChartSnapshotKind.Area,
+                OfficeChartType.AreaStacked => PowerPointChartSnapshotKind.StackedArea,
+                OfficeChartType.AreaStacked100 => PowerPointChartSnapshotKind.StackedArea100,
+                OfficeChartType.LineStacked => PowerPointChartSnapshotKind.StackedLine,
+                OfficeChartType.LineStacked100 => PowerPointChartSnapshotKind.StackedLine100,
+                OfficeChartType.Pie => PowerPointChartSnapshotKind.Pie,
                 _ => PowerPointChartSnapshotKind.Line
             };
 
@@ -456,6 +456,9 @@ namespace OfficeIMO.PowerPoint {
                 style = style.WithDataLabelTextColor(labelColor);
             // Advanced groups use the flat cached-data projection. Their native
             // text and surfaces are outside the qualified 2-D style contract.
+            if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Bubble)
+                style = OfficeOpenXmlChartSeriesReader.ReadStyle(GetChartPart(), chart, OfficeChartType.Bubble,
+                    colorScheme, style, data.Categories.Count);
             if (!forDataUpdate &&
                 (chart.PlotArea?.GetFirstChild<C.RadarChart>() != null ||
                  chart.PlotArea?.GetFirstChild<C.PieChart>() != null ||
@@ -465,6 +468,17 @@ namespace OfficeIMO.PowerPoint {
                 style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
                     GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme,
                     style, data.Categories.Count);
+            // Single-group category charts project their native surfaces and axis styling too, so a chart area
+            // written without fill on a dark slide is not drawn as a white panel. Formatting the shared contract
+            // cannot express keeps the text-only style instead of dropping the chart.
+            if (!forDataUpdate && kind is not (PowerPointChartSnapshotKind.Radar or PowerPointChartSnapshotKind.Pie or
+                    PowerPointChartSnapshotKind.Doughnut or PowerPointChartSnapshotKind.Bubble or PowerPointChartSnapshotKind.Scatter)) {
+                try {
+                    style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
+                        GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme, style);
+                } catch (NotSupportedException) {
+                }
+            }
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
@@ -478,8 +492,8 @@ namespace OfficeIMO.PowerPoint {
                 ReadTitle(chart),
                 kind,
                 data,
-                WidthPoints,
-                HeightPoints,
+                Width,
+                Height,
                 bubbleSizeMode,
                 bubbleScalePercent,
                 ReadChartLayout(chart, kind, forDataUpdate, radialLabels),
@@ -649,7 +663,21 @@ namespace OfficeIMO.PowerPoint {
                     C.OrientationValues.MaxMin)
                 throw new NotSupportedException("Reversed radar categories cannot be projected.");
 
+            bool readBubbleText = !forDataUpdate && kind == PowerPointChartSnapshotKind.Bubble;
+            var bubbleLegendText = readBubbleText
+                ? OfficeOpenXmlChartTextReader.ReadNativeText(chart, legend, GetOwnerColorScheme(), allowMultiline: true) : default;
+            var bubbleAxisText = readBubbleText
+                ? OfficeOpenXmlChartTextReader.ReadUniformNativeText(chart,
+                    new[] { logicalCategoryAxis, logicalValueAxis }.Where(axis => axis != null).Cast<OpenXmlElement>(),
+                    GetOwnerColorScheme(), allowMultiline: true) : default;
+            var bubbleAxisTitleText = readBubbleText
+                ? OfficeOpenXmlChartTextReader.ReadUniformNativeText(chart,
+                    new[] { logicalCategoryAxis, logicalValueAxis }.Select(axis => axis?.GetFirstChild<C.Title>())
+                        .Where(title => title != null).Cast<OpenXmlElement>(), GetOwnerColorScheme(), allowMultiline: true) : default;
             return new OfficeChartLayout(overlayLegend: overlay,
+                legendFontSize: bubbleLegendText.Size, legendFontFamily: bubbleLegendText.Family, legendFontStyle: bubbleLegendText.Style,
+                axisLabelFontSize: bubbleAxisText.Size, axisTextFontFamily: bubbleAxisText.Family, axisTextFontStyle: bubbleAxisText.Style,
+                axisTitleFontSize: bubbleAxisTitleText.Size, axisTitleFontStyle: bubbleAxisTitleText.Style,
                 overlayTitle: overlayTitle,
                 showLegend: legend != null,
                 legendPosition: position,
@@ -697,7 +725,7 @@ namespace OfficeIMO.PowerPoint {
                     logicalCategoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null,
                 fillRadarSeries: plotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value ==
                     C.RadarStyleValues.Filled,
-                axisTitleFontFamily: axisTitleFont)
+                axisTitleFontFamily: bubbleAxisTitleText.Family ?? axisTitleFont)
                 .WithSecondaryValueAxis(forDataUpdate ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
                         () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
@@ -823,7 +851,7 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointChartData? ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.Result? source,
             PowerPointChartSnapshotKind? kind) => source == null ? null : new PowerPointChartData(source.Categories,
                 source.Series.Select(item => new PowerPointChartSeries(item.Data.Name, item.Data.Values, item.Data.XValues,
-                    kind, item.Data.Color, item.Data.BubbleSizes != null ? item.Data.MarkerOutlineWidth : item.Data.StrokeWidth, item.Data.AxisGroup) {
+                    kind, item.Data.Color, (item.Data.BubbleSizes != null ? item.Data.MarkerOutlineWidth : item.Data.StrokeWidth)?.ToPoints(), item.Data.AxisGroup) {
                     BubbleSizes = item.Data.BubbleSizes,
                     StrokeColor = item.Data.BubbleSizes != null ? item.Data.MarkerOutlineColor : null,
                     ShowStroke = item.Data.ShowMarkerOutline,

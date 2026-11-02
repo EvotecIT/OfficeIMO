@@ -52,4 +52,14 @@
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <Using Include="System.Text" />
+    <Using Include="System.Collections" />
+    <Using Include="OfficeIMO.Drawing" />
+    <Using Include="OfficeIMO.OpenXml.Internal" />
+    <Using Include="DocumentFormat.OpenXml" />
+  </ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.OpenDocument.Odp.Pdf" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Web.Converter" /><InternalsVisibleTo Include="OfficeIMO.Web.Converter.Tests" /></ItemGroup>
 </Project>

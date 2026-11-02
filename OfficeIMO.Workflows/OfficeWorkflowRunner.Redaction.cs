@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,7 +13,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         PdfRedactionWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(request);
+        if (request == null) throw new ArgumentNullException(nameof(request));
         PdfRedactionWorkflowRequest executionRequest = SnapshotRedactionRequest(request);
         PreparedRedactionResult prepared;
         try {
@@ -48,10 +49,10 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         IEnumerable<PdfRedactionWorkflowRequest> requests,
         string? manifestPath,
         long maximumManifestBytes,
-        OfficeWorkflowConflictPolicy? manifestConflictPolicy,
+        OfficePublicationPolicy? manifestConflictPolicy,
         IProgress<OfficeWorkflowProgress>? progress,
         CancellationToken cancellationToken) {
-        ArgumentNullException.ThrowIfNull(requests);
+        if (requests == null) throw new ArgumentNullException(nameof(requests));
         const int absoluteMaximumBatchItems = 10_000;
         var snapshots = new List<PdfRedactionWorkflowRequest>();
         int configuredMaximum = absoluteMaximumBatchItems;
@@ -70,7 +71,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         if (batch.Length == 0) {
             var emptyResult = new PdfRedactionBatchResult(OfficeWorkflowStatus.Completed, Array.Empty<PdfRedactionWorkflowResult>(), true, "The redaction batch was empty.");
             if (manifestPath is null) return emptyResult;
-            if (manifestConflictPolicy is not OfficeWorkflowConflictPolicy.Fail and not OfficeWorkflowConflictPolicy.Replace) throw new ArgumentException("An empty atomic redaction batch requires a Fail or Replace manifest conflict policy.", nameof(manifestConflictPolicy));
+            if (manifestConflictPolicy is not OfficePublicationPolicy.Fail and not OfficePublicationPolicy.Replace) throw new ArgumentException("An empty atomic redaction batch requires a Fail or Replace manifest conflict policy.", nameof(manifestConflictPolicy));
             byte[] emptyManifest = JsonSerializer.SerializeToUtf8Bytes(new PdfRedactionBatchRecord(emptyResult), PdfRedactionWorkflowJsonContext.Default.PdfRedactionBatchRecord);
             if (emptyManifest.LongLength > maximumManifestBytes) throw new RedactionWorkflowException("Privacy-safe redaction batch manifest exceeds the configured evidence-byte limit.");
             try {
@@ -84,8 +85,8 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 return new PdfRedactionBatchResult(OfficeWorkflowStatus.Failed, Array.Empty<PdfRedactionWorkflowResult>(), false, "The empty batch manifest could not be published: " + exception.GetType().Name + ".");
             }
         }
-        OfficeWorkflowConflictPolicy batchConflictPolicy = batch[0].ConflictPolicy;
-        if (batchConflictPolicy == OfficeWorkflowConflictPolicy.Rename || batch.Any(request => request.ConflictPolicy != batchConflictPolicy)) throw new ArgumentException("An atomic redaction batch requires one shared Fail or Replace conflict policy.", nameof(requests));
+        OfficePublicationPolicy batchConflictPolicy = batch[0].ConflictPolicy;
+        if (batchConflictPolicy == OfficePublicationPolicy.Rename || batch.Any(request => request.ConflictPolicy != batchConflictPolicy)) throw new ArgumentException("An atomic redaction batch requires one shared Fail or Replace conflict policy.", nameof(requests));
 
         int maximumConcurrency = batch.Min(static request => request.Limits.MaximumConcurrency);
         long maximumPreparedBytes = batch.Min(static request => request.Limits.MaximumBatchPreparedBytes);
@@ -193,7 +194,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             if (request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.Reject) {
                 throw new RedactionWorkflowException("The recipe rejects encrypted PDFs. Select an explicit authenticated encryption policy and supply the owner password at runtime.");
             }
-            if (string.IsNullOrWhiteSpace(request.OwnerPassword)) throw new RedactionWorkflowException("An owner password is required by the encrypted-document policy.");
+            if ((request.OwnerPassword == null || string.IsNullOrWhiteSpace(request.OwnerPassword))) throw new RedactionWorkflowException("An owner password is required by the encrypted-document policy.");
             if (!originalPreflight.Probe.Security.HasOwnerAuthorization) throw new RedactionWorkflowException("The supplied credential did not authenticate as the PDF owner password.");
             if (originalPreflight.Probe.HasSignatures) {
                 planningSource = PdfDocument.Load(originalSource, loadOptions).Security.CreateUnsignedDerivative(cancellationToken).Pdf;
@@ -295,7 +296,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 string existingOutputSha = ComputeSha256(existingOutput);
                 if (request.Recipe.EncryptedDocumentPolicy == PdfRedactionEncryptedDocumentPolicy.DecryptAndReencrypt ||
                     request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.CreateAndSignDerivative) {
-                    if (string.IsNullOrWhiteSpace(request.ExpectedOutputSha256) || !string.Equals(request.ExpectedOutputSha256, existingOutputSha, StringComparison.OrdinalIgnoreCase)) {
+                    if ((request.ExpectedOutputSha256 == null || string.IsNullOrWhiteSpace(request.ExpectedOutputSha256)) || !string.Equals(request.ExpectedOutputSha256, existingOutputSha, StringComparison.OrdinalIgnoreCase)) {
                         throw new RedactionWorkflowException("Zero-area verification of a re-encrypted artifact requires its trusted expected output SHA-256 from prior apply evidence.");
                     }
                 } else {
@@ -412,7 +413,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
                 search.AddFormField(rule.Value!);
                 break;
             case PdfRedactionRuleKind.LogicalKind:
-                if (!Enum.TryParse(rule.Value!, ignoreCase: true, out PdfLogicalElementKind kind) || !Enum.IsDefined(kind)) throw new ArgumentException("Unknown logical element kind in redaction recipe.");
+                if (!Enum.TryParse(rule.Value!, ignoreCase: true, out PdfLogicalElementKind kind) || !OfficeRuntimeCompatibility.IsDefined(kind)) throw new ArgumentException("Unknown logical element kind in redaction recipe.");
                 search.AddLogicalKind(kind);
                 break;
             default:
@@ -422,7 +423,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static string? FingerprintEvidenceIdentifier(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return null;
+        if ((value == null || string.IsNullOrWhiteSpace(value))) return null;
         return "sha256-" + ComputeSha256(System.Text.Encoding.UTF8.GetBytes(value.Trim())).ToLowerInvariant();
     }
 
@@ -443,20 +444,20 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static void ValidateRedactionRequest(PdfRedactionWorkflowRequest request) {
-        ArgumentNullException.ThrowIfNull(request.Recipe);
-        ArgumentNullException.ThrowIfNull(request.Limits);
-        ArgumentNullException.ThrowIfNull(request.ExternalValidators);
-        if (!Enum.IsDefined(request.Mode)) throw new ArgumentException("Redaction workflow mode is not defined.");
-        if (!Enum.IsDefined(request.ConflictPolicy)) throw new ArgumentException("Redaction conflict policy is not defined.");
-        if (!Enum.IsDefined(request.Recipe.DetectionMode) ||
+        if (request.Recipe == null) throw new ArgumentNullException("request.Recipe");
+        if (request.Limits == null) throw new ArgumentNullException("request.Limits");
+        if (request.ExternalValidators == null) throw new ArgumentNullException("request.ExternalValidators");
+        if (!OfficeRuntimeCompatibility.IsDefined(request.Mode)) throw new ArgumentException("Redaction workflow mode is not defined.");
+        if (!OfficeRuntimeCompatibility.IsDefined(request.ConflictPolicy)) throw new ArgumentException("Redaction conflict policy is not defined.");
+        if (!OfficeRuntimeCompatibility.IsDefined(request.Recipe.DetectionMode) ||
             (request.Recipe.CleanupScope & ~PdfRedactionCleanupScope.All) != 0 ||
-            !Enum.IsDefined(request.Recipe.UnsupportedImagePolicy) || !Enum.IsDefined(request.Recipe.EncryptedDocumentPolicy) ||
-            !Enum.IsDefined(request.Recipe.SignaturePolicy)) {
+            !OfficeRuntimeCompatibility.IsDefined(request.Recipe.UnsupportedImagePolicy) || !OfficeRuntimeCompatibility.IsDefined(request.Recipe.EncryptedDocumentPolicy) ||
+            !OfficeRuntimeCompatibility.IsDefined(request.Recipe.SignaturePolicy)) {
             throw new ArgumentException("The redaction recipe contains an undefined policy value.");
         }
-        if (request.OutputEncryption is not null && !Enum.IsDefined(request.OutputEncryption.Algorithm)) throw new ArgumentException("Output encryption algorithm is not defined.");
-        if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.");
-        if (string.IsNullOrWhiteSpace(request.InputPath) || !File.Exists(request.InputPath)) throw new FileNotFoundException("Redaction input PDF was not found.", request.InputPath);
+        if (request.OutputEncryption is not null && !OfficeRuntimeCompatibility.IsDefined(request.OutputEncryption.Algorithm)) throw new ArgumentException("Output encryption algorithm is not defined.");
+        if ((request.Id == null || string.IsNullOrWhiteSpace(request.Id))) throw new ArgumentException("Request id cannot be empty.");
+        if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath)) || !File.Exists(request.InputPath)) throw new FileNotFoundException("Redaction input PDF was not found.", request.InputPath);
         if (!string.Equals(Path.GetExtension(request.InputPath), ".pdf", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Redaction input must be a PDF.");
         if (request.ExternalValidators.Count > 16 || request.ExternalValidators.Any(static validator => validator is null)) throw new ArgumentException("External validator collections accept at most 16 non-null validators.");
         if (request.Recipe.SignaturePolicy != PdfRedactionSignaturePolicy.CreateAndSignDerivative && (request.OutputSigner is not null || request.OutputSignatureOptions is not null)) throw new ArgumentException("Output signer settings require CreateAndSignDerivative.");
@@ -468,21 +469,21 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         long ruleCharacters = 0;
         var names = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfRedactionRule rule in request.Recipe.Rules) {
-            if (rule is null || !Enum.IsDefined(rule.Kind)) throw new ArgumentException("Recipe rules require known kinds.");
+            if (rule is null || !OfficeRuntimeCompatibility.IsDefined(rule.Kind)) throw new ArgumentException("Recipe rules require known kinds.");
             ValidateRecipeName(rule.Name, "rule", names);
-            if (!Enum.IsDefined(rule.ContentScope) || !Enum.IsDefined(rule.AppearanceMode)) throw new ArgumentException("Recipe rules require known content and appearance policies.");
-            if (!Enum.IsDefined(rule.TextSelection)) throw new ArgumentException("Recipe rules require a known text selection policy.");
+            if (!OfficeRuntimeCompatibility.IsDefined(rule.ContentScope) || !OfficeRuntimeCompatibility.IsDefined(rule.AppearanceMode)) throw new ArgumentException("Recipe rules require known content and appearance policies.");
+            if (!OfficeRuntimeCompatibility.IsDefined(rule.TextSelection)) throw new ArgumentException("Recipe rules require a known text selection policy.");
             if (rule.TextSelection == PdfRedactionTextSelection.MatchedGlyphs &&
                 (request.Recipe.DetectionMode != PdfRedactionDetectionMode.NativeOnly || rule.Kind is not (PdfRedactionRuleKind.Literal or PdfRedactionRuleKind.Regex)))
                 throw new ArgumentException("MatchedGlyphs requires a Literal or Regex rule and NativeOnly detection.");
-            if (rule.Kind != PdfRedactionRuleKind.RedactAnnotations && string.IsNullOrWhiteSpace(rule.Value)) throw new ArgumentException("Literal, Regex, FormField, and LogicalKind rules require non-empty values.");
+            if (rule.Kind != PdfRedactionRuleKind.RedactAnnotations && (rule.Value == null || string.IsNullOrWhiteSpace(rule.Value))) throw new ArgumentException("Literal, Regex, FormField, and LogicalKind rules require non-empty values.");
             if (rule.Kind == PdfRedactionRuleKind.RedactAnnotations && !string.IsNullOrEmpty(rule.Value)) throw new ArgumentException("RedactAnnotations does not accept a value.");
             ruleCharacters += rule.Name.Length + rule.Kind.ToString().Length + (rule.Value?.Length ?? 0);
             if (ruleCharacters > request.Limits.MaximumRuleCharacters) throw new RedactionWorkflowException("Recipe rule text exceeds the configured character limit.");
         }
         ValidateRegionComplexity(request.Recipe.Regions, request.Limits, names);
-        if (request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify && string.IsNullOrWhiteSpace(request.OutputPath)) throw new ArgumentException("ApplyAndVerify requires an output path.");
-        if (request.Mode == PdfRedactionWorkflowMode.VerifyExistingOutput && (string.IsNullOrWhiteSpace(request.OutputPath) || !File.Exists(request.OutputPath))) throw new FileNotFoundException("VerifyExistingOutput requires an existing output PDF.", request.OutputPath);
+        if (request.Mode == PdfRedactionWorkflowMode.ApplyAndVerify && (request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath))) throw new ArgumentException("ApplyAndVerify requires an output path.");
+        if (request.Mode == PdfRedactionWorkflowMode.VerifyExistingOutput && ((request.OutputPath == null || string.IsNullOrWhiteSpace(request.OutputPath)) || !File.Exists(request.OutputPath))) throw new FileNotFoundException("VerifyExistingOutput requires an existing output PDF.", request.OutputPath);
         ValidateArtifactPaths(request);
         if (request.Mode != PdfRedactionWorkflowMode.PlanOnly && request.Decisions is null) throw new ArgumentException("Apply and verify require a reviewed decision manifest.");
         if (request.ExpectedOutputSha256 is not null && !IsSha256(request.ExpectedOutputSha256)) throw new ArgumentException("ExpectedOutputSha256 must contain 64 hexadecimal characters.");
@@ -505,7 +506,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             throw new ArgumentException("Redaction output and evidence paths must be different.");
         }
         foreach (string protectedInput in request.ProtectedInputPaths) {
-            if (string.IsNullOrWhiteSpace(protectedInput)) throw new ArgumentException("Protected input paths cannot be empty.");
+            if ((protectedInput == null || string.IsNullOrWhiteSpace(protectedInput))) throw new ArgumentException("Protected input paths cannot be empty.");
             string protectedPath = Path.GetFullPath(protectedInput);
             if ((output is not null && OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(output, protectedPath)) ||
                 (evidence is not null && OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(evidence, protectedPath))) {
@@ -517,7 +518,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     private static void ValidateRegionComplexity(IEnumerable<PdfRedactionRecipeRegion> regions, PdfRedactionWorkflowLimits limits, HashSet<string> names) {
         var stack = new Stack<(PdfRedactionRecipeRegion Region, int Depth)>();
         foreach (PdfRedactionRecipeRegion region in regions) stack.Push((region, 1));
-        var visited = new HashSet<PdfRedactionRecipeRegion>(ReferenceEqualityComparer.Instance);
+        var visited = new HashSet<PdfRedactionRecipeRegion>(OfficeReferenceEqualityComparer<PdfRedactionRecipeRegion>.Instance);
         long geometryEntries = 0;
         long normalizedAreas = 0;
         while (stack.Count > 0) {
@@ -529,7 +530,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             ValidateRecipeName(region.Name, "region", names);
             geometryEntries += region.Points.Count;
             geometryEntries += region.Areas.Count;
-            if (!Enum.IsDefined(region.Kind) || !Enum.IsDefined(region.ContentScope) || !Enum.IsDefined(region.AppearanceMode)) throw new ArgumentException("Recipe regions require known geometry, content, and appearance policies.");
+            if (!OfficeRuntimeCompatibility.IsDefined(region.Kind) || !OfficeRuntimeCompatibility.IsDefined(region.ContentScope) || !OfficeRuntimeCompatibility.IsDefined(region.AppearanceMode)) throw new ArgumentException("Recipe regions require known geometry, content, and appearance policies.");
             normalizedAreas += region.Kind == PdfRedactionRegionKind.Freehand ? Math.Max(0, region.Points.Count - 1) : region.Kind == PdfRedactionRegionKind.Group ? 0 : 1;
             if (geometryEntries > limits.MaximumGeometryPoints) throw new RedactionWorkflowException("Recipe geometry exceeds the configured point limit.");
             if (normalizedAreas > limits.MaximumAreas) throw new RedactionWorkflowException("Recipe geometry exceeds the configured normalized-area limit.");
@@ -539,7 +540,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     }
 
     private static void ValidateRecipeName(string? name, string kind, HashSet<string> names) {
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 128 || !IsRecipeNameStart(name[0]) || name.Any(static character => !IsRecipeNameCharacter(character))) {
+        if ((name == null || string.IsNullOrWhiteSpace(name)) || name.Length > 128 || !IsRecipeNameStart(name[0]) || name.Any(static character => !IsRecipeNameCharacter(character))) {
             throw new ArgumentException($"Redaction {kind} names must be 1 through 128 characters and contain only letters, digits, dot, underscore, or hyphen, beginning with a letter.");
         }
         if (!names.Add(name)) throw new ArgumentException($"Redaction rule and region names must be unique; '{name}' is duplicated.");
@@ -628,7 +629,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     private static PreparedRedactionResult CreatePreparedResult(PdfRedactionWorkflowResult result, PdfRedactionWorkflowRequest request, byte[]? outputBytes) {
         var files = new List<PreparedFile>();
         if (outputBytes is not null && request.OutputPath is not null) files.Add(new PreparedFile(Path.GetFullPath(request.OutputPath), outputBytes, request.PhysicalOutputPublicationPath));
-        if (!string.IsNullOrWhiteSpace(request.EvidencePath)) {
+        if (!(request.EvidencePath == null || string.IsNullOrWhiteSpace(request.EvidencePath))) {
             byte[] evidenceBytes = JsonSerializer.SerializeToUtf8Bytes(
                 new PdfRedactionWorkflowRecord(result),
                 PdfRedactionWorkflowJsonContext.Default.PdfRedactionWorkflowRecord);
@@ -651,7 +652,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
 
     private static async Task<byte[]> ReadFileBoundedAsync(string path, long maximumBytes, CancellationToken cancellationToken,
         string? physicalRoot = null) {
-        await using FileStream input = physicalRoot is null
+        using FileStream input = physicalRoot is null
             ? new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81_920, FileOptions.Asynchronous | FileOptions.SequentialScan)
             : OfficeWorkflowPathIdentity.OpenRegularFileForRead(path, physicalRoot, 81_920);
         if (input.Length > maximumBytes) throw new RedactionWorkflowException($"Input is {input.Length} bytes, above the configured {maximumBytes}-byte limit.");
@@ -659,7 +660,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         byte[] buffer = new byte[81_920];
         long total = 0;
         while (true) {
-            int read = await input.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+            int read = await input.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
             if (read == 0) break;
             total = checked(total + read);
             if (total > maximumBytes) throw new RedactionWorkflowException("Input grew above the configured limit while being read.");
@@ -671,7 +672,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
     private static string ComputeRecipeSha256(PdfRedactionRecipe recipe) => ComputeSha256(JsonSerializer.SerializeToUtf8Bytes(
         recipe,
         PdfRedactionWorkflowJsonContext.Default.PdfRedactionRecipe));
-    private static string ComputeSha256(byte[] bytes) => System.Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
+    private static string ComputeSha256(byte[] bytes) => OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(bytes)).ToLowerInvariant();
     private static string ComputeCandidateId(string sourceSha, string origin, IReadOnlyList<PdfRedactionArea> areas) {
         var identity = new StringBuilder(sourceSha).Append('|').Append(origin);
         foreach (PdfRedactionArea area in areas) {
@@ -692,7 +693,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         }
         return ComputeSha256(Encoding.UTF8.GetBytes(identity.ToString()));
     }
-    private static string? NormalizeOptionalPath(string? path) => string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path);
+    private static string? NormalizeOptionalPath(string? path) => (path == null || string.IsNullOrWhiteSpace(path)) ? null : Path.GetFullPath(path);
 
     private static long GetMaximumPreparedBytes(PdfRedactionWorkflowRequest request) {
         long maximum = 0;
@@ -760,7 +761,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         }
     }
 
-    private static void PublishPreparedFiles(IReadOnlyList<PreparedFile> files, OfficeWorkflowConflictPolicy conflictPolicy, CancellationToken cancellationToken) {
+    private static void PublishPreparedFiles(IReadOnlyList<PreparedFile> files, OfficePublicationPolicy conflictPolicy, CancellationToken cancellationToken) {
         EnsureUniqueDestinations(files);
         var staged = new List<(OfficeWorkflowPublicationDirectory Directory, string Temp, string Destination)>(files.Count);
         var published = new List<(OfficeWorkflowPublicationDirectory Directory, string Destination, string? Backup, bool DestinationPublished)>(files.Count);
@@ -781,18 +782,18 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
             }
             foreach ((OfficeWorkflowPublicationDirectory directory, string temp, string destination) in staged) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (conflictPolicy == OfficeWorkflowConflictPolicy.Fail) {
+                if (conflictPolicy == OfficePublicationPolicy.Fail) {
                     directory.MoveNoReplace(temp, destination);
                     published.Add((directory, destination, null, true));
                     continue;
                 }
-                if (conflictPolicy != OfficeWorkflowConflictPolicy.Replace)
+                if (conflictPolicy != OfficePublicationPolicy.Replace)
                     throw new NotSupportedException("Redaction transaction publication requires Fail or Replace conflict policy.");
                 string backup = destination + "." + Guid.NewGuid().ToString("N") + ".rollback";
                 string? movedBackup = directory.TryBackup(destination, backup) ? backup : null;
                 published.Add((directory, destination, movedBackup, false));
                 directory.MoveNoReplace(temp, destination);
-                published[^1] = (directory, destination, movedBackup, true);
+                published[published.Count - 1] = (directory, destination, movedBackup, true);
             }
             committed = true;
         } catch {

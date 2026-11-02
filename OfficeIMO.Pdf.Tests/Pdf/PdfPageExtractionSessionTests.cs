@@ -78,7 +78,7 @@ public sealed class PdfPageExtractionSessionTests {
 
     [Fact]
     public void WarmEncryptedSourceDoesNotBypassAnOverridePassword() {
-        byte[] bytes = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
             .Paragraph(p => p.Text("SecretPage")).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes, new PdfLoadOptions { Password = "owner" });
         Assert.Contains("SecretPage", source.Reader.Text());

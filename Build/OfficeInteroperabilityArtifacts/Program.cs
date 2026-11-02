@@ -1,3 +1,4 @@
+using OfficeIMO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -31,14 +32,14 @@ static void CreateWordArtifact(string outputDirectory, ICollection<Interoperabil
         document.AddParagraph("OfficeIMO Word modern-to-binary interoperability artifact");
         document.Save();
     }
-    WordDocument.Convert(source, destination).RequireNoLoss();
+    OfficeConverter.Convert(source, destination, new OfficeConversionOptions { FailOnLoss = true });
     artifacts.Add(CreateArtifact("Word.Doc", "doc", destination));
 }
 
 static void CreateExcelArtifacts(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-excel-source.xlsx");
     using (ExcelDocument document = ExcelDocument.Create(source)) {
-        ExcelSheet sheet = document.AddWorksheet("Compatibility");
+        ExcelSheet sheet = document.AddSheet("Compatibility");
         sheet.CellValue(1, 1, "OfficeIMO Excel modern-to-binary interoperability artifact");
         sheet.CellValue(2, 1, 42);
         document.Save();
@@ -48,7 +49,7 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<Interoperab
                  ("Excel.Xlsb", ".xlsb")
              }) {
         string destination = Path.Combine(outputDirectory, "officeimo-excel-generated" + extension);
-        ExcelDocument.Convert(source, destination).RequireNoLoss();
+        OfficeConverter.Convert(source, destination, new OfficeConversionOptions { FailOnLoss = true });
         artifacts.Add(CreateArtifact(formatId, extension.TrimStart('.'), destination));
     }
 }
@@ -56,11 +57,11 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<Interoperab
 static void CreatePowerPointArtifact(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-powerpoint-source.pptx");
     string destination = Path.Combine(outputDirectory, "officeimo-powerpoint-generated.ppt");
-    using (PowerPointPresentation presentation = PowerPointPresentation.Create(source)) {
+    using (PowerPointDocument presentation = PowerPointDocument.Create(source)) {
         presentation.AddSlide().AddTextBox("OfficeIMO PowerPoint modern-to-binary interoperability artifact");
         presentation.Save();
     }
-    PowerPointPresentation.Convert(source, destination).RequireNoLoss();
+    OfficeConverter.Convert(source, destination, new OfficeConversionOptions { FailOnLoss = true });
     artifacts.Add(CreateArtifact("PowerPoint.Ppt", "ppt", destination));
 }
 

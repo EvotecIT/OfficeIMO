@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Syntax node kinds produced by <see cref="MarkdownReader.ParseWithSyntaxTree(string, MarkdownReaderOptions?)"/>.
+/// Syntax node kinds produced by <see cref="MarkdownReader.ParseWithSyntaxTree(string, MarkdownLoadOptions?)"/>.
 /// </summary>
 public enum MarkdownSyntaxKind {
     /// <summary>Root document node.</summary>
@@ -98,7 +98,7 @@ public enum MarkdownSyntaxKind {
     CustomContainerInfo,
     /// <summary>Closing colon fence token for a custom container block.</summary>
     CustomContainerClosingFence,
-    /// <summary>Paragraph block.</summary>
+    /// <summary>MarkdownParagraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>
     Quote,

@@ -1,0 +1,387 @@
+#nullable enable
+OfficeIMO.IOfficeConversionRoute
+OfficeIMO.IOfficeConversionRoute.ConvertAsync(System.IO.Stream! source, System.IO.Stream! destination, OfficeIMO.OfficeConversionOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+OfficeIMO.IOfficeConversionRoute.Id.get -> string!
+OfficeIMO.IOfficeConversionSettings
+OfficeIMO.IOfficeConversionSettings.Snapshot() -> OfficeIMO.IOfficeConversionSettings!
+OfficeIMO.OfficeBatchItemReport
+OfficeIMO.OfficeBatchItemReport.<Clone>$() -> OfficeIMO.OfficeBatchItemReport!
+OfficeIMO.OfficeBatchItemReport.Deconstruct(out string! InputPath, out string? OutputPath, out OfficeIMO.OfficeBatchItemStatus? Status, out bool Reused, out string! Summary, out System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>! Diagnostics, out bool Skipped) -> void
+OfficeIMO.OfficeBatchItemReport.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>!
+OfficeIMO.OfficeBatchItemReport.Diagnostics.init -> void
+OfficeIMO.OfficeBatchItemReport.Equals(OfficeIMO.OfficeBatchItemReport? other) -> bool
+OfficeIMO.OfficeBatchItemReport.InputPath.get -> string!
+OfficeIMO.OfficeBatchItemReport.InputPath.init -> void
+OfficeIMO.OfficeBatchItemReport.OfficeBatchItemReport(string! InputPath, string? OutputPath, OfficeIMO.OfficeBatchItemStatus? Status, bool Reused, string! Summary, System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeDiagnostic!>! Diagnostics, bool Skipped = false) -> void
+OfficeIMO.OfficeBatchItemReport.OutputPath.get -> string?
+OfficeIMO.OfficeBatchItemReport.OutputPath.init -> void
+OfficeIMO.OfficeBatchItemReport.Report.get -> OfficeIMO.OfficeConversionReport?
+OfficeIMO.OfficeBatchItemReport.Report.init -> void
+OfficeIMO.OfficeBatchItemReport.Reused.get -> bool
+OfficeIMO.OfficeBatchItemReport.Reused.init -> void
+OfficeIMO.OfficeBatchItemReport.Skipped.get -> bool
+OfficeIMO.OfficeBatchItemReport.Skipped.init -> void
+OfficeIMO.OfficeBatchItemReport.Status.get -> OfficeIMO.OfficeBatchItemStatus?
+OfficeIMO.OfficeBatchItemReport.Status.init -> void
+OfficeIMO.OfficeBatchItemReport.Summary.get -> string!
+OfficeIMO.OfficeBatchItemReport.Summary.init -> void
+OfficeIMO.OfficeBatchItemStatus
+OfficeIMO.OfficeBatchItemStatus.Cancelled = 1 -> OfficeIMO.OfficeBatchItemStatus
+OfficeIMO.OfficeBatchItemStatus.Completed = 0 -> OfficeIMO.OfficeBatchItemStatus
+OfficeIMO.OfficeBatchItemStatus.Failed = 2 -> OfficeIMO.OfficeBatchItemStatus
+OfficeIMO.OfficeBatchItemStatus.Unconfirmed = 3 -> OfficeIMO.OfficeBatchItemStatus
+OfficeIMO.OfficeBatchOptions
+OfficeIMO.OfficeBatchOptions.<Clone>$() -> OfficeIMO.OfficeBatchOptions!
+OfficeIMO.OfficeBatchOptions.AllowEmpty.get -> bool
+OfficeIMO.OfficeBatchOptions.AllowEmpty.set -> void
+OfficeIMO.OfficeBatchOptions.ConflictPolicy.get -> OfficeIMO.OfficePublicationPolicy
+OfficeIMO.OfficeBatchOptions.ConflictPolicy.set -> void
+OfficeIMO.OfficeBatchOptions.ConversionOptions.get -> OfficeIMO.OfficeConversionOptions!
+OfficeIMO.OfficeBatchOptions.ConversionOptions.set -> void
+OfficeIMO.OfficeBatchOptions.ConversionRouteId.get -> string?
+OfficeIMO.OfficeBatchOptions.ConversionRouteId.set -> void
+OfficeIMO.OfficeBatchOptions.Equals(OfficeIMO.OfficeBatchOptions? other) -> bool
+OfficeIMO.OfficeBatchOptions.Extensions.get -> string![]?
+OfficeIMO.OfficeBatchOptions.Extensions.set -> void
+OfficeIMO.OfficeBatchOptions.InputDirectory.get -> string?
+OfficeIMO.OfficeBatchOptions.InputDirectory.set -> void
+OfficeIMO.OfficeBatchOptions.InputPaths.get -> string![]?
+OfficeIMO.OfficeBatchOptions.InputPaths.set -> void
+OfficeIMO.OfficeBatchOptions.MaxParallelism.get -> int
+OfficeIMO.OfficeBatchOptions.MaxParallelism.set -> void
+OfficeIMO.OfficeBatchOptions.MaximumFiles.get -> int
+OfficeIMO.OfficeBatchOptions.MaximumFiles.set -> void
+OfficeIMO.OfficeBatchOptions.MaximumInputBytes.get -> long
+OfficeIMO.OfficeBatchOptions.MaximumInputBytes.set -> void
+OfficeIMO.OfficeBatchOptions.MaximumOutputBytes.get -> long
+OfficeIMO.OfficeBatchOptions.MaximumOutputBytes.set -> void
+OfficeIMO.OfficeBatchOptions.MaximumXmlCharactersInPart.get -> long
+OfficeIMO.OfficeBatchOptions.MaximumXmlCharactersInPart.set -> void
+OfficeIMO.OfficeBatchOptions.Name.get -> string?
+OfficeIMO.OfficeBatchOptions.Name.set -> void
+OfficeIMO.OfficeBatchOptions.OfficeBatchOptions() -> void
+OfficeIMO.OfficeBatchOptions.OutputDirectory.get -> string!
+OfficeIMO.OfficeBatchOptions.OutputDirectory.set -> void
+OfficeIMO.OfficeBatchOptions.OutputProfile.get -> OfficeIMO.OfficeConversionProfile
+OfficeIMO.OfficeBatchOptions.OutputProfile.set -> void
+OfficeIMO.OfficeBatchOptions.PdfPasswordEnvironmentVariable.get -> string?
+OfficeIMO.OfficeBatchOptions.PdfPasswordEnvironmentVariable.set -> void
+OfficeIMO.OfficeBatchOptions.PublicationGuard.get -> OfficeIMO.IOfficePublicationGuard?
+OfficeIMO.OfficeBatchOptions.PublicationGuard.set -> void
+OfficeIMO.OfficeBatchOptions.Recursive.get -> bool
+OfficeIMO.OfficeBatchOptions.Recursive.set -> void
+OfficeIMO.OfficeBatchOptions.ReportPath.get -> string?
+OfficeIMO.OfficeBatchOptions.ReportPath.set -> void
+OfficeIMO.OfficeBatchOptions.ResolveEnvironmentVariable.get -> System.Func<string!, string?>?
+OfficeIMO.OfficeBatchOptions.ResolveEnvironmentVariable.set -> void
+OfficeIMO.OfficeBatchOptions.ResumeFrom.get -> string?
+OfficeIMO.OfficeBatchOptions.ResumeFrom.set -> void
+OfficeIMO.OfficeBatchOptions.RetainReport.get -> System.Func<bool>?
+OfficeIMO.OfficeBatchOptions.RetainReport.set -> void
+OfficeIMO.OfficeBatchOptions.RetryFailed.get -> bool
+OfficeIMO.OfficeBatchOptions.RetryFailed.set -> void
+OfficeIMO.OfficeBatchOptions.Save(string! path, bool overwrite = false) -> void
+OfficeIMO.OfficeBatchOptions.SourcePasswordEnvironmentVariable.get -> string?
+OfficeIMO.OfficeBatchOptions.SourcePasswordEnvironmentVariable.set -> void
+OfficeIMO.OfficeBatchOptions.TargetExtension.get -> string!
+OfficeIMO.OfficeBatchOptions.TargetExtension.set -> void
+OfficeIMO.OfficeBatchOptions.ToJson(string! baseDirectory) -> string!
+OfficeIMO.OfficeBatchPlan
+OfficeIMO.OfficeBatchPlan.CanRun.get -> bool
+OfficeIMO.OfficeBatchPlan.Collisions.get -> long
+OfficeIMO.OfficeBatchPlan.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
+OfficeIMO.OfficeBatchPlan.Discovered.get -> long
+OfficeIMO.OfficeBatchPlan.Failed.get -> long
+OfficeIMO.OfficeBatchPlan.Items.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeBatchPlanItem!>!
+OfficeIMO.OfficeBatchPlan.ItemsTruncated.get -> bool
+OfficeIMO.OfficeBatchPlan.OfficeBatchPlan() -> void
+OfficeIMO.OfficeBatchPlan.Selected.get -> long
+OfficeIMO.OfficeBatchPlan.Skipped.get -> long
+OfficeIMO.OfficeBatchPlanItem
+OfficeIMO.OfficeBatchPlanItem.<Clone>$() -> OfficeIMO.OfficeBatchPlanItem!
+OfficeIMO.OfficeBatchPlanItem.Deconstruct(out string! InputPath, out string? OutputPath, out string? RouteId, out string! Disposition, out string! Message) -> void
+OfficeIMO.OfficeBatchPlanItem.Disposition.get -> string!
+OfficeIMO.OfficeBatchPlanItem.Disposition.init -> void
+OfficeIMO.OfficeBatchPlanItem.Equals(OfficeIMO.OfficeBatchPlanItem? other) -> bool
+OfficeIMO.OfficeBatchPlanItem.InputPath.get -> string!
+OfficeIMO.OfficeBatchPlanItem.InputPath.init -> void
+OfficeIMO.OfficeBatchPlanItem.Message.get -> string!
+OfficeIMO.OfficeBatchPlanItem.Message.init -> void
+OfficeIMO.OfficeBatchPlanItem.OfficeBatchPlanItem(string! InputPath, string? OutputPath, string? RouteId, string! Disposition, string! Message) -> void
+OfficeIMO.OfficeBatchPlanItem.OutputPath.get -> string?
+OfficeIMO.OfficeBatchPlanItem.OutputPath.init -> void
+OfficeIMO.OfficeBatchPlanItem.RouteId.get -> string?
+OfficeIMO.OfficeBatchPlanItem.RouteId.init -> void
+OfficeIMO.OfficeBatchReport
+OfficeIMO.OfficeBatchReport.<Clone>$() -> OfficeIMO.OfficeBatchReport!
+OfficeIMO.OfficeBatchReport.AllowEmpty.get -> bool
+OfficeIMO.OfficeBatchReport.AllowEmpty.init -> void
+OfficeIMO.OfficeBatchReport.Equals(OfficeIMO.OfficeBatchReport? other) -> bool
+OfficeIMO.OfficeBatchReport.FailureSummary.get -> string?
+OfficeIMO.OfficeBatchReport.FailureSummary.init -> void
+OfficeIMO.OfficeBatchReport.FinishedUtc.get -> System.DateTimeOffset?
+OfficeIMO.OfficeBatchReport.FinishedUtc.init -> void
+OfficeIMO.OfficeBatchReport.Items.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeBatchItemReport!>!
+OfficeIMO.OfficeBatchReport.Items.init -> void
+OfficeIMO.OfficeBatchReport.ItemsTruncated.get -> bool
+OfficeIMO.OfficeBatchReport.ItemsTruncated.init -> void
+OfficeIMO.OfficeBatchReport.JobPath.get -> string?
+OfficeIMO.OfficeBatchReport.JobPath.init -> void
+OfficeIMO.OfficeBatchReport.JobSha256.get -> string?
+OfficeIMO.OfficeBatchReport.JobSha256.init -> void
+OfficeIMO.OfficeBatchReport.OfficeBatchReport() -> void
+OfficeIMO.OfficeBatchReport.OutputDirectory.get -> string?
+OfficeIMO.OfficeBatchReport.OutputDirectory.init -> void
+OfficeIMO.OfficeBatchReport.RecordingError.get -> string?
+OfficeIMO.OfficeBatchReport.RecordingError.init -> void
+OfficeIMO.OfficeBatchReport.ResumeFrom.get -> string?
+OfficeIMO.OfficeBatchReport.ResumeFrom.init -> void
+OfficeIMO.OfficeBatchReport.RetryFailed.get -> bool
+OfficeIMO.OfficeBatchReport.RetryFailed.init -> void
+OfficeIMO.OfficeBatchReport.RunId.get -> string?
+OfficeIMO.OfficeBatchReport.RunId.init -> void
+OfficeIMO.OfficeBatchReport.Save(string! path) -> void
+OfficeIMO.OfficeBatchReport.Schema.get -> string!
+OfficeIMO.OfficeBatchReport.Schema.init -> void
+OfficeIMO.OfficeBatchReport.StartedUtc.get -> System.DateTimeOffset
+OfficeIMO.OfficeBatchReport.StartedUtc.init -> void
+OfficeIMO.OfficeBatchReport.State.get -> OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchReport.State.init -> void
+OfficeIMO.OfficeBatchReport.Succeeded.get -> bool
+OfficeIMO.OfficeBatchReport.Succeeded.init -> void
+OfficeIMO.OfficeBatchReport.Summary.get -> OfficeIMO.OfficeBatchSummary!
+OfficeIMO.OfficeBatchReport.Summary.init -> void
+OfficeIMO.OfficeBatchReport.ToJson() -> string!
+OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchRunState.Cancelled = 3 -> OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchRunState.Completed = 1 -> OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchRunState.Failed = 2 -> OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchRunState.Interrupted = 4 -> OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchRunState.Running = 0 -> OfficeIMO.OfficeBatchRunState
+OfficeIMO.OfficeBatchSummary
+OfficeIMO.OfficeBatchSummary.<Clone>$() -> OfficeIMO.OfficeBatchSummary!
+OfficeIMO.OfficeBatchSummary.Cancelled.get -> bool
+OfficeIMO.OfficeBatchSummary.Cancelled.init -> void
+OfficeIMO.OfficeBatchSummary.Completed.get -> long
+OfficeIMO.OfficeBatchSummary.Completed.init -> void
+OfficeIMO.OfficeBatchSummary.Deconstruct(out long Selected, out long Completed, out long Reused, out long Failed, out bool Cancelled, out long Skipped) -> void
+OfficeIMO.OfficeBatchSummary.Equals(OfficeIMO.OfficeBatchSummary? other) -> bool
+OfficeIMO.OfficeBatchSummary.Failed.get -> long
+OfficeIMO.OfficeBatchSummary.Failed.init -> void
+OfficeIMO.OfficeBatchSummary.FailureSummary.get -> string?
+OfficeIMO.OfficeBatchSummary.FailureSummary.init -> void
+OfficeIMO.OfficeBatchSummary.OfficeBatchSummary(long Selected, long Completed, long Reused, long Failed, bool Cancelled, long Skipped = 0) -> void
+OfficeIMO.OfficeBatchSummary.Reused.get -> long
+OfficeIMO.OfficeBatchSummary.Reused.init -> void
+OfficeIMO.OfficeBatchSummary.Selected.get -> long
+OfficeIMO.OfficeBatchSummary.Selected.init -> void
+OfficeIMO.OfficeBatchSummary.Skipped.get -> long
+OfficeIMO.OfficeBatchSummary.Skipped.init -> void
+OfficeIMO.OfficeConversionOptions
+OfficeIMO.OfficeConversionOptions.Clone() -> OfficeIMO.OfficeConversionOptions!
+OfficeIMO.OfficeConversionOptions.CompatibilityMode.get -> OfficeIMO.OfficeCompatibilityMode
+OfficeIMO.OfficeConversionOptions.CompatibilityMode.set -> void
+OfficeIMO.OfficeConversionOptions.CompressPdfOutput.get -> bool
+OfficeIMO.OfficeConversionOptions.CompressPdfOutput.set -> void
+OfficeIMO.OfficeConversionOptions.EmbedSourceWhenLossy.get -> bool
+OfficeIMO.OfficeConversionOptions.EmbedSourceWhenLossy.set -> void
+OfficeIMO.OfficeConversionOptions.Excel.get -> OfficeIMO.Excel.Pdf.ExcelPdfExportOptions?
+OfficeIMO.OfficeConversionOptions.Excel.set -> void
+OfficeIMO.OfficeConversionOptions.ExcelLoad.get -> OfficeIMO.Excel.ExcelLoadOptions?
+OfficeIMO.OfficeConversionOptions.ExcelLoad.set -> void
+OfficeIMO.OfficeConversionOptions.ExcelSave.get -> OfficeIMO.Excel.ExcelSaveOptions?
+OfficeIMO.OfficeConversionOptions.ExcelSave.set -> void
+OfficeIMO.OfficeConversionOptions.FailOnLoss.get -> bool
+OfficeIMO.OfficeConversionOptions.FailOnLoss.set -> void
+OfficeIMO.OfficeConversionOptions.FileConflictPolicy.get -> OfficeIMO.OfficePublicationPolicy
+OfficeIMO.OfficeConversionOptions.FileConflictPolicy.set -> void
+OfficeIMO.OfficeConversionOptions.Html.get -> OfficeIMO.Html.Pdf.HtmlToPdfOptions?
+OfficeIMO.OfficeConversionOptions.Html.set -> void
+OfficeIMO.OfficeConversionOptions.HtmlLoad.get -> OfficeIMO.Html.HtmlConversionDocumentOptions?
+OfficeIMO.OfficeConversionOptions.HtmlLoad.set -> void
+OfficeIMO.OfficeConversionOptions.HtmlMarkdown.get -> OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions?
+OfficeIMO.OfficeConversionOptions.HtmlMarkdown.set -> void
+OfficeIMO.OfficeConversionOptions.HtmlWord.get -> OfficeIMO.Word.Html.WordHtmlImportOptions?
+OfficeIMO.OfficeConversionOptions.HtmlWord.set -> void
+OfficeIMO.OfficeConversionOptions.Markdown.get -> OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions?
+OfficeIMO.OfficeConversionOptions.Markdown.set -> void
+OfficeIMO.OfficeConversionOptions.MarkdownHtml.get -> OfficeIMO.Markdown.MarkdownHtmlExportOptions?
+OfficeIMO.OfficeConversionOptions.MarkdownHtml.set -> void
+OfficeIMO.OfficeConversionOptions.MarkdownWord.get -> OfficeIMO.Word.Markdown.WordMarkdownImportOptions?
+OfficeIMO.OfficeConversionOptions.MarkdownWord.set -> void
+OfficeIMO.OfficeConversionOptions.MaximumInputBytes.get -> long
+OfficeIMO.OfficeConversionOptions.MaximumInputBytes.set -> void
+OfficeIMO.OfficeConversionOptions.MaximumOutputBytes.get -> long
+OfficeIMO.OfficeConversionOptions.MaximumOutputBytes.set -> void
+OfficeIMO.OfficeConversionOptions.MaximumXmlCharactersInPart.get -> long
+OfficeIMO.OfficeConversionOptions.MaximumXmlCharactersInPart.set -> void
+OfficeIMO.OfficeConversionOptions.OfficeConversionOptions() -> void
+OfficeIMO.OfficeConversionOptions.OutputProfile.get -> OfficeIMO.OfficeConversionProfile
+OfficeIMO.OfficeConversionOptions.OutputProfile.set -> void
+OfficeIMO.OfficeConversionOptions.PdfExcel.get -> OfficeIMO.Pdf.Excel.ExcelPdfImportOptions?
+OfficeIMO.OfficeConversionOptions.PdfExcel.set -> void
+OfficeIMO.OfficeConversionOptions.PdfHtml.get -> OfficeIMO.Html.Pdf.PdfToHtmlOptions?
+OfficeIMO.OfficeConversionOptions.PdfHtml.set -> void
+OfficeIMO.OfficeConversionOptions.PdfLoad.get -> OfficeIMO.Pdf.PdfLoadOptions?
+OfficeIMO.OfficeConversionOptions.PdfLoad.set -> void
+OfficeIMO.OfficeConversionOptions.PdfPowerPoint.get -> OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions?
+OfficeIMO.OfficeConversionOptions.PdfPowerPoint.set -> void
+OfficeIMO.OfficeConversionOptions.PdfWord.get -> OfficeIMO.Pdf.Word.WordPdfImportOptions?
+OfficeIMO.OfficeConversionOptions.PdfWord.set -> void
+OfficeIMO.OfficeConversionOptions.PlainText.get -> OfficeIMO.Pdf.PdfTextImportOptions?
+OfficeIMO.OfficeConversionOptions.PlainText.set -> void
+OfficeIMO.OfficeConversionOptions.PowerPoint.get -> OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions?
+OfficeIMO.OfficeConversionOptions.PowerPoint.set -> void
+OfficeIMO.OfficeConversionOptions.PowerPointLoad.get -> OfficeIMO.PowerPoint.PowerPointLoadOptions?
+OfficeIMO.OfficeConversionOptions.PowerPointLoad.set -> void
+OfficeIMO.OfficeConversionOptions.PowerPointSave.get -> OfficeIMO.PowerPoint.PowerPointSaveOptions?
+OfficeIMO.OfficeConversionOptions.PowerPointSave.set -> void
+OfficeIMO.OfficeConversionOptions.PublicationGuard.get -> OfficeIMO.IOfficePublicationGuard?
+OfficeIMO.OfficeConversionOptions.PublicationGuard.set -> void
+OfficeIMO.OfficeConversionOptions.Reader.get -> OfficeIMO.Reader.ReaderOptions?
+OfficeIMO.OfficeConversionOptions.Reader.set -> void
+OfficeIMO.OfficeConversionOptions.ReaderEmail.get -> OfficeIMO.Reader.Email.ReaderEmailOptions?
+OfficeIMO.OfficeConversionOptions.ReaderEmail.set -> void
+OfficeIMO.OfficeConversionOptions.ReaderEpub.get -> OfficeIMO.Epub.EpubReadOptions?
+OfficeIMO.OfficeConversionOptions.ReaderEpub.set -> void
+OfficeIMO.OfficeConversionOptions.ReaderPdf.get -> OfficeIMO.Pdf.PdfProjectionOptions?
+OfficeIMO.OfficeConversionOptions.ReaderPdf.set -> void
+OfficeIMO.OfficeConversionOptions.ReaderVisio.get -> OfficeIMO.Reader.Visio.ReaderVisioOptions?
+OfficeIMO.OfficeConversionOptions.ReaderVisio.set -> void
+OfficeIMO.OfficeConversionOptions.RegisteredSettings.get -> OfficeIMO.IOfficeConversionSettings?
+OfficeIMO.OfficeConversionOptions.RegisteredSettings.set -> void
+OfficeIMO.OfficeConversionOptions.RouteId.get -> string?
+OfficeIMO.OfficeConversionOptions.RouteId.set -> void
+OfficeIMO.OfficeConversionOptions.SourceName.get -> string?
+OfficeIMO.OfficeConversionOptions.SourceName.set -> void
+OfficeIMO.OfficeConversionOptions.SourcePassword.get -> string?
+OfficeIMO.OfficeConversionOptions.SourcePassword.set -> void
+OfficeIMO.OfficeConversionOptions.TargetName.get -> string?
+OfficeIMO.OfficeConversionOptions.TargetName.set -> void
+OfficeIMO.OfficeConversionOptions.VisualFallbackMaxColumns.get -> int
+OfficeIMO.OfficeConversionOptions.VisualFallbackMaxColumns.set -> void
+OfficeIMO.OfficeConversionOptions.VisualFallbackMaxRows.get -> int
+OfficeIMO.OfficeConversionOptions.VisualFallbackMaxRows.set -> void
+OfficeIMO.OfficeConversionOptions.Word.get -> OfficeIMO.Word.Pdf.WordPdfExportOptions?
+OfficeIMO.OfficeConversionOptions.Word.set -> void
+OfficeIMO.OfficeConversionOptions.WordHtml.get -> OfficeIMO.Word.Html.WordHtmlExportOptions?
+OfficeIMO.OfficeConversionOptions.WordHtml.set -> void
+OfficeIMO.OfficeConversionOptions.WordLoad.get -> OfficeIMO.Word.WordLoadOptions?
+OfficeIMO.OfficeConversionOptions.WordLoad.set -> void
+OfficeIMO.OfficeConversionOptions.WordMarkdown.get -> OfficeIMO.Word.Markdown.WordMarkdownExportOptions?
+OfficeIMO.OfficeConversionOptions.WordMarkdown.set -> void
+OfficeIMO.OfficeConversionOptions.WordSave.get -> OfficeIMO.Word.WordSaveOptions?
+OfficeIMO.OfficeConversionOptions.WordSave.set -> void
+OfficeIMO.OfficeConverter
+OfficeIMO.OfficeDocument
+OfficeIMO.OfficeDocumentInfo
+OfficeIMO.OfficeDocumentInfo.Content.get -> OfficeIMO.Reader.OfficeDocumentReadResult?
+OfficeIMO.OfficeDocumentInfo.ContentSafety.get -> OfficeIMO.ContentSafety.OfficeContentSafetyReport?
+OfficeIMO.OfficeDocumentInfo.PackageSignatures.get -> OfficeIMO.Security.OfficePackageSignatureInfo?
+OfficeIMO.OfficeDocumentInfo.PdfPreflight.get -> OfficeIMO.Pdf.PdfDocumentPreflight?
+OfficeIMO.OfficeDocumentInfo.Provenance.get -> OfficeIMO.Provenance.OfficeProvenanceReport?
+OfficeIMO.OfficeDocumentInfo.Source.get -> string!
+OfficeIMO.OfficeDocumentInfo.VbaSignatures.get -> OfficeIMO.Security.OfficeVbaSignatureInfo?
+OfficeIMO.OfficeDocumentInfo.WordMacroSignatures.get -> OfficeIMO.Word.WordMacroProjectSignatureInfo?
+OfficeIMO.OfficeInspectOptions
+OfficeIMO.OfficeInspectOptions.ContentSafety.get -> OfficeIMO.ContentSafety.OfficeContentSafetyOptions?
+OfficeIMO.OfficeInspectOptions.ContentSafety.set -> void
+OfficeIMO.OfficeInspectOptions.Formats.get -> OfficeIMO.Reader.All.ReaderAllOptions!
+OfficeIMO.OfficeInspectOptions.Formats.set -> void
+OfficeIMO.OfficeInspectOptions.IncludeContent.get -> bool
+OfficeIMO.OfficeInspectOptions.IncludeContent.set -> void
+OfficeIMO.OfficeInspectOptions.MaximumInputBytes.get -> long
+OfficeIMO.OfficeInspectOptions.MaximumInputBytes.set -> void
+OfficeIMO.OfficeInspectOptions.OfficeInspectOptions() -> void
+OfficeIMO.OfficeInspectOptions.PackageSignatures.get -> OfficeIMO.Security.OfficePackageSignatureInspectionOptions?
+OfficeIMO.OfficeInspectOptions.PackageSignatures.set -> void
+OfficeIMO.OfficeInspectOptions.PdfPreflight.get -> OfficeIMO.Pdf.PdfLoadOptions?
+OfficeIMO.OfficeInspectOptions.PdfPreflight.set -> void
+OfficeIMO.OfficeInspectOptions.Provenance.get -> OfficeIMO.Provenance.OfficeProvenanceOptions?
+OfficeIMO.OfficeInspectOptions.Provenance.set -> void
+OfficeIMO.OfficeInspectOptions.Reader.get -> OfficeIMO.Reader.ReaderOptions!
+OfficeIMO.OfficeInspectOptions.Reader.set -> void
+OfficeIMO.OfficeInspectOptions.SecurityProvider.get -> OfficeIMO.Security.IOfficeSecurityProvider?
+OfficeIMO.OfficeInspectOptions.SecurityProvider.set -> void
+OfficeIMO.OfficeInspectOptions.VbaSignatures.get -> OfficeIMO.Security.OfficeVbaSignatureInspectionOptions?
+OfficeIMO.OfficeInspectOptions.VbaSignatures.set -> void
+OfficeIMO.OfficeInspectOptions.WordMacroSignatures.get -> OfficeIMO.Word.WordMacroProjectSignatureInspectionOptions?
+OfficeIMO.OfficeInspectOptions.WordMacroSignatures.set -> void
+OfficeIMO.OfficeOcrConversionExtensions
+OfficeIMO.OfficeReaderConversionExtensions
+const OfficeIMO.OfficeBatchReport.CurrentSchema = "officeimo.conversion.batch.v2" -> string!
+override OfficeIMO.OfficeBatchItemReport.Equals(object? obj) -> bool
+override OfficeIMO.OfficeBatchItemReport.GetHashCode() -> int
+override OfficeIMO.OfficeBatchItemReport.ToString() -> string!
+override OfficeIMO.OfficeBatchOptions.Equals(object? obj) -> bool
+override OfficeIMO.OfficeBatchOptions.GetHashCode() -> int
+override OfficeIMO.OfficeBatchOptions.ToString() -> string!
+override OfficeIMO.OfficeBatchPlanItem.Equals(object? obj) -> bool
+override OfficeIMO.OfficeBatchPlanItem.GetHashCode() -> int
+override OfficeIMO.OfficeBatchPlanItem.ToString() -> string!
+override OfficeIMO.OfficeBatchReport.Equals(object? obj) -> bool
+override OfficeIMO.OfficeBatchReport.GetHashCode() -> int
+override OfficeIMO.OfficeBatchReport.ToString() -> string!
+override OfficeIMO.OfficeBatchSummary.Equals(object? obj) -> bool
+override OfficeIMO.OfficeBatchSummary.GetHashCode() -> int
+override OfficeIMO.OfficeBatchSummary.ToString() -> string!
+static OfficeIMO.OfficeBatchItemReport.operator !=(OfficeIMO.OfficeBatchItemReport? left, OfficeIMO.OfficeBatchItemReport? right) -> bool
+static OfficeIMO.OfficeBatchItemReport.operator ==(OfficeIMO.OfficeBatchItemReport? left, OfficeIMO.OfficeBatchItemReport? right) -> bool
+static OfficeIMO.OfficeBatchOptions.Load(string! path) -> OfficeIMO.OfficeBatchOptions!
+static OfficeIMO.OfficeBatchOptions.Parse(string! json, string! baseDirectory) -> OfficeIMO.OfficeBatchOptions!
+static OfficeIMO.OfficeBatchOptions.operator !=(OfficeIMO.OfficeBatchOptions? left, OfficeIMO.OfficeBatchOptions? right) -> bool
+static OfficeIMO.OfficeBatchOptions.operator ==(OfficeIMO.OfficeBatchOptions? left, OfficeIMO.OfficeBatchOptions? right) -> bool
+static OfficeIMO.OfficeBatchPlanItem.operator !=(OfficeIMO.OfficeBatchPlanItem? left, OfficeIMO.OfficeBatchPlanItem? right) -> bool
+static OfficeIMO.OfficeBatchPlanItem.operator ==(OfficeIMO.OfficeBatchPlanItem? left, OfficeIMO.OfficeBatchPlanItem? right) -> bool
+static OfficeIMO.OfficeBatchReport.IsActive(string! path) -> bool
+static OfficeIMO.OfficeBatchReport.Load(string! path) -> OfficeIMO.OfficeBatchReport!
+static OfficeIMO.OfficeBatchReport.Parse(string! json) -> OfficeIMO.OfficeBatchReport!
+static OfficeIMO.OfficeBatchReport.operator !=(OfficeIMO.OfficeBatchReport? left, OfficeIMO.OfficeBatchReport? right) -> bool
+static OfficeIMO.OfficeBatchReport.operator ==(OfficeIMO.OfficeBatchReport? left, OfficeIMO.OfficeBatchReport? right) -> bool
+static OfficeIMO.OfficeBatchSummary.operator !=(OfficeIMO.OfficeBatchSummary? left, OfficeIMO.OfficeBatchSummary? right) -> bool
+static OfficeIMO.OfficeBatchSummary.operator ==(OfficeIMO.OfficeBatchSummary? left, OfficeIMO.OfficeBatchSummary? right) -> bool
+static OfficeIMO.OfficeConverter.Analyze(string! source, string! destination, OfficeIMO.OfficeConversionOptions? options = null) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.AnalyzeAsync(string! source, string! destination, OfficeIMO.OfficeConversionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.Convert(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeConversionOptions? options = null) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeConverter.ConvertAsync(System.Collections.Generic.IEnumerable<string!>! sources, string! outputDirectory, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeBatchOptions? options = null, System.IProgress<OfficeIMO.OfficeBatchItemReport!>? progress = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeBatchReport!>!
+static OfficeIMO.OfficeConverter.ConvertAsync(System.IO.Stream! source, OfficeIMO.OfficeDocumentFormat sourceFormat, System.IO.Stream! destination, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeConversionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeConverter.ConvertDirectoryAsync(string! sourceDirectory, string! outputDirectory, OfficeIMO.OfficeDocumentFormat target, OfficeIMO.OfficeBatchOptions? options = null, System.IProgress<OfficeIMO.OfficeBatchItemReport!>? progress = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeBatchReport!>!
+static OfficeIMO.OfficeConverter.PlanAsync(OfficeIMO.OfficeBatchOptions! options, System.IProgress<OfficeIMO.OfficeBatchPlanItem!>? progress = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeBatchPlan!>!
+static OfficeIMO.OfficeConverter.Register(OfficeIMO.IOfficeConversionRoute! route) -> void
+static OfficeIMO.OfficeConverter.Routes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionCapability!>!
+static OfficeIMO.OfficeDocument.Inspect(System.IO.Stream! source, string! sourceName, OfficeIMO.OfficeInspectOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeDocumentInfo!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsExcel(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsExcel(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsExcelAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsExcelAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsHtml(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsHtml(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsHtmlAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsHtmlAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsPowerPoint(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsPowerPoint(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsPowerPointAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsPowerPointAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsWord(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.Word.WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsWord(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Pdf.Word.WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsWordAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.Word.WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.SaveAsWordAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, string! path, OfficeIMO.Pdf.Word.WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeOcrConversionExtensions.ToExcel(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelDocument!
+static OfficeIMO.OfficeOcrConversionExtensions.ToExcel(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelDocument!
+static OfficeIMO.OfficeOcrConversionExtensions.ToExcelAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.Excel.ExcelPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<OfficeIMO.Excel.ExcelDocument!>!>!
+static OfficeIMO.OfficeOcrConversionExtensions.ToHtml(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
+static OfficeIMO.OfficeOcrConversionExtensions.ToHtml(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> string!
+static OfficeIMO.OfficeOcrConversionExtensions.ToHtmlAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Html.Pdf.PdfToHtmlOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<string!>!>!
+static OfficeIMO.OfficeOcrConversionExtensions.ToPowerPoint(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.PowerPoint.PowerPointDocument!
+static OfficeIMO.OfficeOcrConversionExtensions.ToPowerPoint(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.PowerPoint.PowerPointDocument!
+static OfficeIMO.OfficeOcrConversionExtensions.ToPowerPointAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<OfficeIMO.PowerPoint.PowerPointDocument!>!>!
+static OfficeIMO.OfficeOcrConversionExtensions.ToWord(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.Word.WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.WordDocument!
+static OfficeIMO.OfficeOcrConversionExtensions.ToWord(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.Word.WordPdfImportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.WordDocument!
+static OfficeIMO.OfficeOcrConversionExtensions.ToWordAsync(this OfficeIMO.Pdf.Ocr.PdfOcrMergeResult! source, OfficeIMO.Pdf.Word.WordPdfImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<OfficeIMO.Word.WordDocument!>!>!
+static OfficeIMO.OfficeReaderConversionExtensions.SaveAsPdf(this OfficeIMO.Reader.OfficeDocumentReadResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeReaderConversionExtensions.SaveAsPdf(this OfficeIMO.Reader.OfficeDocumentReadResult! source, string! path, OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.OfficeReaderConversionExtensions.SaveAsPdfAsync(this OfficeIMO.Reader.OfficeDocumentReadResult! source, System.IO.Stream! stream, OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeReaderConversionExtensions.SaveAsPdfAsync(this OfficeIMO.Reader.OfficeDocumentReadResult! source, string! path, OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+static OfficeIMO.OfficeReaderConversionExtensions.ToPdf(this OfficeIMO.Reader.OfficeDocumentReadResult! source, OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+static OfficeIMO.OfficeReaderConversionExtensions.ToPdf(this OfficeIMO.Reader.OfficeDocumentReadResult! source, OfficeIMO.Pdf.PdfProjectionOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Pdf.PdfDocument!
+static OfficeIMO.OfficeReaderConversionExtensions.ToPdfAsync(this OfficeIMO.Reader.OfficeDocumentReadResult! source, OfficeIMO.Pdf.PdfProjectionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<OfficeIMO.Pdf.PdfDocument!>!>!

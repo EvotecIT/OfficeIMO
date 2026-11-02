@@ -1,210 +1,121 @@
 ---
 title: Word to Markdown
-description: Bidirectional conversion between Word documents and Markdown using OfficeIMO.Word.Markdown. Includes examples and API links.
+description: Convert Word documents to a typed Markdown model, save Markdown to files or streams, and build Word documents from headings, lists and tables.
 order: 71
 ---
 
-The `OfficeIMO.Word.Markdown` package provides bidirectional conversion between Word documents and Markdown. It builds on `OfficeIMO.Word`, `OfficeIMO.Markdown`, and `OfficeIMO.Word.Html` to handle headings, formatting, tables, lists, images, and more.
-
-## Installation
+`OfficeIMO.Word.Markdown` converts between `WordDocument` and `MarkdownDocument`. The returned model owns its save operations; call `ToMarkdown()` on that model when you need a string.
 
 ```bash
 dotnet add package OfficeIMO.Word.Markdown
 ```
 
-This package depends on `OfficeIMO.Word`, `OfficeIMO.Word.Html`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html`.
-
 ## Word to Markdown
 
-### Convert to Markdown String
+Load a Word document, convert it, and save or inspect the Markdown model:
 
 ```csharp
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 
 using var document = WordDocument.Load("report.docx");
+using var markdown = document.ToMarkdown();
+Console.WriteLine(markdown.ToMarkdown());
+markdown.Save("report.md");
+await markdown.SaveAsync("report-copy.md");
 
-string markdown = document.ToMarkdown();
-Console.WriteLine(markdown);
-```
-
-Markdown generation is an in-memory conversion and is synchronous. Use the Markdown document save APIs when the destination requires asynchronous I/O.
-
-### Convert to Markdown AST
-
-Get a typed `MarkdownDoc` AST for further processing:
-
-```csharp
-using OfficeIMO.Word;
-using OfficeIMO.Word.Markdown;
-using OfficeIMO.Markdown;
-
-using var document = WordDocument.Load("report.docx");
-MarkdownDoc markdownDoc = document.ToMarkdownDocument();
-
-// Inspect the structure
-foreach (var heading in markdownDoc.DescendantHeadings()) {
+foreach (var heading in markdown.DescendantHeadings()) {
     Console.WriteLine($"H{heading.Level}: {heading.Text}");
 }
-
-// Render to string
-var output = markdownDoc.ToMarkdown();
 ```
 
-### Save as Markdown File
-
-```csharp
-document.SaveAsMarkdown("report.md");
-
-// Async version
-await document.SaveAsMarkdownAsync("report.md");
-```
-
-### Save to a Stream
-
-```csharp
-using var stream = new MemoryStream();
-document.SaveAsMarkdown(stream);
-```
-
-### Conversion Options
+Conversion runs in memory. `SaveAsync` handles asynchronous output. A caller-owned stream remains open after saving:
 
 ```csharp
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 
 using var document = WordDocument.Load("report.docx");
+using var markdown = document.ToMarkdown();
+using var stream = File.Create("report-stream.md");
+markdown.Save(stream);
+```
 
-var options = new WordToMarkdownOptions {
+Export options control Markdown features such as underline and highlighting:
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+
+using var document = WordDocument.Load("report.docx");
+using var markdown = document.ToMarkdown(new WordMarkdownExportOptions {
     EnableUnderline = true,
     EnableHighlight = true
-};
-
-string markdown = document.ToMarkdown(options);
+});
+Console.WriteLine(markdown.ToMarkdown());
 ```
 
 ## Markdown to Word
 
-### Create a Word Document from Markdown String
+Parse Markdown into its native model, then convert that model to Word:
 
 ```csharp
 using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 
-string markdown = @"
-## Summary
-
-This report covers **Q4 performance**.
-
-| Metric | Value |
-|--------|-------|
-| Revenue | $1.2M |
-| Users | 5,000 |
-
-## Conclusion
-
-Overall positive results.
-";
-
-using var document = MarkdownReader.Parse(markdown).ToWordDocument();
+const string source = "# Summary\n\nThis report covers **Q4 performance**.\n\n| Metric | Value |\n| --- | --- |\n| Revenue | $1.2M |\n| Users | 5,000 |";
+var options = new WordMarkdownImportOptions();
+using var markdown = MarkdownDocument.Parse(source, options.CreateReaderOptions());
+using var document = markdown.ToWord(options);
 document.Save("from-markdown.docx");
 ```
 
-### Create from a Markdown File
-
-```csharp
-MarkdownDoc markdown = MarkdownDoc.Load("README.md");
-using var document = markdown.ToWordDocument();
-document.Save("readme.docx");
-```
-
-### Create from a Stream
-
-```csharp
-using var stream = File.OpenRead("document.md");
-MarkdownDoc markdown = MarkdownDoc.Load(stream);
-using var document = markdown.ToWordDocument();
-document.Save("output.docx");
-```
-
-### Async Markdown to Word
-
-```csharp
-MarkdownDoc markdown = await MarkdownDoc.LoadAsync("README.md");
-using var document = markdown.ToWordDocument();
-document.Save("readme.docx");
-```
-
-### Create from a MarkdownDoc AST
-
-If you have already parsed or built a `MarkdownDoc`, convert it directly:
+Use the same conversion for a loaded file or caller-owned stream:
 
 ```csharp
 using OfficeIMO.Markdown;
+using OfficeIMO.Word.Markdown;
 
-var md = MarkdownDoc.Create()
-    .H1("Generated Report")
-    .P("Created programmatically.")
-    .Table(t => t
-        .Headers("Item", "Count")
-        .Row("Widgets", "42")
-        .Row("Gadgets", "17")
-    );
+using var markdown = await MarkdownDocument.LoadAsync("input.md");
+using var document = markdown.ToWord();
+document.Save("from-file.docx");
 
-using var document = md.ToWordDocument();
-document.Save("generated.docx");
+using var stream = File.OpenRead("input.md");
+using var fromStream = MarkdownDocument.Load(stream);
+using var streamedDocument = fromStream.ToWord();
+streamedDocument.Save("from-stream.docx");
 ```
 
-### Markdown to Word Options
+## HTML through Markdown
 
-```csharp
-var options = new MarkdownToWordOptions {
-    // Configure default styles, fonts, etc.
-};
+Add the HTML adapter for conversions between HTML and the Markdown model:
 
-using var document = MarkdownReader.Parse(markdown).ToWordDocument(options);
+```bash
+dotnet add package OfficeIMO.Markdown.Html
 ```
 
-## HTML via Markdown
-
-Convert Word to HTML by going through the Markdown pipeline. This can produce cleaner HTML than the direct Word-to-HTML converter for simple documents:
+Save a Word document's Markdown model as a complete HTML page:
 
 ```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Markdown;
+
 using var document = WordDocument.Load("report.docx");
-
-// Word -> Markdown -> HTML
-string html = document.ToHtmlViaMarkdown();
+using var markdown = document.ToMarkdown();
+markdown.SaveAsHtml("report.html");
 ```
 
-For an HTML fragment (no `<html>`, `<head>`, `<body>` wrapper):
+For HTML to Word, convert the HTML model to Markdown first:
 
 ```csharp
-string fragment = document.ToHtmlFragmentViaMarkdown();
-```
+using OfficeIMO.Html;
+using OfficeIMO.Markdown.Html;
+using OfficeIMO.Word.Markdown;
 
-Save the HTML output to a file:
-
-```csharp
-document.SaveAsHtmlViaMarkdown("report.html");
-```
-
-### HTML to Word via Markdown
-
-Convert HTML to Word by first converting to Markdown, then to Word:
-
-```csharp
-string html = "<h1>Hello</h1><p>World</p>";
-
-using var document = html.ToWordDocumentViaMarkdown();
-document.Save("from-html-via-md.docx");
-```
-
-From a stream:
-
-```csharp
-using var htmlStream = File.OpenRead("page.html");
-using var document = htmlStream.ToWordDocumentViaMarkdown();
-document.Save("output.docx");
+var html = HtmlConversionDocument.Parse("<h1>Hello</h1><p>World</p>");
+using var markdown = html.ToMarkdown();
+using var document = markdown.ToWord();
+document.Save("from-html.docx");
 ```
 
 ## Element Mapping

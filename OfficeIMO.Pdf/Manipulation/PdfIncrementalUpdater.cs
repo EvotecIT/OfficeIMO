@@ -302,7 +302,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (!security.LastStartXrefOffset.HasValue) {
-            commonBlockers.Add("MissingStartXref");
+            commonBlockers.Add("missing-start-xref");
         }
 
         metadataBlockers.AddRange(commonBlockers);
@@ -370,7 +370,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (security.AcroFormAppendOnly) {
-            warnings.Add("AcroFormAppendOnly");
+            warnings.Add("acro-form-append-only");
         }
 
         var supported = new List<string>();

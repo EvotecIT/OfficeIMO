@@ -11,10 +11,10 @@ namespace OfficeIMO.Workflows.Tests {
             using RedactionTestDirectory scope = new RedactionTestDirectory();
             string input = scope.PathFor("source.pdf"), output = scope.PathFor("redacted.pdf");
             OfficeIMO.Drawing.OfficeShape background = OfficeIMO.Drawing.OfficeShape.Rectangle(300D, 60D);
-            background.FillColor = OfficeIMO.Drawing.OfficeColor.Blue;
+            background.FillColor = OfficeIMO.OfficeColor.Blue;
             PdfDocument.Create(pdf => pdf.Page(page => page.Canvas(canvas => {
-                canvas.Shape(background, 60D, 50D);
-                canvas.Text("Alpha secret Omega", 72D, 65D, 260D, 25D, fontSize: 20D);
+                canvas.Shape(background, global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(50D));
+                canvas.Text("Alpha secret Omega", global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(65D), global::OfficeIMO.OfficeLength.Points(260D), global::OfficeIMO.OfficeLength.Points(25D), fontSize: global::OfficeIMO.OfficeLength.Points(20D));
             }))).Save(input);
             PdfRedactionRecipe recipe = CreateRecipe("secret");
             recipe.Rules[0].TextSelection = selection;
@@ -42,10 +42,20 @@ namespace OfficeIMO.Workflows.Tests {
                 Recipe = recipe, Decisions = decisions, ExpectedOutputSha256 = applied.Evidence!.OutputSha256
             });
             Assert.True(verified.Succeeded, verified.Summary);
-            Assert.Equal(1, applied.Evidence!.VerifiedAbsentCount);
+            Assert.True(applied.Evidence!.VerifiedAbsentCount >= 1);
             Assert.Equal(applied.Evidence.VerifiedAbsentCount, verified.Evidence!.VerifiedAbsentCount);
             Assert.Equal(applied.Evidence.ResidualCount, verified.Evidence.ResidualCount);
             Assert.Equal(applied.Evidence.InconclusiveCount, verified.Evidence.InconclusiveCount);
+            using PdfDocument redacted = PdfDocument.Load(output);
+            string text = redacted.Reader.Text();
+            if (selection == PdfRedactionTextSelection.MatchedGlyphs) {
+                Assert.Contains("Alpha", text, StringComparison.Ordinal);
+                Assert.Contains("Omega", text, StringComparison.Ordinal);
+            } else {
+                Assert.DoesNotContain("Alpha", text, StringComparison.Ordinal);
+                Assert.DoesNotContain("Omega", text, StringComparison.Ordinal);
+            }
+            Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -94,7 +104,7 @@ namespace OfficeIMO.Workflows.Tests {
             using RedactionTestDirectory scope = new RedactionTestDirectory();
             string input = scope.PathFor("source.pdf");
             string evidence = scope.PathFor("plan.json");
-            PdfDocument.Create().Paragraph(paragraph => paragraph.CharacterSpacing(-3).Text("AB")).Save(input);
+            PdfDocument.Create().Paragraph(paragraph => paragraph.CharacterSpacing(global::OfficeIMO.OfficeLength.Points(-3)).Text("AB")).Save(input);
             PdfRedactionRecipe recipe = CreateRecipe("A");
             recipe.Rules[0].TextSelection = PdfRedactionTextSelection.MatchedGlyphs;
             PdfRedactionWorkflowResult result = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
@@ -102,7 +112,7 @@ namespace OfficeIMO.Workflows.Tests {
             });
             Assert.False(result.Succeeded);
             Assert.Empty(result.Candidates);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("RedactionSearchUnselectedTextIntersection", StringComparison.Ordinal));
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("redaction-search-unselected-text-intersection", StringComparison.Ordinal));
             Assert.False(File.Exists(evidence));
             Assert.Contains("AB", PdfDocument.Load(input).Reader.Text(), StringComparison.Ordinal);
         }

@@ -362,9 +362,9 @@ namespace OfficeIMO.Tests {
             VisioShape shape = loaded.Pages[0].Shapes[0];
             VisioConnector connector = Assert.Single(loaded.Pages[0].Connectors);
 
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(0x11, 0x22, 0x33), shape.LineColor);
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(10, 20, 30), shape.FillColor);
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.FromRgb(0x44, 0x55, 0x66), connector.LineColor);
+            Assert.Equal(OfficeIMO.OfficeColor.FromRgb(0x11, 0x22, 0x33), shape.LineColor);
+            Assert.Equal(OfficeIMO.OfficeColor.FromRgb(10, 20, 30), shape.FillColor);
+            Assert.Equal(OfficeIMO.OfficeColor.FromRgb(0x44, 0x55, 0x66), connector.LineColor);
         }
 
         [Fact]
@@ -398,9 +398,9 @@ namespace OfficeIMO.Tests {
             VisioShape shape = loaded.Pages[0].Shapes[0];
             VisioConnector connector = Assert.Single(loaded.Pages[0].Connectors);
 
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.Black, shape.LineColor);
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.White, shape.FillColor);
-            Assert.Equal(OfficeIMO.Drawing.OfficeColor.White, connector.LineColor);
+            Assert.Equal(OfficeIMO.OfficeColor.Black, shape.LineColor);
+            Assert.Equal(OfficeIMO.OfficeColor.White, shape.FillColor);
+            Assert.Equal(OfficeIMO.OfficeColor.White, connector.LineColor);
         }
         private static void RewritePage(string vsdxPath, Action<XDocument> transform) {
             using FileStream stream = File.Open(vsdxPath, FileMode.Open, FileAccess.ReadWrite);

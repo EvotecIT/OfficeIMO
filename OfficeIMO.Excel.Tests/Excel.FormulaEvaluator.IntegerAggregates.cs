@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
         [InlineData("LCM(9007199254740991,1)", "9007199254740991")]
         public void Integer_aggregates_replace_caches_and_preserve_saved_numbers_and_errors(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Integers");
+            var sheet = document.AddSheet("Integers");
             sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Integer_aggregates_recalculate_cross_sheet_ranges_blanks_text_and_dependencies() {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source data");
-            var sheet = document.AddWorksheet("Integers");
+            var source = document.AddSheet("Source data");
+            var sheet = document.AddSheet("Integers");
             source.CellValue(1, 1, 24d); source.CellFormula(2, 1, "18*2");
             source.CellValue(4, 1, "24"); source.CellValue(5, 1, true);
             string[] formulas = { "GCD('Source data'!A1:A3)", "LCM('Source data'!A1:A3)",
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
         [InlineData("IFERROR(GCD(UNKNOWN(),24),99)")]
         public void Unqualified_integer_aggregate_inputs_preserve_existing_caches(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Bounds");
+            var sheet = document.AddSheet("Bounds");
             sheet.CellValue(1, 4, 42d); sheet.CellFormula(1, 4, formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Integer_aggregates_enforce_the_argument_budget_before_flattening() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Bounds");
+            var sheet = document.AddSheet("Bounds");
             sheet.CellFormula(1, 1, "GCD(" + string.Join(",", Enumerable.Repeat("12", 255)) + ")");
             sheet.CellValue(2, 1, 42d);
             sheet.CellFormula(2, 1, "LCM(" + string.Join(",", Enumerable.Repeat("12", 256)) + ")");
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Integer_aggregates_distinguish_direct_blanks_from_ranges_after_saved_input_edits() {
             using var document = ExcelDocument.Create();
-            var inputs = document.AddWorksheet("Source data");
-            var checks = document.AddWorksheet("Checks");
+            var inputs = document.AddSheet("Source data");
+            var checks = document.AddSheet("Checks");
             inputs.CellValue(1, 1, 30d); inputs.CellValue(3, 1, 0d);
             string[] formulas = {
                 "GCD('Source data'!$A$2,6)", "LCM('Source data'!$A$2,6)",

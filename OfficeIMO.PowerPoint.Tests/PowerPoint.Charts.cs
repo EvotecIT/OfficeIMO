@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 new[] { "Q1", "Q2", "Q3" },
                 new[] { new PowerPointChartSeries("Series 1", new[] { 1d, 2d, 3d }) });
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+            using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddChart(data);
                 slide.AddChart(data);

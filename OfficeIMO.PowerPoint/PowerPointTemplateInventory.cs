@@ -302,7 +302,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointTemplateLayoutInfo.NormalizeName(layout.Type?.ToString() ?? string.Empty) == normalized)
                 .ToList();
             if (matches.Count == 0) {
-                throw new PowerPointTemplateResolutionException("Template.LayoutNotFound",
+                throw new PowerPointTemplateResolutionException("template-layout-not-found",
                     "No template layout matched '" + semanticName + "'.",
                     layouts.Select(layout => layout.Name).ToArray());
             }
@@ -329,7 +329,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Applies imported theme tokens to every master in a target presentation.</summary>
-        public void ApplyBrandTo(PowerPointPresentation presentation) {
+        public void ApplyBrandTo(PowerPointDocument presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             PowerPointTemplateMasterInfo master = _masters.FirstOrDefault()
                 ?? throw new InvalidOperationException("Template inventory has no slide masters.");
@@ -359,7 +359,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointTemplateResolutionException CreateAmbiguousLayout(string semanticName,
             IList<PowerPointTemplateLayoutInfo> matches) =>
-            new PowerPointTemplateResolutionException("Template.LayoutAmbiguous",
+            new PowerPointTemplateResolutionException("template-layout-ambiguous",
                 "More than one template layout matched '" + semanticName +
                 "'. Use the authored name with a specific master index.",
                 matches.Select(layout => layout.MasterIndex + ":" + layout.LayoutIndex + " " + layout.Name)

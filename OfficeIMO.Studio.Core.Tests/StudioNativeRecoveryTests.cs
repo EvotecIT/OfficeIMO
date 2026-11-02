@@ -17,7 +17,7 @@ public sealed class StudioNativeRecoveryTests : IDisposable {
     }
     public void Dispose() => Directory.Delete(_root, true);
 
-    private byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(300, 400))).ToBytes();
+    private byte[] Source() => PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).ToBytes();
 
     private async Task<string> AfterCrashAsync(byte[] source) {
         string first = Path.Combine(_root, "first-copy.pdf"), next = Path.Combine(_root, "second-copy.pdf");
@@ -52,7 +52,7 @@ public sealed class StudioNativeRecoveryTests : IDisposable {
     [Fact]
     public async Task A_different_original_revision_cannot_receive_the_old_recovery_snapshot() {
         string next = await AfterCrashAsync(Source());
-        PdfDocument.Create(document => document.Page(page => page.Size(500, 600))).Save(next);
+        PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(600)))).Save(next);
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(next, null, default, Identity);
         Assert.False((await document.GetInfoAsync(default)).HasRecovery);
         await document.RestoreRecoveryAsync(default);

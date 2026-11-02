@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
         private ExcelUtf8TextCache? _utf8Cache;
 
-        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
+        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReaderOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = null;
             _preferDom = preferDom;
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
             _initialized = new Lazy<bool>(Initialize, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        private SharedStringCache(Func<Stream> openPartStream, ExcelReadOptions options) {
+        private SharedStringCache(Func<Stream> openPartStream, ExcelReaderOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => null, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = openPartStream ?? throw new ArgumentNullException(nameof(openPartStream));
             _preferDom = false;
@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
             _initialized = new Lazy<bool>(Initialize, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        private SharedStringCache(List<string> items, ExcelReadOptions options) {
+        private SharedStringCache(List<string> items, ExcelReaderOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => null, LazyThreadSafetyMode.ExecutionAndPublication);
             _openPartStream = null;
             _preferDom = false;
@@ -64,14 +64,14 @@ namespace OfficeIMO.Excel {
             _initialized = new Lazy<bool>(() => true, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
-        public static SharedStringCache Build(SpreadsheetDocument doc, ExcelReadOptions? options = null) {
-            return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read, options ?? new ExcelReadOptions());
+        public static SharedStringCache Build(SpreadsheetDocument doc, ExcelReaderOptions? options = null) {
+            return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read, options ?? new ExcelReaderOptions());
         }
 
-        internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReadOptions options) =>
+        internal static SharedStringCache Build(Func<Stream> openPartStream, ExcelReaderOptions options) =>
             new(openPartStream, options);
 
-        internal static SharedStringCache Empty(ExcelReadOptions options) =>
+        internal static SharedStringCache Empty(ExcelReaderOptions options) =>
             new(new List<string>(), options);
 
         private bool Initialize() {
@@ -442,7 +442,7 @@ namespace OfficeIMO.Excel {
 
         private void EnsureCanAddSharedString(int itemCount) {
             if (itemCount >= _maxSharedStringItems) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringItems), _maxSharedStringItems, $"Shared string table exceeds the configured limit of {_maxSharedStringItems} entries.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxSharedStringItems), _maxSharedStringItems, $"Shared string table exceeds the configured limit of {_maxSharedStringItems} entries.");
             }
         }
 
@@ -452,11 +452,11 @@ namespace OfficeIMO.Excel {
 
         private void ValidateSharedStringLength(int length, ref long totalCharacters) {
             if (length > _maxSharedStringItemCharacters) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringItemCharacters), _maxSharedStringItemCharacters, $"Shared string item exceeds the configured limit of {_maxSharedStringItemCharacters} characters.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxSharedStringItemCharacters), _maxSharedStringItemCharacters, $"Shared string item exceeds the configured limit of {_maxSharedStringItemCharacters} characters.");
             }
 
             if (totalCharacters > _maxSharedStringCharacters - length) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringCharacters), _maxSharedStringCharacters, $"Shared string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxSharedStringCharacters), _maxSharedStringCharacters, $"Shared string table exceeds the configured aggregate limit of {_maxSharedStringCharacters} characters.");
             }
 
             totalCharacters += length;
@@ -464,7 +464,7 @@ namespace OfficeIMO.Excel {
 
         private static void EnsureItemCharacterBudget(int currentLength, int additionalLength, int maxItemCharacters) {
             if ((long)currentLength + additionalLength > maxItemCharacters) {
-                throw ExcelReadLimitFailure.Create(nameof(ExcelReadOptions.MaxSharedStringItemCharacters), maxItemCharacters, $"Shared string item exceeds the configured limit of {maxItemCharacters} characters.");
+                throw ExcelReadLimitFailure.Create(nameof(ExcelReaderOptions.MaxSharedStringItemCharacters), maxItemCharacters, $"Shared string item exceeds the configured limit of {maxItemCharacters} characters.");
             }
         }
 

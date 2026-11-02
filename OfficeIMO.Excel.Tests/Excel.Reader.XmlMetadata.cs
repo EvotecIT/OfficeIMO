@@ -41,12 +41,12 @@ public partial class Excel {
             ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes("""
                 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cellXfs count="2"><xf numFmtId="0"/><xf numFmtId="14" applyNumberFormat="1"/></cellXfs></styleSheet>
                 """));
-            var options = new ExcelReadOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
+            var options = new ExcelReaderOptions { NumericAsDecimal = true, InferDataTableColumnTypes = false };
             object[][] expected = [
                 [42m, true, "Alpha", new DateTime(2024, 2, 29).AddDays(date1904 ? 1462 : 0)],
                 [43m, false, "Beta", new DateTime(2024, 3, 1).AddDays(date1904 ? 1462 : 0)]
             ];
-            using (var reader = ExcelDocument.OpenDataReader(path, options)) {
+            using (var reader = ExcelDocument.OpenReader(path, options)) {
                 for (int row = 0; row < 2; row++) {
                     Assert.True(reader.Read());
                     Assert.Equal(expected[row][0], reader.GetDecimal(0));
@@ -91,8 +91,8 @@ public partial class Excel {
             ReplaceXmlMetadataWorksheet(path, "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>"
                 + $"<row r=\"2\"><c r=\"&#67;2\" t=\"n\" s=\"{style}\"><v>42</v></c></row></sheetData></worksheet>");
             var error = Assert.Throws<InvalidDataException>(() => {
-                using var reader = ExcelDocument.OpenDataReader(path);
-            });
+                using var reader = ExcelDocument.OpenReader(path);
+ _ = reader.FieldCount;             });
             Assert.Contains("cell C2 contains an invalid cell style index", error.Message);
         } finally { File.Delete(path); }
     }

@@ -7,7 +7,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     private static (byte[], OfficeWorkflowConversionEvidence) ConvertPublisher(ValidatedRequest request, byte[] input,
-        OfficeWorkflowConversionOptions settings, CancellationToken token) {
+        OfficeWorkflowRenderingOptions settings, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         PublisherReadOptions read = settings.PublisherRead?.Clone() ?? new PublisherReadOptions();
         read.Limits.MaxInputBytes = (int)Math.Min(read.Limits.MaxInputBytes, request.Limits.MaximumInputBytes);

@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds an OfficeIMO Word text box to the current Word DSL location.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordTextBox [-Text] <string> [-WrapText <WordImageTextWrapping>] [-WidthCentimeters <Double>] [-HeightCentimeters <Double>] [-HorizontalOffsetCentimeters <Double>] [-VerticalOffsetCentimeters <Double>] [-HorizontalAlignment <WordTextBoxHorizontalAlignment>] [-HorizontalPositionRelativeFrom <WordHorizontalRelativePosition>] [-VerticalPositionRelativeFrom <WordVerticalRelativePosition>] [-AutoFit <WordTextBoxAutoFitType>] [-AutoFitToTextSize] [-PassThru] [<CommonParameters>]
 ```
@@ -35,7 +35,7 @@ Explicit OfficeIMO text-box autofit mode.
 
 ```yaml
 Type: WordTextBoxAutoFitType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: NoAutoFit, ShrinkTextOnOverflow, ResizeShapeToFitText
 
@@ -51,7 +51,7 @@ Resize the text box to fit its text.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -67,7 +67,7 @@ Height in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -83,7 +83,7 @@ Horizontal alignment for anchored text boxes.
 
 ```yaml
 Type: WordTextBoxHorizontalAlignment
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Left, Center, Right, Outside, Inside
 
@@ -99,7 +99,7 @@ Horizontal offset in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -115,7 +115,7 @@ Horizontal relative position anchor.
 
 ```yaml
 Type: WordHorizontalRelativePosition
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Margin, Page, Column, Character, LeftMargin, RightMargin, InsideMargin, OutsideMargin
 
@@ -131,7 +131,7 @@ Emit the created text box.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -147,7 +147,7 @@ Text to place inside the text box.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -163,7 +163,7 @@ Vertical offset in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -179,7 +179,7 @@ Vertical relative position anchor.
 
 ```yaml
 Type: WordVerticalRelativePosition
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Margin, Page, Paragraph, Line, TopMargin, BottomMargin, InsideMargin, OutsideMargin
 
@@ -195,7 +195,7 @@ Width in centimeters.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -211,7 +211,7 @@ Word text wrapping mode.
 
 ```yaml
 Type: WordImageTextWrapping
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: InLineWithText, Square, Tight, Through, TopAndBottom, BehindText, InFrontOfText
 

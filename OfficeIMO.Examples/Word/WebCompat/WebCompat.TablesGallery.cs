@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -37,8 +39,8 @@ namespace OfficeIMO.Examples.Word {
             // 2) Percent widths (10/90) – typical case
             doc.AddParagraph().AddText("10/90 percent widths");
             var tPct = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            tPct.WidthType = WordTableWidthUnit.Pct; tPct.Width = 5000; // 100%
-            tPct.ColumnWidthType = WordTableWidthUnit.Pct; tPct.ColumnWidth = new() { 500, 4500 };
+            tPct.Width = WordTableWidth.Percent(100); // 100%
+            tPct.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(10), WordTableWidth.Percent(90) };
             // Content rows
             tPct.Rows[0].Cells[0].AddParagraph("10%", true);
             tPct.Rows[0].Cells[1].AddParagraph("90%", true);
@@ -48,8 +50,8 @@ namespace OfficeIMO.Examples.Word {
             // 3) DXA widths smaller than container – previously looked half-width online
             doc.AddParagraph().AddText("DXA widths (sum smaller than container)");
             var tDxaSmall = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            tDxaSmall.WidthType = WordTableWidthUnit.Pct; tDxaSmall.Width = 5000; // 100%
-            tDxaSmall.ColumnWidthType = WordTableWidthUnit.Dxa; tDxaSmall.ColumnWidth = new() { 2400, 2400 };
+            tDxaSmall.Width = WordTableWidth.Percent(100); // 100%
+            tDxaSmall.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(120)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(120)) };
             // Content rows
             tDxaSmall.Rows[0].Cells[0].AddParagraph("Left", true);
             tDxaSmall.Rows[0].Cells[1].AddParagraph("Right", true);
@@ -61,8 +63,8 @@ namespace OfficeIMO.Examples.Word {
             // Percent version
             doc.AddParagraph().AddText("30/70 (percent)");
             var t3070Pct = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            t3070Pct.WidthType = WordTableWidthUnit.Pct; t3070Pct.Width = 5000; // 100%
-            t3070Pct.ColumnWidthType = WordTableWidthUnit.Pct; t3070Pct.ColumnWidth = new() { 1500, 3500 };
+            t3070Pct.Width = WordTableWidth.Percent(100); // 100%
+            t3070Pct.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(30), WordTableWidth.Percent(70) };
             // Content rows
             t3070Pct.Rows[0].Cells[0].AddParagraph("30%", true);
             t3070Pct.Rows[0].Cells[1].AddParagraph("70%", true);
@@ -71,8 +73,8 @@ namespace OfficeIMO.Examples.Word {
             // DXA version (any 3:7 proportion will be normalized to container width on save)
             doc.AddParagraph().AddText("30/70 (DXA equivalent)");
             var t3070Dxa = doc.AddTable(2, 2, WordTableStyle.TableGrid);
-            t3070Dxa.WidthType = WordTableWidthUnit.Pct; t3070Dxa.Width = 5000; // 100%
-            t3070Dxa.ColumnWidthType = WordTableWidthUnit.Dxa; t3070Dxa.ColumnWidth = new() { 3000, 7000 };
+            t3070Dxa.Width = WordTableWidth.Percent(100); // 100%
+            t3070Dxa.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(150)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(350)) };
             // Content rows
             t3070Dxa.Rows[0].Cells[0].AddParagraph("~30% (DXA)", true);
             t3070Dxa.Rows[0].Cells[1].AddParagraph("~70% (DXA)", true);
@@ -91,7 +93,7 @@ namespace OfficeIMO.Examples.Word {
             tMergeTrueAuto.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
             tMergeTrueAuto.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             for (int i = 0; i < 4; i++) tMergeTrueAuto.Rows[1].Cells[i].AddParagraph($"C{i+1}", true);
-            tMergeTrueAuto.ColumnWidthType = WordTableWidthUnit.Pct; tMergeTrueAuto.ColumnWidth = new() { 500, 1000, 1000, 2500 };
+            tMergeTrueAuto.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(10), WordTableWidth.Percent(20), WordTableWidth.Percent(20), WordTableWidth.Percent(50) };
 
             // 4b) AutoFit to Window (100%) — same content, full width
             doc.AddParagraph().AddText("Merged header (true) — AutoFit to Window (100%)");
@@ -104,13 +106,13 @@ namespace OfficeIMO.Examples.Word {
             tMergeTrueFit.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
             tMergeTrueFit.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
             for (int i = 0; i < 4; i++) tMergeTrueFit.Rows[1].Cells[i].AddParagraph($"C{i+1}", true);
-            tMergeTrueFit.ColumnWidthType = WordTableWidthUnit.Pct; tMergeTrueFit.ColumnWidth = new() { 500, 1000, 1000, 2500 };
+            tMergeTrueFit.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(10), WordTableWidth.Percent(20), WordTableWidth.Percent(20), WordTableWidth.Percent(50) };
 
             // 5) Many columns (7) to test rounding (make last column very wide for contrast)
             doc.AddParagraph().AddText("7 columns (percent)");
             var t7 = doc.AddTable(2, 7, WordTableStyle.TableGrid);
-            t7.WidthType = WordTableWidthUnit.Pct; t7.Width = 5000;
-            t7.ColumnWidthType = WordTableWidthUnit.Pct; t7.ColumnWidth = new() { 200,200,200,200,200,200, 3800 };
+            t7.Width = WordTableWidth.Percent(100);
+            t7.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(4), WordTableWidth.Percent(4), WordTableWidth.Percent(4), WordTableWidth.Percent(4), WordTableWidth.Percent(4), WordTableWidth.Percent(4), WordTableWidth.Percent(76) };
             for (int c = 0; c < 7; c++) t7.Rows[0].Cells[c].AddParagraph($"H{c+1}", true);
             for (int c = 0; c < 7; c++) t7.Rows[1].Cells[c].AddParagraph($"D{c+1}", true);
 
@@ -140,7 +142,7 @@ namespace OfficeIMO.Examples.Word {
             // Use fixed layout at 60% to make Word Online honor the percentage strictly
             tNarrowPct.SetFixedWidth(60);
             tNarrowPct.Alignment = WordTableAlignment.Center;
-            tNarrowPct.ColumnWidthType = WordTableWidthUnit.Pct; tNarrowPct.ColumnWidth = new() { 2500, 2500 };
+            tNarrowPct.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(50), WordTableWidth.Percent(50) };
             tNarrowPct.Rows[0].Cells[0].AddParagraph("L", true);
             tNarrowPct.Rows[0].Cells[1].AddParagraph("R", true);
             tNarrowPct.Rows[1].Cells[0].AddParagraph("L", true);
@@ -154,7 +156,7 @@ namespace OfficeIMO.Examples.Word {
             // Build the inner table inside the single cell
             var inner = container.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableGrid);
             inner.SetFixedWidth(100); // inner 100% of container cell
-            inner.ColumnWidthType = WordTableWidthUnit.Pct; inner.ColumnWidth = new() { 2500, 2500 };
+            inner.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(50), WordTableWidth.Percent(50) };
             inner.Rows[0].Cells[0].AddParagraph("Inner L", true);
             inner.Rows[0].Cells[1].AddParagraph("Inner R", true);
             inner.Rows[1].Cells[0].AddParagraph("Inner L", true);
@@ -165,7 +167,7 @@ namespace OfficeIMO.Examples.Word {
             var tNarrowPctLeft = doc.AddTable(2, 2, WordTableStyle.TableGrid);
             tNarrowPctLeft.SetFixedWidth(60); // 60%
             tNarrowPctLeft.Alignment = WordTableAlignment.Left;
-            tNarrowPctLeft.ColumnWidthType = WordTableWidthUnit.Pct; tNarrowPctLeft.ColumnWidth = new() { 2500, 2500 };
+            tNarrowPctLeft.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(50), WordTableWidth.Percent(50) };
             tNarrowPctLeft.Rows[0].Cells[0].AddParagraph("L", true);
             tNarrowPctLeft.Rows[0].Cells[1].AddParagraph("R", true);
             tNarrowPctLeft.Rows[1].Cells[0].AddParagraph("L", true);
@@ -175,12 +177,12 @@ namespace OfficeIMO.Examples.Word {
             doc.AddParagraph().AddText("Narrow layout: 1×1 container (fixed 5\" width, centered) with inner table");
             var containerFixed = doc.AddTable(1, 1, WordTableStyle.TableGrid);
             containerFixed.LayoutMode = WordTableLayoutMode.Fixed;
-            containerFixed.WidthType = WordTableWidthUnit.Dxa; containerFixed.Width = 7200; // 5 inches * 1440 twips
+            containerFixed.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(360)); // 5 inches * 1440 twips
             containerFixed.Alignment = WordTableAlignment.Center;
             var innerFixed = containerFixed.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableGrid);
             innerFixed.SetFixedWidth(100); // inner 100% of container cell
-            innerFixed.WidthType = WordTableWidthUnit.Pct; innerFixed.Width = 5000;
-            innerFixed.ColumnWidthType = WordTableWidthUnit.Pct; innerFixed.ColumnWidth = new() { 2500, 2500 };
+            innerFixed.Width = WordTableWidth.Percent(100);
+            innerFixed.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Percent(50), WordTableWidth.Percent(50) };
             innerFixed.Rows[0].Cells[0].AddParagraph("Inner L", true);
             innerFixed.Rows[0].Cells[1].AddParagraph("Inner R", true);
             innerFixed.Rows[1].Cells[0].AddParagraph("Inner L", true);

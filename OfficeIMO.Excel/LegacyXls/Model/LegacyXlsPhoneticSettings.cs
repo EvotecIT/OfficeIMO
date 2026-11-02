@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Represents worksheet-level phonetic display defaults decoded from a BIFF PhoneticInfo record.
     /// </summary>
-    public sealed class LegacyXlsPhoneticSettings {
+    internal sealed class LegacyXlsPhoneticSettings {
         /// <summary>
         /// Initializes worksheet-level phonetic display defaults.
         /// </summary>

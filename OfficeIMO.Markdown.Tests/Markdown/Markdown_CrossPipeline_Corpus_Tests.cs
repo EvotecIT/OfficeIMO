@@ -15,10 +15,10 @@ public sealed class Markdown_CrossPipeline_Corpus_Tests {
             string markdown,
             string[] markdownNeedles,
             string[] htmlNeedles,
-            Func<MarkdownDoc>? createSourceDocument = null,
-            Func<MarkdownReaderOptions>? createReaderOptions = null,
+            Func<MarkdownDocument>? createSourceDocument = null,
+            Func<MarkdownLoadOptions>? createReaderOptions = null,
             Func<MarkdownRendererOptions>? createRendererOptions = null,
-            Func<MarkdownToWordOptions>? createWordOptions = null,
+            Func<WordMarkdownImportOptions>? createWordOptions = null,
             bool useSourceMarkdownAsPipelineInput = false) {
             Name = name;
             Markdown = markdown;
@@ -35,10 +35,10 @@ public sealed class Markdown_CrossPipeline_Corpus_Tests {
         public string Markdown { get; }
         public string[] MarkdownNeedles { get; }
         public string[] HtmlNeedles { get; }
-        public Func<MarkdownDoc>? CreateSourceDocument { get; }
-        public Func<MarkdownReaderOptions>? CreateReaderOptions { get; }
+        public Func<MarkdownDocument>? CreateSourceDocument { get; }
+        public Func<MarkdownLoadOptions>? CreateReaderOptions { get; }
         public Func<MarkdownRendererOptions>? CreateRendererOptions { get; }
-        public Func<MarkdownToWordOptions>? CreateWordOptions { get; }
+        public Func<WordMarkdownImportOptions>? CreateWordOptions { get; }
         public bool UseSourceMarkdownAsPipelineInput { get; }
     }
 
@@ -107,7 +107,7 @@ all 5 are healthy for directory access** with recommended LDAPS endpoints.
                     preservesGroupedDefinitionLikeParagraphs: false,
                     visualFenceLanguageMode: MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence),
                 createRendererOptions: () => MarkdownRendererPresets.CreateIntelligenceXTranscriptMinimal(),
-                createWordOptions: () => MarkdownToWordPresets.CreateIntelligenceXTranscript())
+                createWordOptions: () => WordMarkdownImportOptions.CreateIntelligenceXTranscript())
         };
 
         yield return new object[] {
@@ -126,14 +126,14 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
                     "<sup>2</sup>",
                     "<u>important</u>"
                 },
-                createSourceDocument: () => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.</p>").ToMarkdownDocument(),
+                createSourceDocument: () => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.</p>").ToMarkdown(),
                 createRendererOptions: () => new MarkdownRendererOptions {
-                    ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile(),
-                    HtmlOptions = new HtmlOptions {
-                        Style = HtmlStyle.Plain,
-                        CssDelivery = CssDelivery.None,
+                    ReaderOptions = MarkdownLoadOptions.CreateOfficeIMOProfile(),
+                    HtmlOptions = new MarkdownHtmlExportOptions {
+                        Style = MarkdownHtmlStyle.Plain,
+                        CssDelivery = MarkdownCssDelivery.None,
                         BodyClass = null,
-                        Kind = HtmlKind.Fragment
+                        Kind = MarkdownHtmlKind.Fragment
                     }
                 },
                 useSourceMarkdownAsPipelineInput: true)
@@ -144,36 +144,36 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
     [MemberData(nameof(CrossPipelineFixtures))]
     public void Markdown_CrossPipeline_Corpus_Retains_Core_Structure(
         CrossPipelineFixture fixture) {
-        var htmlOptions = new HtmlOptions {
-            Style = HtmlStyle.Plain,
-            CssDelivery = CssDelivery.None,
+        var htmlOptions = new MarkdownHtmlExportOptions {
+            Style = MarkdownHtmlStyle.Plain,
+            CssDelivery = MarkdownCssDelivery.None,
             BodyClass = null,
-            Kind = HtmlKind.Fragment
+            Kind = MarkdownHtmlKind.Fragment
         };
 
-        var readerOptions = fixture.CreateReaderOptions?.Invoke() ?? MarkdownReaderOptions.CreateOfficeIMOProfile();
-        var source = fixture.CreateSourceDocument?.Invoke() ?? OfficeIMO.Markdown.MarkdownReader.Parse(fixture.Markdown, readerOptions);
+        var readerOptions = fixture.CreateReaderOptions?.Invoke() ?? MarkdownLoadOptions.CreateOfficeIMOProfile();
+        var source = fixture.CreateSourceDocument?.Invoke() ?? OfficeIMO.Markdown.MarkdownDocument.Parse(fixture.Markdown, readerOptions);
         var sourceMarkdown = NormalizeMarkdown(source.ToMarkdown());
-        var sourceHtml = source.ToHtmlFragment(htmlOptions);
+        var sourceHtml = source.ToHtml(htmlOptions);
         var pipelineMarkdown = fixture.UseSourceMarkdownAsPipelineInput ? sourceMarkdown : fixture.Markdown;
 
         var rendererOptions = fixture.CreateRendererOptions?.Invoke() ?? new MarkdownRendererOptions {
-            HtmlOptions = new HtmlOptions {
-                Style = HtmlStyle.Plain,
-                CssDelivery = CssDelivery.None,
+            HtmlOptions = new MarkdownHtmlExportOptions {
+                Style = MarkdownHtmlStyle.Plain,
+                CssDelivery = MarkdownCssDelivery.None,
                 BodyClass = null,
-                Kind = HtmlKind.Fragment
+                Kind = MarkdownHtmlKind.Fragment
             }
         };
         var renderedHtml = OmdRenderer.RenderBodyHtml(pipelineMarkdown, rendererOptions);
 
-        var htmlRoundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToMarkdownDocument(new HtmlToMarkdownOptions());
+        var htmlRoundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToMarkdown(new MarkdownHtmlImportOptions());
         var htmlRoundTripMarkdown = NormalizeMarkdown(htmlRoundTrip.ToMarkdown());
 
-        MarkdownToWordOptions wordOptions = fixture.CreateWordOptions?.Invoke() ?? new MarkdownToWordOptions { FontFamily = "Calibri" };
-        using var wordDocument = OfficeIMO.Markdown.MarkdownReader.Parse(pipelineMarkdown, wordOptions.CreateReaderOptions()).ToWordDocument(wordOptions);
+        WordMarkdownImportOptions wordOptions = fixture.CreateWordOptions?.Invoke() ?? new WordMarkdownImportOptions { FontFamily = "Calibri" };
+        using var wordDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(pipelineMarkdown, wordOptions.CreateReaderOptions()).ToWord(wordOptions);
         var wordRoundTripMarkdown = NormalizeMarkdown(
-            wordDocument.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true }));
+            wordDocument.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true }).ToMarkdown());
 
         foreach (var markdownNeedle in fixture.MarkdownNeedles) {
             Assert.Contains(markdownNeedle, sourceMarkdown, StringComparison.Ordinal);

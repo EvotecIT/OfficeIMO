@@ -5,15 +5,15 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Options controlling page geometry and default typography for a PDF document.
 /// </summary>
-public sealed partial class PdfOptions {
+public sealed partial class PdfCreateOptions {
     private PdfAlign _headerAlign = PdfAlign.Center;
     private PdfAlign _footerAlign = PdfAlign.Center;
-    private System.Collections.Generic.List<FooterSegment>? _headerSegments;
-    private System.Collections.Generic.List<FooterSegment>? _firstPageHeaderSegments;
-    private System.Collections.Generic.List<FooterSegment>? _evenPageHeaderSegments;
-    private System.Collections.Generic.List<FooterSegment>? _footerSegments;
-    private System.Collections.Generic.List<FooterSegment>? _firstPageFooterSegments;
-    private System.Collections.Generic.List<FooterSegment>? _evenPageFooterSegments;
+    private System.Collections.Generic.List<PdfFooterSegment>? _headerSegments;
+    private System.Collections.Generic.List<PdfFooterSegment>? _firstPageHeaderSegments;
+    private System.Collections.Generic.List<PdfFooterSegment>? _evenPageHeaderSegments;
+    private System.Collections.Generic.List<PdfFooterSegment>? _footerSegments;
+    private System.Collections.Generic.List<PdfFooterSegment>? _firstPageFooterSegments;
+    private System.Collections.Generic.List<PdfFooterSegment>? _evenPageFooterSegments;
     private string? _headerLeftFormat;
     private string? _headerCenterFormat;
     private string? _headerRightFormat;
@@ -53,9 +53,9 @@ public sealed partial class PdfOptions {
     private PdfStandardFont _defaultFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _headerFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _footerFont = PdfStandardFont.Helvetica;
-    private double _defaultFontSize = 11;
-    private double _headerFontSize = 9;
-    private double _footerFontSize = 9;
+    private OfficeLength _defaultFontSize = OfficeLength.Points(11);
+    private OfficeLength _headerFontSize = OfficeLength.Points(9);
+    private OfficeLength _footerFontSize = OfficeLength.Points(9);
     private string? _headerFontFamily;
     private string? _footerFontFamily;
     private bool _hasExplicitDefaultFont;
@@ -69,7 +69,7 @@ public sealed partial class PdfOptions {
     private string? _pageLabelPrefix;
     private System.Collections.Generic.List<PdfPageLabelRange>? _pageLabelRanges;
     private PdfParagraphStyle? _defaultParagraphStyle;
-    private PdfTableStyle? _defaultTableStyle = TableStyles.Light();
+    private PdfTableStyle? _defaultTableStyle;
     private bool _hasExplicitDefaultTableStyle;
     private PdfHeadingStyles? _defaultHeadingStyles;
     private PdfListStyle? _defaultListStyle;

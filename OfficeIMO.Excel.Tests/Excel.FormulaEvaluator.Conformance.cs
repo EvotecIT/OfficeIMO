@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 foreach (var item in catalog.RootElement.EnumerateArray()) {
                     int row = item.GetProperty("Row").GetInt32();
                     string formula = item.GetProperty("Formula").GetString()!;
-                    string reference = A1.CellReference(row, 1);
+                    string reference = ExcelA1.CellReference(row, 1);
                     Assert.True(references.Add(reference), $"Duplicate catalog case {reference}.");
                     if (spills.ContainsKey(reference)) report.SetDynamicArrayFormula(reference, formula);
                     else report.CellFormula(row, 1, formula);
@@ -47,9 +47,9 @@ namespace OfficeIMO.Tests {
             foreach (var spill in spills) {
                 Assert.True(actualCells.TryGetValue(spill.Key, out Cell? anchor), $"Missing spill anchor {spill.Key}.");
                 Assert.Equal(spill.Value, anchor!.CellFormula?.Reference?.Value);
-                Assert.True(A1.TryParseRange(spill.Value, out int r1, out int c1, out int r2, out int c2));
+                Assert.True(ExcelA1.TryParseRange(spill.Value, out int r1, out int c1, out int r2, out int c2));
                 for (int row = r1; row <= r2; row++) {
-                    for (int column = c1; column <= c2; column++) references.Add(A1.CellReference(row, column));
+                    for (int column = c1; column <= c2; column++) references.Add(ExcelA1.CellReference(row, column));
                 }
             }
             Assert.Equal(247, references.Count);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
         [InlineData(0d, "1900-01-00")]
         public void Test_FormulaEvaluator_InvariantDateTextRetainsEarlyCalendar(double serial, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Dates");
+            var sheet = document.AddSheet("Dates");
             sheet.CellFormula(1, 1, $"TEXT({serial.ToString(CultureInfo.InvariantCulture)},\"yyyy-mm-dd\")");
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? actual));

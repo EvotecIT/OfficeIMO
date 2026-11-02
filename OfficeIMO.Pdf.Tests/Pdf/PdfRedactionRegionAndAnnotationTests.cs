@@ -46,7 +46,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void PolygonApplicationPreservesTextInsideBoundsButOutsideReviewedShape() {
-        PdfDocument source = PdfDocument.Create()
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Paragraph(paragraph => paragraph.Text("REMOVE-EXACT"))
             .Paragraph(paragraph => paragraph.Text("KEEP-OUTSIDE-SHAPE"));
         PdfTextSpan[] spans = PdfReadDocument.Open(source.ToBytes()).Pages[0].GetTextSpans().ToArray();
@@ -77,8 +77,8 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void ExactPolygonFailsClosedForPartiallyIntersectedVectorPath() {
-        PdfDocument source = PdfDocument.Create()
-            .Rectangle(180, 80, fillColor: new PdfColor(0D, 0D, 1D))
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
+            .Rectangle(180, 80, fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D))
             .Paragraph(paragraph => paragraph.Text("vector safety"));
         PdfReadPage page = PdfReadDocument.Open(source.ToBytes()).Pages[0];
         PdfPageVisualPrimitive rectangle = Assert.Single(page.GetIdentityVisualPrimitives(), static primitive => primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle);
@@ -126,7 +126,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void StandardRedactAnnotationRoundTripsIntoSourceBoundPlan() {
-        PdfDocument source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Annotation review target"));
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("Annotation review target"));
         PdfDocument annotated = source.Redactions.AddAnnotation(new PdfRedactionAnnotationOptions(
             PdfRedactionRegion.Rectangle(1, 30, 700, 160, 30, "review-1")) {
             Contents = "Approved review area",
@@ -142,7 +142,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void AuthoredQuadrilateralRedactAnnotationRoundTripsExactGeometry() {
-        PdfDocument source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("quadrilateral annotation"));
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("quadrilateral annotation"));
         PdfRedactionRegion region = PdfRedactionRegion.Quadrilateral(1, new[] {
             new PdfRedactionPoint(20, 600),
             new PdfRedactionPoint(140, 600),
@@ -161,7 +161,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void SignedPdfCanProduceAnExplicitUnsignedDerivative() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("signed derivative content")).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("signed derivative content")).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(source, new PdfExternalSignatureOptions {
             FieldName = "OriginalSignature",
             ReservedSignatureContentsBytes = 512
@@ -179,7 +179,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
     [Fact]
     public void UnsignedEncryptedPdfStillProducesAnUnencryptedFullRewriteDerivative() {
         const string ownerPassword = "owner-unsigned-derivative";
-        byte[] encrypted = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("unsigned protected content"))
+        byte[] encrypted = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("unsigned protected content"))
             .Security.Encrypt(new PdfStandardEncryptionOptions("reader-unsigned-derivative") { OwnerPassword = ownerPassword }).Pdf;
         Assert.True(PdfDocument.Load(encrypted, new PdfLoadOptions { Password = ownerPassword }).Inspect().Security.HasEncryption);
 
@@ -195,7 +195,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void UnsignedDerivativeHonorsPreCancelledOperation() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("cancel derivative")).ToBytes();
+        byte[] source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("cancel derivative")).ToBytes();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -219,7 +219,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void IndependentMultiQuadRedactAnnotationPreservesTheGapBetweenQuads() {
-        PdfDocument source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Independent producer annotation"));
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("Independent producer annotation"));
         PdfDocument annotated = source.Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = 1,
             Subtype = "Redact",
@@ -245,7 +245,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
             new PdfRedactionPoint(40, 30),
             new PdfRedactionPoint(50, 10)
         }, 4);
-        PdfDocument annotated = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("annotation names"))
+        PdfDocument annotated = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("annotation names"))
             .Redactions.AddAnnotation(new PdfRedactionAnnotationOptions(region) { Name = "review-path" });
 
         string?[] names = annotated.Reader.AnnotationsBySubtype("Redact").Select(static annotation => annotation.Name).ToArray();
@@ -259,7 +259,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
             .Select(index => new PdfRedactionPoint(20 + index * 4, 20 + index * 2))
             .ToArray();
         PdfRedactionRegion region = PdfRedactionRegion.Freehand(1, points, 4);
-        PdfDocument source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("bounded annotation authoring"));
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("bounded annotation authoring"));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             source.Redactions.AddAnnotation(new PdfRedactionAnnotationOptions(region)));
@@ -270,7 +270,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
 
     [Fact]
     public void PlanningApplyingAndVerificationHonorPreCancelledTokens() {
-        PdfDocument source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("cancellation target"));
+        PdfDocument source = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Paragraph(paragraph => paragraph.Text("cancellation target"));
         var area = new PdfRedactionArea(1, 10, 10, 20, 20);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

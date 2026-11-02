@@ -19,17 +19,17 @@ public partial class Word {
         boundaryProperties.AddChild(new SpacingBetweenLines { Before = "240" }, true);
         boundaryProperties.AddChild(new ParagraphMarkRunProperties(new Bold(), new FontSize { Val = "30" }), true);
         WordParagraph second = document.AddParagraph("Second");
-        second.LineSpacingBeforePoints = 6;
+        second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
         second.PageBreakBeforeOverride = !pageBreakBefore;
-        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(WordFileFormat.Doc)));
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph boundary = Assert.Single(loaded.Paragraphs, paragraph => string.IsNullOrEmpty(paragraph.Text));
         Assert.Same(boundary._paragraph, loaded.Sections[0]._sectionProperties.Parent?.Parent);
         Assert.Equal(3, loaded._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Count());
         Assert.Equal(pageBreakBefore, boundary.PageBreakBeforeOverride);
-        Assert.Equal(12D, boundary.LineSpacingBeforePoints);
+        Assert.Equal(12D, boundary.LineSpacingBefore?.ToPoints());
         Assert.Equal("30", boundary._paragraph.ParagraphProperties?.ParagraphMarkRunProperties?.GetFirstChild<FontSize>()?.Val?.Value);
         WordParagraph reloadedSecond = Assert.Single(loaded.Paragraphs, paragraph => paragraph.Text == "Second");
-        Assert.Equal(6D, reloadedSecond.LineSpacingBeforePoints);
+        Assert.Equal(6D, reloadedSecond.LineSpacingBefore?.ToPoints());
         Assert.Equal(!pageBreakBefore, reloadedSecond.PageBreakBeforeOverride);
         Assert.Equal(2, loaded.Sections.Count);
     }
@@ -75,11 +75,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
         Assert.Equal(WordSectionBreakType.NextPage, section.BreakType);
-        section.Margins.Left = 1234;
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(61.7D);
         section.BreakType = WordSectionBreakType.Continuous;
         Assert.Throws<ArgumentOutOfRangeException>(() => section.BreakType = (WordSectionBreakType)999);
         Assert.Equal(WordSectionBreakType.Continuous, section.BreakType);
-        Assert.Equal(1234U, section.Margins.Left);
+        Assert.Equal(1234U, checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())));
         section._sectionProperties.RemoveAllChildren<SectionType>();
         Assert.Equal(WordSectionBreakType.NextPage, section.BreakType);
     }

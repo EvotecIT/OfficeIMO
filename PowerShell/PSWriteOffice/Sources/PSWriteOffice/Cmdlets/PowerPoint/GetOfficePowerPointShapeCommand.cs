@@ -1,166 +1,87 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Reads shape summaries from a slide or presentation.</summary>
-/// <para>Returns PowerShell-friendly metadata for text boxes, pictures, tables, charts, and auto shapes.</para>
-/// <example>
-///   <summary>Inspect one slide.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficePowerPointSlide -Presentation $ppt -Index 0 | Get-OfficePowerPointShape</code>
-///   <para>Returns shape summaries for the selected slide.</para>
-/// </example>
-/// <example>
-///   <summary>Find pictures on a slide.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficePowerPointShape -Presentation $ppt -Index 0 -Kind Picture</code>
-///   <para>Filters the slide output to picture shapes only.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointShape", DefaultParameterSetName = ParameterSetSlide)]
+/// <summary>Gets editable shape summaries, with optional text, name, kind and position filters.</summary>
+/// <para>Searches every slide of the document unless a native slide or one-based slide number is supplied. Inside PowerPointSlide, omission uses the current slide. Text matching includes table cells.</para>
+/// <example><summary>Inspect one slide.</summary>
+/// <code>Get-OfficePowerPointShape -Document $deck -Slide 2 -Kind Picture</code></example>
+/// <example><summary>Find and replace a label.</summary>
+/// <code>Get-OfficePowerPointShape -Document $deck -Text 'Draft' -Kind TextBox |
+///     Set-OfficePowerPointShapeText -Text 'Ready'</code></example>
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointShape", DefaultParameterSetName = "All")]
 [OutputType(typeof(PowerPointShapeInfo))]
-public sealed class GetOfficePowerPointShapeCommand : PSCmdlet
-{
-    private const string ParameterSetSlide = "Slide";
-    private const string ParameterSetPresentation = "Presentation";
+public sealed class GetOfficePowerPointShapeCommand : OfficeCmdlet {
+    /// <summary>Live document; omission uses the enclosing document block.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "All")]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Text")]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Pattern")]
+    public PowerPointDocument? Document { get; set; }
 
-    /// <summary>Slide to inspect (optional inside the DSL).</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetSlide)]
-    public PowerPointSlide? Slide { get; set; }
+    /// <summary>Native slide or one-based slide number.</summary>
+    [Parameter, PowerPointSlideTransformation]
+    public PowerPointSlideSelector? Slide { get; set; }
 
-    /// <summary>Presentation whose slides should be inspected.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetPresentation)]
-    public PowerPointPresentation? Presentation { get; set; }
+    /// <summary>One-based shape positions within each selected slide.</summary>
+    [Parameter, ValidateRange(1, int.MaxValue)]
+    public int[]? Index { get; set; }
 
-    /// <summary>Optional zero-based slide index when reading from a presentation.</summary>
-    [Parameter(ParameterSetName = ParameterSetPresentation)]
-    public int? Index { get; set; }
-
-    /// <summary>Optional zero-based shape index filter.</summary>
-    [Parameter]
-    public int[]? ShapeIndex { get; set; }
-
-    /// <summary>Optional wildcard filter for shape names.</summary>
-    [Parameter]
+    /// <summary>Wildcard shape-name filters.</summary>
+    [Parameter, SupportsWildcards]
     public string[]? Name { get; set; }
 
-    /// <summary>Optional shape kind filter.</summary>
+    /// <summary>Shape kinds to include.</summary>
     [Parameter]
     public OfficePowerPointShapeKind[]? Kind { get; set; }
 
+    /// <summary>Literal text to find in text boxes or table cells.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>Regular expression to find in text boxes or table cells.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Pattern"), ValidateNotNullOrEmpty]
+    public string Pattern { get; set; } = string.Empty;
+
+    /// <summary>Match text and names with case sensitivity.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Pattern")]
+    public SwitchParameter CaseSensitive { get; set; }
+
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        try
-        {
-            if (ParameterSetName == ParameterSetPresentation)
-            {
-                var presentation = Presentation ?? PowerPointDslContext.Current?.Presentation
-                    ?? throw new InvalidOperationException("Presentation was not provided. Use -Presentation or run inside New-OfficePowerPoint.");
-
-                if (Index.HasValue)
-                {
-                    if (Index.Value < 0 || Index.Value >= presentation.Slides.Count)
-                    {
-                        WriteError(new ErrorRecord(new ArgumentOutOfRangeException(nameof(Index)), "PowerPointShapeIndexOutOfRange", ErrorCategory.InvalidArgument, Index));
-                        return;
-                    }
-
-                    WriteShapes(presentation.Slides[Index.Value], Index.Value);
-                    return;
-                }
-
-                for (var i = 0; i < presentation.Slides.Count; i++)
-                {
-                    WriteShapes(presentation.Slides[i], i);
-                }
-
-                return;
-            }
-
-            var context = PowerPointDslContext.Current;
-            var slide = Slide ?? context?.RequireSlide()
-                ?? throw new InvalidOperationException("Slide was not provided. Use -Slide or run inside Add-OfficePowerPointSlide / PptSlide.");
-
-            var slideIndex = context?.Presentation != null
-                ? ResolveSlideIndex(slide, context.Presentation)
-                : PowerPointNotesReader.ResolveSlideIndex(slide);
-
-            WriteShapes(slide, slideIndex);
-        }
-        catch (Exception ex)
-        {
-            var target = (object?)Slide ?? Presentation;
-            WriteError(new ErrorRecord(ex, "PowerPointGetShapeFailed", ErrorCategory.InvalidOperation, target));
+    protected override void ProcessRecord() {
+        try {
+            Func<string, bool>? matcher = ParameterSetName switch {
+                "Pattern" => PowerPointObjectSearch.CreateRegexMatcher(Pattern, CaseSensitive),
+                "Text" => PowerPointObjectSearch.CreateTextMatcher(Text, CaseSensitive),
+                _ => null
+            };
+            var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
+            var current = Document == null ? PowerPointContentScope.Current?.NativeSlide : null;
+            if (Slide != null) WriteShapes(Slide.Resolve(document), matcher);
+            else if (current != null) WriteShapes(current, matcher);
+            else foreach (var slide in ResolveDocument(document).Slides) WriteShapes(slide, matcher);
+        } catch (Exception error) {
+            if (error is PipelineStoppedException or ActionPreferenceStopException) throw;
+            if (error is ArgumentException argument) InvalidArgument(argument, Slide);
+            else ItemError(error, "powerpoint-shape-read-failed", (object?)Slide ?? Document);
         }
     }
 
-    private void WriteShapes(PowerPointSlide slide, int slideIndex)
-    {
-        for (var i = 0; i < slide.Shapes.Count; i++)
-        {
-            var shape = slide.Shapes[i];
-            var info = PowerPointShapeReader.Read(slide, shape, slideIndex, i);
-            if (Matches(info))
-            {
-                WriteObject(info);
-            }
+    private void WriteShapes(PowerPointSlide slide, Func<string, bool>? matcher) {
+        var wildcardOptions = CaseSensitive.IsPresent ? WildcardOptions.None : WildcardOptions.IgnoreCase;
+        var names = Name?.Select(pattern => new WildcardPattern(pattern, wildcardOptions)).ToArray();
+        for (int index = 0; index < slide.Shapes.Count; index++) {
+            var info = PowerPointShapeReader.Read(slide, slide.Shapes[index], slide.Index, index);
+            if (Index?.Length > 0 && !Index.Contains(info.ShapeIndex)) continue;
+            if (Kind?.Length > 0 && !Kind.Any(kind => string.Equals(kind.ToString(), info.Kind, StringComparison.OrdinalIgnoreCase))) continue;
+            if (names?.Length > 0 && !names.Any(pattern => pattern.IsMatch(info.Name ?? string.Empty))) continue;
+            if (matcher != null && !PowerPointObjectSearch.MatchesShape(info, matcher)) continue;
+            WriteObject(info);
         }
-    }
-
-    private bool Matches(PowerPointShapeInfo info)
-    {
-        if (ShapeIndex != null && ShapeIndex.Length > 0 && !ShapeIndex.Contains(info.ShapeIndex))
-        {
-            return false;
-        }
-
-        if (Kind != null && Kind.Length > 0 && !Kind.Any(kind => string.Equals(kind.ToString(), info.Kind, StringComparison.OrdinalIgnoreCase)))
-        {
-            return false;
-        }
-
-        if (Name != null && Name.Length > 0)
-        {
-            if (string.IsNullOrWhiteSpace(info.Name))
-            {
-                return false;
-            }
-
-            var matchesName = Name.Any(pattern =>
-            {
-                var wildcard = new WildcardPattern(pattern, WildcardOptions.IgnoreCase);
-                return wildcard.IsMatch(info.Name);
-            });
-
-            if (!matchesName)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static int ResolveSlideIndex(PowerPointSlide slide, PowerPointPresentation? presentation)
-    {
-        if (presentation == null)
-        {
-            return -1;
-        }
-
-        for (var i = 0; i < presentation.Slides.Count; i++)
-        {
-            if (ReferenceEquals(presentation.Slides[i], slide))
-            {
-                return i;
-            }
-        }
-
-        return -1;
     }
 }

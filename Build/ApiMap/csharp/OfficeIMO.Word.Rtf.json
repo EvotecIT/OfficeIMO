@@ -1,0 +1,26 @@
+{
+  "package": "OfficeIMO.Word.Rtf",
+  "extraChanges": [
+    {
+      "category": "diagnostics",
+      "phase": "A",
+      "applied": "applied",
+      "files": [
+        "OfficeIMO.Word.Rtf/WordRtfWorkflowExtensions.cs"
+      ],
+      "note": "Existing field, replacement, mail-merge and merge completion notices use the mapped Core diagnostic codes."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "RTF image import uses the canonical Word AddImage options for VML and DrawingML. Optional visible dimensions remain absent when the RTF layout does not provide them; known twip dimensions convert through OfficeLength.Points. Existing retained hyperlink, deleted/moved and complex-field image tests access the created image Paragraph instead of relying on the former paragraph return value."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "RTF import uses the containing Paragraph of created hyperlinks and notes to preserve run formatting and insertion."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}

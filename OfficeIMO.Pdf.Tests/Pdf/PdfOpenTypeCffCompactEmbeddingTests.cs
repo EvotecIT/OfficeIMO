@@ -105,7 +105,7 @@ public class PdfOpenTypeCffCompactEmbeddingTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath!);
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }

@@ -77,11 +77,11 @@ public sealed class ConvertFromOfficeWordHtmlCommand : PSCmdlet {
 
     /// <summary>Controls where table captions are emitted.</summary>
     [Parameter]
-    public TableCaptionPosition? TableCaptionPosition { get; set; }
+    public WordHtmlTableCaptionPosition? TableCaptionPosition { get; set; }
 
     /// <summary>Controls how &lt;section&gt; tags are mapped into Word.</summary>
     [Parameter]
-    public SectionTagHandling? SectionTagHandling { get; set; }
+    public WordHtmlSectionTagHandling? SectionTagHandling { get; set; }
 
     /// <summary>Open the document after saving.</summary>
     [Parameter]
@@ -111,7 +111,7 @@ public sealed class ConvertFromOfficeWordHtmlCommand : PSCmdlet {
                 return;
             }
 
-            var options = new HtmlToWordOptions {
+            var options = new WordHtmlImportOptions {
                 IncludeListStyles = IncludeListStyles.IsPresent,
                 ContinueNumbering = ContinueNumbering.IsPresent,
                 SupportsHeadingNumbering = SupportsHeadingNumbering.IsPresent,
@@ -154,7 +154,7 @@ public sealed class ConvertFromOfficeWordHtmlCommand : PSCmdlet {
                 options.SectionTagHandling = SectionTagHandling.Value;
             }
 
-            var document = HtmlConversionDocument.Parse(html).ToWordDocument(options);
+            var document = HtmlConversionDocument.Parse(html).ToWord(options);
 
             if (!string.IsNullOrWhiteSpace(OutputPath)) {
                 var resolvedOutput = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);

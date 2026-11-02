@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_WebpExifOrientationIsAppliedToEmbeddedPng() {
             const string source = "UklGRmQAAABXRUJQVlA4WAoAAAAIAAAAAgAAAQAAVlA4TCQAAAAvAkAAAC8gEEjaH3qN+RcQFPk/2vwHH0QCg0CADPHiSET/IxZFWElGGgAAAE1NACoAAAAIAAEBEgADAAAAAQAGAAAAAAAA";
-            var result = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + source + "'>").ToWordDocumentResult();
+            var result = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + source + "'>").ConvertToWordWithEvidence();
             using var doc = result.Value;
             using var packageBytes = new MemoryStream(doc.ToBytes());
             using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(packageBytes, false);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "." + extension);
             using var client = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) })));
-            var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+            var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
             options.MaxDecodedImagePixels = pixels - 1;
             options.HttpClient = client;
             File.WriteAllBytes(path, bytes);
@@ -49,14 +49,14 @@ namespace OfficeIMO.Tests {
                 string source = route == "data" ? "data:image/" + extension + ";base64," + Convert.ToBase64String(bytes)
                     : route == "file" ? new Uri(path).AbsoluteUri : "https://example.test/image." + extension;
                 var conversion = await HtmlConversionDocument.Parse("<img src='" + source + "' alt='Retained description'>",
-                    HtmlConversionDocumentOptions.CreateTrustedProfile()).ToWordDocumentResultAsync(options);
+                    HtmlConversionDocumentOptions.CreateTrustedProfile()).ConvertToWordWithEvidenceAsync(options);
                 using var doc = conversion.Value;
                 Assert.Empty(doc.Images);
                 Assert.Contains(doc.Paragraphs, p => p.Text.Contains("Retained description"));
                 Assert.Contains(conversion.Report.Diagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));
                 options.MaxDecodedImagePixels = pixels;
-                using var accepted = await HtmlConversionDocument.Parse("<img src='" + source + "'>",
-                    HtmlConversionDocumentOptions.CreateTrustedProfile()).ToWordDocumentAsync(options);
+                using var accepted = (await HtmlConversionDocument.Parse("<img src='" + source + "'>",
+                    HtmlConversionDocumentOptions.CreateTrustedProfile()).ToWordAsync(options)).Value;
                 Assert.Single(accepted.Images);
             } finally { File.Delete(path); }
         }
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             // libwebp lossless 2001 x 2000 solid red: small encoded input, more than four million decoded pixels.
             const string source = "UklGRsoAAABXRUJQVlA4TL4AAAAv0MfzAQcQ/Y/+BwQkSf//kxH9z/jPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nP/9EC";
             var result = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + source + "' alt='Large photo'>")
-                .ToWordDocumentResult(HtmlToWordOptions.CreateUntrustedHtmlProfile());
+                .ConvertToWordWithEvidence(WordHtmlImportOptions.CreateUntrustedHtmlProfile());
             using var doc = result.Value;
             Assert.Empty(doc.Images);
             Assert.Contains(result.Report.Diagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));

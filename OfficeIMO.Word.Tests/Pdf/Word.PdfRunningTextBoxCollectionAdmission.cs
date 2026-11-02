@@ -44,10 +44,10 @@ public partial class Word {
         }
         string[] before = AnchoredRunningStoryXml(document);
         string stylesBefore = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.OuterXml;
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
-        using var controlPdf = PdfPigDocument.Open(control.ToPdfBytes(EmptyRunningOptions()));
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using var controlPdf = PdfPigDocument.Open(control.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(controlPdf.NumberOfPages, pdf.NumberOfPages);
         Assert.DoesNotContain("BOX", pdf.GetPage(2).Text);
         foreach (string token in new[] { "PREFIX", "SUFFIX", "S2" })
@@ -72,8 +72,8 @@ public partial class Word {
         clone.Append(drawing);
         hidden.AllowOverlap = false;
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.DoesNotContain("PEERBOX", pdf.GetPage(2).Text);
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
@@ -90,9 +90,9 @@ public partial class Word {
         peer.Descendants<DW.Anchor>().Single().AllowOverlap = false;
         root.Append(peer);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string visible = pdf.GetPage(2).Text;
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "NEXT", "PEERBOX", "END", "S2" }) Assert.Contains(token, visible);
         Assert.Equal(1, visible.Split(new[] { "PEERBOX" }, StringSplitOptions.None).Length - 1);
@@ -113,9 +113,9 @@ public partial class Word {
         shape.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "FFFF00" }), true);
         shape.AddChild(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })) { Width = 25400 }, true);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         foreach (string token in new[] { "PREFIX", "BOX", "SUFFIX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
@@ -134,9 +134,9 @@ public partial class Word {
         Assert.Empty(header.Descendants<W.Text>().Where(text => !text.Ancestors<W.TextBoxContent>().Any()));
         string[] before = AnchoredRunningStoryXml(document);
 
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
-        using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
+        using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         foreach (string token in new[] { "BOX", "S2" }) AnchoredRunningLetters(pdf.GetPage(2), token);
         Assert.Contains("COUNT 2", pdf.GetPage(3).Text);
         Assert.Equal(before, AnchoredRunningStoryXml(document));
@@ -150,8 +150,8 @@ public partial class Word {
         W.Paragraph separate = CloneRunningAnchorParagraph(first, "DP", "DEFAULTBOX", "DE");
         document.Sections[0].Header!.Default!._header!.Append(separate);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         Assert.Equal(3, pdf.NumberOfPages);
         Assert.Contains("BOX", pdf.GetPage(2).Text);
@@ -171,8 +171,8 @@ public partial class Word {
         host.RunProperties.Vanish = new W.Vanish();
         document.Sections[0].Header!.Default!._header!.Append(hidden);
         string[] before = AnchoredRunningStoryXml(document);
-        var result = document.ToPdfDocumentResult(EmptyRunningOptions());
-        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "NativeMixedTextBoxLayoutApproximated");
+        var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());
         foreach (int page in new[] { 1, 3 }) {
             Assert.DoesNotContain("HIDDENDEFAULT", pdf.GetPage(page).Text);

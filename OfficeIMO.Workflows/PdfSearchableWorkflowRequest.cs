@@ -15,11 +15,11 @@ public sealed class PdfSearchableWorkflowRequest {
     /// <summary>Optional provider output, requiring confirmed direct-write consent and Replace policy.</summary>
     public OfficeWorkflowStreamOutput? OutputStream { get; set; }
     /// <summary>Existing destination policy.</summary>
-    public OfficeWorkflowConflictPolicy ConflictPolicy { get; set; }
+    public OfficePublicationPolicy ConflictPolicy { get; set; }
     /// <summary>Host authorization checked immediately before publication.</summary>
-    public IOfficeWorkflowPublicationGuard? PublicationGuard { get; set; }
+    public IOfficePublicationGuard? PublicationGuard { get; set; }
     /// <summary>Input and output byte limits.</summary>
-    public OfficeWorkflowLimits Limits { get; set; } = new();
+    public OfficeOperationLimits Limits { get; set; } = new();
     /// <summary>Password used to open an encrypted source.</summary>
     public string? PdfPassword { get; set; }
     /// <summary>Recognition, page selection, rendering, and confidence options captured before asynchronous work.</summary>

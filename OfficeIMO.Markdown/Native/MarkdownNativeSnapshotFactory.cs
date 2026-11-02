@@ -1,39 +1,39 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownNativeSnapshotFactory {
-    internal static MarkdownNativeDocumentSnapshot FromDocument(MarkdownNativeDocument document) {
-        var referenceDefinitions = new List<MarkdownNativeReferenceLinkDefinitionSnapshot>(document.ReferenceLinkDefinitions.Count);
+    internal static MarkdownNativeDocumentInfo FromDocument(MarkdownNativeDocument document) {
+        var referenceDefinitions = new List<MarkdownNativeReferenceLinkDefinitionInfo>(document.ReferenceLinkDefinitions.Count);
         for (var i = 0; i < document.ReferenceLinkDefinitions.Count; i++) {
-            referenceDefinitions.Add(new MarkdownNativeReferenceLinkDefinitionSnapshot(document, document.ReferenceLinkDefinitions[i]));
+            referenceDefinitions.Add(new MarkdownNativeReferenceLinkDefinitionInfo(document, document.ReferenceLinkDefinitions[i]));
         }
 
-        var abbreviationDefinitions = new List<MarkdownNativeAbbreviationDefinitionSnapshot>(document.AbbreviationDefinitions.Count);
+        var abbreviationDefinitions = new List<MarkdownNativeAbbreviationDefinitionInfo>(document.AbbreviationDefinitions.Count);
         for (var i = 0; i < document.AbbreviationDefinitions.Count; i++) {
-            abbreviationDefinitions.Add(new MarkdownNativeAbbreviationDefinitionSnapshot(document, document.AbbreviationDefinitions[i]));
+            abbreviationDefinitions.Add(new MarkdownNativeAbbreviationDefinitionInfo(document, document.AbbreviationDefinitions[i]));
         }
 
-        var blocks = new List<MarkdownNativeBlockSnapshot>(document.Blocks.Count);
+        var blocks = new List<MarkdownNativeBlockInfo>(document.Blocks.Count);
         for (var i = 0; i < document.Blocks.Count; i++) {
             blocks.Add(FromBlock(document, document.Blocks[i]));
         }
 
-        var sourceTrivia = new List<MarkdownNativeSourceTriviaSnapshot>(document.SourceTrivia.Count);
+        var sourceTrivia = new List<MarkdownNativeSourceTriviaInfo>(document.SourceTrivia.Count);
         for (var i = 0; i < document.SourceTrivia.Count; i++) {
             sourceTrivia.Add(FromSourceTrivia(document, document.SourceTrivia[i]));
         }
 
-        var diagnostics = new List<MarkdownNativeDiagnosticSnapshot>(document.Diagnostics.Count);
+        var diagnostics = new List<MarkdownNativeDiagnosticInfo>(document.Diagnostics.Count);
         for (var i = 0; i < document.Diagnostics.Count; i++) {
-            diagnostics.Add(new MarkdownNativeDiagnosticSnapshot(document.Diagnostics[i]));
+            diagnostics.Add(new MarkdownNativeDiagnosticInfo(document.Diagnostics[i]));
         }
 
-        return new MarkdownNativeDocumentSnapshot(document.SourceKind, referenceDefinitions, abbreviationDefinitions, sourceTrivia, blocks, diagnostics);
+        return new MarkdownNativeDocumentInfo(document.SourceKind, referenceDefinitions, abbreviationDefinitions, sourceTrivia, blocks, diagnostics);
     }
 
-    internal static MarkdownNativeBlockSnapshot FromBlock(MarkdownNativeBlock block) => FromBlock(null, block);
+    internal static MarkdownNativeBlockInfo FromBlock(MarkdownNativeBlock block) => FromBlock(null, block);
 
-    internal static MarkdownNativeBlockSnapshot FromBlock(MarkdownNativeDocument? document, MarkdownNativeBlock block) {
-        var snapshot = new MarkdownNativeBlockSnapshot {
+    internal static MarkdownNativeBlockInfo FromBlock(MarkdownNativeDocument? document, MarkdownNativeBlock block) {
+        var snapshot = new MarkdownNativeBlockInfo {
             Id = block.Id,
             Kind = block.Kind,
             SourceSpan = ToSpanSnapshot(block.SourceSpan)
@@ -230,7 +230,7 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshot;
     }
 
-    private static MarkdownNativeSourceTriviaSnapshot FromSourceTrivia(
+    private static MarkdownNativeSourceTriviaInfo FromSourceTrivia(
         MarkdownNativeDocument document,
         MarkdownNativeSourceTrivia trivia) {
         string? sourceText = null;
@@ -247,7 +247,7 @@ internal static class MarkdownNativeSnapshotFactory {
             originalFailureReason = failureReason;
         }
 
-        return new MarkdownNativeSourceTriviaSnapshot(
+        return new MarkdownNativeSourceTriviaInfo(
             trivia,
             sourceText,
             originalSourceText,
@@ -269,12 +269,12 @@ internal static class MarkdownNativeSnapshotFactory {
 
     private static string RenderBlock(IMarkdownBlock block) => block.RenderMarkdown();
 
-    private static IReadOnlyList<MarkdownNativeBlockSnapshot> FromBlocks(MarkdownNativeDocument? document, IReadOnlyList<MarkdownNativeBlock> blocks) {
+    private static IReadOnlyList<MarkdownNativeBlockInfo> FromBlocks(MarkdownNativeDocument? document, IReadOnlyList<MarkdownNativeBlock> blocks) {
         if (blocks == null || blocks.Count == 0) {
-            return Array.Empty<MarkdownNativeBlockSnapshot>();
+            return Array.Empty<MarkdownNativeBlockInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeBlockSnapshot>(blocks.Count);
+        var snapshots = new List<MarkdownNativeBlockInfo>(blocks.Count);
         for (var i = 0; i < blocks.Count; i++) {
             snapshots.Add(FromBlock(document, blocks[i]));
         }
@@ -282,14 +282,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeInlineSnapshot> FromInlines(
+    private static IReadOnlyList<MarkdownNativeInlineInfo> FromInlines(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeInline>? inlines) {
         if (inlines == null || inlines.Count == 0) {
-            return Array.Empty<MarkdownNativeInlineSnapshot>();
+            return Array.Empty<MarkdownNativeInlineInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeInlineSnapshot>(inlines.Count);
+        var snapshots = new List<MarkdownNativeInlineInfo>(inlines.Count);
         for (var i = 0; i < inlines.Count; i++) {
             snapshots.Add(FromInline(document, inlines[i]));
         }
@@ -297,15 +297,15 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static MarkdownNativeInlineSnapshot FromInline(MarkdownNativeDocument? document, MarkdownNativeInline inline) {
+    private static MarkdownNativeInlineInfo FromInline(MarkdownNativeDocument? document, MarkdownNativeInline inline) {
         var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var metadataSourceSpans = new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
+        var metadataSourceSpans = new Dictionary<string, MarkdownNativeSourceSpanInfo?>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < inline.Metadata.Count; i++) {
             metadata[inline.Metadata[i].Name] = inline.Metadata[i].Value;
             metadataSourceSpans[inline.Metadata[i].Name] = ToSpanSnapshot(inline.Metadata[i].SourceSpan);
         }
 
-        return new MarkdownNativeInlineSnapshot(
+        return new MarkdownNativeInlineInfo(
             inline.Id,
             inline.Kind,
             inline.SyntaxKind,
@@ -319,11 +319,11 @@ internal static class MarkdownNativeSnapshotFactory {
             FromInlines(document, inline.Children));
     }
 
-    private static IReadOnlyList<MarkdownNativeInlineMetadataSnapshot> FromInlineMetadata(
+    private static IReadOnlyList<MarkdownNativeInlineMetadataInfo> FromInlineMetadata(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeInlineMetadata>? metadata) {
         if (metadata == null || metadata.Count == 0) {
-            return Array.Empty<MarkdownNativeInlineMetadataSnapshot>();
+            return Array.Empty<MarkdownNativeInlineMetadataInfo>();
         }
 
         var orderedMetadata = metadata
@@ -334,10 +334,10 @@ internal static class MarkdownNativeSnapshotFactory {
             .ThenBy(item => item.originalIndex)
             .ToArray();
 
-        var snapshots = new List<MarkdownNativeInlineMetadataSnapshot>(orderedMetadata.Length);
+        var snapshots = new List<MarkdownNativeInlineMetadataInfo>(orderedMetadata.Length);
         for (var i = 0; i < orderedMetadata.Length; i++) {
             if (document == null) {
-                snapshots.Add(new MarkdownNativeInlineMetadataSnapshot(orderedMetadata[i].value, i));
+                snapshots.Add(new MarkdownNativeInlineMetadataInfo(orderedMetadata[i].value, i));
                 continue;
             }
 
@@ -355,7 +355,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeInlineMetadataSnapshot(
+            snapshots.Add(new MarkdownNativeInlineMetadataInfo(
                 orderedMetadata[i].value,
                 i,
                 sourceText,
@@ -366,14 +366,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeListItemSnapshot> FromListItems(
+    private static IReadOnlyList<MarkdownNativeListItemInfo> FromListItems(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeListItem> items) {
         if (items == null || items.Count == 0) {
-            return Array.Empty<MarkdownNativeListItemSnapshot>();
+            return Array.Empty<MarkdownNativeListItemInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeListItemSnapshot>(items.Count);
+        var snapshots = new List<MarkdownNativeListItemInfo>(items.Count);
         for (var i = 0; i < items.Count; i++) {
             string? sourceText = null;
             string? originalSourceText = null;
@@ -390,7 +390,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeListItemSnapshot(
+            snapshots.Add(new MarkdownNativeListItemInfo(
                 items[i].Id,
                 items[i].Text,
                 items[i].IsTask,
@@ -412,14 +412,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> FromListItemParagraphs(
+    private static IReadOnlyList<MarkdownNativeListItemParagraphInfo> FromListItemParagraphs(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeListItemParagraph> paragraphs) {
         if (paragraphs == null || paragraphs.Count == 0) {
-            return Array.Empty<MarkdownNativeListItemParagraphSnapshot>();
+            return Array.Empty<MarkdownNativeListItemParagraphInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeListItemParagraphSnapshot>(paragraphs.Count);
+        var snapshots = new List<MarkdownNativeListItemParagraphInfo>(paragraphs.Count);
         for (var i = 0; i < paragraphs.Count; i++) {
             string? sourceText = null;
             string? originalSourceText = null;
@@ -436,7 +436,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeListItemParagraphSnapshot(
+            snapshots.Add(new MarkdownNativeListItemParagraphInfo(
                 paragraphs[i].Index,
                 paragraphs[i].Text,
                 ToSpanSnapshot(paragraphs[i].SourceSpan),
@@ -449,14 +449,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeDefinitionListGroupSnapshot> FromDefinitionGroups(
+    private static IReadOnlyList<MarkdownNativeDefinitionListGroupInfo> FromDefinitionGroups(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeDefinitionListGroup> groups) {
         if (groups == null || groups.Count == 0) {
-            return Array.Empty<MarkdownNativeDefinitionListGroupSnapshot>();
+            return Array.Empty<MarkdownNativeDefinitionListGroupInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeDefinitionListGroupSnapshot>(groups.Count);
+        var snapshots = new List<MarkdownNativeDefinitionListGroupInfo>(groups.Count);
         for (var i = 0; i < groups.Count; i++) {
             string? sourceText = null;
             string? originalSourceText = null;
@@ -473,7 +473,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeDefinitionListGroupSnapshot(
+            snapshots.Add(new MarkdownNativeDefinitionListGroupInfo(
                 ToSpanSnapshot(groups[i].SourceSpan),
                 sourceText,
                 originalSourceText,
@@ -485,14 +485,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> FromDefinitionTerms(
+    private static IReadOnlyList<MarkdownNativeDefinitionListTermInfo> FromDefinitionTerms(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeDefinitionListTerm> terms) {
         if (terms == null || terms.Count == 0) {
-            return Array.Empty<MarkdownNativeDefinitionListTermSnapshot>();
+            return Array.Empty<MarkdownNativeDefinitionListTermInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeDefinitionListTermSnapshot>(terms.Count);
+        var snapshots = new List<MarkdownNativeDefinitionListTermInfo>(terms.Count);
         for (var i = 0; i < terms.Count; i++) {
             string? sourceText = null;
             string? originalSourceText = null;
@@ -509,7 +509,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeDefinitionListTermSnapshot(
+            snapshots.Add(new MarkdownNativeDefinitionListTermInfo(
                 terms[i].Text,
                 terms[i].Markdown,
                 ToSpanSnapshot(terms[i].SourceSpan),
@@ -522,14 +522,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeDefinitionListDefinitionSnapshot> FromDefinitions(
+    private static IReadOnlyList<MarkdownNativeDefinitionListDefinitionInfo> FromDefinitions(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeDefinitionListDefinition> definitions) {
         if (definitions == null || definitions.Count == 0) {
-            return Array.Empty<MarkdownNativeDefinitionListDefinitionSnapshot>();
+            return Array.Empty<MarkdownNativeDefinitionListDefinitionInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeDefinitionListDefinitionSnapshot>(definitions.Count);
+        var snapshots = new List<MarkdownNativeDefinitionListDefinitionInfo>(definitions.Count);
         for (var i = 0; i < definitions.Count; i++) {
             string? sourceText = null;
             string? originalSourceText = null;
@@ -546,7 +546,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeDefinitionListDefinitionSnapshot(
+            snapshots.Add(new MarkdownNativeDefinitionListDefinitionInfo(
                 definitions[i].Markdown,
                 ToSpanSnapshot(definitions[i].SourceSpan),
                 sourceText,
@@ -558,14 +558,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeTableCellSnapshot> FromCells(
+    private static IReadOnlyList<MarkdownNativeTableCellInfo> FromCells(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeTableCell> cells) {
         if (cells == null || cells.Count == 0) {
-            return Array.Empty<MarkdownNativeTableCellSnapshot>();
+            return Array.Empty<MarkdownNativeTableCellInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeTableCellSnapshot>(cells.Count);
+        var snapshots = new List<MarkdownNativeTableCellInfo>(cells.Count);
         for (var i = 0; i < cells.Count; i++) {
             snapshots.Add(FromCell(document, cells[i]));
         }
@@ -573,14 +573,14 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<IReadOnlyList<MarkdownNativeTableCellSnapshot>> FromRows(
+    private static IReadOnlyList<IReadOnlyList<MarkdownNativeTableCellInfo>> FromRows(
         MarkdownNativeDocument? document,
         IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> rows) {
         if (rows == null || rows.Count == 0) {
-            return Array.Empty<IReadOnlyList<MarkdownNativeTableCellSnapshot>>();
+            return Array.Empty<IReadOnlyList<MarkdownNativeTableCellInfo>>();
         }
 
-        var snapshots = new List<IReadOnlyList<MarkdownNativeTableCellSnapshot>>(rows.Count);
+        var snapshots = new List<IReadOnlyList<MarkdownNativeTableCellInfo>>(rows.Count);
         for (var i = 0; i < rows.Count; i++) {
             snapshots.Add(FromCells(document, rows[i]));
         }
@@ -588,7 +588,7 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static MarkdownNativeTableCellSnapshot FromCell(MarkdownNativeDocument? document, MarkdownNativeTableCell cell) {
+    private static MarkdownNativeTableCellInfo FromCell(MarkdownNativeDocument? document, MarkdownNativeTableCell cell) {
         string? sourceText = null;
         string? originalSourceText = null;
         MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
@@ -604,7 +604,7 @@ internal static class MarkdownNativeSnapshotFactory {
             originalFailureReason = failureReason;
         }
 
-        return new MarkdownNativeTableCellSnapshot(
+        return new MarkdownNativeTableCellInfo(
             cell.Text,
             cell.Markdown,
             cell.IsHeader,
@@ -619,14 +619,14 @@ internal static class MarkdownNativeSnapshotFactory {
             FromBlocks(document, cell.Children));
     }
 
-    private static IReadOnlyList<MarkdownNativeTableRowSnapshot> FromTableRows(
+    private static IReadOnlyList<MarkdownNativeTableRowInfo> FromTableRows(
         MarkdownNativeDocument? document,
         IReadOnlyList<MarkdownNativeTableRow> rows) {
         if (rows == null || rows.Count == 0) {
-            return Array.Empty<MarkdownNativeTableRowSnapshot>();
+            return Array.Empty<MarkdownNativeTableRowInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeTableRowSnapshot>(rows.Count);
+        var snapshots = new List<MarkdownNativeTableRowInfo>(rows.Count);
         for (var i = 0; i < rows.Count; i++) {
             snapshots.Add(FromRow(document, rows[i]));
         }
@@ -634,7 +634,7 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static MarkdownNativeTableRowSnapshot FromRow(MarkdownNativeDocument? document, MarkdownNativeTableRow row) {
+    private static MarkdownNativeTableRowInfo FromRow(MarkdownNativeDocument? document, MarkdownNativeTableRow row) {
         string? sourceText = null;
         string? originalSourceText = null;
         MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
@@ -650,7 +650,7 @@ internal static class MarkdownNativeSnapshotFactory {
             originalFailureReason = failureReason;
         }
 
-        return new MarkdownNativeTableRowSnapshot(
+        return new MarkdownNativeTableRowInfo(
             row.Markdown,
             row.IsHeader,
             row.RowIndex,
@@ -661,34 +661,34 @@ internal static class MarkdownNativeSnapshotFactory {
             FromCells(document, row.Cells));
     }
 
-    private static MarkdownNativeSourceSpanSnapshot? ToSpanSnapshot(MarkdownSourceSpan? span) =>
-        span.HasValue ? new MarkdownNativeSourceSpanSnapshot(span.Value) : null;
+    private static MarkdownNativeSourceSpanInfo? ToSpanSnapshot(MarkdownSourceSpan? span) =>
+        span.HasValue ? new MarkdownNativeSourceSpanInfo(span.Value) : null;
 
-    private static IReadOnlyList<MarkdownNativeSourceSpanSnapshot> ToSpanSnapshots(IReadOnlyList<MarkdownSourceSpan> spans) {
+    private static IReadOnlyList<MarkdownNativeSourceSpanInfo> ToSpanSnapshots(IReadOnlyList<MarkdownSourceSpan> spans) {
         if (spans == null || spans.Count == 0) {
-            return Array.Empty<MarkdownNativeSourceSpanSnapshot>();
+            return Array.Empty<MarkdownNativeSourceSpanInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeSourceSpanSnapshot>(spans.Count);
+        var snapshots = new List<MarkdownNativeSourceSpanInfo>(spans.Count);
         for (var i = 0; i < spans.Count; i++) {
-            snapshots.Add(new MarkdownNativeSourceSpanSnapshot(spans[i]));
+            snapshots.Add(new MarkdownNativeSourceSpanInfo(spans[i]));
         }
 
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeBlockSourceFieldSnapshot> FromSourceFields(
+    private static IReadOnlyList<MarkdownNativeBlockSourceFieldInfo> FromSourceFields(
         MarkdownNativeDocument? document,
         MarkdownNativeBlock block) {
         var fields = MarkdownNativeDocument.EnumerateBlockSourceFields(block).ToArray();
         if (fields.Length == 0) {
-            return Array.Empty<MarkdownNativeBlockSourceFieldSnapshot>();
+            return Array.Empty<MarkdownNativeBlockSourceFieldInfo>();
         }
 
-        var snapshots = new List<MarkdownNativeBlockSourceFieldSnapshot>(fields.Length);
+        var snapshots = new List<MarkdownNativeBlockSourceFieldInfo>(fields.Length);
         for (var i = 0; i < fields.Length; i++) {
             if (document == null) {
-                snapshots.Add(new MarkdownNativeBlockSourceFieldSnapshot(fields[i]));
+                snapshots.Add(new MarkdownNativeBlockSourceFieldInfo(fields[i]));
                 continue;
             }
 
@@ -706,7 +706,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 originalFailureReason = failureReason;
             }
 
-            snapshots.Add(new MarkdownNativeBlockSourceFieldSnapshot(
+            snapshots.Add(new MarkdownNativeBlockSourceFieldInfo(
                 fields[i],
                 sourceText,
                 originalSourceText,
@@ -716,8 +716,8 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> FieldSpans(params (string Key, MarkdownSourceSpan? Value)[] values) {
-        var fields = new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
+    private static IReadOnlyDictionary<string, MarkdownNativeSourceSpanInfo?> FieldSpans(params (string Key, MarkdownSourceSpan? Value)[] values) {
+        var fields = new Dictionary<string, MarkdownNativeSourceSpanInfo?>(StringComparer.OrdinalIgnoreCase);
         if (values == null) {
             return fields;
         }

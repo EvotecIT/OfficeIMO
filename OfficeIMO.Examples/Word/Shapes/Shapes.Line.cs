@@ -1,6 +1,6 @@
 using System;
 using OfficeIMO.Word;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Word {
     internal static partial class Shapes {
@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with line");
-                paragraph.AddLine(0, 0, 100, 0, OfficeIMO.Drawing.OfficeColor.Red, 2);
+                paragraph.AddLine(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Red, OfficeIMO.OfficeLength.Points(2));
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

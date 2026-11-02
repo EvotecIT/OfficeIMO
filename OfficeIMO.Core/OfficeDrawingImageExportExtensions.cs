@@ -3,7 +3,7 @@ using System;
 namespace OfficeIMO.Drawing;
 
 /// <summary>Applies shared image-export configuration to Drawing scenes.</summary>
-public static class OfficeDrawingImageExportExtensions {
+internal static class OfficeDrawingImageExportExtensions {
     /// <summary>Applies caller-supplied fonts, text shaping and SVG text policy from shared export options to a drawing.</summary>
     public static OfficeDrawing ApplyImageExportOptions(
         this OfficeDrawing drawing,

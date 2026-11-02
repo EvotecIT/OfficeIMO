@@ -1,295 +1,150 @@
 using System;
-using System.IO;
 using System.Management.Automation;
 using System.Threading.Tasks;
+using OfficeIMO;
+using OfficeIMO.ChartForgeX;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
+using PSWriteOffice.Services.Visuals;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Adds an image anchored to a worksheet cell or range.</summary>
-/// <example>
-///   <summary>Insert a scaled image from disk at B2.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelImage -Address 'B2' -Path .\logo.png -ScalePercent 20 -Name Logo -AltText 'Company logo' }</code>
-///   <para>Anchors the image to cell B2 and sizes it to 20 percent of the original image dimensions.</para>
-/// </example>
-/// <example>
-///   <summary>Pin an image to a worksheet range.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelImage -Range 'A1:C15' -Path .\logo.png -Name HeaderLogo -Placement MoveAndSize }</code>
-///   <para>Uses Excel's two-cell anchor so the picture moves and resizes with the cells in A1:C15.</para>
-/// </example>
-/// <example>
-///   <summary>Insert and rotate an image from a URL.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelImage -Row 1 -Column 1 -Url 'https://example.org/logo.png' -WidthPixels 96 -HeightPixels 32 -RotationDegrees 12 }</code>
-///   <para>Downloads, sizes, rotates, and anchors the image to cell A1.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelImage", DefaultParameterSetName = ParameterSetContextPath)]
+/// <summary>Embeds a file, HTTP image or reusable visual at a worksheet cell or range.</summary>
+/// <para>A cell uses a one-cell anchor; a range uses a two-cell anchor. Numbers mean points and unit suffixes are accepted. With no dimensions or Scale, file images retain their detected size. Range anchors determine their own size. URL downloads use the native network policy and cancellation token.</para>
+/// <example><summary>Place a logo at its natural size.</summary>
+/// <code>ExcelSheet 'Cover' { ExcelImage -Path ./logo.png -Address A1 -AltText 'Contoso' }</code></example>
+/// <example><summary>Pin a reusable visual to the report header.</summary>
+/// <code>$visual | ExcelImage -Document $book -Sheet Summary -Address B2:G12 -Name Health</code></example>
+/// <example><summary>Download and resize a status badge.</summary>
+/// <code>ExcelImage -Url https://status.example.com/badge.png -Address H1 -Width 4cm</code></example>
+[Cmdlet(VerbsCommon.Add, "OfficeExcelImage", DefaultParameterSetName = "Path")]
 [Alias("ExcelImage")]
-public sealed class AddOfficeExcelImageCommand : AsyncPSCmdlet
-{
-    private const string ParameterSetContextPath = "ContextPath";
-    private const string ParameterSetContextUrl = "ContextUrl";
-    private const string ParameterSetDocumentPath = "DocumentPath";
-    private const string ParameterSetDocumentUrl = "DocumentUrl";
+[OutputType(typeof(ExcelImage))]
+public sealed class AddOfficeExcelImageCommand : OfficeVisualCommandBase {
+    /// <summary>Literal local image path.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path"), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentPath)]
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocumentUrl)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>HTTP or HTTPS image URI; local files use Path.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Url"), ValidateNotNull]
+    public Uri? Url { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocumentPath)]
-    [Parameter(ParameterSetName = ParameterSetDocumentUrl)]
-    public string? Sheet { get; set; }
+    /// <summary>ChartForgeX artifact, OfficeVisualSource, prepared visual or SVG path.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Visual"), ValidateNotNull]
+    public object? InputObject { get; set; }
 
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocumentPath)]
-    [Parameter(ParameterSetName = ParameterSetDocumentUrl)]
-    public int? SheetIndex { get; set; }
+    /// <summary>Workbook to modify outside the Excel DSL.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Image file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContextPath)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentPath)]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Sheet name, one-based position or native worksheet belonging to Document.</summary>
+    [Parameter, OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Image URL to download.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContextUrl)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentUrl)]
-    public string Url { get; set; } = string.Empty;
+    /// <summary>A1 cell or range; defaults to A1. Use B2:B2 for a two-cell anchor over one cell.</summary>
+    [Parameter, ValidateNotNullOrEmpty]
+    public string Address { get; set; } = "A1";
 
-    /// <summary>1-based row index.</summary>
+    /// <summary>Positive percentage of the source size; exclusive with dimensions and range anchors.</summary>
     [Parameter]
-    public int? Row { get; set; }
+    public double? Scale { get; set; }
 
-    /// <summary>1-based column index.</summary>
-    [Parameter]
-    public int? Column { get; set; }
+    /// <summary>Horizontal start-marker offset; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength OffsetX { get; set; }
 
-    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
-    [Parameter]
-    [Alias("Cell")]
-    public string? Address { get; set; }
+    /// <summary>Vertical start-marker offset; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength OffsetY { get; set; }
 
-    /// <summary>A1-style range (for example, A1:C15) for a two-cell anchor that can move and resize with cells.</summary>
-    [Parameter]
-    public string? Range { get; set; }
+    /// <summary>Horizontal end-marker offset for a range anchor; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength EndOffsetX { get; set; }
 
-    /// <summary>Image width in pixels.</summary>
-    [Parameter]
-    [Alias("Width")]
-    public int WidthPixels { get; set; } = 96;
+    /// <summary>Vertical end-marker offset for a range anchor; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength EndOffsetY { get; set; }
 
-    /// <summary>Image height in pixels.</summary>
-    [Parameter]
-    [Alias("Height")]
-    public int HeightPixels { get; set; } = 32;
-
-    /// <summary>Percentage of the original image size. Cannot be combined with WidthPixels or HeightPixels.</summary>
-    [Parameter]
-    public double? ScalePercent { get; set; }
-
-    /// <summary>Horizontal offset in pixels from the cell origin.</summary>
-    [Parameter]
-    public int OffsetXPixels { get; set; }
-
-    /// <summary>Vertical offset in pixels from the cell origin.</summary>
-    [Parameter]
-    public int OffsetYPixels { get; set; }
-
-    /// <summary>Horizontal offset in pixels for the range end marker when using Range.</summary>
-    [Parameter]
-    public int EndOffsetXPixels { get; set; }
-
-    /// <summary>Vertical offset in pixels for the range end marker when using Range.</summary>
-    [Parameter]
-    public int EndOffsetYPixels { get; set; }
-
-    /// <summary>Optional drawing name used by Excel's selection pane.</summary>
+    /// <summary>Drawing name in Excel's selection pane.</summary>
     [Parameter]
     public string? Name { get; set; }
 
-    /// <summary>Optional alternative text description for accessibility.</summary>
+    /// <summary>Accessible image description; omitted visual descriptions are retained.</summary>
     [Parameter]
     public string? AltText { get; set; }
 
-    /// <summary>Optional alternative text title.</summary>
-    [Parameter]
-    public string? Title { get; set; }
+    /// <inheritdoc />
+    protected override string? VisualAlternativeText => AltText;
 
-    /// <summary>Marks the image as decorative by clearing alternative text metadata.</summary>
+    /// <inheritdoc />
+    protected override string AlternativeTextParameterName => nameof(AltText);
+
+    /// <summary>Clear accessible title and description and mark the image decorative.</summary>
     [Parameter]
     public SwitchParameter Decorative { get; set; }
 
-    /// <summary>Do not lock the image aspect ratio in Excel.</summary>
+    /// <summary>Allow interactive aspect-ratio changes in Excel; the default locks the ratio.</summary>
     [Parameter]
     public SwitchParameter NoLockAspectRatio { get; set; }
 
-    /// <summary>Lock the image aspect ratio in Excel. This is the default unless NoLockAspectRatio is used.</summary>
-    [Parameter]
-    public SwitchParameter LockAspectRatio { get; set; }
-
-    /// <summary>How a range-anchored image behaves when cells move or resize.</summary>
+    /// <summary>Movement and resizing behavior of a two-cell anchor.</summary>
     [Parameter]
     public ExcelImagePlacement Placement { get; set; } = ExcelImagePlacement.MoveAndSize;
 
-    /// <summary>Clockwise image rotation in degrees.</summary>
+    /// <summary>Clockwise rotation in degrees.</summary>
     [Parameter]
-    public double RotationDegrees { get; set; }
+    public double Rotation { get; set; }
 
-    /// <summary>Emit the worksheet after inserting the image.</summary>
+    /// <summary>Return the native editable ExcelImage.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
-    protected override async Task ProcessRecordAsync()
-    {
-        ValidateImageOptions();
-
-        var sheet = ResolveSheet();
-
-        if (ParameterSetName == ParameterSetContextPath || ParameterSetName == ParameterSetDocumentPath)
-        {
-            var resolved = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            AddLocalImage(sheet, resolved);
-        }
-        else
-        {
-            ExcelImageUrlPolicy.RequireWebUrl(Url);
-            await AddRemoteImageAsync(sheet, Url).ConfigureAwait(false);
-        }
-
-        if (PassThru.IsPresent)
-        {
-            WriteObject(sheet);
-        }
-    }
-
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocumentPath || ParameterSetName == ParameterSetDocumentUrl)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
-
-    private void AddLocalImage(ExcelSheet sheet, string path)
-    {
-        if (!File.Exists(path))
-        {
-            throw new FileNotFoundException($"Image file '{path}' was not found.", path);
-        }
-
+    protected override async Task ProcessRecordAsync() {
+        bool range = Address.Contains(":");
+        ValidatePlacement(range);
+        // All PowerShell binding/context work finishes before native asynchronous I/O.
+        ExcelSheet sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
+        string? path = Path == null ? null : OfficePath.ResolveInput(SessionState, Path, literal: true)[0];
+        Uri? url = Url;
+        if (url != null) ExcelImageUrlPolicy.RequireWebUrl(url.ToString());
+        OfficeVisualConversionResult? visual = ParameterSetName == "Visual" ? ResolveVisual(InputObject!, nativePlacement: true) : null;
+        var options = new ExcelImageOptions {
+            Width = Width, Height = Height, ScalePercent = Scale,
+            OffsetX = OffsetX, OffsetY = OffsetY, EndOffsetX = EndOffsetX, EndOffsetY = EndOffsetY,
+            Name = Name, Title = Decorative ? null : Title ?? visual?.Title,
+            Description = Decorative ? null : AltText ?? visual?.AlternativeText,
+            LockAspectRatio = !NoLockAspectRatio, Placement = Placement, RotationDegrees = Rotation
+        };
         ExcelImage image;
-        if (!string.IsNullOrWhiteSpace(Range))
-        {
-            image = sheet.AddImageFromFileToRange(Range!, path, OffsetXPixels, OffsetYPixels, EndOffsetXPixels, EndOffsetYPixels,
-                Name, Decorative.IsPresent ? null : AltText, Title, ResolveLockAspectRatio(), Placement, RotationDegrees);
+        if (visual != null) {
+            options.ContentType = visual.PlacementMediaType;
+            if (!range) {
+                options.ScalePercent = null;
+                options.Width ??= OfficeLength.Points(visual.WidthPoints * (Scale ?? 100) / 100);
+                options.Height ??= OfficeLength.Points(visual.HeightPoints * (Scale ?? 100) / 100);
+            }
+            image = sheet.AddImage(Address, visual.GetPlacementBytes(), options);
+        } else if (url != null) {
+            image = await sheet.AddImageAsync(Address, url, options, CancelToken).ConfigureAwait(false);
+        } else {
+            image = sheet.AddImage(Address, path!, options);
         }
-        else
-        {
-            var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-            var (width, height) = ResolveCellImageSize();
-            image = sheet.AddImageFromFile(row, column, path, width, height, ScalePercent, OffsetXPixels, OffsetYPixels,
-                Name, Decorative.IsPresent ? null : AltText, Title, ResolveLockAspectRatio(), RotationDegrees);
-        }
-
-        if (Decorative.IsPresent)
-        {
-            image.Decorative();
-        }
+        if (Decorative || visual?.IsDecorative == true && AltText == null && Title == null) image.Decorative();
+        if (PassThru) WriteObject(image);
     }
 
-    private async Task AddRemoteImageAsync(ExcelSheet sheet, string url)
-    {
-        ExcelImage? image;
-        if (!string.IsNullOrWhiteSpace(Range))
-        {
-            image = await sheet.AddImageFromUrlToRangeAsync(Range!, url, OffsetXPixels, OffsetYPixels, EndOffsetXPixels, EndOffsetYPixels,
-                Name, Decorative.IsPresent ? null : AltText, Title, ResolveLockAspectRatio(), Placement, RotationDegrees, CancelToken)
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-            var (width, height) = ResolveCellImageSize();
-            image = await sheet.AddImageFromUrlAsync(row, column, url, width, height, ScalePercent, OffsetXPixels, OffsetYPixels,
-                Name, Decorative.IsPresent ? null : AltText, Title, ResolveLockAspectRatio(), RotationDegrees, CancelToken)
-                .ConfigureAwait(false);
-        }
-
-        if (Decorative.IsPresent)
-        {
-            image?.Decorative();
-        }
-    }
-
-    private void ValidateImageOptions()
-    {
-        bool widthBound = MyInvocation.BoundParameters.ContainsKey(nameof(WidthPixels));
-        bool heightBound = MyInvocation.BoundParameters.ContainsKey(nameof(HeightPixels));
-        bool rangeBound = !string.IsNullOrWhiteSpace(Range);
-
-        if (WidthPixels <= 0 || HeightPixels <= 0)
-        {
-            throw new PSArgumentException("WidthPixels and HeightPixels must be greater than zero.");
-        }
-
-        if (ScalePercent.HasValue && (ScalePercent.Value <= 0 || double.IsNaN(ScalePercent.Value) || double.IsInfinity(ScalePercent.Value)))
-        {
-            throw new PSArgumentException("ScalePercent must be a positive finite number.");
-        }
-
-        if (ScalePercent.HasValue && (widthBound || heightBound))
-        {
-            throw new PSArgumentException("ScalePercent cannot be combined with WidthPixels or HeightPixels.");
-        }
-
-        if (rangeBound && (Row.HasValue || Column.HasValue || !string.IsNullOrWhiteSpace(Address)))
-        {
-            throw new PSArgumentException("Use either Range or Row/Column/Address, not both.");
-        }
-
-        if (rangeBound && (ScalePercent.HasValue || widthBound || heightBound))
-        {
-            throw new PSArgumentException("Range determines the image size. Do not combine Range with ScalePercent, WidthPixels, or HeightPixels.");
-        }
-
-        if (Decorative.IsPresent && (!string.IsNullOrWhiteSpace(AltText) || !string.IsNullOrWhiteSpace(Title)))
-        {
+    private void ValidatePlacement(bool range) {
+        if (Width.HasValue && Width.Value <= OfficeLength.Zero || Height.HasValue && Height.Value <= OfficeLength.Zero)
+            throw new PSArgumentException("Image dimensions must be positive.");
+        if (Scale.HasValue && (Scale.Value <= 0 || double.IsNaN(Scale.Value) || double.IsInfinity(Scale.Value)))
+            throw new PSArgumentException("Scale must be a positive finite percentage.");
+        if (Scale.HasValue && (Width.HasValue || Height.HasValue))
+            throw new PSArgumentException("Scale cannot be combined with Width or Height.");
+        if (range && (Scale.HasValue || Width.HasValue || Height.HasValue))
+            throw new PSArgumentException("A range Address determines the image size; omit Scale, Width and Height.");
+        if (Decorative && (!string.IsNullOrWhiteSpace(AltText) || !string.IsNullOrWhiteSpace(Title)))
             throw new PSArgumentException("Decorative images cannot also define AltText or Title.");
-        }
-    }
-
-    private (int? Width, int? Height) ResolveCellImageSize()
-    {
-        if (ScalePercent.HasValue)
-        {
-            return (null, null);
-        }
-
-        bool widthBound = MyInvocation.BoundParameters.ContainsKey(nameof(WidthPixels));
-        bool heightBound = MyInvocation.BoundParameters.ContainsKey(nameof(HeightPixels));
-        return (widthBound ? WidthPixels : 96, heightBound ? HeightPixels : 32);
-    }
-
-    private bool ResolveLockAspectRatio()
-    {
-        if (NoLockAspectRatio.IsPresent)
-        {
-            return false;
-        }
-
-        return !MyInvocation.BoundParameters.ContainsKey(nameof(LockAspectRatio)) || LockAspectRatio.IsPresent;
     }
 }

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_CopyAndTransposeTranslateRelativeFormulas() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellFormula(1, 2, "A1+1");
             sheet.CellValue(2, 1, 2);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_MoveUpdatesDependentReferences() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(2, 2, 2);
             sheet.CellFormula(3, 3, "A1+B2");
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_MovePreservesOutsideReferencesInsideMovedFormula() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellFormula(1, 2, "A1");
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_InsertAndDeleteCellsRoundTripReferences() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 2, 2);
             sheet.CellFormula(1, 3, "A1+B1");
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_DeleteCellsShrinksPartiallyDeletedFormulaRange() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(1, 3, 3);
             sheet.CellFormula(1, 5, "SUM(B1:C1)");
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         [InlineData("C1")]
         public void Test_RangeMutations_DeleteCellsShrinksReversedFormulaRange(string deletedCell) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(1, 3, 3);
             sheet.CellFormula(1, 5, "SUM(C1:B1)");
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [InlineData("A3")]
         public void Test_RangeMutations_DeleteCellsUpShrinksReversedFormulaRange(string deletedCell) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(2, 1, 2);
             sheet.CellValue(3, 1, 3);
             sheet.CellFormula(1, 5, "SUM(A3:A2)");
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_CopyRejectsOwnedDestinationAndRevalidatesPlan() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Source");
             ExcelStructuralMutationPlan plan = sheet.PlanCopyRange("A1", "D1");
             sheet.CellValue(1, 4, "One");
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_TransposeMapsAbsoluteAxes() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(2, 2, "$A2");
 
             sheet.TransposeRange("B2", "D4");
@@ -147,16 +147,15 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_CopyPreservesImageMetadataAndTwoCellGeometry() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            ExcelImage source = sheet.AddImageToRange(
-                "A1:B2",
-                TinyPng,
-                name: "Logo",
-                altText: "Accessible logo",
-                title: "Brand",
-                lockAspectRatio: false,
-                placement: ExcelImagePlacement.MoveOnly,
-                rotationDegrees: 12.5);
+            ExcelSheet sheet = document.AddSheet("Data");
+            ExcelImage source = sheet.AddImage("A1:B2", TinyPng, new OfficeIMO.Excel.ExcelImageOptions {
+                Name = "Logo",
+                Description = "Accessible logo",
+                Title = "Brand",
+                LockAspectRatio = false,
+                Placement = ExcelImagePlacement.MoveOnly,
+                RotationDegrees = 12.5
+            });
             source.SetCropRatio(0.1, 0.2, 0.05, 0.15).SetFlip(true, false);
 
             sheet.CopyRange("A1:B2", "D4");
@@ -186,7 +185,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMutations_VerticalCellShiftsReparentCellsToTargetRows() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(2, 1, "shifted");
             sheet.CellValue(2, 2, "fixed");
 
@@ -216,7 +215,7 @@ namespace OfficeIMO.Tests {
             ExcelCellShiftDirection direction,
             bool inserting) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             bool vertical = direction == ExcelCellShiftDirection.Down || direction == ExcelCellShiftDirection.Up;
             string tableRange = vertical ? "A3:B4" : "C1:D2";
             if (vertical) {

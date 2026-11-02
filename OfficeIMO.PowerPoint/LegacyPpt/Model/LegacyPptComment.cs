@@ -1,6 +1,6 @@
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a PowerPoint 2000-2003 presentation comment.</summary>
-    public sealed class LegacyPptComment {
+    internal sealed class LegacyPptComment {
         internal LegacyPptComment(int index, string author, string initials, string text,
             DateTime? createdAtUtc, int x, int y) {
             Index = index;

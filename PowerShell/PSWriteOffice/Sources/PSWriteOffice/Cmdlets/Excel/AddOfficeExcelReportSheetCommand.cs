@@ -1,10 +1,10 @@
+using OfficeIMO.Excel;
 using System.Management.Automation;
-using OfficeIMO.Excel.Fluent;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.</summary>
+/// <summary>Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.</summary>
 /// <example>
 ///   <summary>Create a composed report sheet.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   }</code>
 ///   <para>Creates a report-oriented worksheet with title and KPI blocks.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportSheet")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportSheet", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportSheet")]
 public sealed class AddOfficeExcelReportSheetCommand : PSCmdlet
 {
@@ -56,7 +56,7 @@ public sealed class AddOfficeExcelReportSheetCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var context = ExcelDslContext.Require(this);
-        var composer = new SheetComposer(context.Document, Name, BuildTheme());
+        var composer = context.Document.AddSheet(Name, ExcelSheetNameValidationMode.Sanitize).Report(BuildTheme());
 
         using (context.Push(composer))
         using (context.Push(composer.Sheet))
@@ -72,22 +72,22 @@ public sealed class AddOfficeExcelReportSheetCommand : PSCmdlet
         }
     }
 
-    private SheetTheme BuildTheme()
+    private ExcelReportOptions BuildTheme()
     {
         if (string.IsNullOrWhiteSpace(SectionHeaderFillColor) && string.IsNullOrWhiteSpace(KeyFillColor))
         {
-            return SheetTheme.Default;
+            return new ExcelReportOptions();
         }
 
-        var theme = new SheetTheme();
+        var theme = new ExcelReportOptions();
         if (!string.IsNullOrWhiteSpace(SectionHeaderFillColor))
         {
-            theme.SectionHeaderFillHex = SectionHeaderFillColor!;
+            theme.SectionHeaderFill = OfficeIMO.OfficeColor.ParseHex(PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColorHex(SectionHeaderFillColor!)!.Substring(2));
         }
 
         if (!string.IsNullOrWhiteSpace(KeyFillColor))
         {
-            theme.KeyFillHex = KeyFillColor!;
+            theme.KeyFill = OfficeIMO.OfficeColor.ParseHex(PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColorHex(KeyFillColor!)!.Substring(2));
         }
 
         return theme;

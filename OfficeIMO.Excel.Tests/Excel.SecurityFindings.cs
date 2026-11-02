@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DuplicateLegacyComments_DoNotCrashStructuralRowRemapping() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(3, 1, "Value");
             sheet.SetComment(3, 1, "Duplicate", author: "Tester");
             AppendDuplicateComment(sheet);
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DuplicateLegacyComments_DoNotCrashSortedRowRemapping() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Score");
             sheet.CellValue(2, 1, "High");

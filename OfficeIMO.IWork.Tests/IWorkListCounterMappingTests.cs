@@ -60,14 +60,14 @@ public sealed partial class IWorkBoundaryTests {
         var source = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(source.IsFormattingComplete);
         // Give this counter-only parser fixture room to render every paragraph.
-        result.Value.SlideSize.SetSizePoints(600, 500);
+        result.Value.SlideSize.SetSize(OfficeLength.Points(600), OfficeLength.Points(500));
         var table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
-        table.WidthPoints = 500;
-        table.HeightPoints = 400;
-        table.SetColumnWidthPoints(0, 500);
-        table.SetRowHeightPoints(0, 400);
+        table.Width = OfficeLength.Points(500);
+        table.Height = OfficeLength.Points(400);
+        table.SetColumnWidth(0, OfficeIMO.OfficeLength.Points(500));
+        table.SetRowHeight(0, OfficeIMO.OfficeLength.Points(400));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
+        using var reopened = PowerPointDocument.Load(saved);
         Assert.Empty(reopened.ValidateDocument());
         var actualParagraphs = Assert.Single(reopened.Slides[0].Tables).GetCell(0, 0).Paragraphs;
         for (int index = 1; index < actualParagraphs.Count; index++) {
@@ -80,8 +80,8 @@ public sealed partial class IWorkBoundaryTests {
             ? number + ". " + paragraph.Text : paragraph.Text).ToArray();
         var drawing = reopened.Slides[0].CreateVisualSnapshot().Drawing;
         Assert.Equal(string.Concat(expected), DrawingText(drawing));
-        var pdf = reopened.ToPdfDocumentResult();
-        string text = PdfCore.PdfReadDocument.Open(pdf.Value.ToBytes()).ExtractText();
+        using var pdf = reopened.ToPdf(null, out OfficeConversionReport report);
+        string text = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).ExtractText();
         int previous = -1;
         foreach (string item in expected) {
             int position = text.IndexOf(item, StringComparison.Ordinal);
@@ -89,7 +89,7 @@ public sealed partial class IWorkBoundaryTests {
             previous = position;
         }
         Assert.Equal(OfficeConversionLossKind.Approximation,
-            Assert.Single(pdf.Report.Warnings, warning => warning.Code == "table-list-layout-approximation").LossKind);
+            Assert.Single(report.Diagnostics, diagnostic => diagnostic.Code == OfficeDiagnosticCodes.TableListLayoutApproximation).LossKind);
     }
 
     // Painted glyph positioning can split a logical paragraph into adjacent runs.

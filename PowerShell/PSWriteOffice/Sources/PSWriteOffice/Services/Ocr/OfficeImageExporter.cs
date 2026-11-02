@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Word;
+using OfficeIMO.Pdf.Excel;
 using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
@@ -28,7 +30,7 @@ internal static class OfficeImageExporter
     }
 
     internal static OfficeImageConversionResult Export(PdfSearchableOcrReview review, string outputPath,
-        bool overwrite, PdfTablesToExcelOptions excelOptions, PdfToWordOptions? wordOptions, CancellationToken cancellationToken,
+        bool overwrite, ExcelPdfImportOptions excelOptions, WordPdfImportOptions? wordOptions, CancellationToken cancellationToken,
         PdfToHtmlOptions? htmlOptions = null, CsvSaveOptions? csvOptions = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -47,14 +49,14 @@ internal static class OfficeImageExporter
             cancellationToken.ThrowIfCancellationRequested();
             switch (extension)
             {
-                case ".xlsx": report = document.SaveTablesAsExcel(temporaryPath, excelOptions, cancellationToken).RequireSuccess().Report; break;
-                case ".docx": report = document.SaveAsWord(temporaryPath,
-                    wordOptions ?? new PdfToWordOptions { ImportImages = false, IncludeImagePlaceholders = false }, cancellationToken).RequireSuccess().Report; break;
-                case ".html": report = document.SaveAsHtml(temporaryPath,
-                    htmlOptions ?? new PdfToHtmlOptions { ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly, IncludeImagePlaceholders = false }, cancellationToken).RequireSuccess().Report; break;
-                case ".pdf": review.ApplyAll(cancellationToken).Document.Save(temporaryPath).RequireSuccess(); break;
+                case ".xlsx": report = review.Ocr.SaveAsExcel(temporaryPath, excelOptions, cancellationToken); break;
+                case ".docx": report = review.Ocr.SaveAsWord(temporaryPath,
+                    wordOptions ?? new WordPdfImportOptions { ImportImages = false, IncludeImagePlaceholders = false }, cancellationToken); break;
+                case ".html": report = review.Ocr.SaveAsHtml(temporaryPath,
+                    htmlOptions ?? new PdfToHtmlOptions { ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly, IncludeImagePlaceholders = false }, cancellationToken); break;
+                case ".pdf": using (var searchable = review.ApplyAll(cancellationToken).Document) searchable.Save(temporaryPath); break;
                 case ".txt": WriteText(temporaryPath, review.Ocr.Text); break;
-                case ".md": WriteText(temporaryPath, document.ToMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false })); break;
+                case ".md": WriteText(temporaryPath, document.ExtractMarkdown(new PdfLogicalMarkdownOptions { IncludeImagePlaceholders = false })); break;
                 case ".json": WriteText(temporaryPath, document.ExportStructured(PdfStructuredExportFormat.Json)); break;
                 case ".csv":
                     var table = document.Tables[0];

@@ -13,7 +13,7 @@ Loaded diagrams use the same page, shape, connector, data, and fluent APIs as ne
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
-using Color = OfficeIMO.Drawing.OfficeColor;
+using Color = OfficeIMO.OfficeColor;
 
 VisioDocument.Load("operations.vsdx")
     .AsFluent()

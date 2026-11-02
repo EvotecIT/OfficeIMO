@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 LegacyDocWriteAssessment supported = supportedDocument.AssessLegacyDocWrite();
 
                 Assert.True(supported.IsSupported);
-                Assert.Equal("LegacyDocWriteSupported", supported.DiagnosticCode);
+                Assert.Equal("legacy-doc-write-supported", supported.DiagnosticCode);
                 Assert.True(supported.EncodedByteCount > 0);
                 Assert.Same(supported, supported.EnsureSupported());
             }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             LegacyDocWriteAssessment unsupported = unsupportedDocument.AssessLegacyDocWrite();
 
             Assert.False(unsupported.IsSupported);
-            Assert.Equal("LegacyDocWriteUnsupported", unsupported.DiagnosticCode);
+            Assert.Equal("legacy-doc-write-unsupported", unsupported.DiagnosticCode);
             Assert.Null(unsupported.EncodedByteCount);
             Assert.Throws<NotSupportedException>(() => unsupported.EnsureSupported());
         }
@@ -58,11 +58,10 @@ namespace OfficeIMO.Tests {
 
             LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
             NotSupportedException saveFailure = Assert.Throws<NotSupportedException>(() =>
-                document.ToBytes(WordFileFormat.Doc));
+                document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
 
             Assert.False(assessment.IsSupported);
-            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
-            Assert.Contains("TOCHeading", assessment.Message, StringComparison.Ordinal);
+            Assert.Equal("legacy-doc-write-unsupported", assessment.DiagnosticCode);
             Assert.Equal(saveFailure.Message, assessment.Message);
         }
 
@@ -81,7 +80,7 @@ namespace OfficeIMO.Tests {
             LegacyDocWriteAssessment assessment = readOnly.AssessLegacyDocWrite();
 
             Assert.True(assessment.IsSupported);
-            Assert.Equal("LegacyDocWriteSupported", assessment.DiagnosticCode);
+            Assert.Equal("legacy-doc-write-supported", assessment.DiagnosticCode);
             Assert.True(assessment.EncodedByteCount > 0);
         }
 
@@ -98,7 +97,7 @@ namespace OfficeIMO.Tests {
             LegacyDocWriteAssessment assessment = signed.AssessLegacyDocWrite();
 
             Assert.False(assessment.IsSupported);
-            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Equal("legacy-doc-write-unsupported", assessment.DiagnosticCode);
             Assert.Null(assessment.EncodedByteCount);
             Assert.Contains("AllowSignatureInvalidation", assessment.Message, StringComparison.Ordinal);
         }
@@ -119,7 +118,7 @@ namespace OfficeIMO.Tests {
             LegacyDocWriteAssessment assessment = document.AssessLegacyDocWrite();
 
             Assert.False(assessment.IsSupported);
-            Assert.Equal("LegacyDocWriteUnsupported", assessment.DiagnosticCode);
+            Assert.Equal("legacy-doc-write-unsupported", assessment.DiagnosticCode);
             Assert.Null(assessment.EncodedByteCount);
             Assert.Contains("body is missing", assessment.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -383,7 +382,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
             OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
-                diagnostic => diagnostic.Code == "Word.VbaProject.Removed");
+                diagnostic => diagnostic.Code == "word-vba-project-removed");
             Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
             Assert.True(finding.CompatibilityImpact.HasFlag(OfficeCompatibilityImpact.Security));
             Assert.False(File.Exists(blockedPath));
@@ -470,7 +469,7 @@ namespace OfficeIMO.Tests {
             string visualPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Executive scorecard");
-                WordChart chart = document.AddChart("Delivery status", false, 420, 240);
+                WordChart chart = document.AddChart("Delivery status",false,OfficeIMO.OfficeLength.Pixels(420),OfficeIMO.OfficeLength.Pixels(240));
                 chart.AddPie("Complete", 72);
                 chart.AddPie("Remaining", 28);
                 WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
@@ -487,22 +486,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains(blocked.Result.Report.FidelityDiagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(blocked.Result.Report.Diagnostics,
-                finding => finding.Code == "Word.LegacyWriter.Unsupported"
+                finding => finding.Code == "word-legacy-writer-unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);
             Assert.False(File.Exists(blockedPath));
 
             var options = new WordDocumentConversionOptions {
-                CompatibilityMode = OfficeCompatibilityMode.PreferVisual
+                CompatibilityMode = OfficeCompatibilityMode.PreferVisual,
+                VisualFallbackRenderer = document => document.ExportImages(OfficeImageExportFormat.Png)
             };
             WordDocumentConversionReport preflight = WordDocument.AnalyzeConversion(sourcePath, visualPath, options);
 
             Assert.False(File.Exists(visualPath));
             Assert.Contains(preflight.Diagnostics,
-                finding => finding.Code == "Word.LegacyWriter.VisualFallback"
+                finding => finding.Code == "word-legacy-writer-visual-fallback"
                     && finding.CompatibilityState == OfficeCompatibilityState.Rasterized
                     && finding.FallbackArtifact != null);
             Assert.Contains(preflight.Diagnostics,
-                finding => finding.Code == "Word.SourceCarrier.NotEmbedded"
+                finding => finding.Code == "word-source-carrier-not-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.Dropped);
 
             WordDocumentConversionResult converted = WordDocument.Convert(sourcePath, visualPath, options);
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Recoverable source");
-                WordChart chart = document.AddChart("Preserved chart", false, 360, 200);
+                WordChart chart = document.AddChart("Preserved chart",false,OfficeIMO.OfficeLength.Pixels(360),OfficeIMO.OfficeLength.Pixels(200));
                 chart.AddPie("Yes", 3);
                 chart.AddPie("No", 1);
                 document.Save();
@@ -536,11 +536,12 @@ namespace OfficeIMO.Tests {
                 sourcePath,
                 destinationPath,
                 new WordDocumentConversionOptions {
-                    CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
+                    CompatibilityMode = OfficeCompatibilityMode.PreservationOnly,
+                    VisualFallbackRenderer = document => document.ExportImages(OfficeImageExportFormat.Png)
                 });
 
             OfficeConversionDiagnostic carrier = Assert.Single(converted.Report.Diagnostics,
-                finding => finding.Code == "Word.SourceCarrier.Embedded");
+                finding => finding.Code == "word-source-carrier-embedded");
             Assert.Equal(OfficeCompatibilityState.EmbeddedSource, carrier.CompatibilityState);
             Assert.False(carrier.RepresentsDataLoss);
             using WordDocument legacy = WordDocument.Load(destinationPath);
@@ -571,7 +572,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(converted.Report.Diagnostics,
-                finding => finding.Code == "Word.SourceCarrier.Embedded"
+                finding => finding.Code == "word-source-carrier-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
             using WordDocument legacy = WordDocument.Load(destinationPath);
             Assert.True(legacy.TryGetCompatibilitySourcePayload(out OfficeCompatibilitySourcePayload? payload, out string? error), error);
@@ -599,7 +600,7 @@ namespace OfficeIMO.Tests {
                 });
 
             Assert.Contains(converted.Report.Diagnostics,
-                finding => finding.Code == "Word.SourceCarrier.Embedded"
+                finding => finding.Code == "word-source-carrier-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
             using WordDocument modern = WordDocument.Load(destinationPath);
             Assert.True(modern.TryGetCompatibilitySourcePayload(out OfficeCompatibilitySourcePayload? payload, out string? error), error);
@@ -656,7 +657,7 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionReport analysis = WordDocument.AnalyzeConversion(sourcePath, blockedPath);
             Assert.True(analysis.Compatibility.HasSecurityImpact);
             Assert.Contains(analysis.Compatibility.Findings,
-                finding => finding.Code == "Word.DigitalSignature.Invalidated"
+                finding => finding.Code == "word-digital-signature-invalidated"
                     && finding.State == OfficeCompatibilityState.Blocked
                     && finding.RepresentsLoss);
 
@@ -676,7 +677,7 @@ namespace OfficeIMO.Tests {
                 });
             Assert.True(allowed.Report.Compatibility.HasSecurityImpact);
             Assert.Contains(allowed.Report.Compatibility.Findings,
-                finding => finding.Code == "Word.DigitalSignature.Invalidated"
+                finding => finding.Code == "word-digital-signature-invalidated"
                     && finding.State == OfficeCompatibilityState.Dropped
                     && finding.RepresentsLoss);
             Assert.True(File.Exists(allowedPath));

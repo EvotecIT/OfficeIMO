@@ -17,6 +17,10 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public HtmlPdfTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+
     [Fact]
     public void HtmlToPdf_MapsCssBleedAndPrinterMarksToProductionPageBoxes() {
         const string html = """
@@ -27,7 +31,7 @@ public sealed class HtmlPdfTests {
             <p>Print production</p>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
 
@@ -56,7 +60,7 @@ public sealed class HtmlPdfTests {
             <p>Alpha body <span id="pdf-note" class="note">Footnote payload</span> omega.</p>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string raw = Encoding.ASCII.GetString(pdf);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
@@ -75,7 +79,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_FragmentLinksUseNamedDestinationsInsteadOfRelativeUriActions() {
         const string html = "<p><a href='#details'>Jump to details</a></p><p><span id='details'>Details</span></p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("html-fragment:details", info.NamedDestinationNames);
@@ -89,7 +93,7 @@ public sealed class HtmlPdfTests {
             + "<a href='https://example.test/svg-details' aria-label='SVG details'>"
             + "<rect x='5' y='4' width='20' height='8' fill='red'/></a></svg>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("https://example.test/svg-details", info.LinkUris);
@@ -106,7 +110,7 @@ public sealed class HtmlPdfTests {
             + "<image x='5' y='4' width='20' height='10' href='data:image/png;base64,"
             + Convert.ToBase64String(png) + "'/></svg>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.NotEmpty(PdfCore.PdfReadDocument.Open(pdf).Pages[0].GetImages());
     }
@@ -116,7 +120,7 @@ public sealed class HtmlPdfTests {
         const string html = "<p><a href='#empty%20target'>Empty target</a> <a href='#legacy'>Legacy target</a></p>"
             + "<div id='empty target'></div><a name='legacy'>Legacy body</a><p>Body</p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("html-fragment:empty target", info.NamedDestinationNames);
@@ -129,7 +133,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_TopAndMissingFragmentsRemainDeterministic() {
         const string html = "<p><a href='#TOP'>Top</a> <a href='#missing'>Missing</a></p><p>Body</p>";
 
-        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence();
         byte[] pdf = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
@@ -147,7 +151,7 @@ public sealed class HtmlPdfTests {
             + rows
             + "</tbody></table><p id='heading'>Duplicate</p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(1, info.NamedDestinationNames.Count(name => name == "html-fragment:heading"));
@@ -158,12 +162,14 @@ public sealed class HtmlPdfTests {
     public async Task Pdf_SaveAsHtmlAsync_ObservesMethodCancellationAndKeepsOptionsReusable() {
         using var cancellation = new System.Threading.CancellationTokenSource();
         var options = PdfToHtmlOptions.CreateSemanticProfile();
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(PdfCore.PdfDocument.Create().Paragraph(p => p.Text("Reusable options")).ToBytes());
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(PdfCore.PdfDocument.Create().Paragraph(p => p.Text("Reusable options")).ToBytes()));
         cancellation.Cancel();
         using var stream = new MemoryStream();
-        await Assert.ThrowsAsync<OperationCanceledException>(() => pdf.SaveAsHtmlAsync(stream, options, cancellation.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pdf.SaveAsHtmlAsync(stream, options, cancellation.Token));
         Assert.Equal(0, stream.Length);
-        Assert.True((await pdf.SaveAsHtmlAsync(stream, options)).Succeeded);
+        OfficeConversionReport report = await pdf.SaveAsHtmlAsync(stream, options);
+        Assert.Equal("Html", report.Target);
+        Assert.True(stream.Length > 0);
     }
 
     [Fact]
@@ -180,10 +186,11 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtmlResult_BoundsEncodedSemanticItemsDuringRendering() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                DefaultFontSize = 10
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                EmbedDefaultFonts = false,
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Paragraph(paragraph => paragraph.Text(new string('&', 100_000)))
             .ToBytes();
@@ -282,7 +289,7 @@ public sealed class HtmlPdfTests {
             </form>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(5, info.FormFields.Count);
@@ -327,7 +334,7 @@ public sealed class HtmlPdfTests {
             .OfType<HtmlRenderText>()
             .Where(text => text.Source == "textarea#edges")
             .Select(text => text.Text));
-        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.Equal(content, renderedField.Value);
         Assert.Equal("  Alpha  ", appearance);
@@ -343,7 +350,7 @@ public sealed class HtmlPdfTests {
         HtmlRenderVisual[] scene = rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).ToArray();
         HtmlRenderFormField renderedField = Assert.Single(scene.OfType<HtmlRenderFormField>());
         HtmlRenderText appearance = Assert.Single(scene.OfType<HtmlRenderText>(), text => text.Source == "input#spaces");
-        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.Equal(content, renderedField.Value);
         Assert.Equal(content, appearance.Text);
@@ -355,10 +362,10 @@ public sealed class HtmlPdfTests {
         const string password = "OfficeIMO-secret-2026";
         string html = "<input id='secret' name='secret' type='password' value='" + password + "' style='width:400px'>";
         var options = new HtmlToPdfOptions {
-            PdfOptions = new PdfCore.PdfOptions { CompressContentStreams = false }
+            PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
         };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         string raw = Encoding.ASCII.GetString(pdf);
 
@@ -370,7 +377,7 @@ public sealed class HtmlPdfTests {
         string appearance = GetFieldAppearanceContent(pdf, field.Name);
         Assert.DoesNotContain(password, appearance, StringComparison.Ordinal);
         Assert.DoesNotContain(passwordHex, appearance, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("<" + string.Concat(Enumerable.Repeat("2A", password.Length)) + "> Tj", appearance, StringComparison.Ordinal);
+        Assert.Equal(new string('*', password.Length), GetFlattenedFormAppearanceText(pdf));
     }
 
     [Fact]
@@ -382,8 +389,8 @@ public sealed class HtmlPdfTests {
 
         const string arabic = "العربية";
         var options = new HtmlToPdfOptions { FontFamily = family };
-        byte[] pdf = HtmlConversionDocument.Parse(
-            "<p style='font-family:Arial'>Evidence · " + arabic + " · terminal</p>").ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(
+            "<p style='font-family:Arial'>Evidence · " + arabic + " · terminal</p>").ToPdf(options)).ToBytes();
         // Retained glyphs can be painted as contours with logical ActualText.
         // A glyph-only extractor does not observe that searchable-content contract.
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
@@ -404,7 +411,7 @@ public sealed class HtmlPdfTests {
         HtmlRenderFormField renderedField = Assert.Single(
             EnumeratePdfSceneVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderFormField>());
         PdfCore.PdfFormField pdfField = Assert.Single(
-            PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+            PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.True(renderedField.IsComboBox);
         Assert.Equal("first", renderedField.Value);
@@ -420,7 +427,7 @@ public sealed class HtmlPdfTests {
         string html = "<select name='choice'" + attributes + "></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceEmptyOptionsStaticFallback);
@@ -431,7 +438,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_DisabledAndReadOnlyControlsAreExcludedFromRequiredConstraintValidation() {
         const string html = "<input name='enabled' required><input name='disabled' required disabled><textarea name='readonly' required readonly></textarea>";
 
-        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
 
         Assert.True(Assert.Single(info.FormFields, field => field.Name == "enabled").IsRequired);
         Assert.False(Assert.Single(info.FormFields, field => field.Name == "disabled").IsRequired);
@@ -442,9 +449,9 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_UnnamedControlsRemainInteractiveButAreExcludedFromFormData() {
         const string html = "<input value='secret'><input id='by-id' value='identifier'><input name='' value='empty-name'><input name='named' value='included'>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
-        PdfCore.PdfFormDataSet exported = PdfCore.PdfDocument.Load(pdf).Forms.ExportData();
+        PdfCore.PdfFormDataSet exported = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Forms.ExportData();
 
         Assert.Equal(4, info.FormFields.Count);
         Assert.Equal(3, info.FormFields.Count(field => field.IsNoExport));
@@ -462,7 +469,7 @@ public sealed class HtmlPdfTests {
 
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         var options = new HtmlToPdfOptions { MaximumRasterPixels = 800L };
-        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "HtmlPdfTranslucentGradientRasterized");
@@ -470,7 +477,7 @@ public sealed class HtmlPdfTests {
 
         options.MaximumRasterPixels = 799L;
         OfficeImageExportLimitException failure = Assert.Throws<OfficeImageExportLimitException>(() =>
-            document.ToPdfDocumentResult(options));
+            document.ConvertToPdfWithEvidence(options));
         Assert.Equal(800L, failure.RequestedPixels);
         Assert.Equal(799L, failure.MaximumPixels);
     }
@@ -486,7 +493,7 @@ public sealed class HtmlPdfTests {
             <input name="contact" value="Ada" style="page:report;break-before:page;width:50vw">
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
 
         Assert.Equal("contact", field.Name);
@@ -500,7 +507,7 @@ public sealed class HtmlPdfTests {
 
         HtmlRenderFormField renderedField = Assert.Single(
             EnumeratePdfSceneVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderFormField>());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
 
         Assert.Equal("Email address", renderedField.Placeholder);
@@ -519,7 +526,7 @@ public sealed class HtmlPdfTests {
 
         byte[] flattened = PdfCore.PdfFormFiller.FlattenFields(pdf);
         Assert.False(PdfCore.PdfInspector.Inspect(flattened).HasReadableFormFields);
-        Assert.Contains("Email address", PdfCore.PdfReadDocument.Open(flattened).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Email address", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(flattened)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -531,25 +538,26 @@ public sealed class HtmlPdfTests {
             </select>
             """;
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
 
         Assert.Equal("CA", field.Value);
         Assert.Equal(new[] { "US", "CA" }, field.Options.Select(option => option.ExportValue).ToArray());
         Assert.Equal(new[] { "Same label", "Same label" }, field.Options.Select(option => option.DisplayText).ToArray());
-        Assert.Contains("Same label", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Same label", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void HtmlToPdf_ListBoxAppearanceShowsAuthoredRowsAndSelection() {
         const string html = "<select name='letters' multiple size='3'><option value='a'>Alpha</option><option value='b' selected>Beta</option><option value='g'>Gamma</option></select>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string appearance = GetFieldAppearanceContent(pdf, "letters");
 
-        Assert.Contains("<416C706861> Tj", appearance, StringComparison.Ordinal);
-        Assert.Contains("<42657461> Tj", appearance, StringComparison.Ordinal);
-        Assert.Contains("<47616D6D61> Tj", appearance, StringComparison.Ordinal);
+        string paintedText = GetFlattenedFormAppearanceText(pdf);
+        Assert.Contains("Alpha", paintedText, StringComparison.Ordinal);
+        Assert.Contains("Beta", paintedText, StringComparison.Ordinal);
+        Assert.Contains("Gamma", paintedText, StringComparison.Ordinal);
         Assert.Contains("0.153 0.392 0.8 rg", appearance, StringComparison.Ordinal);
         Assert.Contains("1 1 1 rg", appearance, StringComparison.Ordinal);
     }
@@ -558,15 +566,16 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_ListBoxSelectedIndexDisambiguatesDuplicateExportValues() {
         const string html = "<select name='choice' size='2'><option value='x'>First</option><option value='x' selected>Second</option></select>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string syntax = Encoding.ASCII.GetString(pdf);
         PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
 
         Assert.Contains("/I [1]", syntax, StringComparison.Ordinal);
         Assert.Equal(new[] { 1 }, field.SelectedIndices);
         Assert.Equal("Second", Assert.Single(field.SelectedOptions).DisplayText);
-        Assert.Contains("<4669727374> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
-        Assert.Contains("<5365636F6E64> Tj", GetFieldAppearanceContent(pdf, "choice"), StringComparison.Ordinal);
+        string paintedText = GetFlattenedFormAppearanceText(pdf);
+        Assert.Contains("First", paintedText, StringComparison.Ordinal);
+        Assert.Contains("Second", paintedText, StringComparison.Ordinal);
         string searchableText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Second", searchableText, StringComparison.Ordinal);
         Assert.DoesNotContain("First", searchableText, StringComparison.Ordinal);
@@ -577,18 +586,18 @@ public sealed class HtmlPdfTests {
         const string html = "<select name='choice'><option value='x'>First</option><option value='x' selected>Second</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceDuplicateSelectedValueStaticFallback);
-        Assert.Contains("Second", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Second", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void HtmlToPdf_UniformRoundedControlUsesRoundedWidgetAppearance() {
         const string html = "<input name='rounded' value='Rounded' style='width:120px;height:28px;border:2px solid #123456;border-radius:10px;background:#ffffff'>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string appearance = GetFieldAppearanceContent(pdf, "rounded");
 
         Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
@@ -601,18 +610,18 @@ public sealed class HtmlPdfTests {
         const string html = "<input name='rounded' value='Static rounded' style='width:120px;height:28px;border-radius:10px 2px'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldNonUniformRadiusStaticFallback);
-        Assert.Contains("Static rounded", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Static rounded", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void HtmlToPdf_DashedControlBorderRemainsDashedInWidgetAndAppearance() {
         const string html = "<input name='dashed' value='Dashed' style='width:120px;height:28px;border:2px dashed #ff0000'>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string syntax = Encoding.ASCII.GetString(pdf);
         string appearance = GetFieldAppearanceContent(pdf, "dashed");
 
@@ -628,11 +637,11 @@ public sealed class HtmlPdfTests {
         string html = "<input name='styled' value='Static border' style='border:2px " + borderStyle + " red'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBorderStyleStaticFallback);
-        Assert.Contains("Static border", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Static border", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -640,14 +649,14 @@ public sealed class HtmlPdfTests {
         const string html = "<textarea name='notes' wrap='off' style='width:70px;height:60px;font:12px Arial'>Alpha beta gamma delta</textarea>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback);
         Assert.Contains(HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.FormFieldNoWrapStaticFallback, out _));
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        string text = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string text = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("Alphabetagammadelta", text, StringComparison.Ordinal);
     }
 
@@ -658,8 +667,8 @@ public sealed class HtmlPdfTests {
             + "<select name='family' style='font-family:Courier New'><option selected>Courier value</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
-        string text = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
+        string text = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Equal(3, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldTypographyStaticFallback));
@@ -679,12 +688,12 @@ public sealed class HtmlPdfTests {
         string html = "<input name='styled' value='Static alpha' style='" + style + "'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldColorTransparencyStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("Static alpha", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Static alpha", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -692,7 +701,7 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='radio' name='choice' value='one'><input type='radio' name='choice' value='two' checked style='background:rgba(0,0,255,.2)'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldColorTransparencyStaticFallback);
@@ -704,12 +713,12 @@ public sealed class HtmlPdfTests {
         const string html = "<input name='gradient' value='Static gradient' style='background:linear-gradient(red,blue)'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBackgroundImageStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("Static gradient", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Static gradient", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -718,7 +727,7 @@ public sealed class HtmlPdfTests {
             + "<input type='radio' name='choice' value='two' checked style='background:linear-gradient(red,blue)'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBackgroundImageStaticFallback);
@@ -730,7 +739,7 @@ public sealed class HtmlPdfTests {
         const string html = "<select name='choice'><option value='' selected></option><option value='one'>One</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceBlankLabelStaticFallback);
@@ -743,10 +752,10 @@ public sealed class HtmlPdfTests {
         const string html = "<label>Name <input name='name' value='Static Ada'></label>";
         var options = new HtmlToPdfOptions { InteractiveFormControls = false };
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("Static Ada", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Static Ada", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
         Assert.False(options.ClonePdf().InteractiveFormControls);
     }
 
@@ -757,7 +766,7 @@ public sealed class HtmlPdfTests {
             <input type="radio" name="size" value="Large" checked style="width:24px;height:18px">
             """;
 
-        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.Equal("Large", field.Value);
         Assert.Equal(10.5D, field.Widgets[0].Width, 3);
@@ -769,7 +778,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_RadioWidgetsRetainEachOptionsAccessibleName() {
         const string html = "<input type='radio' name='contact' value='email' aria-label='Email option'><input type='radio' name='contact' value='phone' aria-label='Phone option'>";
 
-        string raw = Encoding.ASCII.GetString(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        string raw = Encoding.ASCII.GetString((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
 
         Assert.Contains("/TU <456D61696C206F7074696F6E>", raw, StringComparison.Ordinal);
         Assert.Contains("/TU <50686F6E65206F7074696F6E>", raw, StringComparison.Ordinal);
@@ -787,7 +796,7 @@ public sealed class HtmlPdfTests {
             </form>
             """;
 
-        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+        PdfCore.PdfFormField field = Assert.Single(PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.True(field.IsRequired);
         Assert.Equal(3, field.Widgets.Count);
@@ -797,7 +806,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_RadioGroupsUseExactAuthoredNameWhitespace() {
         const string html = "<form><input type='radio' name='a b' value='one' checked><input type='radio' name='a b' value='two'><input type='radio' name='a  b' value='three'><input type='radio' name='a  b' value='four' checked></form>";
 
-        PdfCore.PdfFormField[] fields = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields
+        PdfCore.PdfFormField[] fields = PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields
             .OrderBy(field => field.Name, StringComparer.Ordinal)
             .ToArray();
 
@@ -811,7 +820,7 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='radio' name='answer' value='same'><input type='radio' name='answer' value='same' checked>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RadioDuplicateValueStaticFallback);
@@ -823,12 +832,12 @@ public sealed class HtmlPdfTests {
         const string html = "<select name='choice' multiple size='3'><option value='same' selected>First</option><option value='same' selected>Second</option><option value='other'>Other</option></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceDuplicateSelectedValueStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchableText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("First", searchableText, StringComparison.Ordinal);
         Assert.Contains("Second", searchableText, StringComparison.Ordinal);
     }
@@ -839,7 +848,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_MixedDisabledRadioGroupUsesTruthfulStaticFallback(string html) {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RadioMixedDisabledStateStaticFallback);
@@ -851,12 +860,12 @@ public sealed class HtmlPdfTests {
         const string html = "<select name='country'><option value='PL' selected>Poland</option><optgroup label='Unavailable' disabled><option value='DE'>Germany</option></optgroup></select>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ChoiceDisabledOptionStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("Poland", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Poland", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -864,12 +873,12 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='checkbox' name='choice' value='caf\u00E9' checked>";
 
         HtmlRenderFormField renderedField = Assert.Single(EnumeratePdfSceneVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderFormField>());
-        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.Equal("caf\u00E9", renderedField.Value);
         Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
         Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
-        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Load(HtmlConversionDocument.Parse(html).ToPdfBytes()).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).Forms.ExportData().Fields).Values[0]);
     }
 
     [Fact]
@@ -877,7 +886,7 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='checkbox' name='empty' value='' checked><input type='checkbox' name='spaces' value='   ' checked>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Equal(2, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBlankButtonValueStaticFallback));
@@ -889,7 +898,7 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='radio' name='answer' value='' checked><input type='radio' name='answer' value='yes'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBlankButtonValueStaticFallback);
@@ -900,7 +909,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_MissingButtonValuesUseHtmlOnDefault() {
         const string html = "<input type='checkbox' name='check' checked><input type='radio' name='radio' checked>";
 
-        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
 
         Assert.Equal("on", Assert.Single(info.FormFields, field => field.Name == "check").Value);
         Assert.Equal("on", Assert.Single(info.FormFields, field => field.Name == "radio").Value);
@@ -911,19 +920,19 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='radio' name='choice' value='caf\u00E9' checked>";
 
         HtmlRenderFormField renderedField = Assert.Single(EnumeratePdfSceneVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene).OfType<HtmlRenderFormField>());
-        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes()).FormFields);
+        PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes()).FormFields);
 
         Assert.Equal("caf\u00E9", renderedField.Value);
         Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
         Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
-        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Load(HtmlConversionDocument.Parse(html).ToPdfBytes()).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Load(new System.IO.MemoryStream((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes())).Forms.ExportData().Fields).Values[0]);
     }
 
     [Fact]
     public void HtmlToPdf_UnselectedScalarChoiceOmitsEmptyValueArrays() {
         const string html = "<select name='choice' size='2'><option value='one'>One</option><option value='two'>Two</option></select>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
         string syntax = Encoding.ASCII.GetString(pdf);
 
         Assert.DoesNotContain("/V []", syntax, StringComparison.Ordinal);
@@ -935,10 +944,10 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_PartiallyClippedControlUsesStaticAppearance() {
         const string html = "<div style='width:80px;height:24px;overflow:hidden'><input name='clipped' value='Clipped value' style='width:120px;height:20px'></div>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes(new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchableText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("Clippedvalue", searchableText, StringComparison.Ordinal);
     }
 
@@ -947,19 +956,19 @@ public sealed class HtmlPdfTests {
         const string html = "<style>@page{size:A4;margin:18mm}body{margin:0}main{width:680px;margin:24px auto;padding:24px;border:1px solid #ccc}</style>"
             + "<main><label>Value <input name='value' value='Retained value'></label></main>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.NotEmpty(pdf);
-        Assert.Contains("Retained value", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Retained value", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void HtmlToPdf_FullyOffPageNestedPaintDoesNotCreateEmptyCanvasContainers() {
         const string html = "<main><p>Retained paragraph</p><p style='position:absolute;left:10000px;top:20px'>Outside paragraph</p></main>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
             AutoFitWidePrintContent = false
-        });
+        })).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Retained paragraph", text, StringComparison.Ordinal);
@@ -970,9 +979,9 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_OffPagePaintTransformedAndClippedIntoViewIsRetained() {
         const string html = "<div style='position:absolute;left:900px;top:20px;width:180px;height:40px;overflow:hidden;transform:translateX(-850px)'>Visible transformed clip</div>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
-        Assert.Contains("Visible transformed clip", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Visible transformed clip", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -980,11 +989,11 @@ public sealed class HtmlPdfTests {
         const string html = "<div style='position:relative;width:100px;height:40px;overflow:hidden;border-radius:20px'><input name='rounded' value='Rounded value' style='position:absolute;left:0;top:0;width:40px;height:18px'></div>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes(new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderPathClipGroup);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchableText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("Roundedvalue", searchableText, StringComparison.Ordinal);
     }
 
@@ -992,7 +1001,7 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_ControlOutsideClipDoesNotCreateAnInteractiveWidget() {
         const string html = "<div style='position:relative;width:80px;height:24px;overflow:hidden'><input name='outside' value='Outside value' style='position:absolute;left:100px;width:80px;height:20px'></div>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
     }
@@ -1001,10 +1010,10 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_TransformedControlUsesSearchableStaticAppearance() {
         const string html = "<input name='tilted' value='Tilted value' style='width:140px;transform:rotate(12deg)'>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchableText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("Tiltedvalue", searchableText, StringComparison.Ordinal);
     }
 
@@ -1012,10 +1021,10 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_AncestorTransformedControlUsesSearchableStaticAppearance() {
         const string html = "<div style='transform:rotate(12deg)'><input name='child' value='Descendant value'></div>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        string searchableText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string searchableText = string.Concat(PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("Descendantvalue", searchableText, StringComparison.Ordinal);
     }
 
@@ -1024,12 +1033,12 @@ public sealed class HtmlPdfTests {
         const string html = "<input name='empty' value='Authored value' maxlength='0'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldZeroMaximumLengthStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("Authored value", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Authored value", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1037,14 +1046,14 @@ public sealed class HtmlPdfTests {
         const string html = "<input name='code' value='abcd' maxlength='2'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback);
         Assert.Contains(HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.FormFieldInitialValueExceedsMaximumLengthStaticFallback, out _));
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("abcd", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("abcd", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1052,7 +1061,7 @@ public sealed class HtmlPdfTests {
         const string html = "<input type='file' name='attachment'><input type='file' name='attachments' multiple>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         HtmlRenderFormField renderedField = Assert.Single(
             rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).OfType<HtmlRenderFormField>());
@@ -1061,7 +1070,7 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfFormField pdfField = Assert.Single(PdfCore.PdfInspector.Inspect(pdf).FormFields);
         Assert.Equal("attachment", pdfField.Name);
         Assert.True(pdfField.IsFileSelect);
-        Assert.Contains("Choose file", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Choose file", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1071,7 +1080,7 @@ public sealed class HtmlPdfTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
         HtmlRenderFormField renderedField = Assert.Single(
             rendered.Pages.SelectMany(page => EnumeratePdfSceneVisuals(page.Scene)).OfType<HtmlRenderFormField>());
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.True(renderedField.IsFileSelect);
         Assert.Empty(renderedField.Value);
@@ -1080,7 +1089,7 @@ public sealed class HtmlPdfTests {
         Assert.True(pdfField.IsFileSelect);
         byte[] flattened = PdfCore.PdfFormFiller.FlattenFields(pdf);
         Assert.False(PdfCore.PdfInspector.Inspect(flattened).HasReadableFormFields);
-        Assert.Contains("Choose file", PdfCore.PdfReadDocument.Open(flattened).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Choose file", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(flattened)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1092,7 +1101,7 @@ public sealed class HtmlPdfTests {
             """;
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
 
         Assert.DoesNotContain(info.FormFields, field => field.MappingName == "tag");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
@@ -1110,12 +1119,12 @@ public sealed class HtmlPdfTests {
             + "<tfoot><tr><td><input name='summary' value='Totals'></td></tr></tfoot></table>";
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(16D)
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.True(rendered.Pages.Count > 1);
         Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.MappingName is "filter" or "summary");
@@ -1131,17 +1140,17 @@ public sealed class HtmlPdfTests {
         string html = "<input name='fixed-search' value='Search' style='position:fixed;top:4px;left:4px'>" + body;
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
-            PageSize = new OfficePageSize(320D / HtmlRenderOptions.CssPixelsPerInch, 180D / HtmlRenderOptions.CssPixelsPerInch),
+            PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(320D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(180D / HtmlRenderOptions.CssPixelsPerInch)),
             Margins = HtmlRenderMargins.All(16D)
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(options))).ToBytes();
 
         Assert.True(rendered.Pages.Count > 1);
         Assert.DoesNotContain(PdfCore.PdfInspector.Inspect(pdf).FormFields, field => field.MappingName == "fixed-search");
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
-        Assert.Contains("Paragraph", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Paragraph", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1149,7 +1158,7 @@ public sealed class HtmlPdfTests {
         const string html = "<form><input name='a b' value='one'><input name='a  b' value='two'><input name=' edge ' value='three'></form>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
 
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
         Assert.Equal(new[] { " edge ", "a  b", "a b" }, info.FormFields.Select(field => field.Name).OrderBy(name => name, StringComparer.Ordinal).ToArray());
@@ -1161,7 +1170,7 @@ public sealed class HtmlPdfTests {
         const string html = "<form><input name='user.email' value='one'><input name='user-email' value='two'>"
             + "<input type='radio' name='contact.kind' value='mail' checked><input type='radio' name='contact.kind' value='phone'></form>";
 
-        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(HtmlConversionDocument.Parse(html).ToPdfBytes());
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect((HtmlConversionDocument.Parse(html).ToPdf()).ToBytes());
         PdfCore.PdfFormField[] fields = info.FormFields.ToArray();
 
         Assert.Equal(3, fields.Length);
@@ -1177,12 +1186,12 @@ public sealed class HtmlPdfTests {
         const string html = "<input name='   ' value='Authored value'>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldBlankNameStaticFallback);
         Assert.Empty(PdfCore.PdfInspector.Inspect(pdf).FormFields);
-        Assert.Contains("Authored value", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Authored value", PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1190,7 +1199,7 @@ public sealed class HtmlPdfTests {
         const string html = "<form><input type='radio' name='answer' value='yes' checked><input type='checkbox' name='answer' value='details' checked></form>";
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.DoesNotContain(EnumeratePdfSceneVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FormFieldRepeatedNameStaticFallback);
@@ -1204,11 +1213,11 @@ public sealed class HtmlPdfTests {
         string html = "<img src='data:image/svg+xml;base64," + svg +
             "' alt='Empty vector'><p>After empty vector</p>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
 
         Assert.Contains(
             "After empty vector",
-            PdfCore.PdfReadDocument.Open(pdf).ExtractText(),
+            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText(),
             StringComparison.Ordinal);
     }
 
@@ -1223,7 +1232,7 @@ public sealed class HtmlPdfTests {
 
         byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
         string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes(options);
+        byte[] pdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
 
         Assert.True(png.Length > 8);
         Assert.True(pdf.Length > 8);
@@ -1236,8 +1245,8 @@ public sealed class HtmlPdfTests {
         const string html = "<p><img src='https://example.invalid/missing.png'>Report</p>";
         var options = new HtmlToPdfOptions();
 
-        PdfCore.PdfDocumentConversionResult first = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-        PdfCore.PdfDocumentConversionResult second = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Clean</p>").ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult first = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(options);
+        PdfCore.PdfDocumentConversionResult second = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Clean</p>").ConvertToPdfWithEvidence(options);
 
         Assert.Contains(first.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
         Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
@@ -1249,8 +1258,8 @@ public sealed class HtmlPdfTests {
         const string html = "<article><h1>API contract</h1><p>One direct renderer.</p></article>";
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            byte[] bytes = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfBytes();
-            PdfCore.PdfDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocument();
+            byte[] bytes = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf()).ToBytes();
+            PdfCore.PdfDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf();
             using var stream = new MemoryStream();
             await OfficeIMO.Html.HtmlConversionDocument.Parse(html).SaveAsPdfAsync(stream);
             OfficeIMO.Html.HtmlConversionDocument.Parse(html).SaveAsPdf(path);
@@ -1268,8 +1277,8 @@ public sealed class HtmlPdfTests {
     public void Html_OfficeProjections_AreExplicitTargets() {
         const string html = "<article><h1>Projection</h1><p>Explicit conversion.</p></article>";
 
-        using OfficeIMO.Word.WordDocument word = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
-        OfficeIMO.Markdown.MarkdownDoc markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        using OfficeIMO.Word.WordDocument word = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
+        OfficeIMO.Markdown.MarkdownDocument markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         Assert.NotNull(word);
         Assert.Contains("Projection", markdown.ToMarkdown(), StringComparison.Ordinal);
@@ -1369,13 +1378,13 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_PreservesDetectedHeadingLevelsInBothTextLayers() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Primary heading")
             .H2("Secondary heading")
@@ -1384,7 +1393,7 @@ public sealed class HtmlPdfTests {
         PdfToHtmlOptions options = PdfToHtmlOptions.CreatePositionedReviewProfile();
 
         string nativeHtml = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
-        string appearanceHtml = PdfCore.PdfDocument.Load(pdf).ToHtml(options);
+        string appearanceHtml = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ToHtml(options);
 
         Assert.Contains("class=\"pdf-native-text\"", nativeHtml, StringComparison.Ordinal);
         Assert.Contains("role=\"heading\" aria-level=\"1\"", nativeHtml, StringComparison.Ordinal);
@@ -1395,16 +1404,18 @@ public sealed class HtmlPdfTests {
         Assert.Contains("role=\"heading\" aria-level=\"2\"", appearanceHtml, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Pdf_ToHtml_PositionedReviewProfile_PreservesMatchingTextOutsideDetectedTableBounds() {
-        var pdfOptions = new PdfCore.PdfOptions {
-            PageWidth = 460,
-            PageHeight = 360,
-            MarginLeft = 36,
-            MarginRight = 36,
-            MarginTop = 36,
-            MarginBottom = 36,
-            DefaultFontSize = 10
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Pdf_ToHtml_PositionedReviewProfile_PreservesMatchingTextOutsideDetectedTableBounds(bool outsideLeft) {
+        var pdfOptions = new PdfCore.PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(460),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+            MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+            DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
         var tableRows = new[] {
             new[] { "Area", "Owner", "Status" },
@@ -1412,10 +1423,10 @@ public sealed class HtmlPdfTests {
             new[] { "PDF", "OfficeIMO.Html.Pdf", "Stable" }
         };
         var tableStyle = new PdfCore.PdfTableStyle {
-            ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+            ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
             HeaderRowCount = 1,
-            CellPaddingX = 6,
-            CellPaddingY = 4
+            CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+            CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
         };
         byte[] baselinePdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
@@ -1423,22 +1434,37 @@ public sealed class HtmlPdfTests {
             .ToBytes();
         PdfCore.PdfLogicalPage baselinePage = PdfCore.PdfDocumentReadResult.Load(baselinePdf).Pages[0];
         PdfCore.PdfLogicalTable baselineTable = Assert.Single(baselinePage.Tables);
-        PdfCore.PdfLogicalTextBlock matchingRow = Assert.Single(
-            baselinePage.TextBlocks,
-            block => block.Text.Contains("Ready", StringComparison.Ordinal));
-        double outsideX = baselineTable.Columns[baselineTable.Columns.Count - 1].To + 18D;
-        double outsideY = baselinePage.Height - matchingRow.BaselineY - matchingRow.FontSize;
+        using var baselinePaint = PdfPigDocument.Open(baselinePdf);
+        var matchingWord = Assert.Single(baselinePaint.GetPage(1).GetWords(), word => word.Text == "Ready");
+        var matchingLetter = matchingWord.Letters[0];
+        double outsideX = outsideLeft ? 4D : baselineTable.Columns[baselineTable.Columns.Count - 1].To + 18D;
+        double outsideY = baselinePage.Height - matchingLetter.StartBaseLine.Y - matchingLetter.FontSize;
 
         byte[] pdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
             .Table(tableRows, style: tableStyle)
-            .Canvas(canvas => canvas.Text("Ready", outsideX, outsideY, 50D, 18D, fontSize: matchingRow.FontSize))
+            .Canvas(canvas => canvas.Text("Ready", global::OfficeIMO.OfficeLength.Points(outsideX), global::OfficeIMO.OfficeLength.Points(outsideY), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(matchingLetter.FontSize)))
             .ToBytes();
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTable table = Assert.Single(page.Tables);
-        double tableRight = table.Columns[table.Columns.Count - 1].To;
+        double tableLeft = table.Columns[0].From, tableRight = table.Columns[table.Columns.Count - 1].To;
+        if (table.Rows.Count != 3) {
+            _output.WriteLine("OutsideLeft={0}; outsideX={1:R}; outsideY={2:R}; baseline rows={3}; annotated rows={4}",
+                outsideLeft, outsideX, outsideY, baselineTable.Rows.Count, table.Rows.Count);
+            foreach (var column in table.Columns)
+                _output.WriteLine("Column: {0:R}..{1:R}", column.From, column.To);
+            foreach (var row in table.Rows) _output.WriteLine("Row: {0}", string.Join(" | ", row));
+            using var diagnostic = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
+            foreach (var span in diagnostic.Pages[0].GetTextSpans().Take(64))
+                _output.WriteLine("Span [{0}] X={1:R} Y={2:R} advance={3:R} font={4}/{5} size={6:R} weight={7} bold={8}",
+                    span.Text, span.X, span.Y, span.Advance, span.FontResource, span.BaseFont,
+                    span.FontSize, span.FontWeight, span.IsBold);
+        }
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal(new[] { "HTML", "OfficeIMO.Html", "Ready" }, table.Rows[1]);
         Assert.Contains(page.TextBlocks, block =>
-            block.XStart > tableRight + 1D && block.Text.Contains("Ready", StringComparison.Ordinal));
+            (outsideLeft ? block.XEnd < tableLeft - 1D : block.XStart > tableRight + 1D) &&
+            block.Text.Contains("Ready", StringComparison.Ordinal));
 
         string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(
             PdfToHtmlOptions.CreatePositionedReviewProfile());
@@ -1459,7 +1485,7 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtmlResult(options);
 
-        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PositionedFontSubstitution");
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == OfficeDiagnosticCodes.PositionedFontSubstitution);
         using var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(result.Value);
         Assert.Contains("Logical Heading", string.Join(" ", parsed.QuerySelectorAll("svg text").Select(node => node.TextContent)), StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.PositionedReview, result.Summary.Profile);
@@ -1548,7 +1574,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal(2, result.Summary.AcroFormXfaStreamCount);
         Assert.True(result.Summary.AcroFormXfaPayloadByteCount > 0);
         Assert.Equal(1, result.Summary.WarningCount);
-        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, item => item.Code == "AcroFormXfaDetected");
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, item => item.Code == OfficeDiagnosticCodes.AcroFormXfaDetected);
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Contains("does not render or fill XFA", warning.Message, StringComparison.Ordinal);
@@ -1559,7 +1585,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_ReportsIncludedFormWidgetsAsStaticApproximations() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf)
@@ -1567,7 +1593,7 @@ public sealed class HtmlPdfTests {
 
         Assert.Contains("class=\"pdf-form-widget\"", result.Value, StringComparison.Ordinal);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PdfFormWidgetsFlattened" &&
+            warning.Code == OfficeDiagnosticCodes.PdfFormWidgetsFlattened &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -1582,7 +1608,7 @@ public sealed class HtmlPdfTests {
         PdfHtmlConversionResult result = logical.ToHtmlResult(PdfToHtmlOptions.CreatePositionedReviewProfile());
 
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PdfOptionalContentGroupsFlattened" &&
+            warning.Code == "pdf-optional-content-groups-flattened" &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -1598,7 +1624,7 @@ public sealed class HtmlPdfTests {
         };
 
         PdfHtmlConversionResult imageResult = PdfCore.PdfDocumentReadResult.Load(imagePdf).ToHtmlResult(options);
-        PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
+        PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.Report.Warnings, item => item.Code == OfficeDiagnosticCodes.ImageDataTooLarge);
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.True(imageResult.HasLoss);
@@ -1613,24 +1639,24 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult textResult = PdfCore.PdfDocumentReadResult.Load(textPdf).ToHtmlResult(options);
 
-        Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
-        Assert.DoesNotContain(textResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
-        Assert.Contains(textResult.Report.Warnings, item => item.Code == "PositionedFontSubstitution");
+        Assert.Single(imageResult.Report.Warnings, item => item.Code == OfficeDiagnosticCodes.ImageDataTooLarge);
+        Assert.DoesNotContain(textResult.Report.Warnings, item => item.Code == OfficeDiagnosticCodes.ImageDataTooLarge);
+        Assert.Contains(textResult.Report.Warnings, item => item.Code == OfficeDiagnosticCodes.PositionedFontSubstitution);
     }
 
     [Fact]
     public void Pdf_ToHtmlResult_PageRanges_PreserveSourcePageCountAndSelectedFormFields() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
-            .TextField("FirstPageField", width: 120, value: "first")
+            .TextField("FirstPageField", width: global::OfficeIMO.OfficeLength.Points(120), value: "first")
             .PageBreak()
-            .TextField("SecondPageField", width: 120, value: "second")
+            .TextField("SecondPageField", width: global::OfficeIMO.OfficeLength.Points(120), value: "second")
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,
@@ -1694,16 +1720,16 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_ExportsPositionedImagePlaceholders() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30)))
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview
@@ -1735,14 +1761,14 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtml_LogicalDocumentPageRanges_UsesUniqueAnchorsForDuplicatePageSelections() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .H1("Repeated Page")
             .ToBytes();
@@ -1779,13 +1805,13 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtml_PageRanges_ExportsSelectedPagesThroughSameBridgePackage() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Paragraph(paragraph => paragraph.Text("First PDF page"))
             .PageBreak()
@@ -1806,13 +1832,13 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtml_PageRanges_DoesNotReapplyRangesAfterLoadingSelection() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Paragraph(paragraph => paragraph.Text("Duplicated selected page"))
             .ToBytes();
@@ -1824,7 +1850,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string html = PdfCore.PdfDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).ToHtml(options);
 
         Assert.Equal(2, CountOrdinal(html, "<section class=\"pdf-page\""));
         Assert.Equal(2, CountOrdinal(html, "Duplicated selected page"));
@@ -1832,13 +1858,13 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtml_PageRanges_FilterAlreadyLoadedLogicalDocument() {
-        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36)
             })
             .Paragraph(paragraph => paragraph.Text("First logical page"))
             .PageBreak()
@@ -1936,7 +1962,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
         Assert.True(result.HasLoss);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
         Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
@@ -1958,7 +1984,7 @@ public sealed class HtmlPdfTests {
         Assert.True(result.Summary.HasCatalogActions);
         Assert.Equal(1, result.Summary.CatalogActionCount);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.HasLoss);
         Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
@@ -1966,7 +1992,7 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToHtmlResult_OpenedPdfPartialPageRangeReportsOmittedCatalogActions() {
-        PdfHtmlConversionResult result = PdfCore.PdfDocument.Load(CreateTwoPageCatalogActionPdf())
+        PdfHtmlConversionResult result = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(CreateTwoPageCatalogActionPdf()))
             .ToHtmlResult(new PdfToHtmlOptions {
                 Profile = PdfHtmlProfile.Semantic,
                 PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) }
@@ -1974,7 +2000,7 @@ public sealed class HtmlPdfTests {
 
         Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
         Assert.Contains(result.Report.Warnings, static warning =>
-            warning.Code == "PdfDocumentActionsOmitted" &&
+            warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
     }
 
@@ -1990,7 +2016,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("href=\"https://example.com/preserved\"", result.Value, StringComparison.Ordinal);
         Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Report.Warnings, static warning =>
-            warning.Code == "PdfDocumentActionsOmitted");
+            warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted);
         Assert.StartsWith("2 ", warning.Message, StringComparison.Ordinal);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
@@ -2012,20 +2038,20 @@ public sealed class HtmlPdfTests {
 
     [Fact]
     public void Pdf_ToPositionedHtml_ScalesSubUnitImageAndLinkBeforeApplyingMinimumSize() {
-        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 160,
-                PageHeight = 160,
-                MarginLeft = 0,
-                MarginRight = 0,
-                MarginTop = 0,
-                MarginBottom = 0
+        byte[] source = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(160),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(160),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(0),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(0),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
             })
             .Canvas(canvas => canvas.Image(
                 PdfPngTestImages.CreateRgbPng(1, 1),
-                20D,
-                30D,
-                0.5D,
-                0.25D))
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(30D),
+                global::OfficeIMO.OfficeLength.Points(0.5D),
+                global::OfficeIMO.OfficeLength.Points(0.25D)))
             .ToBytes();
         source = WithUserUnit(source, 10D);
 
@@ -2151,16 +2177,16 @@ public sealed class HtmlPdfTests {
     }
 
     private static byte[] CreateImageSamplePdf() {
-        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 320,
-                PageHeight = 220,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30)))
             .ToBytes();
     }
 
@@ -2450,14 +2476,14 @@ public sealed class HtmlPdfTests {
     }
 
     private static byte[] CreateLogicalSamplePdf() {
-        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "Logical PDF sample", author: "OfficeIMO")
             .H1("Logical Heading")
@@ -2468,24 +2494,24 @@ public sealed class HtmlPdfTests {
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "B-200", "Beta", "14" }
             }, style: new PdfCore.PdfTableStyle {
-                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(60) },
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .ToBytes();
     }
 
     private static byte[] CreateOutlineSamplePdf() {
-        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
                 CreateOutlineFromHeadings = true,
-                PageWidth = 420,
-                PageHeight = 360,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Executive summary")
             .Paragraph(paragraph => paragraph.Text("Summary body."))
@@ -2498,14 +2524,14 @@ public sealed class HtmlPdfTests {
     }
 
     private static byte[] CreatePdfHtmlSummarySamplePdf(string linkUri) {
-        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-                PageWidth = 420,
-                PageHeight = 420,
-                MarginLeft = 36,
-                MarginRight = 36,
-                MarginTop = 36,
-                MarginBottom = 36,
-                DefaultFontSize = 10
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Meta(title: "PDF to HTML summary sample", author: "OfficeIMO")
             .H1("Logical Heading")
@@ -2516,8 +2542,8 @@ public sealed class HtmlPdfTests {
                 new[] { "A-100", "Alpha", "2" }
             }, style: new PdfCore.PdfTableStyle {
                 HeaderRowCount = 1,
-                CellPaddingX = 6,
-                CellPaddingY = 4
+                CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
+                CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, PdfCore.PdfAlign.Left, null, null, 6, 0, null, linkUri, "Summary link")
             .ToBytes();
@@ -2557,6 +2583,13 @@ public sealed class HtmlPdfTests {
         }
 
         return count;
+    }
+
+    private static string GetFlattenedFormAppearanceText(byte[] pdf) {
+        using var source = PdfCore.PdfDocument.Load(new MemoryStream(pdf));
+        using var flattened = source.Forms.Flatten();
+        using var read = UglyToad.PdfPig.PdfDocument.Open(flattened.ToBytes());
+        return string.Concat(read.GetPages().Select(page => page.Text));
     }
 
     private static string GetFieldAppearanceContent(byte[] pdf, string fieldName) {

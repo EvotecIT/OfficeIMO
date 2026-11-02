@@ -1,0 +1,446 @@
+{
+  "package": "OfficeIMO.Word.Pdf",
+  "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
+  "projectReferences": {
+    "csproj": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+    "targetFrameworks": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "projectReferences": [
+      "OfficeIMO.Word",
+      "OfficeIMO.Pdf",
+      "OfficeIMO.Core"
+    ],
+    "packageReferences": []
+  },
+  "frameworks": {
+    "current": [
+      "netstandard2.0;net8.0;net10.0",
+      "$(TargetFrameworks);net472"
+    ],
+    "target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "change": "Preserve the existing framework reach and the Windows-only net472 condition. The front door and Workflows use the full framework set. net8.0 retirement belongs to a later release.",
+    "windowsAdditionalTarget": [
+      "net472"
+    ],
+    "applied": {
+      "status": "applied",
+      "baseTargets": [
+        "netstandard2.0",
+        "net8.0",
+        "net10.0"
+      ],
+      "conditionalTargets": [
+        {
+          "condition": " '$([MSBuild]::IsOsPlatform(`Windows`))' ",
+          "value": "$(TargetFrameworks);net472"
+        }
+      ],
+      "authority": "Approved framework decision in c526a10ad2; no framework is dropped in 3.6."
+    },
+    "supersededM0Target": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0"
+    ]
+  },
+  "afterMove": {
+    "OfficeIMO.Word.Pdf": {
+      "references": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Word",
+        "OfficeIMO.Pdf"
+      ],
+      "publicApi": "WordDocument.SaveAsPdf / SaveAsPdfAsync / ToPdf, WordPdfExportOptions"
+    },
+    "OfficeIMO.Pdf.Word": {
+      "references": [
+        "OfficeIMO.Core",
+        "OfficeIMO.Pdf",
+        "OfficeIMO.Word"
+      ],
+      "publicApi": "PdfDocument.ToWord / SaveAsWord (or WordDocument.FromPdf), WordPdfImportOptions"
+    }
+  },
+  "incomingFromOfficeIMO.Word": [
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocument(WordDocument document, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.ToPdf(WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfDocumentResult(WordDocument document, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.ToPdf(WordPdfExportOptions options, out OfficeConversionReport report) : PdfDocument",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdf(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResult(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.ToPdfBytes(WordDocument document, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> removed",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(WordDocument document, string path, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfAsync(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+    "OfficeIMO.Word.Pdf.WordPdfConverterExtensions.SaveAsPdfResultAsync(WordDocument document, Stream stream, WordToPdfOptions options = null, CancellationToken cancellationToken = null) -> WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>"
+  ],
+  "openQuestions": [
+    "Package IDs OfficeIMO.Word.Pdf and OfficeIMO.PowerPoint.Pdf flip direction (PDF->Word reconstruction today, Word->PDF export after). Same NuGet ID with an unrelated API is a silent break for anyone pinning 3.5.x; MIGRATION.md and the release notes must say so explicitly, or the export adapters take new IDs.",
+    "Static From{Source} on a type owned by another package (WordDocument.FromHtml in OfficeIMO.Word.Html, WordDocument.FromMarkdown, MarkdownDocument.FromHtml, WordDocument.FromPdf) is only possible with C# 14 static extension members. The SDK supports them for netstandard2.0 targets, but callers on older language versions (.NET Framework projects default to C# 7.3, Windows PowerShell) must call the containing static class directly. Alternative: keep instance forms on the source (pdf.ToWord(), html.ToWordDocument()) as the only adapter shape."
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "PdfDocument.ToWord(WordPdfImportOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Alternative spelling per design: WordDocument.FromPdf(pdf, options). Provide one of the two, not both.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocument document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "PdfDocument.ToWord(WordPdfImportOptions options, out OfficeConversionReport report)",
+      "reason": "One method per form and target: the throwing and ...Result pairs merge. Failures throw; loss is reported in OfficeConversionReport.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocument document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsWord(string path, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns OfficeOutputResult<PdfWordConversionReport> today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocument document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsWord(Stream stream, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns OfficeOutputResult<PdfWordConversionReport> today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocument document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsWordAsync(string path, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns Task<OfficeOutputResult<PdfWordConversionReport>> today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocument document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "PdfDocument.SaveAsWordAsync(Stream stream, WordPdfImportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "notes": "Returns Task<OfficeOutputResult<PdfWordConversionReport>> today.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocument(PdfDocumentReadResult document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.ToWordDocumentResult(PdfDocumentReadResult document, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocumentReadResult document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWord(PdfDocumentReadResult document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocumentReadResult document, string path, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions.SaveAsWordAsync(PdfDocumentReadResult document, Stream stream, PdfToWordOptions options = null, CancellationToken cancellationToken = null)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Pass the PdfDocument.",
+      "reason": "Parallel overload for the internal PdfDocumentReadResult read model.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConverterExtensions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Word.PdfWordConverterExtensions (assembly OfficeIMO.Pdf.Word)",
+      "reason": "Reconstruction from PDF lives in the matching OfficeIMO.Pdf.{Target} adapter.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConverterExtensions.cs",
+      "category": "package",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfToWordOptions",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Word.WordPdfImportOptions",
+      "reason": "Options are {Format}{Create|Load|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions.",
+      "file": "OfficeIMO.Word.Pdf/PdfToWordOptions.cs",
+      "category": "options",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConversionReport",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConversionResult.cs",
+      "category": "conversion",
+      "notes": "Implements IOfficeConversionReport with RequireNoLoss(); maps to report.ThrowIfLoss().",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordConversionResult",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.OfficeConversionReport",
+      "reason": "OfficeConversionReport with OfficeDiagnostic is the single conversion report type.",
+      "file": "OfficeIMO.Word.Pdf/PdfWordConversionResult.cs",
+      "category": "conversion",
+      "notes": "OfficeConversionResult<TDocument, TReport> subclass; replaced by the out-report overload.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Word.Pdf.PdfWordImportMode",
+      "kind": "enum",
+      "action": "move",
+      "new": "OfficeIMO.Pdf.Word.PdfWordImportMode",
+      "reason": "Moves with the reconstruction adapter.",
+      "file": "OfficeIMO.Word.Pdf/PdfToWordOptions.cs",
+      "category": "package",
+      "notes": "Rename to {Target}PdfImportMode to match the options name.",
+      "phase": "A",
+      "applied": "applied"
+    },
+    {
+      "old": "WordImageExportOptions batch image selection",
+      "kind": "property",
+      "action": "change",
+      "new": "WordImageExportOptions.PageSelection (PdfPageSelection)",
+      "reason": "Batch images and visual snapshots can select noncontiguous one-based pages in caller order, including repeats, through the canonical PDF page selector and aggregate output limits. PageSelection overrides PageIndex/PageCount only for batches; single-page operations retain PageIndex.",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied"
+    }
+  ],
+  "packageMoves": [
+    {
+      "from": "OfficeIMO.Word.Pdf",
+      "to": "OfficeIMO.Pdf.Word",
+      "scope": "All current content: PdfWordConverterExtensions, PdfToWordOptions, PdfWordImportMode, PdfWordConversionReport/Result (PDF -> Word reconstruction)",
+      "reason": "The current OfficeIMO.Word.Pdf package is the reverse direction (PDF to Word). Reconstruction belongs in OfficeIMO.Pdf.Word.",
+      "notes": "The package ID OfficeIMO.Word.Pdf is then reused for Word -> PDF export. Existing NuGet consumers of OfficeIMO.Word.Pdf 3.5.x get a different API under the same ID; MIGRATION.md must call this out."
+    },
+    {
+      "from": "OfficeIMO.Word",
+      "to": "OfficeIMO.Word.Pdf",
+      "scope": "OfficeIMO.Word/Layout/ (Word -> PDF exporter, 123 files) and possibly Imaging/",
+      "reason": "Format packages never depend on another format engine; conversions live in OfficeIMO.{Source}.{Target} adapters.",
+      "notes": "See OfficeIMO.Word.json packageMoves."
+    }
+  ],
+  "designResolutions": {
+    "formatEnum": "OfficeDocumentFormat; no OfficeFormat enum is introduced.",
+    "conversionDirection": "Instance extensions on the source document; no static From factories.",
+    "asyncReports": "OfficeConversionResult<T> carries the converted value and OfficeConversionReport.",
+    "frontDoorTarget": "OfficeIMO, its batch engine, OfficeIMO.Workflows and OfficeIMO.Workflows.IWork target netstandard2.0, net8.0 and net10.0, plus net472 through the existing Windows-only project condition (approved c526a10ad2). Modern-only route engines are conditionally referenced and registered.",
+    "frameworks": "Superseded by the approved c526a10ad2 design: retain netstandard2.0, net8.0, net10.0 and the original Windows-only net472 declaration; modern-only packages retain their original targets. Front door and Workflows gain the full set, with explicitly conditional modern engines.",
+    "modernAnalysis": "Directory.Build.targets enables IsAotCompatible, EnableTrimAnalyzer and EnableAotAnalyzer for packable production library builds targeting net8.0/net10.0. Qualification remains in progress; older targets do not enable those analyzers."
+  },
+  "phaseA": {
+    "status": "in-progress",
+    "scope": "Package boundaries, target frameworks, lifecycle, options, conversions and names."
+  },
+  "extraChanges": [
+    {
+      "subject": "Native chart diagnostic split",
+      "note": "Successful native 3D groups emit chart-flattened; other approximated chart structures retain native-body-chart-simplified. Projection warnings also cover the shared chart snapshot path.",
+      "status": "applied"
+    },
+    {
+      "subject": "Completed PDF model conversion evidence",
+      "note": "ToPdf renders and reopens a private artifact before returning its shared report, so writer-time findings, page counts and FailOnLoss are complete. It returns the original authoring model so callers can continue editing; subsequent native saves retain the normal AllowLoss policy.",
+      "status": "applied"
+    },
+    {
+      "change": "Dispose temporary PDF models after SaveAsPdf and failed ToPdf completion; successful ToPdf retains the authored model for subsequent composition.",
+      "reason": "The unified IDisposable lifecycle transfers ownership only for returned models. Writer-time findings must complete before the public report is returned.",
+      "status": "applied"
+    },
+    {
+      "applied": "applied",
+      "note": "Removed the now-unused LegacyDocPdfConverter facade. Normal Word Load plus source SaveAsPdf handles live models; OfficeConverter combines import and render findings. The legacy conversion tests now exercise the public front door, explicit load-loss rejection and exact output preservation."
+    },
+    {
+      "category": "naming",
+      "applied": "applied",
+      "reason": "The approved format-prefix and read-only Info rules also apply to these public option, asset and page-scene types.",
+      "renames": {
+        "OfficeIMO.Word.WordDocumentVisualSnapshot": "OfficeIMO.Word.WordDocumentVisualInfo"
+      }
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Async conversion entry points capture options before deferred work or resource awaits. The same snapshot supplies resource/size limits and final FailOnLoss acceptance; caller-owned template documents and callbacks retain their ownership."
+    },
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Strict adapter PDF saves use the existing staged writer with shared report acceptance before publication. Source-stage and writer-time losses throw OfficeConversionException carrying OfficeConversionReport; native advanced result policies keep their existing behavior. The same writer and file/stream publication owners are reused. Front-door HTML/TXT saves dispose the generated model."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical PDF export validates destination arguments before conversion. Later serialization and publication failures retain completed evidence; malformed destination arguments keep their ordinary argument exceptions."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "category": "ownership",
+      "subject": "Explicit field pagination engine",
+      "signature": "WordFieldUpdateOptions.WithPdfLayoutPagination() : WordFieldUpdateOptions",
+      "note": "Keeps native PAGEREF/NUMPAGES/TOC layout in OfficeIMO.Word.Pdf. Returns independent options with a statically bound internal layout provider; OfficeIMO.Word remains PDF-independent. Direct UseLayoutPagination callers select the converter through this extension.",
+      "status": "applied"
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Word page images expose options-based ToImage/ToImageAsync, SaveAsImage/SaveAsImageAsync and aggregate SaveAsImages/SaveAsImagesAsync. Rendering kernels and snapshot reading remain on the existing Word adapter.",
+      "reason": "The Word map image entries apply to the forward Word.Pdf adapter after the Phase A package move.",
+      "files": [
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
+        "OfficeIMO.Word.Pdf/Imaging/ImageExportOperations.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordImageExportBuilder.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.RasterFormats.cs",
+        "OfficeIMO.Word.Pdf/README.md"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "The Word image cmdlet keeps its existing detailed PassThru values through an internal SaveImageResults operation and friend access. The public save API returns only OfficeConversionReport. Sync image conversion/saving accepts cancellation, and the out-report form follows the options-then-report order used by the PDF/HTML/Markdown adapters.",
+      "reason": "Mechanical consumer closure and shared-owner preservation for the approved API change.",
+      "files": [
+        "OfficeIMO.Word.Pdf/Imaging/ImageExportOperations.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
+        "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs"
+      ]
+    },
+    {
+      "category": "consumers",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Examples.csproj",
+        "OfficeIMO.ChartForgeX.Examples/DeliveryEvidence.cs"
+      ],
+      "note": "The saved-document evidence example references Word.Pdf directly for Word page images after the package move. PDF evidence uses public path loading with document disposal."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions.",
+  "questionResolutions": {
+    "conversionForms": "Source.ToTarget, source.SaveAsTarget and OfficeConversionReport; async ToTarget returns OfficeConversionResult<T>. ToHtml returns string. No static From factories.",
+    "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
+    "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
+    "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
+  },
+  "summary": {
+    "changes": 17,
+    "byAction": {
+      "rename": 1,
+      "merge": 3,
+      "change": 4,
+      "remove": 6,
+      "move": 3
+    },
+    "byCategory": {
+      "conversion": 14,
+      "package": 2,
+      "options": 1
+    },
+    "packageMoves": 2
+  }
+}

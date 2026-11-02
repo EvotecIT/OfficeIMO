@@ -20,7 +20,7 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
             Assert.Equal(stream.Value, encryptedCompound!.Streams[stream.Key]);
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(encrypted), "test-password");
         document.Sheets[0].CellValue(1, 1, "CryptoAPI restored storage");
-        byte[] plain = document.ToBytes(ExcelFileFormat.Xls);
+        byte[] plain = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         Assert.True(OfficeCompoundFileReader.TryRead(plain, out OfficeCompoundFile? result, out string? error), error);
         Assert.False(result!.Streams.ContainsKey("encryption"));
         Assert.DoesNotContain(BiffRecordReader.ReadRecords(result.Streams["Workbook"], new()), item => item.Type == 0x002f);

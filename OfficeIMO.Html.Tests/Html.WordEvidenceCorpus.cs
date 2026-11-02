@@ -15,7 +15,7 @@ public partial class Html {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Word", "EvidenceCorpus", "word-html-reciprocal.html");
         string html = File.ReadAllText(path);
 
-        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(new HtmlToWordOptions());
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
         using var document = conversion.RequireValue();
 
         Assert.Single(document.Tables);
@@ -26,14 +26,14 @@ public partial class Html {
         Assert.NotNull(document.Sections[0].Footer.Default);
         Assert.Contains(document.Sections[0].Header.Default!.Paragraphs, paragraph => paragraph.Text == "Evidence header");
         Assert.Contains(document.Sections[0].Footer.Default!.Paragraphs, paragraph => paragraph.Text == "Evidence footer");
-        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlRubyPairingApproximation");
+        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "html-ruby-pairing-approximation");
         var validationErrors = new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Office2010)
             .Validate(document._wordprocessingDocument)
             .ToList();
         Assert.True(validationErrors.Count == 0, string.Join(Environment.NewLine, validationErrors.Select(error =>
             error.Description + " Path=" + error.Path?.XPath + " Node=" + error.Node?.OuterXml)));
 
-        string roundTrip = document.ToHtml(new WordToHtmlOptions {
+        string roundTrip = document.ToHtml(new WordHtmlExportOptions {
             ExportHeadersAndFooters = true,
             IncludeSectionMetadata = true
         });

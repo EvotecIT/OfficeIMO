@@ -12,7 +12,7 @@ internal static partial class Protect {
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph("Basic paragraph - Page 4");
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            paragraph.Color = OfficeIMO.Drawing.OfficeColor.Blue;
+            paragraph.Color = OfficeIMO.OfficeColor.Blue;
             paragraph.AddText(" This is continuation in the same line");
 
             Console.WriteLine("ReadOnlyRecommended: " + document.Settings.ReadOnlyRecommended);

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddTableWithStyle() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.GetOrCreateSheet("Data", ExcelSheetNameValidationMode.Sanitize);
-                string range = sheet.InsertDataTableAsTable(table, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium9);
+                string range = sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "Sales", Style = ExcelTableStyle.TableStyleMedium9 }, row: 1, column: 1).Range!;
                 sheet.SetTableStyle(
                     range,
                     ExcelTableStyle.TableStyleMedium9,
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddTableConvertsHeaderCellsToTableColumnText() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.NumericHeaders.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Product");
                 sheet.CellValue(1, 2, 2024d);
                 sheet.CellValue(1, 3, 2025d);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddTableWithoutHeaderDoesNotWriteAutoFilter() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.NoHeader.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Product");
                 sheet.CellValue(1, 2, 2024d);
                 sheet.CellValue(2, 1, "A");
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddTablePopulatesMissingCells() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.MissingCells.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_AddTableConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Concurrent.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int i = 0; i < 5; i++) {
                     int rowStart = 1 + i * 3;
                     sheet.CellValue(rowStart, 1, "Name");
@@ -162,8 +162,14 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(rowStart + 2, 2, 2d);
                 }
 
+                var start = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                int ready = 0;
                 var tasks = Enumerable.Range(0, 5)
-                    .Select(i => Task.Run(() => sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", ExcelTableStyle.TableStyleMedium9)))
+                    .Select(i => Task.Run(async () => {
+                        if (System.Threading.Interlocked.Increment(ref ready) == 5) start.SetResult(true);
+                        await start.Task;
+                        sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", ExcelTableStyle.TableStyleMedium9);
+                    }))
                     .ToArray();
                 await Task.WhenAll(tasks);
                 document.Save();
@@ -172,6 +178,8 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Equal(5, wsPart.TableDefinitionParts.Count());
+                Assert.Single(spreadsheet.WorkbookPart.Workbook.DefinedNames!.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>(),
+                    name => name.Name == "_xlnm.Print_Titles");
             }
         }
 
@@ -179,7 +187,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddTableOverlappingRangeThrows() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Overlap.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -208,7 +216,7 @@ namespace OfficeIMO.Tests {
             string safeRange = range.Replace(':', '_');
             string filePath = Path.Combine(_directoryWithFiles, $"Table.Inverted.{safeRange}.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
 
                 Assert.Throws<ArgumentException>(() =>
                     sheet.AddTable(range, true, "MyTable", ExcelTableStyle.TableStyleMedium9));
@@ -219,7 +227,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetTableTotalsMatchesHeadersCaseInsensitive() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsCaseInsensitive.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
@@ -249,7 +257,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetTableTotalsMatchesHeadersWithMixedCasing() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsMixedCase.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "nAmE");
                 sheet.CellValue(1, 2, "AMOUNT");
                 sheet.CellValue(1, 3, "balance");
@@ -283,7 +291,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetTableTotalsByNameAndClearTableTotals() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsByName.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
@@ -314,7 +322,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetTableTotalsByNameRestoresTotalsRowCountAfterClear() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsRestore.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
@@ -349,7 +357,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetTableStyleUpdatesNamedTableVisualFlags() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.StyleByName.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");
@@ -383,7 +391,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetTableStyleInsertsBeforeExtensionList() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.StyleBeforeExtensionList.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "A");

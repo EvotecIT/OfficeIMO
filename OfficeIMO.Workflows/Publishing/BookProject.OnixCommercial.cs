@@ -1,3 +1,6 @@
+#if !NET8_0_OR_GREATER
+using DateOnly = System.DateTime;
+#endif
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -14,8 +17,8 @@ public sealed partial class BookProject {
     private static OnixCommercialParts BuildOnixCommercial(BookOnixCommercialMetadata? commercial,
         DateOnly? publicationDate, CancellationToken token) {
         if (commercial == null) return new(null, [], []);
-        ArgumentNullException.ThrowIfNull(commercial.SalesRights);
-        ArgumentNullException.ThrowIfNull(commercial.Supplies);
+        if (commercial.SalesRights == null) throw new ArgumentNullException("commercial.SalesRights");
+        if (commercial.Supplies == null) throw new ArgumentNullException("commercial.Supplies");
         if (commercial.SalesRights.Count > 32 || commercial.Supplies.Count > 32)
             throw new ArgumentException("ONIX export supports at most 32 rights and 32 supply declarations.", nameof(commercial));
         XNamespace ns = OnixNamespace;
@@ -35,7 +38,7 @@ public sealed partial class BookProject {
         int restrictionBudget = 524288;
         var rights = new List<XElement>(); var territories = new List<OnixTerritory>(); var grants = new List<OnixTerritory>();
         foreach (BookOnixSalesRights right in commercial.SalesRights) {
-            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(right);
+            token.ThrowIfCancellationRequested(); if (right == null) throw new ArgumentNullException(nameof(right));
             string code = right.Kind switch {
                 BookOnixSalesRightsKind.Exclusive => "01", BookOnixSalesRightsKind.NonExclusive => "02",
                 BookOnixSalesRightsKind.NotForSale => "03", BookOnixSalesRightsKind.NotForSaleExclusive => "04",
@@ -53,7 +56,7 @@ public sealed partial class BookProject {
         var supplies = new List<XElement>();
         var marketReferences = new HashSet<string>(StringComparer.Ordinal);
         foreach (BookOnixSupply supply in commercial.Supplies) {
-            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(supply);
+            token.ThrowIfCancellationRequested(); if (supply == null) throw new ArgumentNullException(nameof(supply));
             if (supply.MarketReference is { } reference) {
                 RequireOnixMarketReference(reference);
                 if (!marketReferences.Add(reference)) throw new ArgumentException("Market references must be unique within a product.", nameof(commercial));
@@ -84,7 +87,7 @@ public sealed partial class BookProject {
             throw new ArgumentException("Expected supply needs a date or explicit unknown-date assertion; other availability states cannot carry an expected date.", nameof(supply));
         if (supply.Availability is not (BookOnixAvailability.Unavailable or BookOnixAvailability.Withdrawn) && !OnixTerritoriesCover(market, grants))
             throw new ArgumentException("Available or expected supply must lie within explicitly declared for-sale rights.", nameof(supply));
-        ArgumentNullException.ThrowIfNull(supply.Prices);
+        if (supply.Prices == null) throw new ArgumentNullException("supply.Prices");
         if (supply.Prices.Count > 16 || supply.Unpriced.HasValue == (supply.Prices.Count != 0))
             throw new ArgumentException("Supply needs 1-16 prices or one explicit unpriced reason, not both.", nameof(supply));
         var detail = new XElement(ns + "SupplyDetail", new XElement(ns + "Supplier",
@@ -98,7 +101,7 @@ public sealed partial class BookProject {
             };
             detail.Add(new XElement(ns + "UnpricedItemType", code));
         } else foreach (BookOnixPrice price in supply.Prices) {
-            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(price);
+            token.ThrowIfCancellationRequested(); if (price == null) throw new ArgumentNullException(nameof(price));
             detail.Add(BuildOnixPrice(price, market));
         }
         return new XElement(ns + "ProductSupply",
@@ -134,6 +137,6 @@ public sealed partial class BookProject {
     private static XElement OnixCommercialDate(string composite, string roleElement, string role, DateOnly date) {
         XNamespace ns = OnixNamespace;
         return new XElement(ns + composite, new XElement(ns + roleElement, role),
-            new XElement(ns + "Date", new XAttribute("dateformat", "00"), date.ToString("yyyyMMdd", CultureInfo.InvariantCulture)));
+            new XElement(ns + "Date", new XAttribute("dateformat", "00"), FormatOnixDate(date)));
     }
 }

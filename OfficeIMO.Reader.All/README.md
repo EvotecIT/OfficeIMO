@@ -22,33 +22,29 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("input.epub");
 ```
 
-## Convert Email, EPUB, or Visio directly to PDF
+## Convert files to PDF
 
-The all-adapters package also exposes thin direct façades. They normalize through
-the owning Reader adapter, then project through `OfficeIMO.Reader.Pdf`; they do
-not introduce a second renderer.
+The `OfficeIMO` front-door package owns file-to-file conversion and includes this reader preset. Install `OfficeIMO` for this example:
 
 ```csharp
-using OfficeIMO.Reader.All;
+using OfficeIMO.Reader;
+using OfficeIMO;
 
-PdfDocumentConversionResult email = OfficeDocumentPdfConverter.EmailToPdfBytes("message.eml");
-PdfDocumentConversionResult book = OfficeDocumentPdfConverter.EpubToPdfBytes("book.epub");
-PdfDocumentConversionResult diagram = OfficeDocumentPdfConverter.VisioToPdfBytes("diagram.vsdx");
-
-email.Save("message.pdf");
-book.Save("book.pdf");
-diagram.Save("diagram.pdf");
+OfficeConversionReport email = OfficeConverter.Convert("message.eml", "message.pdf");
+OfficeConversionReport book = OfficeConverter.Convert("book.epub", "book.pdf");
+OfficeConversionReport diagram = OfficeConverter.Convert("diagram.vsdx", "diagram.pdf");
 ```
 
 Email attachments, EPUB resources and chapter pagination, and Visio
-preview-versus-semantic fallback behavior follow `PdfProjectionOptions`
-and are reported as structured conversion evidence.
+preview-versus-semantic fallback behavior follow the selected reader settings
+and appear in the shared conversion report.
 
 The preset adds Word, Excel, their safe legacy-word and legacy-spreadsheet families, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CHM, CSV/TSV, DBF/xBase, DjVu, DocBook, EPUB, HTML/MHTML, Apple Pages/Numbers/Keynote, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, OPML, PDF, Publisher, RTF, subtitles, Visio, XML, XPS/OpenXPS, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser. DBF memo sidecars require opt-in through `ReaderAllOptions.Dbf.AllowMemoSidecarReads`.
 
 Configure a format through one options object:
 
 ```csharp
+using OfficeIMO.Reader;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddAllOfficeIMOHandlers(new ReaderAllOptions {
         Csv = new OfficeIMO.Reader.Csv.CsvReadOptions {
@@ -80,6 +76,7 @@ Registrations are copied into the builder's immutable snapshot. The preset does 
 Applications that already own one of the legacy extension families can disable those registrations before adding their custom handlers:
 
 ```csharp
+using OfficeIMO.Reader;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddAllOfficeIMOHandlers(new ReaderAllOptions {
         IncludeLegacyWord = false,

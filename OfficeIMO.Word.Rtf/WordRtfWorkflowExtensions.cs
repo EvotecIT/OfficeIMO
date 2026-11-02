@@ -16,7 +16,7 @@ public static class WordRtfWorkflowExtensions {
         using WordDocument word = input.Value;
         WordMailMergeTemplateInspection inspection = WordMailMerge.InspectTemplate(word, values.Keys);
         WordMailMerge.Execute(word, values, removeFields);
-        return Complete(word, inspection, input.Report, "RtfWordMailMergeCompleted", "Mail merge was executed by OfficeIMO.Word.");
+        return Complete(word, inspection, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordMailMergeCompleted, "Mail merge was executed by OfficeIMO.Word.");
     }
 
     /// <summary>Executes Word mail merge from a parsed RTF result, retaining parser diagnostics.</summary>
@@ -40,7 +40,7 @@ public static class WordRtfWorkflowExtensions {
         RtfConversionResult<WordDocument> input = document.ToWordDocumentResult();
         using WordDocument word = input.Value;
         int replacements = word.FindAndReplace(textToFind, textToReplace, comparison);
-        return Complete(word, replacements, input.Report, "RtfWordFindReplaceCompleted", "Find and replace was executed by OfficeIMO.Word.");
+        return Complete(word, replacements, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordFindReplaceCompleted, "Find and replace was executed by OfficeIMO.Word.");
     }
 
     /// <summary>Runs find/replace from a parsed RTF result, retaining parser diagnostics.</summary>
@@ -63,7 +63,7 @@ public static class WordRtfWorkflowExtensions {
         RtfConversionResult<WordDocument> input = document.ToWordDocumentResult();
         using WordDocument word = input.Value;
         WordFieldUpdateReport workflow = word.UpdateFieldsAndGetReport(options ?? WordFieldUpdateOptions.Default);
-        RtfWordWorkflowResult<WordFieldUpdateReport> result = Complete(word, workflow, input.Report, "RtfWordFieldsUpdated", "Fields were evaluated by OfficeIMO.Word.");
+        RtfWordWorkflowResult<WordFieldUpdateReport> result = Complete(word, workflow, input.Report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordFieldsUpdated, "Fields were evaluated by OfficeIMO.Word.");
         if (workflow.UnsupportedCount > 0 || workflow.ParseErrorCount > 0) {
             result.Report.Add(
                 RtfConversionSeverity.Warning,
@@ -99,7 +99,7 @@ public static class WordRtfWorkflowExtensions {
         var report = new RtfConversionReport();
         report.Merge(destinationConversion.Report);
         report.Merge(sourceConversion.Report);
-        return Complete(destinationWord, 1, report, "RtfWordMergeCompleted", "One RTF document was appended by OfficeIMO.Word.");
+        return Complete(destinationWord, 1, report, global::OfficeIMO.OfficeDiagnosticCodes.RtfWordMergeCompleted, "One RTF document was appended by OfficeIMO.Word.");
     }
 
     /// <summary>Compares two RTF documents using the machine-readable OfficeIMO.Word comparison engine.</summary>

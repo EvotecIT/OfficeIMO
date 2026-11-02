@@ -126,8 +126,8 @@ internal static class HierarchicalReportVerifier {
     }
 
     private static object VerifyPdf(string path, JsonElement contract) {
-        var document = PdfReadDocument.Open(path);
-        var painted = PdfReadDocument.Open(path, new PdfLoadOptions { IncludeArtifactText = true });
+        using var document = PdfDocument.Load(path);
+        using var painted = PdfDocument.Load(path, new PdfLoadOptions { IncludeArtifactText = true });
         Require(!document.RepairReport.HasRepairs, "Composed PDF required repair.");
         JsonElement text = contract.GetProperty("text"), pageLabels = text.GetProperty("page");
         JsonElement[] rows = contract.GetProperty("rows").EnumerateArray().ToArray(), events = contract.GetProperty("events").EnumerateArray().ToArray();

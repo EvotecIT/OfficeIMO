@@ -39,18 +39,16 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_StrictOmissionPolicyRejectsTextSuppressedByDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("AnchorOverlay");
-            sheet.SetColumnWidth(1, 18);
-            sheet.SetRowHeight(1, 24);
+            ExcelSheet sheet = document.AddSheet("AnchorOverlay");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
-            sheet.AddImage(
-                1,
-                1,
-                CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)),
-                "image/png",
-                widthPixels: 120,
-                heightPixels: 32,
-                name: "AnchorOverlay");
+            sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(120),
+                Height = OfficeIMO.OfficeLength.Pixels(32),
+                Name = "AnchorOverlay"
+            });
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
                 sheet.Range("A1:A1").ExportImage(
@@ -71,7 +69,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_StrictOmissionPolicyRejectsUnrenderedCommentBody() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Strict");
+            ExcelSheet sheet = document.AddSheet("Strict");
             sheet.CellValue(1, 1, "Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
@@ -94,7 +92,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_StrictOmissionPolicyAllowsRenderedCommentApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Approximation");
+            ExcelSheet sheet = document.AddSheet("Approximation");
             sheet.CellValue(1, 1, "Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
@@ -103,8 +101,8 @@ namespace OfficeIMO.Tests {
                 new ExcelImageExportOptions {
                     ShowGridlines = false,
                     ShowCommentBodies = true,
-                    DefaultColumnWidthPixels = 92D,
-                    DefaultRowHeightPixels = 28D,
+                    DefaultColumnWidth = OfficeIMO.OfficeLength.Pixels(92D),
+                    DefaultRowHeight = OfficeIMO.OfficeLength.Pixels(28D),
                     Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
                 });
 

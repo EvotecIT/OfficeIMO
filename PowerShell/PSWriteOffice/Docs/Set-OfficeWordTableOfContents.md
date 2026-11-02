@@ -38,7 +38,7 @@ Updates TOC display text, adds heading content, and marks the TOC for refresh.
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Get-OfficeWord -Path .\Report.docx
+PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc |
     Get-OfficeWordTableOfContents |
     Set-OfficeWordTableOfContents -Text 'Report contents'

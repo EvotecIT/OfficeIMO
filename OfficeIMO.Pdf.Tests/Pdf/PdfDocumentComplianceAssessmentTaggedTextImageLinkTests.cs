@@ -11,7 +11,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void ImageAlternativeTextEmitsMarkedFigureContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Image(CreateMinimalRgbPng(), 24, 24, alternativeText: "Company logo")
@@ -25,7 +25,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedImageAlternativeTextEmitsFigureStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -50,7 +50,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedDocumentStructureRootEmitsLanguageMetadata() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
                 Language = "en-US"
             })
@@ -66,7 +66,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedHeadingParagraphAndImageEmitStructureReferencesWithPageScopedMcids() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -92,7 +92,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedImageStructureFollowsFlowOrderBetweenParagraphs() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -111,7 +111,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedParagraphLinkEmitsStructureTabOrder() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -154,7 +154,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedLinkedHeadingEmitsLinkStructureForVisibleText() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -174,11 +174,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedWrappedLinkedHeadingPreservesAllAnnotationStructureReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 170,
-                MarginLeft = 24,
-                MarginRight = 24
+                PageWidth = global::OfficeIMO.OfficeLength.Points(170),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(24),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(24)
             })
             .TaggedPdfCatalogMarkers()
             .H1("Embedded PDF fonts and compliance evidence", linkUri: "https://officeimo.net/", linkContents: "OfficeIMO PDF")
@@ -195,7 +195,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRichTextDecorationsEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -213,12 +213,12 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedRichTextBackgroundFillsEmitArtifactMarkedContent() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
             .Paragraph(paragraph => paragraph
-                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .BackgroundColor(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 .Text("Highlighted text"))
             .ToBytes();
 
@@ -230,7 +230,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void TaggedLinkedBaselineShiftResetsTextRiseBeforeNormalText() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
@@ -250,7 +250,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
     [Fact]
     public void UntaggedParagraphLinksDoNotEmitDanglingMarkedContentReferences() {
-        byte[] pdf = PdfDocument.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph

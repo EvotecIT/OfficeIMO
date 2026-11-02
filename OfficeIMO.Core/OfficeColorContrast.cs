@@ -3,7 +3,7 @@ using System;
 namespace OfficeIMO.Drawing;
 
 /// <summary>WCAG-compatible relative luminance and contrast calculations for shared OfficeIMO colors.</summary>
-public static class OfficeColorContrast {
+internal static class OfficeColorContrast {
     /// <summary>Returns the relative luminance of an sRGB color in the inclusive range 0 to 1.</summary>
     public static double RelativeLuminance(OfficeColor color) {
         double red = Linearize(color.R / 255D);

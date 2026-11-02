@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Identifies the object type declared by the FtCmo structure in a legacy XLS Obj record.
     /// </summary>
-    public enum LegacyXlsDrawingObjectType {
+    internal enum LegacyXlsDrawingObjectType {
         /// <summary>Group object.</summary>
         Group = 0x0000,
 

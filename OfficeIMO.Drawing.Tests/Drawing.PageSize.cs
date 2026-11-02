@@ -9,8 +9,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(816, letter.ToPixelWidth(96D));
             Assert.Equal(1056, letter.ToPixelHeight(96D));
-            Assert.Equal(612D, letter.ToPointWidth());
-            Assert.Equal(792D, letter.ToPointHeight());
+            Assert.Equal(612D, letter.Width.ToPoints());
+            Assert.Equal(792D, letter.Height.ToPoints());
         }
     }
 }

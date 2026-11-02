@@ -1,3 +1,4 @@
+using OfficeIMO.Internal;
 namespace OfficeIMO.Workflows;
 
 /// <summary>A reopenable provider input whose original location remains in the workflow request.</summary>
@@ -16,14 +17,14 @@ public sealed class OfficeWorkflowStreamInput {
 
     /// <summary>Creates a snapshot input with an owning package's output-separation guard.</summary>
     public OfficeWorkflowStreamInput(string name, Func<CancellationToken, Task<Stream>> openRead, string? expectedSha256,
-        OfficeWorkflowSourceSnapshotKind snapshotKind, IOfficeWorkflowPublicationGuard? sourcePublicationGuard) {
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 4096 || name.IndexOfAny(['/', '\\', '\0']) >= 0) {
+        OfficeWorkflowSourceSnapshotKind snapshotKind, IOfficePublicationGuard? sourcePublicationGuard) {
+        if ((name == null || string.IsNullOrWhiteSpace(name)) || name.Length > 4096 || name.IndexOfAny(['/', '\\', '\0']) >= 0) {
             throw new ArgumentException("A provider filename is required.", nameof(name));
         }
         if (expectedSha256 is not null && (expectedSha256.Length != 64 || expectedSha256.Any(character => !Uri.IsHexDigit(character)))) {
             throw new ArgumentException("The expected fingerprint must be a hexadecimal SHA-256.", nameof(expectedSha256));
         }
-        if (!Enum.IsDefined(snapshotKind)) throw new ArgumentOutOfRangeException(nameof(snapshotKind));
+        if (!OfficeRuntimeCompatibility.IsDefined(snapshotKind)) throw new ArgumentOutOfRangeException(nameof(snapshotKind));
         SnapshotKind = snapshotKind;
         SourcePublicationGuard = sourcePublicationGuard;
         Name = name;
@@ -36,7 +37,7 @@ public sealed class OfficeWorkflowStreamInput {
     /// <summary>Meaning of the captured byte checksum. Directory package checksums describe their private transport snapshot.</summary>
     public OfficeWorkflowSourceSnapshotKind SnapshotKind { get; }
     /// <summary>Optional owner guard that keeps publication separate from all members of a package.</summary>
-    public IOfficeWorkflowPublicationGuard? SourcePublicationGuard { get; }
+    public IOfficePublicationGuard? SourcePublicationGuard { get; }
     /// <summary>Gets the stream factory; the runner invokes it again to verify source contents before publication.</summary>
     public Func<CancellationToken, Task<Stream>> OpenRead { get; }
     /// <summary>Gets the optional fingerprint captured when the input was selected.</summary>

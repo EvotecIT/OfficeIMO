@@ -1,24 +1,43 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfHeaderBuilder {
+    /// <summary>Composes bounded header content without an additional gap from the body.</summary>
+    public PdfHeaderBuilder Content(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge) =>
+        Content(build, distanceFromEdge, default);
+    /// <summary>Composes bounded header content without an additional gap from the body.</summary>
+    public PdfHeaderBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge) =>
+        Content(build, distanceFromEdge, default);
+    /// <summary>Composes bounded header content without an additional gap from the body.</summary>
+    public PdfHeaderBuilder FirstPageContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge) =>
+        FirstPageContent(build, distanceFromEdge, default);
+    /// <summary>Composes bounded header content without an additional gap from the body.</summary>
+    public PdfHeaderBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge) =>
+        FirstPageContent(build, distanceFromEdge, default);
+    /// <summary>Composes bounded header content without an additional gap from the body.</summary>
+    public PdfHeaderBuilder EvenPagesContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge) =>
+        EvenPagesContent(build, distanceFromEdge, default);
+    /// <summary>Composes bounded header content without an additional gap from the body.</summary>
+    public PdfHeaderBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge) =>
+        EvenPagesContent(build, distanceFromEdge, default);
+
     /// <summary>Replaces the default header with bounded document flow at a distance from the top page edge. Uses normal content-builder styles; content cannot create pages.</summary>
-    public PdfHeaderBuilder Content(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D) =>
-        SetContent(build, distanceFromEdge, bodyGap, PdfRunningContentVariant.Default);
+    public PdfHeaderBuilder Content(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap) =>
+        SetContent(build, distanceFromEdge.ToPoints(), bodyGap.ToPoints(), PdfRunningContentVariant.Default);
     /// <summary>Composes the default bounded header from final page information. The factory can run during pagination stabilization and must be deterministic.</summary>
-    public PdfHeaderBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D) =>
-        SetContent(build, distanceFromEdge, bodyGap, PdfRunningContentVariant.Default);
+    public PdfHeaderBuilder Content(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap) =>
+        SetContent(build, distanceFromEdge.ToPoints(), bodyGap.ToPoints(), PdfRunningContentVariant.Default);
     /// <summary>Replaces the first-page header with bounded flow measured from the top page edge.</summary>
-    public PdfHeaderBuilder FirstPageContent(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D) =>
-        SetContent(build, distanceFromEdge, bodyGap, PdfRunningContentVariant.FirstPage);
+    public PdfHeaderBuilder FirstPageContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap) =>
+        SetContent(build, distanceFromEdge.ToPoints(), bodyGap.ToPoints(), PdfRunningContentVariant.FirstPage);
     /// <summary>Composes bounded first-page header flow from final page information.</summary>
-    public PdfHeaderBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D) =>
-        SetContent(build, distanceFromEdge, bodyGap, PdfRunningContentVariant.FirstPage);
+    public PdfHeaderBuilder FirstPageContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap) =>
+        SetContent(build, distanceFromEdge.ToPoints(), bodyGap.ToPoints(), PdfRunningContentVariant.FirstPage);
     /// <summary>Replaces even-page headers with bounded flow measured from the top page edge.</summary>
-    public PdfHeaderBuilder EvenPagesContent(Action<PdfContentBuilder> build, double distanceFromEdge, double bodyGap = 0D) =>
-        SetContent(build, distanceFromEdge, bodyGap, PdfRunningContentVariant.EvenPages);
+    public PdfHeaderBuilder EvenPagesContent(Action<PdfContentBuilder> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap) =>
+        SetContent(build, distanceFromEdge.ToPoints(), bodyGap.ToPoints(), PdfRunningContentVariant.EvenPages);
     /// <summary>Composes bounded even-page header flow from final page information.</summary>
-    public PdfHeaderBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, double distanceFromEdge, double bodyGap = 0D) =>
-        SetContent(build, distanceFromEdge, bodyGap, PdfRunningContentVariant.EvenPages);
+    public PdfHeaderBuilder EvenPagesContent(Func<PdfRunningContentContext, Action<PdfContentBuilder>> build, global::OfficeIMO.OfficeLength distanceFromEdge, global::OfficeIMO.OfficeLength bodyGap) =>
+        SetContent(build, distanceFromEdge.ToPoints(), bodyGap.ToPoints(), PdfRunningContentVariant.EvenPages);
 
     private PdfHeaderBuilder SetContent(Action<PdfContentBuilder> build, double distance, double gap, PdfRunningContentVariant variant) {
         Guard.NotNull(build, nameof(build));

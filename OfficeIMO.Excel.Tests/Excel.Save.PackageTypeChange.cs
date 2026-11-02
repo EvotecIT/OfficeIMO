@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create();
                 document.SheetCachingEnabled = false;
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 ExcelSheet alias = document.Sheets[0];
                 sheet.CellValue(1, 1, "Before format change");
                 var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter };
@@ -47,8 +47,8 @@ namespace OfficeIMO.Tests {
         public void Promoting_to_a_macro_workbook_preserves_retained_worksheet_edits(bool nativeProject) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            ExcelSheet sheet = document.AddWorksheet("Report");
-            document.AddWorksheet("Keep");
+            ExcelSheet sheet = document.AddSheet("Report");
+            document.AddSheet("Keep");
             sheet.CellValue(1, 1, "Before promotion");
             var project = OfficeVbaProject.Create();
             project.AddModule("Helpers", "' Inert worksheet lifetime fixture\r\n");
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-TypeChange-" + Guid.NewGuid().ToString("N") + ".xltx");
             try {
                 using var document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Before conversion");
                 if (encrypted) document.SaveEncrypted(path, "inert-test-password");
                 else await document.SaveAsync(path);

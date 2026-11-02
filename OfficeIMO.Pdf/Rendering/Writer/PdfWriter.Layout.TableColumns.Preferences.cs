@@ -63,12 +63,31 @@ internal static partial class PdfWriter {
         for (int column = 0; column < widths.Length; column++)
             if (included == null || included[column]) reserved += Math.Min(minimums[column] ?? 0D, paddingWidths[column]);
         if (reserved >= availableWidth - .001D) return false;
-        double scale = (availableWidth - reserved) / (minimumTotal - reserved);
+        var floors = new double[widths.Length];
+        double authoredReserved = 0D;
+        bool completeAuthoredBudget = true;
         for (int column = 0; column < widths.Length; column++) {
             if (included != null && !included[column]) continue;
             double minimum = minimums[column] ?? 0D;
             double padding = Math.Min(minimum, paddingWidths[column]);
-            widths[column] = padding + (minimum - padding) * scale;
+            double? preference = GetOptionalColumnWidth(style.AutoFitColumnPreferredWidthPoints, column,
+                "Table preferred column widths must be positive finite values.");
+            completeAuthoredBudget &= preference is double authored &&
+                (minimum <= padding + .001D || authored > padding + .001D);
+            floors[column] = Math.Max(padding, Math.Min(minimum, preference ?? padding));
+            authoredReserved += floors[column];
+        }
+        // A wide word must not force compact words or numbers below the width
+        // they already fit in the source grid. Mixed automatic/absolute cells and
+        // impossible budgets retain the padding-only fallback.
+        bool retainAuthoredFloors = completeAuthoredBudget && authoredReserved <= availableWidth + .001D;
+        if (retainAuthoredFloors) reserved = authoredReserved;
+        double scale = (availableWidth - reserved) / (minimumTotal - reserved);
+        for (int column = 0; column < widths.Length; column++) {
+            if (included != null && !included[column]) continue;
+            double minimum = minimums[column] ?? 0D;
+            double floor = retainAuthoredFloors ? floors[column] : Math.Min(minimum, paddingWidths[column]);
+            widths[column] = floor + (minimum - floor) * Math.Max(0D, scale);
         }
         return true;
     }

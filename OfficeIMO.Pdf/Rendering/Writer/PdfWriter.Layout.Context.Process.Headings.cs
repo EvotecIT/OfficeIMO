@@ -9,14 +9,23 @@ internal static partial class PdfWriter {
             PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb, currentOpts);
             double size = GetHeadingFontSize(hb, headingStyle);
             double leading = GetHeadingLeading(headingStyle, size);
-            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
+            double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? (headingStyle?.SpacingBefore.ToPoints()) ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
-            PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
+            global::OfficeIMO.OfficeColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
+            // Paragraph indents narrow the heading's text frame, so an indented heading lines up with its body.
+            double headingIndentLeft = Math.Max(0D, headingStyle?.LeftIndent ?? 0D);
+            double headingIndentRight = Math.Max(0D, headingStyle?.RightIndent ?? 0D);
+            if (headingIndentLeft + headingIndentRight > width - 36D) {
+                headingIndentLeft = 0D;
+                headingIndentRight = 0D;
+            }
+            double HeadingLeft() => currentOpts.MarginLeft.ToPoints() + headingIndentLeft;
+            double HeadingWidth() => width - headingIndentLeft - headingIndentRight;
             bool pictureWrapping = HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions;
             var (lines, lineHeights) = WrapHeadingForFrame(hb, headingRuns, headingStyle,
-                currentOpts.MarginLeft, width, size, leading, y - spacingBefore);
+                HeadingLeft(), HeadingWidth(), size, leading, y - spacingBefore);
             var lineGaps = lines.Select(line => line is RichLine row ? row.FragmentTopGap : 0D).ToList();
             double wrappedWidth = width;
             int lineIndex = 0;
@@ -45,9 +54,9 @@ internal static partial class PdfWriter {
                             hb.LinkUri, remainingStyle, hb.LinkContents, hb.LinkDestinationName, remainingRuns);
                     }
                     double before = firstLogicalLine && headingStyle?.ApplySpacingBeforeAtTop == true
-                        ? headingStyle.SpacingBefore : 0D;
+                        ? headingStyle.SpacingBefore.ToPoints() : 0D;
                     (lines, lineHeights) = WrapHeadingForFrame(source, remainingRuns, remainingStyle,
-                        currentOpts.MarginLeft, width, size, leading, y - before);
+                        HeadingLeft(), HeadingWidth(), size, leading, y - before);
                     lineGaps = lines.Select(line => line is RichLine row ? row.FragmentTopGap : 0D).ToList();
                     lineIndex = 0;
                     wrappedWidth = width;
@@ -57,13 +66,13 @@ internal static partial class PdfWriter {
             double needed = spacingBefore + textHeight + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
-                double keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                double keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), needed);
                 double availableHeight = GetMaximumBlockContinuationHeight();
                 while (keepHeight > needed + 0.001 && keepHeight <= availableHeight + 0.001 && ShouldAdvanceForBlockHeight(keepHeight)) {
                     NewHeadingFrame();
-                    spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                    spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
                     needed = spacingBefore + textHeight + spacingAfter;
-                    keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, needed);
+                    keepHeight = needed + MeasureCurrentFrameKeepNextHeight(blockList, blockIndex + 1, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), needed);
                     availableHeight = GetMaximumBlockContinuationHeight();
                 }
             }
@@ -71,19 +80,19 @@ internal static partial class PdfWriter {
             double fitNeeded = spacingBefore + MeasureRichLinesFrameFitHeight(lines, lineHeights, leading, lineGaps) + spacingAfter;
             if (y < frameStart - 0.001 && y - fitNeeded < FootnoteBodyBottom) {
                 NewHeadingFrame();
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
                 needed = spacingBefore + textHeight + spacingAfter;
             }
             while (lineHeights.Count > 0 && ShouldAdvanceForBlockHeight(spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]))) {
                 NewHeadingFrame();
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
             }
             while (lineHeights.Count > 0 && spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]) > frameStart - FootnoteBodyBottom + 0.001) {
                 if (!TryAdvanceForRunningContent(ref runningAdmission,
                     spacingBefore + GetRichLineFrameFitHeight(lines[0], lineHeights[0], lineGaps[0]),
                     preserve => NewHeadingFrame(preserve)))
                     throw new ArgumentException("Heading spacing and first line exceed the available page content height.");
-                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore : 0D;
+                spacingBefore = headingStyle?.ApplySpacingBeforeAtTop == true ? headingStyle.SpacingBefore.ToPoints() : 0D;
             }
             if (spacingBefore > 0) {
                 y -= spacingBefore;
@@ -128,7 +137,7 @@ internal static partial class PdfWriter {
                 if (firstLogicalLine && headingStyle?.AnchoredCanvas is { } headingCanvas)
                     RenderPictureParagraphCanvas(headingCanvas, y, firstTextTop);
                 pageDirty = true;
-                if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings) {
+                if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings && !hb.IsTitle) {
                     currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = firstTextTop });
                 }
                 double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
@@ -154,8 +163,8 @@ internal static partial class PdfWriter {
                 }
                 if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings && currentPage!.Bookmarks.Count > 0)
                     currentPage.Bookmarks[currentPage.Bookmarks.Count - 1].StructureElement = logicalHeading ?? ResolveMarkedStructure(markedContentId);
-                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex, sliceHeights);
-                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont,
+                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, HeadingLeft(), HeadingWidth(), firstBaseline, linkStructElementIndex, sliceHeights);
+                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, HeadingLeft(), HeadingWidth(), structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont,
                     paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
                     paragraphSpacingBefore: firstLogicalLine ? appliedSpacingBefore : 0D,
                     lineTopGaps: lineGaps.GetRange(lineIndex, take), suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);

@@ -35,10 +35,10 @@ namespace OfficeIMO.Tests
             }
 
             [Theory]
-            [InlineData(@"BIBLIOGRAPHY \* roman", WordFieldFormat.roman)]
+            [InlineData(@"BIBLIOGRAPHY \* roman", WordFieldFormat.LowerRoman)]
             [InlineData(@"BIBLIOGRAPHY \*arabic", WordFieldFormat.Arabic)]
             [InlineData(@"Page \* FIRSTCAP \* MERGEFORMAT", WordFieldFormat.FirstCap)]
-            [InlineData(@"BIBLIOGRAPHY \* ALPHABETICAL", WordFieldFormat.ALPHABETICAL)]
+            [InlineData(@"BIBLIOGRAPHY \* ALPHABETICAL", WordFieldFormat.UpperLetter)]
             public void Test_CastFormatSwitches(String FieldCodeString, WordFieldFormat expected_field_format)
             {
                 var parser = new WordFieldParser(FieldCodeString);

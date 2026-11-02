@@ -42,10 +42,17 @@ namespace OfficeIMO.Excel {
             NormalizeDataLabelsOrder(labels);
         }
 
-        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, double? fontSizePoints, bool? bold,
-            bool? italic, string? color, string? fontName) {
-            if (fontSizePoints != null) {
-                runProps.FontSize = (int)Math.Round(fontSizePoints.Value * 100);
+        // DrawingML text is stored in hundredths of a point. Validate before attaching XML.
+        private static int ToNativeFontSize(OfficeLength size) {
+            int value = checked((int)decimal.Round(size.ToEmus() / 127m, 0, MidpointRounding.AwayFromZero));
+            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(size), "Font size must remain positive at DrawingML precision.");
+            return value;
+        }
+
+        private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, OfficeLength? fontSize, bool? bold,
+            bool? italic, OfficeColor? color, string? fontName) {
+            if (fontSize != null) {
+                runProps.FontSize = ToNativeFontSize(fontSize.Value);
             }
             if (bold != null) {
                 runProps.Bold = bold.Value;
@@ -54,7 +61,7 @@ namespace OfficeIMO.Excel {
                 runProps.Italic = italic.Value;
             }
             if (color != null) {
-                ApplyTextSolidFill(runProps, NormalizeHexColor(color));
+                ApplyTextSolidFill(runProps, color);
             }
             if (fontName != null) {
                 runProps.RemoveAllChildren<A.LatinFont>();
@@ -62,47 +69,33 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ValidateDataLabelTextStyle(double? fontSizePoints, string? color, string? fontName) {
-            if (fontSizePoints != null && fontSizePoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(fontSizePoints));
+        private static void ValidateDataLabelTextStyle(OfficeLength? fontSize, OfficeColor? color, string? fontName) {
+            if (fontSize != null && fontSize.Value <= OfficeLength.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(fontSize));
             }
-            if (color != null && string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Label color cannot be empty.", nameof(color));
-            }
+            if (fontSize.HasValue) _ = ToNativeFontSize(fontSize.Value);
             if (fontName != null && string.IsNullOrWhiteSpace(fontName)) {
                 throw new ArgumentException("Font name cannot be empty.", nameof(fontName));
             }
         }
 
-        private static void ValidateDataLabelShapeStyle(string? fillColor, string? lineColor, double? lineWidthPoints,
+        private static void ValidateDataLabelShapeStyle(OfficeColor? fillColor, OfficeColor? lineColor, OfficeLength? lineWidth,
             bool noFill, bool noLine) {
-            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
-                throw new ArgumentException("Fill color cannot be empty.", nameof(fillColor));
-            }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Line color cannot be empty.", nameof(lineColor));
-            }
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth));
             if (noFill && fillColor != null) {
                 throw new ArgumentException("Cannot set both fill color and noFill.", nameof(noFill));
             }
-            if (noLine && (lineColor != null || lineWidthPoints != null)) {
+            if (noLine && (lineColor != null || lineWidth != null)) {
                 throw new ArgumentException("Cannot set line color/width when noLine is true.", nameof(noLine));
             }
         }
 
-        private static void ValidateDataLabelLeaderLines(string? lineColor, double? lineWidthPoints) {
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Line color cannot be empty.", nameof(lineColor));
-            }
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
+        private static void ValidateDataLabelLeaderLines(OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth));
         }
 
-        private static void ValidateAxisGridlinesStyle(string? lineColor, double? lineWidthPoints) {
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Gridline color cannot be empty.", nameof(lineColor));
-            }
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
+        private static void ValidateAxisGridlinesStyle(OfficeColor? lineColor, OfficeLength? lineWidth) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth));
         }
 
         private static void ValidateAxisScale(double? minimum, double? maximum, double? majorUnit, double? minorUnit,
@@ -233,7 +226,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateTrendline(OfficeChartTrendlineType type, int? order, int? period,
-            double? forward, double? backward, string? lineColor, double? lineWidthPoints) {
+            double? forward, double? backward, OfficeColor? lineColor, OfficeLength? lineWidth) {
             if (order != null && (order <= 0 || order > byte.MaxValue)) {
                 throw new ArgumentOutOfRangeException(nameof(order));
             }
@@ -246,10 +239,7 @@ namespace OfficeIMO.Excel {
             if (backward != null && backward < 0) {
                 throw new ArgumentOutOfRangeException(nameof(backward));
             }
-            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
-                throw new ArgumentException("Trendline color cannot be empty.", nameof(lineColor));
-            }
-            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidth?.ToPoints(), nameof(lineWidth));
 
             bool isPolynomial = type == OfficeChartTrendlineType.Polynomial;
             bool isMovingAverage = type == OfficeChartTrendlineType.MovingAverage;
@@ -306,9 +296,9 @@ namespace OfficeIMO.Excel {
             return labels;
         }
 
-        private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, double? fontSizePoints, bool? bold,
-            bool? italic, string? color, string? fontName) {
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSizePoints, bold, italic, color, fontName);
+        private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, OfficeLength? fontSize, bool? bold,
+            bool? italic, OfficeColor? color, string? fontName) {
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontName);
 
             if (labels is C.DataLabels dataLabels) {
                 NormalizeDataLabelsOrder(dataLabels);
@@ -317,20 +307,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, string? fillColor, string? lineColor,
-            double? lineWidthPoints, bool noFill, bool noLine) {
+        private static void ApplyDataLabelShapeStyle(OpenXmlCompositeElement labels, OfficeColor? fillColor, OfficeColor? lineColor,
+            OfficeLength? lineWidth, bool noFill, bool noLine) {
             C.ChartShapeProperties props = EnsureDataLabelShapeProperties(labels);
             if (noFill) {
                 ApplyNoFill(props);
             } else if (fillColor != null) {
-                ApplySolidFill(props, NormalizeHexColor(fillColor));
+                ApplySolidFill(props, fillColor);
             }
 
             if (noLine) {
                 ApplyNoLine(props);
-            } else if (lineColor != null || lineWidthPoints != null) {
-                string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
-                ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+            } else if (lineColor != null || lineWidth != null) {
+                OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
+                ApplyOptionalLine(props, normalizedLine, lineWidth);
             }
 
             if (labels is C.DataLabels dataLabels) {
@@ -340,31 +330,31 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ApplyAreaStyle(OpenXmlCompositeElement props, string? fillColor, string? lineColor,
-            double? lineWidthPoints, bool noFill, bool noLine) {
+        private static void ApplyAreaStyle(OpenXmlCompositeElement props, OfficeColor? fillColor, OfficeColor? lineColor,
+            OfficeLength? lineWidth, bool noFill, bool noLine) {
             if (noFill) {
                 ApplyNoFill(props);
             } else if (fillColor != null) {
-                ApplySolidFill(props, NormalizeHexColor(fillColor));
+                ApplySolidFill(props, fillColor);
             }
 
             if (noLine) {
                 ApplyNoLine(props);
-            } else if (lineColor != null || lineWidthPoints != null) {
-                string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
-                ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+            } else if (lineColor != null || lineWidth != null) {
+                OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
+                ApplyOptionalLine(props, normalizedLine, lineWidth);
             }
         }
 
-        private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, string? lineColor,
-            double? lineWidthPoints) {
+        private static void ApplyDataLabelLeaderLines(C.DataLabels labels, bool showLeaderLines, OfficeColor? lineColor,
+            OfficeLength? lineWidth) {
             ReplaceChild(labels, new C.ShowLeaderLines { Val = showLeaderLines });
 
-            if (lineColor != null || lineWidthPoints != null) {
+            if (lineColor != null || lineWidth != null) {
                 C.LeaderLines leaderLines = labels.GetFirstChild<C.LeaderLines>() ?? new C.LeaderLines();
                 C.ChartShapeProperties props = leaderLines.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-                string? normalizedLine = lineColor != null ? NormalizeHexColor(lineColor) : null;
-                ApplyOptionalLine(props, normalizedLine, lineWidthPoints);
+                OfficeColor? normalizedLine = lineColor != null ? lineColor : null;
+                ApplyOptionalLine(props, normalizedLine, lineWidth);
                 if (props.Parent == null) {
                     leaderLines.Append(props);
                 }
@@ -471,7 +461,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Number format cannot be empty.", nameof(template.NumberFormat));
             }
 
-            bool applyTextStyle = template.FontSizePoints != null
+            bool applyTextStyle = template.FontSize != null
                 || template.Bold != null
                 || template.Italic != null
                 || template.TextColor != null
@@ -480,20 +470,20 @@ namespace OfficeIMO.Excel {
                 || template.NoLine
                 || template.FillColor != null
                 || template.LineColor != null
-                || template.LineWidthPoints != null;
+                || template.LineWidth != null;
             bool applyLeaderLines = template.ShowLeaderLines != null
                 || template.LeaderLineColor != null
-                || template.LeaderLineWidthPoints != null;
+                || template.LeaderLineWidth != null;
 
             if (applyTextStyle) {
-                ValidateDataLabelTextStyle(template.FontSizePoints, template.TextColor, template.FontName);
+                ValidateDataLabelTextStyle(template.FontSize, template.TextColor, template.FontName);
             }
             if (applyShapeStyle) {
-                ValidateDataLabelShapeStyle(template.FillColor, template.LineColor, template.LineWidthPoints,
+                ValidateDataLabelShapeStyle(template.FillColor, template.LineColor, template.LineWidth,
                     template.NoFill, template.NoLine);
             }
             if (applyLeaderLines) {
-                ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidthPoints);
+                ValidateDataLabelLeaderLines(template.LeaderLineColor, template.LeaderLineWidth);
             }
 
             C.DataLabels labels = EnsureDataLabels(series);
@@ -505,16 +495,16 @@ namespace OfficeIMO.Excel {
             }
 
             if (applyTextStyle) {
-                ApplyDataLabelTextStyle(labels, template.FontSizePoints, template.Bold, template.Italic,
+                ApplyDataLabelTextStyle(labels, template.FontSize, template.Bold, template.Italic,
                     template.TextColor, template.FontName);
             }
             if (applyShapeStyle) {
-                ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidthPoints,
+                ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidth,
                     template.NoFill, template.NoLine);
             }
             if (applyLeaderLines) {
                 bool showLeaderLines = template.ShowLeaderLines ?? true;
-                ApplyDataLabelLeaderLines(labels, showLeaderLines, template.LeaderLineColor, template.LeaderLineWidthPoints);
+                ApplyDataLabelLeaderLines(labels, showLeaderLines, template.LeaderLineColor, template.LeaderLineWidth);
             }
         }
 

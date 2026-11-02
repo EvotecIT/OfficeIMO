@@ -102,12 +102,12 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static void ApplyImageDimensions(IElement element, ImageBlock image) {
-        if (TryParseImageDimension(element.GetAttribute("width"), out double width)
+        if (TryParseImageDimension(element.GetAttribute("width"), out OfficeLength width)
             || TryParseStyleDimension(element.GetAttribute("style"), "width", out width)) {
             image.Width = width;
         }
 
-        if (TryParseImageDimension(element.GetAttribute("height"), out double height)
+        if (TryParseImageDimension(element.GetAttribute("height"), out OfficeLength height)
             || TryParseStyleDimension(element.GetAttribute("style"), "height", out height)) {
             image.Height = height;
         }
@@ -223,9 +223,9 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         return context.Options.Base64Images switch {
-            HtmlBase64ImageHandling.Include => true,
-            HtmlBase64ImageHandling.Skip => false,
-            HtmlBase64ImageHandling.SaveToFile => dataUri.TryDecodeBytes(out _),
+            MarkdownHtmlBase64ImageHandling.Include => true,
+            MarkdownHtmlBase64ImageHandling.Skip => false,
+            MarkdownHtmlBase64ImageHandling.SaveToFile => dataUri.TryDecodeBytes(out _),
             _ => throw new ArgumentOutOfRangeException(nameof(context.Options.Base64Images), context.Options.Base64Images, "Unknown base64 image handling mode.")
         };
     }
@@ -435,7 +435,7 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string EncodeSavedSrcSetSource(string originalSource, string source, ConversionContext context) {
-        if (context.Options.Base64Images != HtmlBase64ImageHandling.SaveToFile
+        if (context.Options.Base64Images != MarkdownHtmlBase64ImageHandling.SaveToFile
             || !IsBase64ImageDataUri(originalSource)
             || string.Equals(originalSource, source, StringComparison.Ordinal)) {
             return source;
@@ -485,13 +485,13 @@ internal sealed partial class HtmlToMarkdownConverter {
 
     private static void ApplyMissingImageDimensions(IElement element, ImageBlock image) {
         if (image.Width == null
-            && (TryParseImageDimension(element.GetAttribute("width"), out double width)
+            && (TryParseImageDimension(element.GetAttribute("width"), out OfficeLength width)
                 || TryParseStyleDimension(element.GetAttribute("style"), "width", out width))) {
             image.Width = width;
         }
 
         if (image.Height == null
-            && (TryParseImageDimension(element.GetAttribute("height"), out double height)
+            && (TryParseImageDimension(element.GetAttribute("height"), out OfficeLength height)
                 || TryParseStyleDimension(element.GetAttribute("style"), "height", out height))) {
             image.Height = height;
         }
@@ -625,7 +625,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         return true;
     }
 
-    private static bool TryParseStyleDimension(string? style, string propertyName, out double value) {
+    private static bool TryParseStyleDimension(string? style, string propertyName, out OfficeLength value) {
         value = default;
         return TryParseImageDimension(TryGetStyleDeclarationValue(style, propertyName), out value);
     }
@@ -657,28 +657,16 @@ internal sealed partial class HtmlToMarkdownConverter {
         return null;
     }
 
-    private static bool TryParseImageDimension(string? rawValue, out double value) {
+    private static bool TryParseImageDimension(string? rawValue, out OfficeLength value) {
         value = default;
         if (string.IsNullOrWhiteSpace(rawValue)) {
             return false;
         }
 
         string normalized = rawValue!.Trim();
-        if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) {
-            normalized = normalized.Substring(0, normalized.Length - 2).Trim();
-        }
-
-        if (normalized.Length == 0
-            || normalized.IndexOf('%') >= 0
-            || normalized.IndexOf("calc(", StringComparison.OrdinalIgnoreCase) >= 0
-            || normalized.IndexOf("var(", StringComparison.OrdinalIgnoreCase) >= 0) {
-            return false;
-        }
-
-        return double.TryParse(
-            normalized,
-            System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture,
-            out value);
+        // Percentages and relative CSS values stay outside the physical image hints.
+        if (normalized.EndsWith("emu", StringComparison.OrdinalIgnoreCase)) return false;
+        return OfficeLength.TryParse(normalized + "px", out value)
+            || OfficeLength.TryParse(normalized, out value);
     }
 }

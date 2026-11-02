@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterCriteria_PreserveEquivalentImportedRangeState() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AutoFilterBlanks("A1:C10", 0);
             AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
             autoFilter.Reference = "$A$1:$C$10";
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_NormalizesDisplayAliasWhenStableNameMatchesTarget() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10);
             sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImage_ReplacementReusesExclusiveAssetsAndPreservesSharedCopies() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "First");
 
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Second");
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_HandleImplicitRowsAndHeaderlessTables() {
             using var document = ExcelDocument.Create();
-            ExcelSheet implicitRows = document.AddWorksheet("Implicit");
+            ExcelSheet implicitRows = document.AddSheet("Implicit");
             implicitRows.CellValue(2, 2, "B2");
             implicitRows.CellValue(2, 3, "C2");
             Row implicitRow = Assert.Single(implicitRows.WorksheetPart.Worksheet
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "A2", "B2" }, implicitRow.Elements<Cell>()
                 .Select(cell => cell.CellReference!.Value).ToArray());
 
-            ExcelSheet headerless = document.AddWorksheet("Headerless");
+            ExcelSheet headerless = document.AddSheet("Headerless");
             headerless.CellValue(1, 1, "Alpha");
             headerless.CellValue(1, 2, "Beta");
             headerless.CellValue(2, 1, "Gamma");
@@ -109,8 +109,8 @@ namespace OfficeIMO.Tests {
             Cell[] firstRow = headerless.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!
                 .Elements<Row>().First().Elements<Cell>().ToArray();
             Assert.Equal(new[] { "A1", "C1" }, firstRow.Select(cell => cell.CellReference!.Value).ToArray());
-            Assert.True(headerless.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? alpha));
-            Assert.True(headerless.TryGetCellValueSnapshot(1, 3, out ExcelCellValueSnapshot? beta));
+            Assert.True(headerless.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? alpha));
+            Assert.True(headerless.TryGetCellValueSnapshot(1, 3, out ExcelNativeCellValueInfo? beta));
             Assert.Equal("Alpha", alpha!.Text);
             Assert.Equal("Beta", beta!.Text);
             Table resized = Assert.Single(headerless.WorksheetPart.TableDefinitionParts).Table!;

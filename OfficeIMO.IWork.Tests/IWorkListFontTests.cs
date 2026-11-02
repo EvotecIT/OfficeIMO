@@ -34,9 +34,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal("Courier New", level.NumberingSymbolRunProperties.RunFonts.HighAnsi!.Value);
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
         } else {
-            using var result = source.ToPowerPointPresentationResult(policy);
+            using var result = source.ToPowerPointDocumentResult(policy);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
+            using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var paragraph = Assert.Single(Assert.Single(reopened.Slides).Tables).GetCell(0, 0).Paragraphs[0];
             Assert.Equal("Value", paragraph.Text);
             Assert.Equal("Courier New", paragraph.BulletFontName);

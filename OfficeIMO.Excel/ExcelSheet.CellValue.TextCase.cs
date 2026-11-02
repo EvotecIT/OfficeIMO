@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <returns><see langword="true"/> when text was transformed; otherwise <see langword="false"/>.</returns>
         public bool TransformCellTextCase(int row, int column, OfficeIMO.Drawing.OfficeTextCase textCase, CultureInfo? culture = null) {
-            if (!TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? snapshot) ||
+            if (!TryGetCellValueSnapshot(row, column, out ExcelNativeCellValueInfo? snapshot) ||
                 snapshot == null ||
                 snapshot.Kind != ExcelCellValueKind.Text) {
                 return false;

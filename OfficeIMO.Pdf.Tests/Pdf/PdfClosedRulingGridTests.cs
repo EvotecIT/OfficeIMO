@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfClosedRulingGridTests {
-    private const string RulingEvidence = "table.closed-ruling-grid";
+    private const string RulingEvidence = "table-closed-ruling-grid";
 
     [Theory]
     [InlineData("ruled-ledger-0")]
@@ -98,7 +98,7 @@ public sealed class PdfClosedRulingGridTests {
         PdfReadPage page = PdfReadDocument.Open(fixture.Pdf).Pages[0];
         IReadOnlyList<PdfTextSpan> runs = page.GetTextSpans();
         List<TextLayoutEngine.TextLine> lines = TextLayoutEngine.BuildLines(runs);
-        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(TextLayoutEngine.BandLines(lines), 792D));
+        PdfStructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(TextLayoutEngine.BandLines(lines), 792D));
         var context = new PdfUnderstandingPageContext(page, 1, new PdfTextLayoutOptions(),
             100_000, 10_000, 1) { DecodedRuns = runs };
         double[] x = Numbers(fixture.Label.GetProperty("geometry"), "columnBoundariesPoints");
@@ -129,7 +129,7 @@ public sealed class PdfClosedRulingGridTests {
         return new Fixture(pdf, label);
     }
     private static PdfDocumentReadResult Read(byte[] pdf) =>
-        PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocument.Load(pdf).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured });
     private static double[] Numbers(JsonElement item, string name) =>
         item.GetProperty(name).EnumerateArray().Select(value => value.GetDouble()).ToArray();
     private static void AssertRows(Fixture fixture, PdfLogicalTable table) {

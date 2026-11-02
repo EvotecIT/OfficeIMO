@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Source-neutral sparkline rendering style used by raster and SVG Drawing renderers.
 /// </summary>
-public sealed class OfficeSparklineStyle {
+internal sealed class OfficeSparklineStyle {
     /// <summary>Default line and fallback point color.</summary>
     public OfficeColor SeriesColor { get; set; } = OfficeColor.FromRgb(37, 99, 235);
 

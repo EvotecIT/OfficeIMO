@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         HtmlRenderText nested = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "NESTED");
         Assert.Equal(20D / 1.2D / 1.2D, nested.Font.Size, 6);
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(document.ToPdfBytes(options));
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(options)).ToBytes());
         // Logical extraction carriers may use an invisible, independently fitted font.
         // Only painted glyph operators establish visible typography.
         var visible = pdf.GetPage(1).Letters.Where(letter =>
@@ -70,7 +70,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Typography packet");
             Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Page " + page.PageNumber);
         });
-        byte[] pdf = document.ToPdfBytes(options);
+        byte[] pdf = (document.ToPdf(options)).ToBytes();
         Assert.Equal(rendered.Pages.Count, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         string extracted = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Zażółć", extracted, StringComparison.Ordinal);

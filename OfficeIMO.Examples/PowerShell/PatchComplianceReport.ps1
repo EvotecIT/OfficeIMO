@@ -38,39 +38,39 @@ $rows = $sites | Select-Object Site, Servers, Patched, Pending,
 
 New-OfficeWord -Path $docxPath {
     WordHeader -Type Default { WordParagraph -Text 'Contoso IT operations - week 41' }
-    WordFooter -Type Default { WordPageNumber -IncludeTotalPages }
+    WordFooter -Type Default { WordPageNumber -IncludeTotal }
 
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 14 -KeepWithNext $true
-        WordText 'Patch compliance report' -Bold -FontSize 26 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingAfter 14 -KeepWithNext:$true
+        WordText 'Patch compliance report' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
-        WordText "$([math]::Round(100 * $patched / $servers, 1))%" -Bold -FontSize 20 -Color '166534'
-        WordText "  of $servers production servers are patched, $($servers - $patched) are pending." -FontSize 12
+        WordText "$([math]::Round(100 * $patched / $servers, 1))%" -Bold -Size 20 -Color '166534'
+        WordText "  of $servers production servers are patched, $($servers - $patched) are pending." -Size 12
     }
 
     WordParagraph {
-        WordParagraphStyle -Style Heading1 -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Compliance by site' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -Style Heading1 -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Compliance by site' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $rows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
         WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4d6'
     }
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters = 0.12
-        $_.MarginBottomCentimeters = 0.12
-        $_.MarginLeftCentimeters = 0.16
-        $_.MarginRightCentimeters = 0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16)
+        $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 14 -SpacingAfterPoints 12
-        WordChart -Type Bar -InputObject $rows -CategoryProperty Site -SeriesProperty Patched, Pending `
+        Set-OfficeWordParagraph -SpacingBefore 14 -SpacingAfter 12
+        WordChart -Type Bar -InputObject $rows -Category Site -Value Patched, Pending `
             -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
     }
 
     WordParagraph {
-        WordParagraphStyle -Style Heading1 -SpacingBeforePoints 10 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Next steps' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -Style Heading1 -SpacingBefore 10 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Next steps' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Numbered {
         WordListItem -Text 'Frankfurt: patch the eight pending servers in the Thursday window.'

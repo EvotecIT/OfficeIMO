@@ -16,7 +16,7 @@ Add-OfficeMarkdownTaskList [-Items] <string[]> [-Completed <int[]>] [-AllComplet
 
 ### Document
 ```powershell
-Add-OfficeMarkdownTaskList [-Items] <string[]> -Document <MarkdownDoc> [-Completed <int[]>] [-AllCompleted] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTaskList [-Items] <string[]> -Document <MarkdownDocument> [-Completed <int[]>] [-AllCompleted] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -72,7 +72,7 @@ Accept wildcard characters: False
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -121,11 +121,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

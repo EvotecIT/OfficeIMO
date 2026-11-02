@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
                 int column = 0;
                 if (_hasExplicitRowIndex) {
                     column = GetXmlCellColumnIndex(reference, ref _nextColumnIndex);
-                } else if (A1.TryParseCellReferenceFast(reference, out int parsedRow, out int parsedColumn)) {
+                } else if (ExcelA1.TryParseCellReferenceFast(reference, out int parsedRow, out int parsedColumn)) {
                     column = parsedColumn;
                     if (parsedRow > 0) {
                         if (parsedRow < _rowMinRow) _rowMinRow = parsedRow;
@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
             internal bool TryGetReference(out string reference) {
                 reference = string.Empty;
                 if (_maxRow <= 0 || _maxColumn <= 0) return false;
-                reference = A1.CellReference(_minRow, _minColumn) + ":" + A1.CellReference(_maxRow, _maxColumn);
+                reference = ExcelA1.CellReference(_minRow, _minColumn) + ":" + ExcelA1.CellReference(_maxRow, _maxColumn);
                 return true;
             }
         }

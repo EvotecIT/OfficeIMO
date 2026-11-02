@@ -6,16 +6,16 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportSheet
 ## SYNOPSIS
-Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.
+Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelReportSheet [-Name] <string> [[-Content] <scriptblock>] [-SectionHeaderFillColor <string>] [-KeyFillColor <string>] [-NoAutoFit] [-AutoFitRows] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a worksheet through the OfficeIMO sheet composer and runs report-block cmdlets inside it.
+Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
 
 ## EXAMPLES
 
@@ -38,7 +38,7 @@ Auto-fit row heights during composer finalization.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Report block script to run inside the composer context.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Override the key-cell fill color used by KPI and property blocks.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -86,7 +86,7 @@ Name of the report worksheet to create.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -102,7 +102,7 @@ Skip composer auto-fit finalization.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -118,7 +118,7 @@ Emit the created worksheet.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -134,7 +134,7 @@ Override the section-header fill color.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

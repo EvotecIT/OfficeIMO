@@ -28,7 +28,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
     private readonly Func<string, bool, CancellationToken, Task<string?>> _promptPdfPassword;
     private readonly Func<string, bool> _canSaveAsPath;
-    private readonly OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? _publicationGuard;
+    private readonly OfficeIMO.IOfficePublicationGuard? _publicationGuard;
     private readonly Func<string, CancellationToken, Task>? _openDocumentInTab;
     private readonly IRecentDocumentStore? _recentDocumentStore;
     private PdfWorkspace? _workspace;
@@ -107,7 +107,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ISearchablePdfOcrService? ocrService = null,
         StudioApplicationServices? services = null,
         Func<string, bool>? canPublishPath = null,
-        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        OfficeIMO.IOfficePublicationGuard? publicationGuard = null,
         Func<string, Task<bool>>? confirmProviderWrite = null,
         Func<string, Task<bool>>? confirmWorkflowProviderWrite = null,
         Func<CancellationToken, Task<IReadOnlyList<string>>>? pickOcrFiles = null,
@@ -128,7 +128,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null,
         Func<CancellationToken, Task<string?>>? pickProvenanceFile = null,
         Func<Task<UnsavedChangesDecision>>? confirmBookChanges = null,
-        OfficeIMO.Workflows.IOfficeWorkflowPublicationGuard? bookPublicationGuard = null,
+        OfficeIMO.IOfficePublicationGuard? bookPublicationGuard = null,
         bool supportsFolderNavigation = true,
         Func<CancellationToken, Task<string?>>? pickSaveComparisonReport = null,
         MainWindowViewModel? sharedWorkbenches = null,
@@ -481,7 +481,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             try {
                 return await PdfWorkspace.OpenAsync(path, cancellationToken,
                     recoveryStore: _services.Recovery, password: password, storage: _services.Storage,
-                    canPublishOutput: _publicationGuard is null ? null : (destination, token) => _publicationGuard.CanPublishAsync(destination, false, token)).ConfigureAwait(true);
+                    canPublishOutput: _publicationGuard is null ? null : (destination, token) => new ValueTask<bool>(_publicationGuard.CanPublishAsync(destination, false, token))).ConfigureAwait(true);
             } catch (PdfPasswordRequiredException) {
                 invalidPassword = false;
             } catch (PdfInvalidPasswordException) {

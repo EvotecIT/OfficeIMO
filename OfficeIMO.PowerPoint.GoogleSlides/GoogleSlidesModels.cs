@@ -208,11 +208,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     /// <summary>An OfficeIMO presentation, its Google source reference, and import notices.</summary>
     public sealed class GoogleSlidesImportResult {
         /// <summary>Creates a result from an imported presentation and its source evidence.</summary>
-        public GoogleSlidesImportResult(PowerPointPresentation presentation, GooglePresentationReference source, TranslationReport report) {
-            Presentation = presentation; Source = source; Report = report;
+        public GoogleSlidesImportResult(PowerPointDocument presentation, GooglePresentationReference source, TranslationReport report) {
+            Document = presentation; Source = source; Report = report;
         }
         /// <summary>Gets the imported presentation; the caller owns its lifetime.</summary>
-        public PowerPointPresentation Presentation { get; }
+        public PowerPointDocument Document { get; }
         /// <summary>Gets the remote presentation reference and observed revision metadata.</summary>
         public GooglePresentationReference Source { get; }
         /// <summary>Gets translation notices produced by the import.</summary>

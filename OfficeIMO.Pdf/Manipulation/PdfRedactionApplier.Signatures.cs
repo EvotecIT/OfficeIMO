@@ -36,7 +36,7 @@ internal static partial class PdfRedactionApplier {
         RemoveSignatureWidgetsFromPages(objects, catalog, removedFieldObjectNumbers, cancellationToken);
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
-        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, document.UncheckedMetadata, pdf, cancellationToken);
+        byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, document.UncheckedMetadata, pdf, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight result = PdfInspector.Preflight(rewritten, options: null, cancellationToken: cancellationToken);
         if (result.Probe.HasSignatures || result.Probe.HasEncryption) {

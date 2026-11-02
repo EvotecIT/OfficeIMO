@@ -11,17 +11,17 @@ public sealed class PdfPaginationResourceBoundaryTests {
     [InlineData(false, 320.0005D)]
     [InlineData(true, 320.0005D)]
     public void ALineAtThePageHeightBoundaryMakesProgressOrIsRejected(bool list, double height) {
-        var document = PdfDocument.Create(new PdfOptions {
-            PageWidth = 400, PageHeight = 400, MarginTop = 40, MarginBottom = 40,
-            MarginLeft = 40, MarginRight = 40, MaxGeneratedPages = 3
+        var document = PdfDocument.Create(new PdfCreateOptions {
+            PageWidth = OfficeLength.Points(400), PageHeight = OfficeLength.Points(400), MarginTop = OfficeLength.Points(40), MarginBottom = OfficeLength.Points(40),
+            MarginLeft = OfficeLength.Points(40), MarginRight = OfficeLength.Points(40), MaxGeneratedPages = 3
         });
         if (list) {
             document.RichNumbered(new[] { new PdfListItem("x") }, style: new PdfListStyle {
-                LineSpacing = PdfLineSpacing.Exactly(height), SpacingBefore = 0, SpacingAfter = 0, ItemSpacing = 0
+                LineSpacing = PdfLineSpacing.Exact(OfficeLength.Points(height)), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0), ItemSpacing = OfficeLength.Points(0)
             });
         } else {
             document.Paragraph(paragraph => paragraph.Text("x"), style: new PdfParagraphStyle {
-                LineSpacing = PdfLineSpacing.Exactly(height), SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+                LineSpacing = PdfLineSpacing.Exact(OfficeLength.Points(height)), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0), WidowControl = false
             });
         }
 

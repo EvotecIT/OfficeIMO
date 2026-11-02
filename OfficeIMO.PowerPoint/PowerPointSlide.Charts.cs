@@ -859,6 +859,8 @@ namespace OfficeIMO.PowerPoint {
 
             string embeddedRelId = chartPart.GetIdOfPart(embedded);
             populateChart(chartPart, embeddedRelId);
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.Apply(chartPart,
+                OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default);
 
             string name = GenerateUniqueName("Chart");
             GraphicFrame frame = new(

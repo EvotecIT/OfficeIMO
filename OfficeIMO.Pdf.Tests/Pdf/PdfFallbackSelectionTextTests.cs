@@ -21,7 +21,7 @@ public class PdfFallbackSelectionTextTests {
         };
         var selected = new List<PdfEmbeddedFontFallbackCandidate>();
 
-        int covered = PdfOptions.AddCoverageDrivenCandidates(available, "AB\n\u0301", 6, selected, 0, 3);
+        int covered = PdfCreateOptions.AddCoverageDrivenCandidates(available, "AB\n\u0301", 6, selected, 0, 3);
 
         Assert.Equal(3, covered);
         Assert.Equal(new[] { "A", "B", "Mark" }, selected.Select(candidate => candidate.FontName));
@@ -38,7 +38,7 @@ public class PdfFallbackSelectionTextTests {
             .ToArray();
         var selected = new List<PdfEmbeddedFontFallbackCandidate>();
 
-        PdfOptions.AddCoverageDrivenCandidates(available, requiredText, 6, selected, 0, 6);
+        PdfCreateOptions.AddCoverageDrivenCandidates(available, requiredText, 6, selected, 0, 6);
 
         Assert.Equal(new[] { "A", "B", "C", "D", "E", "F" }, selected.Select(candidate => candidate.FontName));
         Assert.True(PdfTextDiagnostics.PlanEmbeddedFontFallbackText(requiredText, selected).IsFullyCovered);
@@ -53,7 +53,7 @@ public class PdfFallbackSelectionTextTests {
         };
         var selected = new List<PdfEmbeddedFontFallbackCandidate>();
 
-        int covered = PdfOptions.AddCoverageDrivenCandidates(available, "A \u0301", 6, selected, 0, 3);
+        int covered = PdfCreateOptions.AddCoverageDrivenCandidates(available, "A \u0301", 6, selected, 0, 3);
 
         Assert.Equal(3, covered);
         Assert.Equal(2, selected.Count);
@@ -69,7 +69,7 @@ public class PdfFallbackSelectionTextTests {
         };
         var selected = new List<PdfEmbeddedFontFallbackCandidate>();
 
-        int covered = PdfOptions.AddCoverageDrivenCandidates(available, "AB\u0301", 6, selected, 0, 3);
+        int covered = PdfCreateOptions.AddCoverageDrivenCandidates(available, "AB\u0301", 6, selected, 0, 3);
 
         Assert.Equal(3, covered);
         Assert.Equal(new[] { "A and B", "B and mark" }, selected.Select(candidate => candidate.FontName));

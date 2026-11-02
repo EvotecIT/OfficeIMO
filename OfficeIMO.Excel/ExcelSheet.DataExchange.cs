@@ -13,8 +13,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads the worksheet used range as a <see cref="DataTable"/>.
         /// </summary>
-        public DataTable ToDataTable(bool headersInFirstRow = true, ExcelReadOptions? options = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+        public DataTable ToDataTable(bool headersInFirstRow = true, ExcelReaderOptions? options = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);
@@ -28,9 +28,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads an A1 range as a <see cref="DataTable"/>.
         /// </summary>
-        public DataTable ToDataTable(string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+        public DataTable ToDataTable(string a1Range, bool headersInFirstRow = true, ExcelReaderOptions? options = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentNullException(nameof(a1Range));
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);
@@ -42,9 +42,9 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads an Excel table as a <see cref="DataTable"/>.
         /// </summary>
-        public DataTable TableToDataTable(string tableName, bool? headersInFirstRow = null, ExcelReadOptions? options = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
+        public DataTable TableToDataTable(string tableName, bool? headersInFirstRow = null, ExcelReaderOptions? options = null, ExcelExecutionMode? mode = null, CancellationToken ct = default) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new ArgumentNullException(nameof(tableName));
-            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 ct,
                 effectiveOptions.CancellationToken);
@@ -56,21 +56,21 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads an A1 range and returns JSON as an array of objects.
         /// </summary>
-        public string ToJson(string a1Range, bool headersInFirstRow = true, ExcelReadOptions? options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
+        public string ToJson(string a1Range, bool headersInFirstRow = true, ExcelReaderOptions? options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
             return DataTableToJson(ToDataTable(a1Range, headersInFirstRow, options, mode, ct), jsonOptions);
         }
 
         /// <summary>
         /// Reads the worksheet used range and returns JSON as an array of objects.
         /// </summary>
-        public string ToJson(bool headersInFirstRow = true, ExcelReadOptions? options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
+        public string ToJson(bool headersInFirstRow = true, ExcelReaderOptions? options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
             return DataTableToJson(ToDataTable(headersInFirstRow, options, mode, ct), jsonOptions);
         }
 
         /// <summary>
         /// Reads an Excel table and returns JSON as an array of objects.
         /// </summary>
-        public string TableToJson(string tableName, bool? headersInFirstRow = null, ExcelReadOptions? options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
+        public string TableToJson(string tableName, bool? headersInFirstRow = null, ExcelReaderOptions? options = null, ExcelExecutionMode? mode = null, JsonSerializerOptions? jsonOptions = null, CancellationToken ct = default) {
             return DataTableToJson(TableToDataTable(tableName, headersInFirstRow, options, mode, ct), jsonOptions);
         }
 
@@ -478,7 +478,7 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            return A1.CellReference(startRow, startColumn) + ":" + A1.CellReference(startRow + rowCount - 1, startColumn + table.Columns.Count - 1);
+            return ExcelA1.CellReference(startRow, startColumn) + ":" + ExcelA1.CellReference(startRow + rowCount - 1, startColumn + table.Columns.Count - 1);
         }
     }
 }

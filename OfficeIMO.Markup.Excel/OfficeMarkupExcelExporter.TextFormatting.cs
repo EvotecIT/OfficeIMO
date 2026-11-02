@@ -22,7 +22,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var fontSize = GetAttribute(attributes, "font-size", "fontSize", "fontsize", "size");
         if (double.TryParse((fontSize ?? string.Empty).Replace("pt", string.Empty), NumberStyles.Float,
             CultureInfo.InvariantCulture, out double parsedFontSize) && parsedFontSize > 0D) {
-            sheet.CellFontSize(row, column, parsedFontSize);
+            sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(parsedFontSize));
         }
 
         var bold = GetAttribute(attributes, "bold");

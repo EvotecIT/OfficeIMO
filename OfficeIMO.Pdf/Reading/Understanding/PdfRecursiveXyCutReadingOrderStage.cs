@@ -41,7 +41,11 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
-        double minimumVerticalGap = Math.Max(context.LayoutOptions.MinGutterWidth, medianFontSize * 1.5D);
+        // Region boxes already hold whole paragraphs, so a whitespace strip of one and a half ems through them is a
+        // column gutter even when it is narrower than the page-level gutter option.
+        double minimumVerticalGap = Math.Min(
+            Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), medianFontSize * 1.5D),
+            Math.Max(9D, medianFontSize * 1.5D));
         PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
             context.LayoutOptions.ReadingDirection,
             regions.SelectMany(static region => region.Lines)
@@ -172,11 +176,23 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         WhitespaceCut? horizontal,
         WhitespaceCut? vertical) {
         if (!vertical.HasValue) return horizontal;
+        // Text wholly above the other side is one flow with an indent, such as a list and the lines after it.
+        if (IsStackedAcrossCut(boxes, vertical.Value)) return horizontal;
         if (!horizontal.HasValue) return vertical;
         return HasVerticalOverlapAcrossCut(context, boxes, vertical.Value) ||
                HasRepeatedRowAlignmentAcrossCut(context, boxes, vertical.Value)
             ? vertical
             : horizontal;
+    }
+
+    private static bool IsStackedAcrossCut(IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
+        RegionBox[] first = boxes.Where(box => (box.Left + box.Right) / 2D < verticalCut.Midpoint).ToArray();
+        RegionBox[] second = boxes.Where(box => (box.Left + box.Right) / 2D >= verticalCut.Midpoint).ToArray();
+        if (first.Length == 0 || second.Length == 0) return false;
+        // Centres, as tight line boxes can touch or overlap between neighbouring lines.
+        return first.Max(Center) < second.Min(Center) || second.Max(Center) < first.Min(Center);
+
+        static double Center(RegionBox box) => (box.Bottom + box.Top) / 2D;
     }
 
     private static bool HasRepeatedRowAlignmentAcrossCut(

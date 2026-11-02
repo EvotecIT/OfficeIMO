@@ -38,7 +38,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a new row to the table.
         /// </summary>
         /// <param name="index">Optional zero-based index where the row should be inserted. If omitted, row is appended.</param>
-        public void AddRow(int? index = null) {
+        public PowerPointTableRow AddRow(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             int columns = Columns;
             A.TableRow row = new() { Height = 370840L };
@@ -57,6 +57,8 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 table.Append(row);
             }
+            SyncFrameHeightToGrid();
+            return new PowerPointTableRow(this, row);
         }
 
         /// <summary>
@@ -84,6 +86,7 @@ namespace OfficeIMO.PowerPoint {
                 table.Append(newRow);
             }
 
+            SyncFrameHeightToGrid();
             return new PowerPointTableRow(this, newRow);
         }
 
@@ -104,13 +107,14 @@ namespace OfficeIMO.PowerPoint {
             row.Remove();
             PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
+            SyncFrameHeightToGrid();
         }
 
         /// <summary>
         ///     Adds a new column to the table.
         /// </summary>
         /// <param name="index">Optional zero-based index where the column should be inserted. If omitted, column is appended.</param>
-        public void AddColumn(int? index = null) {
+        public PowerPointTableColumn AddColumn(int? index = null) {
             A.Table table = Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!;
             A.TableGrid grid = table.TableGrid!;
             int existingColumns = Columns;
@@ -137,6 +141,8 @@ namespace OfficeIMO.PowerPoint {
                     row.Append(cell);
                 }
             }
+            SyncFrameWidthToGrid();
+            return new PowerPointTableColumn(this, gridColumn);
         }
 
         /// <summary>
@@ -176,6 +182,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            SyncFrameWidthToGrid();
             return new PowerPointTableColumn(this, newColumn);
         }
 
@@ -199,6 +206,7 @@ namespace OfficeIMO.PowerPoint {
             }
             PowerPointEmbeddedSound.RemoveIfUnused(RelationshipOwnerPart ?? SlidePart,
                 discardedSoundIds);
+            SyncFrameWidthToGrid();
         }
     }
 }

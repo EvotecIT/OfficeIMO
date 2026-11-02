@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(package, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(1, 3, "CreatedOn");

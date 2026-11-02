@@ -21,7 +21,7 @@ public partial class Word {
         document.AddHeadersAndFooters();
         WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
         WordParagraph headerParagraph = header.AddParagraph("Header ");
-        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/"));
+        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/")).Paragraph;
         Hyperlink hyperlink = linked._hyperlink!;
         hyperlink.RemoveAllChildren();
         hyperlink.Append(
@@ -38,7 +38,7 @@ public partial class Word {
             new Run(new Text("Visible body")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
 
         string pdfText = PdfCore.PdfReadDocument.Open(pdfPath,
             new PdfCore.PdfLoadOptions { IncludeArtifactText = true }).ExtractText();
@@ -72,18 +72,18 @@ public partial class Word {
             document.AddParagraph("Wide header footer body");
             document.Save();
 
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new WordToPdfOptions {
+            PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
                 IncludePageNumbers = false,
-                PageSize = new PdfCore.PageSize(260, 300),
-                Margins = PdfCore.PageMargins.Uniform(72)
+                PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(300)),
+                Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72))
             });
             result.Save(pdfPath);
 
             // Rich stories retain these source paragraphs on distinct baselines;
             // their unpainted backup zones must not report same-line overlap.
             Assert.DoesNotContain(result.Warnings, warning =>
-                warning.Code == "HeaderFooterContentOverflow" || warning.Code == "HeaderFooterZoneOverlap");
-            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "HeaderFooterPageBoundsClipped");
+                warning.Code == "header-footer-content-overflow" || warning.Code == "header-footer-zone-overlap");
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "header-footer-page-bounds-clipped");
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -127,7 +127,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_HeaderFooter_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
         using (WordDocument document = WordDocument.Create(docPath)) {
@@ -141,14 +141,14 @@ public partial class Word {
 
             document.AddParagraph("Native warning body text");
             document.Save();
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
             result.Save(pdfPath);
 
             Assert.Contains(result.Warnings, warning =>
-                warning.Code == "NativeHeaderFooterTextBoxUnsupported" &&
+                warning.Code == "native-header-footer-text-box-unsupported" &&
                 warning.Source == "default header");
             Assert.Contains(result.Warnings, warning =>
-                warning.Code == "NativeHeaderFooterTextBoxUnsupported" &&
+                warning.Code == "native-header-footer-text-box-unsupported" &&
                 warning.Source == "default footer table");
         }
 
@@ -180,7 +180,7 @@ public partial class Word {
 
             document.AddParagraph("Hidden header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -210,7 +210,7 @@ public partial class Word {
                 new Run(new Text("Visible header")),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
             document.AddParagraph("Body text");
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions { IncludePageNumbers = false });
         }
 
         string text = PdfCore.PdfReadDocument.Open(pdfPath,
@@ -240,7 +240,7 @@ public partial class Word {
 
             document.AddParagraph("Caps header footer body");
             document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions {
+            document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 IncludePageNumbers = false
             });
         }
@@ -260,13 +260,13 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeGifHeaderImage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeGifHeaderImage.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, 32, 32);
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
             document.AddParagraph("Native GIF header image body");
             document.Save();
         }
@@ -274,7 +274,7 @@ public partial class Word {
         ReplaceFirstHeaderImagePartWithGif(docPath);
 
         using (WordDocument document = WordDocument.Load(docPath)) {
-            PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);
             result.Save(pdfPath);
             Assert.DoesNotContain(result.Warnings, warning => warning.Code == "NativeHeaderFooterImageUnsupported");
         }
@@ -289,7 +289,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -304,10 +304,10 @@ public partial class Word {
 
             document.AddParagraph("Native text box body");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterTextBoxUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-text-box-unsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -320,7 +320,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Vml_TextPath_Text() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVmlTextPath.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVmlTextPath.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -345,26 +345,26 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
-            header.AddShape(WordShapeType.Rectangle, 36, 16, "#99ccff", "#003366", 1.5);
+            header.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeColor.Parse("#99ccff"), OfficeIMO.OfficeColor.Parse("#003366"), OfficeIMO.OfficeLength.Points(1.5));
 
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             WordParagraph footerParagraph = footer.AddParagraph();
             footerParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
-            footerParagraph.AddShape(WordShapeType.Rectangle, 34, 14, "#ffe699", "#663300", 1.25);
+            footerParagraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(34), OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeColor.Parse("#ffe699"), OfficeIMO.OfficeColor.Parse("#663300"), OfficeIMO.OfficeLength.Points(1.25));
 
             document.AddParagraph("Native header footer shape body");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterShapeUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-shape-unsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -384,7 +384,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterImages.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterImages.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -392,14 +392,14 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native image header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            headerParagraph.AddImage(imagePath, 32, 32);
+            headerParagraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[2].Paragraphs[0].AddImage(imagePath, 32, 32);
+            footerTable.Rows[0].Cells[2].Paragraphs[0].AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
 
             document.AddParagraph("Native header/footer image body");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
         Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterImageUnsupported");
@@ -424,7 +424,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPictureControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPictureControls.pdf");
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -432,17 +432,17 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native picture-control header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            headerParagraph.AddPictureControl(imagePath, 32, 32, "Header Logo", "HeaderLogo");
+            headerParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Header Logo", "HeaderLogo");
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
-            footerTable.Rows[0].Cells[2].Paragraphs[0].AddPictureControl(imagePath, 32, 32, "Footer Logo", "FooterLogo");
+            footerTable.Rows[0].Cells[2].Paragraphs[0].AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Footer Logo", "FooterLogo");
 
             document.AddParagraph("Native header/footer picture-control body");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-content-control-unsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
         string rawPdf = PdfOperatorSearchText.From(bytes);
@@ -463,12 +463,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
-        header.AddPictureControl(imagePath, 32, 32, "First", "First");
-        header.AddPictureControl(imagePath, 32, 32, "Second", "Second");
+        header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "First", "First");
+        header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Second", "Second");
         document.AddParagraph("Body");
 
-        Assert.Throws<InvalidDataException>(() => document.ToPdfDocumentResult(
-            new WordToPdfOptions { MaxImagesPerParagraph = 1 }));
+        Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
+            new WordPdfExportOptions { MaxImagesPerParagraph = 1 }));
     }
 
     [Fact]
@@ -476,7 +476,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterRepeatingSections.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -494,10 +494,10 @@ public partial class Word {
 
             document.AddParagraph("Native header/footer repeating-section body");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-content-control-unsupported");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
@@ -514,7 +514,7 @@ public partial class Word {
         OfficeIMO.Pdf.PdfConversionReport conversionReport;
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFormControls.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterFormControls.pdf");
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             IncludePageNumbers = false
         };
 
@@ -532,10 +532,10 @@ public partial class Word {
 
             document.AddParagraph("Native header/footer form-control body");
             document.Save();
-            conversionReport = document.SaveAsPdf(pdfPath, options).Report;
+            conversionReport = (document.ConvertToPdfWithEvidence(options).Save(pdfPath)).Report;
         }
 
-        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "NativeHeaderFooterContentControlUnsupported");
+        Assert.DoesNotContain(conversionReport.Warnings, warning => warning.Code == "native-header-footer-content-control-unsupported");
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
         Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).FormFields);

@@ -5,7 +5,7 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
-    private static void AddBubbleMarker(OfficeDrawing drawing, OfficeChartSeries series,
+    private static void AddBubbleMarker(OfficeDrawing drawing, OfficeSeries series,
         int pointIndex, OfficePoint center, double maximumBubbleSize,
         double maximumDiameter, OfficeChartBubbleSizeMode sizeMode,
         OfficeColor color) {
@@ -30,7 +30,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
         double outlineWidth = series.ShowMarkerOutline
-            ? series.MarkerOutlineWidth ?? 1D
+            ? series.MarkerOutlineWidth?.ToPoints() ?? 1D
             : 0D;
         OfficeColor? outlineColor = series.ShowMarkerOutline
             ? series.MarkerOutlineColor ?? color
@@ -75,23 +75,23 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetMaximumBubbleOutlineWidth(
-        IReadOnlyList<OfficeChartSeries> series) {
+        IReadOnlyList<OfficeSeries> series) {
         double maximum = 0D;
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
-            OfficeChartSeries item = series[seriesIndex];
+            OfficeSeries item = series[seriesIndex];
             if (item.BubbleSizes == null) continue;
             for (int pointIndex = 0; pointIndex < item.BubbleSizes.Count; pointIndex++) {
                 if (item.BubbleSizes[pointIndex] <= 0D) continue;
                 var paint = GetPointStyle(item, pointIndex);
                 bool visible = paint?.ShowOutline ?? item.ShowMarkerOutline;
-                if (visible) maximum = Math.Max(maximum, paint?.OutlineWidth ?? item.MarkerOutlineWidth ?? 1D);
+                if (visible) maximum = Math.Max(maximum, paint?.OutlineWidth?.ToPoints() ?? item.MarkerOutlineWidth?.ToPoints() ?? 1D);
             }
         }
         return maximum;
     }
 
     private static double GetMaximumBubbleSize(
-        System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {
+        System.Collections.Generic.IReadOnlyList<OfficeSeries> series) {
         double maximum = 0D;
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             IReadOnlyList<double>? sizes = series[seriesIndex].BubbleSizes;

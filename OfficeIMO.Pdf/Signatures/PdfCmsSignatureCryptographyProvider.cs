@@ -38,7 +38,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
                 allowTrailingZeroPadding: true,
                 _options.MaxEncodedBytes);
         } catch (Exception exception) when (IsValidationException(exception)) {
-            return InvalidContainer("CmsSignatureInvalid", "The signature container could not be decoded: " + exception.Message);
+            return InvalidContainer("cms-signature-invalid", "The signature container could not be decoded: " + exception.Message);
         }
 
         return input.Signature.IsDocumentTimestamp
@@ -61,7 +61,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         if (!encapsulatedSha1 && !security.IsDetached) {
             findings.Add(Finding(
                 PdfDiagnosticSeverity.Error,
-                "CmsDetachedContentExpected",
+                "cms-detached-content-expected",
                 "Detached PDF signatures must not carry encapsulated CMS content."));
             return InvalidContainer(findings);
         }
@@ -70,7 +70,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
             security.Signers.Select(static signer => signer.DigestStatus));
         PdfCryptographicValidationStatus signatureStatus = Aggregate(
             security.Signers.Select(static signer => signer.SignatureStatus));
-        if (findings.Any(static finding => finding.Code == "CmsSignerMissing")) {
+        if (findings.Any(static finding => finding.Code == "cms-signer-missing")) {
             signatureStatus = PdfCryptographicValidationStatus.Invalid;
         }
         if (encapsulatedSha1) {
@@ -81,16 +81,16 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
                 signatureStatus = PdfCryptographicValidationStatus.Invalid;
                 findings.Add(Finding(
                     PdfDiagnosticSeverity.Error,
-                    "CmsDigestMismatch",
+                    "cms-digest-mismatch",
                     "The encapsulated SHA-1 value does not match the PDF signed byte ranges."));
             }
         }
 
         if (digestStatus == PdfCryptographicValidationStatus.Invalid &&
-            findings.All(static finding => finding.Code != "CmsDigestMismatch")) {
+            findings.All(static finding => finding.Code != "cms-digest-mismatch")) {
             findings.Add(Finding(
                 PdfDiagnosticSeverity.Error,
-                "CmsDigestMismatch",
+                "cms-digest-mismatch",
                 "The CMS message digest does not match the PDF signed byte ranges."));
         }
 
@@ -102,7 +102,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         if (timestampStatus == PdfCryptographicValidationStatus.Invalid) {
             findings.Add(Finding(
                 PdfDiagnosticSeverity.Error,
-                "SignatureTimestampInvalid",
+                "signature-timestamp-invalid",
                 "At least one CMS signature timestamp or its TSA trust policy did not validate."));
         }
 
@@ -133,7 +133,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
                 PdfCryptographicValidationStatus.NotPerformed,
                 PdfCryptographicValidationStatus.NotPerformed,
                 findings: new[] {
-                    Finding(PdfDiagnosticSeverity.Info, "TimestampValidationDisabled", "RFC 3161 validation was disabled by provider policy.")
+                    Finding(PdfDiagnosticSeverity.Info, "timestamp-validation-disabled", "RFC 3161 validation was disabled by provider policy.")
                 });
         }
 
@@ -152,7 +152,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         if (timestampStatus == PdfCryptographicValidationStatus.Invalid) {
             findings.Add(Finding(
                 PdfDiagnosticSeverity.Error,
-                "TimestampMessageImprintInvalid",
+                "timestamp-message-imprint-invalid",
                 "The RFC 3161 token, TSA trust policy, or message imprint did not validate against the PDF signed byte ranges."));
         }
 
@@ -187,8 +187,8 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         foreach (CmsSignerVerificationResult signer in signers) {
             result.AddRange(signer.Findings.Select(MapFinding));
         }
-        if (result.Any(static finding => finding.Code == "SignerCertificateMissing")) {
-            result.Add(Finding(PdfDiagnosticSeverity.Error, "CmsSignerMissing", "The CMS signer certificate was not embedded or supplied by caller policy."));
+        if (result.Any(static finding => finding.Code == "signer-certificate-missing")) {
+            result.Add(Finding(PdfDiagnosticSeverity.Error, "cms-signer-missing", "The CMS signer certificate was not embedded or supplied by caller policy."));
         }
         return result;
     }

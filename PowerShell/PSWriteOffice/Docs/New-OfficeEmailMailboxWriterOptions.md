@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates deterministic mbox writer settings through ordinary PowerShell parameters.
 
 ## SYNTAX
-### __AllParameterSets
+### Options (Default)
 ```powershell
 New-OfficeEmailMailboxWriterOptions [-MessageOptions <EmailWriterOptions>] [-Variant <MboxVariant>] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Serialization policy applied independently to each message.
 
 ```yaml
 Type: EmailWriterOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ Concrete mbox escaping convention to write.
 
 ```yaml
 Type: MboxVariant
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values: Auto, Mboxo, Mboxrd
 

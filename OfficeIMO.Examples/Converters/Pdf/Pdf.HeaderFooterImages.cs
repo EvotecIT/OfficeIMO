@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Word {
             string imagePath = Path.Combine(Directory.GetCurrentDirectory(), "Images", "EvotecLogo.png");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.HeaderDefaultOrCreate.AddParagraph().AddImage(imagePath, 50, 50);
-                document.FooterDefaultOrCreate.AddParagraph().AddImage(imagePath, 300, 300);
+                document.HeaderDefaultOrCreate.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
+                document.FooterDefaultOrCreate.AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(300), OfficeIMO.OfficeLength.Pixels(300));
                 document.Save();
                 document.SaveAsPdf(pdfPath);
             }

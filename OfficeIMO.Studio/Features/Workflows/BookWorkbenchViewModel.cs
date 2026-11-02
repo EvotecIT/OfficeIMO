@@ -16,7 +16,7 @@ namespace OfficeIMO.Studio.Features.Workflows;
 public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposable {
     private readonly Func<IStudioFileDialogs> _dialogs;
     private readonly StudioStorageAccess _storage;
-    private readonly IOfficeWorkflowPublicationGuard? _guard;
+    private readonly IOfficePublicationGuard? _guard;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsaved;
     private readonly IStudioLocalizer _localizer;
     private readonly Dictionary<string, string> _bodyDrafts = new(StringComparer.Ordinal);
@@ -27,7 +27,7 @@ public sealed partial class BookWorkbenchViewModel : ObservableObject, IDisposab
     private bool _refreshing, _styleChanged, _disposed, _hasDraftEdits;
 
     internal BookWorkbenchViewModel(Func<IStudioFileDialogs> dialogs, StudioStorageAccess storage,
-        IOfficeWorkflowPublicationGuard? guard, Func<Task<UnsavedChangesDecision>> confirmUnsaved,
+        IOfficePublicationGuard? guard, Func<Task<UnsavedChangesDecision>> confirmUnsaved,
         IStudioLocalizer? localizer = null) {
         _dialogs = dialogs; _storage = storage; _guard = guard; _confirmUnsaved = confirmUnsaved;
         _localizer = localizer ?? StudioLocalization.Current;

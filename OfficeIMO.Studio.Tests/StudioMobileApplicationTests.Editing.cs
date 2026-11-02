@@ -112,8 +112,8 @@ public sealed partial class StudioMobileApplicationTests {
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {
                 byte[] original = PdfDocument.Create(pdf => {
-                    pdf.Page(page => page.Size(300, 400).Content(content => content.Text("Traveller details")));
-                    pdf.Page(page => page.Size(300, 400).Content(content => content.Text("Destination details")));
+                    pdf.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Text("Traveller details")));
+                    pdf.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Text("Destination details")));
                 }).Forms.Edit(edit => edit
                     .Create(new() { Name = "Name", Value = "Original", X = 30, Y = 250 })
                     .Create(new() { Name = "Reference", Value = "STUDIO-123", FieldFlags = 1, X = 30, Y = 190 })
@@ -179,7 +179,7 @@ public sealed partial class StudioMobileApplicationTests {
                     document = controller.Document;
                     Assert.False(document.Commands["PreviousFormField"].IsAvailable);
                     Assert.False(document.Commands["NextFormField"].IsAvailable);
-                    string[] pageText = PdfReadDocument.Open(document.DocumentPath!).Pages.Select(page => page.ExtractText()).ToArray();
+                    string[] pageText = PdfDocument.Load(document.DocumentPath!).Pages.Select(page => page.ExtractText()).ToArray();
                     await document.Commands["Pages"].ExecuteAsync(); Layout(window);
                     var editor = Assert.Single(view.GetVisualDescendants().OfType<DocumentWorkspaceView>());
                     editor.OrganizerListControl.SelectedItem = document.OrganizerPages[0];
@@ -209,7 +209,7 @@ public sealed partial class StudioMobileApplicationTests {
                     await document.SaveCommand.ExecutionTask!;
                     Assert.False(document.IsDirty, document.ErrorMessage);
                     Assert.Equal(new[] { pageText[1], pageText[2], pageText[0] },
-                        PdfReadDocument.Open(document.DocumentPath!).Pages.Select(page => page.ExtractText()));
+PdfDocument.Load(document.DocumentPath!).Pages.Select(page => page.ExtractText()));
                 } finally { window.Close(); services.Storage.Dispose(); }
                 return true;
             }, CancellationToken.None);

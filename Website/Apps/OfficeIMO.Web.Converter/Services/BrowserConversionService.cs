@@ -1,3 +1,4 @@
+using OfficeIMO.Pdf.PowerPoint;
 using System.Diagnostics;
 using System.Text;
 using OfficeIMO.Drawing;
@@ -34,7 +35,7 @@ public sealed partial class BrowserConversionService {
         bool limitExcelRows,
         BrowserPdfProfile? profile = null,
         bool generateDebugOverlay = false,
-        PdfPowerPointImportMode pdfPowerPointMode = PdfPowerPointImportMode.EditableContent) =>
+        PowerPointPdfImportMode pdfPowerPointMode = PowerPointPdfImportMode.EditableContent) =>
         ConvertUpload(route, file, limitExcelRows, profile, generateDebugOverlay, BrowserPowerPointImportProfileCatalog.Find(pdfPowerPointMode).Id);
 
     /// <summary>
@@ -98,7 +99,7 @@ public sealed partial class BrowserConversionService {
         var source = new SelectedDocument("officeimo-html.html", ".html", "HTML", sourceBytes.LongLength, sourceBytes);
         var stopwatch = Stopwatch.StartNew();
         PdfDocumentConversionResult conversion = HtmlConversionDocument.Parse(input)
-            .ToPdfDocumentResult(BrowserPortablePdfProfile.CreateHtmlOptions(profile));
+            .ConvertToPdfWithEvidence(BrowserPortablePdfProfile.CreateHtmlOptions(profile));
         (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
         stopwatch.Stop();
         return PdfResult(
@@ -130,14 +131,14 @@ public sealed partial class BrowserConversionService {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new WordToPdfOptions {
+        var options = new WordPdfExportOptions {
             Title = Path.GetFileNameWithoutExtension(file.Name),
             IncludePageNumbers = false,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
             PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
-        var conversion = document.ToPdfDocumentResult(options);
+        var conversion = document.ConvertToPdfWithEvidence(options);
         (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
         return new PdfConversionPayload(
             bytes,
@@ -158,14 +159,14 @@ public sealed partial class BrowserConversionService {
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
         ExcelBrowserReadPlan readPlan = CreateExcelBrowserReadPlan(document, limitRowsPerSheet);
-        var options = new ExcelToPdfOptions {
+        var options = new ExcelPdfExportOptions {
             MaxRowsPerSheet = readPlan.MaxRowsPerSheet,
             UseBoundedWorksheetRead = readPlan.UsesBoundedRead,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
             PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
-        var conversion = document.ToPdfDocumentResult(options);
+        var conversion = document.ConvertToPdfWithEvidence(options);
         if (readPlan.WasAutomaticallyBounded) {
             conversion.Report.Add(new PdfConversionWarning(
                 "OfficeIMO.Web.Converter",
@@ -199,7 +200,7 @@ public sealed partial class BrowserConversionService {
         using ExcelDocumentReader reader = ExcelDocumentReader.Wrap(document.OpenXmlDocument);
         foreach (string sheetName in reader.GetSheetNames()) {
             string usedRange = reader.GetSheet(sheetName).GetUsedRangeA1();
-            if (!A1.TryParseRange(usedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+            if (!ExcelA1.TryParseRange(usedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 continue;
             }
 
@@ -226,18 +227,18 @@ public sealed partial class BrowserConversionService {
 
     private static PdfConversionPayload ConvertPowerPointToPdfBytes(SelectedDocument file, BrowserPdfProfile profile) {
         using var stream = new MemoryStream(file.Bytes, writable: false);
-        using PowerPointPresentation presentation = PowerPointPresentation.Load(stream,
+        using PowerPointDocument presentation = PowerPointDocument.Load(stream,
             new PowerPointLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly,
                 PackageSecurity = CreateBrowserPackageSecurity()
             });
-        var options = new PowerPointToPdfOptions {
+        var options = new PowerPointPdfExportOptions {
             WarnOnPictureAspectRatioDistortion = true,
             FontFamily = BrowserPortablePdfProfile.DefaultFontFamily,
             PdfOptions = BrowserPortablePdfProfile.CreateOptions(profile),
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         };
-        var conversion = presentation.ToPdfDocumentResult(options);
+        var conversion = presentation.ConvertToPdfWithEvidence(options);
         (byte[] bytes, PdfSerializationReport serialization) = SaveWithEvidence(conversion);
         return new PdfConversionPayload(
             bytes,
@@ -310,7 +311,9 @@ public sealed partial class BrowserConversionService {
     }
 
     private static BrowserConversionArtifact CreateDebugOverlay(SelectedDocument source, byte[] pdf) {
-        OfficeDrawing drawing = PdfDocument.Load(pdf).Render.LayoutDebugOverlay(
+        using var sourceStream = new MemoryStream(pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(sourceStream);
+        OfficeDrawing drawing = document.Render.LayoutDebugOverlay(
             1,
             new PdfLayoutDebugOverlayOptions {
                 MaxElements = 12_000,
@@ -391,16 +394,17 @@ public sealed partial class BrowserConversionService {
     }
 
     private static ConversionResult ConvertHtmlToMarkdown(string input) {
-        var options = HtmlToMarkdownOptions.CreatePortableProfile();
-        string markdown = HtmlConversionDocument.Parse(input).ToMarkdown(options);
+        var options = MarkdownHtmlImportOptions.CreatePortableProfile();
+        using MarkdownDocument converted = HtmlConversionDocument.Parse(input).ToMarkdown(options);
+        string markdown = converted.ToMarkdown();
         return TextResult(markdown, "officeimo-html.md", "text/markdown;charset=utf-8", null);
     }
 
     private static ConversionResult ConvertMarkdownToWord(string input) {
-        MarkdownDoc markdown = MarkdownReader.Parse(input);
-        using WordDocument document = markdown.ToWordDocument(new MarkdownToWordOptions {
+        using MarkdownDocument markdown = MarkdownDocument.Parse(input);
+        using WordDocument document = markdown.ToWord(OfficeConverter.ConfigureMarkdownHtml(new WordMarkdownImportOptions {
             PreferNarrativeSingleLineDefinitions = true
-        });
+        }, CancellationToken.None));
         byte[] bytes = document.ToBytes();
         return new ConversionResult(
             bytes,

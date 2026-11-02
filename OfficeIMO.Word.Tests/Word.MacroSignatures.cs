@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             WordMacroProjectSignaturePartInfo signature = Assert.Single(info.Signatures);
             Assert.False(signature.CmsParsed);
             Assert.Equal(WordSignatureValidationState.Failed, signature.CryptographicStatus);
-            Assert.Contains(signature.Findings, finding => finding.Code == "MacroSignatureContainerMalformed");
+            Assert.Contains(signature.Findings, finding => finding.Code == "macro-signature-container-malformed");
         }
 
         [Fact]
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(info.MacroProjectSha256);
             Assert.Empty(info.Signatures);
             Assert.Contains(info.Findings, finding =>
-                finding.Code == "MacroSignatureInspectionFailed" &&
+                finding.Code == "macro-signature-inspection-failed" &&
                 finding.Message.Contains("aggregate VBA signature bytes", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(info.MacroProjectSha256);
             Assert.Empty(info.Signatures);
             Assert.Contains(info.Findings, finding =>
-                finding.Code == "MacroSignatureInspectionFailed" &&
+                finding.Code == "macro-signature-inspection-failed" &&
                 finding.Message.Contains("byte limit", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.IsSupported);
             Assert.False(result.IsValidUnderPolicy);
             Assert.Equal(WordSignatureValidationState.Unsupported, result.ContentBindingStatus);
-            Assert.Contains(result.Findings, finding => finding.Code == "MacroSigningPlatformUnsupported");
+            Assert.Contains(result.Findings, finding => finding.Code == "macro-signing-platform-unsupported");
         }
 
         [Fact]
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 finding => finding.Code + ": " + finding.Message)));
             Assert.Contains(result.Findings, finding =>
                 finding.Profile == WordMacroProjectSignatureProfile.Legacy &&
-                finding.Code == "MacroSignatureContainerMalformed");
+                finding.Code == "macro-signature-container-malformed");
         }
 
         [Fact]
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
             Assert.False(missingV3.IsValidUnderPolicy);
             Assert.Equal(WordSignatureValidationState.NotChecked, missingV3.ContentBindingStatus);
             Assert.Empty(runner.Invocations);
-            Assert.Contains(missingV3.Findings, finding => finding.Code == "MacroV3SignatureRequired");
+            Assert.Contains(missingV3.Findings, finding => finding.Code == "macro-v3-signature-required");
 
             options.RequireV3Signature = false;
             options.RequireTimestamp = true;
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.MacroProjectPreserved);
             Assert.Equal(originalBytes, File.ReadAllBytes(filePath));
             Assert.Contains(result.Findings, finding =>
-                finding.Code == "MacroSignatureProfilePolicyFailed" &&
+                finding.Code == "macro-signature-profile-policy-failed" &&
                 finding.Profile == WordMacroProjectSignatureProfile.Legacy);
         }
 
@@ -386,7 +386,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
             Assert.Contains(result.Findings, finding =>
-                finding.Code == "MacroProjectSigningFailed" &&
+                finding.Code == "macro-project-signing-failed" &&
                 finding.Message.Contains("configured limit", StringComparison.OrdinalIgnoreCase));
         }
 
@@ -413,7 +413,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
             Assert.Contains(result.Findings, finding =>
-                finding.Code == "MacroSigningStagingPreflightFailed");
+                finding.Code == "macro-signing-staging-preflight-failed");
             Assert.Contains(result.Findings, finding =>
                 finding.Code == "PackageSecurityPartCount" &&
                 finding.State == WordSignatureValidationState.Failed);
@@ -458,14 +458,14 @@ namespace OfficeIMO.Tests {
             Assert.False(blocked.Succeeded);
             Assert.Empty(blockedRunner.Invocations);
             Assert.Contains(blocked.Findings,
-                finding => finding.Code == "ExistingPackageSignatureInvalidationBlocked");
+                finding => finding.Code == "existing-package-signature-invalidation-blocked");
 
             options.ExistingPackageSignaturePolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation;
             WordMacroProjectSigningResult allowed = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.True(allowed.Succeeded);
             Assert.Contains(allowed.Findings,
-                finding => finding.Code == "ExistingPackageSignaturesWillBeInvalidated");
+                finding => finding.Code == "existing-package-signatures-will-be-invalidated");
         }
 
         [Fact]
@@ -485,7 +485,7 @@ namespace OfficeIMO.Tests {
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
             Assert.Contains(result.Findings,
-                finding => finding.Code == "ExistingPackageSignatureInvalidationBlocked");
+                finding => finding.Code == "existing-package-signature-invalidation-blocked");
         }
 
         [Fact]
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
             WordMacroProjectSigningResult result = WordMacroProjectSignatureService.TrySign(filePath, SecurityProvider, certificate.Thumbprint!, options, dependencies);
 
             Assert.False(result.Succeeded);
-            Assert.Contains(result.Findings, finding => finding.Code == "SourcePackageChangedDuringSigning");
+            Assert.Contains(result.Findings, finding => finding.Code == "source-package-changed-during-signing");
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);
             Assert.True(package.PartExists(new Uri("/word/concurrent-change.bin", UriKind.Relative)));
         }
@@ -518,7 +518,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.Succeeded);
             Assert.Empty(runner.Invocations);
-            Assert.Contains(result.Findings, finding => finding.Code == "CertificateThumbprintInvalid");
+            Assert.Contains(result.Findings, finding => finding.Code == "certificate-thumbprint-invalid");
         }
 
         [Fact]

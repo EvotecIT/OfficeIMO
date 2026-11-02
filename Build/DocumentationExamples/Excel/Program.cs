@@ -1,15 +1,22 @@
 #region QuickStart
+using OfficeIMO;
 using OfficeIMO.Excel;
 
-using var document = ExcelDocument.Create("report.xlsx");
-var sheet = document.AddWorksheet("Data");
+Order[] orders = [
+    new("Contoso", "North", 12_400m, 0.21),
+    new("Fabrikam", "South", 8_900m, 0.17),
+    new("Northwind", "North", 15_100m, 0.24),
+    new("Tailspin", "West", 6_300m, 0.12)
+];
 
-sheet.CellValue(1, 1, "Name");
-sheet.CellValue(1, 2, "Value");
-sheet.CellValue(2, 1, "Alpha");
-sheet.CellValue(2, 2, 42);
-sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: ExcelTableStyle.TableStyleMedium9);
-sheet.AutoFitColumns();
+using var book = ExcelDocument.Create("Orders.xlsx", new ExcelCreateOptions { Theme = OfficeTheme.Modern });
+ExcelSheet sheet = book.AddSheet("Orders");
 
-document.Save();
+ExcelTable table = sheet.AddTable(orders, new OfficeTableOptions { Name = "Orders" });
+sheet.AddChart(OfficeChartType.Column, orders, nameof(Order.Customer),
+    new ExcelChartOptions { Title = "Revenue by customer", Row = 2, Column = 7 }, nameof(Order.Total));
+
+book.Save();
+
+record Order(string Customer, string Region, decimal Total, double Margin);
 #endregion

@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates bounded email-store reader settings without requiring .NET constructor syntax.
 
 ## SYNTAX
-### __AllParameterSets
+### Options (Default)
 ```powershell
 New-OfficeEmailStoreReaderOptions [-MaxInputBytes <long>] [-MaxNodeCount <int>] [-MaxBTreeDepth <int>] [-MaxCachedBTreePages <int>] [-MaxFolderCount <int>] [-MaxItemCount <int>] [-MaxPropertiesPerItem <int>] [-MaxDecodedPropertyBytesPerItem <long>] [-MaxAttachmentsPerItem <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-ExcludeAttachmentContent] [-PstPassword <string>] [-PstPasswordEncoding <string>] [-IncludeAssociatedItems] [-IncludeOrphanedItems] [-MaxNestedMessageDepth <int>] [-MaxArchiveEntries <int>] [-MaxArchiveEntryBytes <long>] [-MaxArchiveDecodedBytes <long>] [-MaxXmlCharactersPerItem <long>] [-MaxMessageBytes <long>] [-MaxDirectoryDepth <int>] [-MaxDirectoryFileCount <int>] [-MaxDecodedTableBytes <long>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Do not retain decoded attachment payloads in memory.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Materialize folder-associated information items.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Recover item nodes absent from folder contents tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum total decoded size declared by archive entries.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum entries accepted from a compressed email-store archive.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Maximum decoded size declared by one archive entry.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Maximum decoded bytes in one attachment.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Maximum attachments per item.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Maximum tree traversal depth.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Maximum PST/OST B-tree pages retained by the cache.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Maximum decoded property bytes per item.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Maximum decoded bytes traversed from one PST/OST table data tree.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -225,7 +225,7 @@ Maximum directory depth traversed by mailbox-directory sessions.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -241,7 +241,7 @@ Maximum EML, EMLX, and Maildir files indexed by one directory session.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -257,7 +257,7 @@ Maximum folders materialized.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -273,7 +273,7 @@ Maximum seekable source length.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -289,7 +289,7 @@ Maximum items materialized.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -305,7 +305,7 @@ Maximum RFC 5322/MIME message bytes accepted from one item.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -321,7 +321,7 @@ Maximum embedded-message recursion depth.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -337,7 +337,7 @@ Maximum NDB nodes and blocks visited.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -353,7 +353,7 @@ Maximum MAPI properties decoded per item.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -369,7 +369,7 @@ Maximum decoded attachment bytes across the read.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -385,7 +385,7 @@ Maximum XML characters parsed from one archive item.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -401,7 +401,7 @@ Password used to validate legacy protected PST files.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
@@ -417,7 +417,7 @@ Encoding name used for the legacy PST password checksum.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Options
 Aliases: None
 Possible values:
 

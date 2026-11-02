@@ -47,7 +47,7 @@ public sealed class StudioSavedFolderJobTests {
                 Assert.True(File.Exists(jobPath), batch.Status);
                 Assert.False(Directory.Exists(output)); Assert.False(Directory.Exists(state));
                 await ClickAsync(window, view, batch.CopyCliCommand);
-                Assert.Equal(OfficeConversionJobCommands.GetCliCommand(jobPath), copied);
+                Assert.Equal(OfficeBatchCommands.GetCliCommand(jobPath), copied);
                 batch.TabSize = 3;
                 Assert.False(batch.CopyCliCommand.CanExecute(null));
                 await ClickAsync(window, view, batch.LoadJobCommand);
@@ -55,17 +55,17 @@ public sealed class StudioSavedFolderJobTests {
                 Assert.False(Directory.Exists(output)); Assert.False(Directory.Exists(state));
                 await ClickAsync(window, view, batch.PlanJobCommand);
                 Assert.Contains("Selected 1", batch.PlanSummary);
-                Assert.Contains("one.txt.pdf", batch.PlanSummary);
+                Assert.Contains("one.pdf", batch.PlanSummary);
                 Assert.False(Directory.Exists(output)); Assert.False(Directory.Exists(state));
                 var counts = view.FindControl<TextBlock>("FolderJobPlanCounts")!;
                 Assert.Contains("Selected 1", counts.Text);
                 AssertVisibleInside(window, counts);
                 var planItems = view.FindControl<ItemsControl>("FolderJobPlanItems")!;
-                var proposedOutput = planItems.GetVisualDescendants().OfType<TextBlock>().Single(item => item.Text == Path.Combine(output, "one.txt.pdf"));
+                var proposedOutput = planItems.GetVisualDescendants().OfType<TextBlock>().Single(item => item.Text == Path.Combine(output, "one.pdf"));
                 AssertVisibleInside(window, proposedOutput);
                 Capture(window, $"saved-job-plan-{width}.png");
                 await ClickAsync(window, view, batch.RunCommand);
-                string pdf = Path.Combine(output, "one.txt.pdf");
+                string pdf = Path.Combine(output, "one.pdf");
                 Assert.True(File.Exists(pdf), batch.Status);
                 Assert.Contains("Saved Studio job text", OfficeIMO.Pdf.PdfDocument.Load(pdf).Read().Text);
                 byte[] original = File.ReadAllBytes(pdf);
@@ -74,7 +74,7 @@ public sealed class StudioSavedFolderJobTests {
                 Assert.Equal(original, File.ReadAllBytes(pdf));
                 Assert.Single(Directory.GetFiles(output));
                 await ClickAsync(window, view, batch.CopyPowerShellCommand);
-                Assert.Equal(OfficeConversionJobCommands.GetPowerShellCommand(jobPath), copied);
+                Assert.Equal(OfficeBatchCommands.GetPowerShellCommand(jobPath), copied);
                 folderPanel.IsExpanded = false; window.UpdateLayout();
                 Assert.True(view.FindControl<Grid>("QueuePanel")!.IsEffectivelyVisible);
                 Assert.True(view.FindControl<ComboBox>("OrdinaryQueueRoute")!.IsEffectivelyVisible);
@@ -107,16 +107,17 @@ public sealed class StudioSavedFolderJobTests {
             string source = Path.Combine(root, "source"), output = Path.Combine(root, "output");
             Directory.CreateDirectory(source);
             string originalPath = Path.Combine(originalDirectory, "source.json"), copiedPath = Path.Combine(copiedDirectory, "copy.json");
-            var original = OfficeConversionJob.FromRequest(new OfficeConversionBatchRequest {
-                InputDirectory = source, OutputDirectory = output, Recursive = false, SourceExtensions = [".txt"],
-                MaximumConcurrency = 3, MaximumFiles = 50, MaximumInputBytes = 1024 * 1024, MaximumOutputBytes = 2 * 1024 * 1024,
-                MaximumXmlCharactersInPart = 4096, OutputProfile = OfficeWorkflowOutputProfile.Lightweight,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
-                ConversionOptions = new OfficeWorkflowConversionOptions { CompressPdfOutput = true,
-                    PlainText = new OfficeIMO.Pdf.PdfPlainTextOptions { TabSize = 5 } }
-            }, originalDirectory);
+            var original = new OfficeBatchOptions {
+                InputDirectory = source, OutputDirectory = output, Recursive = false, Extensions = [".txt"],
+                MaxParallelism = 3, MaximumFiles = 50, MaximumInputBytes = 1024 * 1024, MaximumOutputBytes = 2 * 1024 * 1024,
+                MaximumXmlCharactersInPart = 4096, OutputProfile = OfficeConversionProfile.Lightweight,
+                ConflictPolicy = OfficePublicationPolicy.Rename,
+                ConversionOptions = new OfficeConversionOptions {
+                CompressPdfOutput = true,                PlainText = new OfficeIMO.Pdf.PdfTextImportOptions { TabSize = 5 }
+            }
+            };
             original.Name = "Monthly documents";
-            OfficeConversionJobSerializer.SaveFile(original, originalPath);
+            (original).Save(originalPath);
             var dialogs = new Dialogs { OpenPath = originalPath, SavePath = copiedPath };
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = dialogs };
             var batch = model.ConversionWorkbench.BatchExport;
@@ -126,12 +127,12 @@ public sealed class StudioSavedFolderJobTests {
             batch.TextEncoding = "utf-8";
             await batch.SaveJobCommand.ExecuteAsync(null);
             Assert.True(File.Exists(copiedPath), batch.Status);
-            var saved = OfficeConversionJobSerializer.ReadFile(copiedPath);
-            var actual = saved.CreateRequest(copiedDirectory);
+            var saved = OfficeBatchOptions.Load(copiedPath);
+            var actual = saved;
             Assert.Equal(source, actual.InputDirectory); Assert.Equal(output, actual.OutputDirectory);
             Assert.Equal("Monthly documents", saved.Name);
-            Assert.Equal(original.Recursive, actual.Recursive); Assert.Equal(original.SourceExtensions, actual.SourceExtensions);
-            Assert.Equal(original.MaximumConcurrency, actual.MaximumConcurrency); Assert.Equal(original.MaximumFiles, actual.MaximumFiles);
+            Assert.Equal(original.Recursive, actual.Recursive); Assert.Equal(original.Extensions, actual.Extensions);
+            Assert.Equal(original.MaxParallelism, actual.MaxParallelism); Assert.Equal(original.MaximumFiles, actual.MaximumFiles);
             Assert.Equal(original.MaximumInputBytes, actual.MaximumInputBytes); Assert.Equal(original.MaximumOutputBytes, actual.MaximumOutputBytes);
             Assert.Equal(original.MaximumXmlCharactersInPart, actual.MaximumXmlCharactersInPart);
             Assert.Equal(original.OutputProfile, actual.OutputProfile); Assert.Equal(original.ConflictPolicy, actual.ConflictPolicy);
@@ -151,10 +152,10 @@ public sealed class StudioSavedFolderJobTests {
             var services = ((App)Application.Current!).Services;
             string root = services.Paths.Root, path = Path.Combine(root, "rejected.json"), output = Path.Combine(root, "output");
             Directory.CreateDirectory(root);
-            if (secretReference) OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob {
+            if (secretReference) (new OfficeBatchOptions {
                 InputDirectory = "source", OutputDirectory = "output",
-                Secrets = new OfficeConversionJobSecrets { PdfPasswordEnvironmentVariable = "STUDIO_TEST_PASSWORD" }
-            }, path);
+                PdfPasswordEnvironmentVariable = "STUDIO_TEST_PASSWORD"
+            }).Save(path);
             else File.WriteAllText(path, "{\"schema\":\"unsupported.schema\"}");
             var dialogs = new Dialogs { OpenPath = path };
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = dialogs };
@@ -201,16 +202,16 @@ public sealed class StudioSavedFolderJobTests {
             var services = ((App)Application.Current!).Services;
             string root = services.Paths.Root, path = Path.Combine(root, "job.json"), unrelated = Path.Combine(root, "keep.txt");
             Directory.CreateDirectory(Path.Combine(root, "source"));
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob { InputDirectory = "source", OutputDirectory = "output" }, path);
+            (new OfficeBatchOptions { InputDirectory = "source", OutputDirectory = "output" }).Save(path);
             File.WriteAllText(unrelated, "Keep this original document");
             var dialogs = new Dialogs { OpenPath = path, SavePath = unrelated };
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = dialogs };
             var batch = model.ConversionWorkbench.BatchExport;
             string? copied = null; batch.CopyCommandText = text => { copied = text; return Task.CompletedTask; };
             await batch.LoadJobCommand.ExecuteAsync(null);
-            var changed = OfficeConversionJobSerializer.ReadFile(path);
-            changed.MaximumConcurrency = 4;
-            OfficeConversionJobSerializer.SaveFile(changed, path, overwrite: true);
+            var changed = OfficeBatchOptions.Load(path);
+            changed.MaxParallelism = 4;
+            (changed).Save(path, overwrite: true);
             await batch.CopyCliCommand.ExecuteAsync(null);
             Assert.Null(copied); Assert.Contains("changed outside Studio", batch.Status);
             await batch.SaveJobCommand.ExecuteAsync(null);
@@ -231,9 +232,9 @@ public sealed class StudioSavedFolderJobTests {
             File.WriteAllText(Path.Combine(source, "one.txt"), "Retained document one");
             File.WriteAllText(Path.Combine(source, "two.txt"), "Retained document two");
             string path = Path.Combine(root, "limited-job.json");
-            OfficeConversionJobSerializer.SaveFile(new OfficeConversionJob {
-                InputDirectory = "source", OutputDirectory = "output", MaximumFiles = 1, MaximumConcurrency = 1
-            }, path);
+            (new OfficeBatchOptions {
+                InputDirectory = "source", OutputDirectory = "output", MaximumFiles = 1, MaxParallelism = 1
+            }).Save(path);
             var dialogs = new Dialogs { OpenPath = path };
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services) { FileDialogs = dialogs };
             var batch = model.ConversionWorkbench.BatchExport;

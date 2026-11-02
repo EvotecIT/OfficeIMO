@@ -5,7 +5,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryBuildModifiedMasterPersistObjects(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -319,7 +319,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedSpecialMasterPersistObjects(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
@@ -388,7 +388,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedTitleMasterPersistObjects(
-            PowerPointPresentation presentation, LegacyPptPackage package,
+            PowerPointDocument presentation, LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,

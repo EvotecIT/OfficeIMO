@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static string FitInlineCheckBoxAppearance(string content, InlineFormAppearance appearance,
-        double textX, PositionedTextBoxMeasurement measured, LayoutResult.Page page, PdfOptions options) {
+        double textX, PositionedTextBoxMeasurement measured, LayoutResult.Page page, PdfCreateOptions options) {
         // Editing retains a fixed PDF rectangle. Advances locate the next text
         // origin, while selected glyph outlines own any overhang or bearing.
         // Both contribute to fitting; neither changes source-state paragraph flow.

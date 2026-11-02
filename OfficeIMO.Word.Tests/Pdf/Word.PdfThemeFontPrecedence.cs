@@ -44,7 +44,7 @@ public sealed class WordPdfThemeFontPrecedenceTests {
             }
         }
         string before = main.Document.OuterXml + styles.OuterXml;
-        byte[] bytes = document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
+        byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Equal("Themefont", string.Concat(pdf.GetPages().SelectMany(page => page.Letters).Select(letter => letter.Value)).Replace(" ",""));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
@@ -64,9 +64,9 @@ public sealed class WordPdfThemeFontPrecedenceTests {
         paragraph._run!.RunProperties = new RunProperties(new RunFonts {
             Ascii = primaryLiteral ? "Arial" : null, HighAnsi = "Arial", HighAnsiTheme = ThemeFontValues.MajorHighAnsi
         });
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.All(pdf.GetPage(1).Letters, letter => Assert.Contains(expected, letter.FontName, StringComparison.OrdinalIgnoreCase));
     }
 
@@ -94,9 +94,9 @@ public sealed class WordPdfThemeFontPrecedenceTests {
             AsciiTheme = themed ? ThemeFontValues.MajorAscii : null,
             HighAnsiTheme = themed ? ThemeFontValues.MinorHighAnsi : null
         });
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdfBytes(new WordToPdfOptions {
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
-        }));
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Fallback");
         Assert.All(word.Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.OrdinalIgnoreCase));
     }

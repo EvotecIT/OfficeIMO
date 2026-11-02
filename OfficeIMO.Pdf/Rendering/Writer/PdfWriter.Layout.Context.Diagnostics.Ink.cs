@@ -8,11 +8,11 @@ internal static partial class PdfWriter {
         private readonly List<bool> _diagnosticCanvasSourceClips = new();
         private readonly Dictionary<byte[], IOfficeBoundedFontProgram> _diagnosticFonts = new();
         private bool _diagnosticPaintHidden;
-        private PdfOptions? _diagnosticTextOptions;
-        private PdfOptions? _diagnosticTextSource;
+        private PdfCreateOptions? _diagnosticTextOptions;
+        private PdfCreateOptions? _diagnosticTextSource;
 
         // Never register speculative leader/omitted glyphs in the output document's subset.
-        private PdfOptions DiagnosticTextOptions {
+        private PdfCreateOptions DiagnosticTextOptions {
             get {
                 if (_diagnosticTextOptions == null || !ReferenceEquals(_diagnosticTextSource, currentOpts) || !_diagnosticTextOptions.HasSameMeasurementFonts(currentOpts)) {
                     _diagnosticTextOptions = currentOpts.CreateTextMeasurementSnapshot();
@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
         }
 
         /// <summary>Inspects final composed paint without changing text operators or line admission.</summary>
-        private void ReportRichPaintDiagnostics(string code, string source, RichParagraphBlock block,
+        private void ReportRichPaintDiagnostics(PaintDiagnosticCodes codes, string source, RichParagraphBlock block,
             List<List<RichSeg>> lines, IReadOnlyList<double> heights, double firstBaseline,
             double fontSize, double leading, double textX, double textWidth,
             TableCellContentFrame frame, bool clipsToFrame = true,
@@ -56,8 +56,8 @@ internal static partial class PdfWriter {
             for (int index = 0; index < _diagnosticCanvasClips.Count; index++) {
                 (_diagnosticCanvasSourceClips[index] ? sourceClips : targetClips).Add(_diagnosticCanvasClips[index]);
             }
-            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight,
-                currentOpts.PageWidth, currentOpts.PageHeight), OfficeTransform.Identity);
+            OfficeTextInkClip pageClip = DiagnosticRectangleClip(new TableCellContentFrame(0D, currentOpts.PageHeight.ToPoints(),
+                currentOpts.PageWidth.ToPoints(), currentOpts.PageHeight.ToPoints()), OfficeTransform.Identity);
             bool clipped = false, outsidePage = false, overflow = false, outerClipped = false;
             string? unmeasuredReason = null;
             double baseline = firstBaseline;
@@ -112,26 +112,26 @@ internal static partial class PdfWriter {
                             foreach (var glyph in DiagnosticGlyphContours(segment, leader, gapX, runY)) Paint(glyph.Contours, nominalGlyphBounds: glyph.NominalBounds);
                         }
                         if (segment.InlineElement is PdfInlineBox box) {
-                            double bottom = lineY + box.BaselineOffset + (box.UsesRunTextMetrics ? segment.LineAlignmentRise : 0D);
+                            double bottom = lineY + box.BaselineOffset.ToPoints() + (box.UsesRunTextMetrics ? segment.LineAlignmentRise : 0D);
                             if (box.SourceRule is { } rule) {
-                                if (box.Width > 0D) {
+                                if (box.Width.ToPoints() > 0D) {
                                     foreach (PdfInlineRule.InkBand band in rule.Bands)
-                                        Paint(DiagnosticRectangle(x, lineY + segment.LineAlignmentRise + band.BaselineOffset, box.Width, band.Height));
+                                        Paint(DiagnosticRectangle(x, lineY + segment.LineAlignmentRise + band.BaselineOffset, box.Width.ToPoints(), band.Height));
                                 }
-                            } else if (box.Background.HasValue) Paint(DiagnosticRectangle(x, bottom, box.Width, box.Height));
-                            if (box.BorderColor.HasValue && box.BorderWidth > 0D) {
-                                double half = box.BorderWidth / 2D;
-                                var ring = DiagnosticRectangle(x - half, bottom - half, box.Width + box.BorderWidth, box.Height + box.BorderWidth);
-                                if (box.Width > box.BorderWidth && box.Height > box.BorderWidth) {
-                                    var hole = DiagnosticRectangle(x + half, bottom + half, box.Width - box.BorderWidth, box.Height - box.BorderWidth)[0];
+                            } else if (box.Background.HasValue) Paint(DiagnosticRectangle(x, bottom, box.Width.ToPoints(), box.Height.ToPoints()));
+                            if (box.BorderColor.HasValue && box.BorderWidth.ToPoints() > 0D) {
+                                double half = box.BorderWidth.ToPoints() / 2D;
+                                var ring = DiagnosticRectangle(x - half, bottom - half, box.Width.ToPoints() + box.BorderWidth.ToPoints(), box.Height.ToPoints() + box.BorderWidth.ToPoints());
+                                if (box.Width.ToPoints() > box.BorderWidth.ToPoints() && box.Height.ToPoints() > box.BorderWidth.ToPoints()) {
+                                    var hole = DiagnosticRectangle(x + half, bottom + half, box.Width.ToPoints() - box.BorderWidth.ToPoints(), box.Height.ToPoints() - box.BorderWidth.ToPoints())[0];
                                     hole.Reverse(); ring.Add(hole);
                                 }
                                 Paint(ring);
                             }
                         } else if (segment.InlineElement is PdfInlineImage image) {
-                            double imageX = image.TableTextRotation > 0 ? origin + available - cursor - image.Width : x;
+                            double imageX = image.TableTextRotation > 0 ? origin + available - cursor - image.Width.ToPoints() : x;
                             var pictureClip = GetImportedPictureClip(image, paragraphLineSpacing,
-                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth);
+                                imageX, lineY, paragraphStartTop, currentOpts.PageWidth.ToPoints());
                             OfficeTextInkClip? intrinsicParagraphClip = pictureClip is { } clip
                                 ? DiagnosticRectangleClip(new TableCellContentFrame(clip.X, clip.Bottom + clip.Height,
                                     clip.Width, clip.Height), OfficeTransform.Identity) : null;
@@ -210,14 +210,14 @@ internal static partial class PdfWriter {
                 unmeasuredReason = exception.Message;
             }
             var bounds = transform.TransformRectangleBounds(frame.Left, frame.Top - frame.Height, frame.Width, frame.Height);
-            void Report(string suffix, string message, PdfLayoutDiagnosticKind kind, PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning) =>
-                ReportAuthoredLayoutDiagnostic(code + suffix, source, message, kind, bounds.Left, bounds.Bottom,
+            void Report(string diagnosticCode, string message, PdfLayoutDiagnosticKind kind, PdfConversionWarningSeverity severity = PdfConversionWarningSeverity.Warning) =>
+                ReportAuthoredLayoutDiagnostic(diagnosticCode, source, message, kind, bounds.Left, bounds.Bottom,
                     bounds.Right - bounds.Left, bounds.Bottom - bounds.Top, severity);
-            if (unmeasuredReason != null) currentOpts.AddUnassessedLayoutWarning(code + "PaintBoundsUnmeasured", source, unmeasuredReason);
-            if (clipped) Report("PaintClipped", "Paint extends outside the text clip and was clipped or omitted.", PdfLayoutDiagnosticKind.ClippedContent);
-            if (outerClipped) Report("CanvasClipPaintClipped", "Text or inline paint was clipped by an enclosing canvas path.", PdfLayoutDiagnosticKind.ClippedContent);
-            if (outsidePage) Report("PageBoundsPaintClipped", "Text or inline paint extends outside the physical page.", PdfLayoutDiagnosticKind.ClippedContent);
-            if (overflow && !outsidePage) Report("PaintOverflow", "Paint extends outside the paragraph frame and was preserved.", PdfLayoutDiagnosticKind.Overflow, PdfConversionWarningSeverity.Information);
+            if (unmeasuredReason != null) currentOpts.AddUnassessedLayoutWarning(codes.Unmeasured, source, unmeasuredReason);
+            if (clipped) Report(codes.Clipped, "Paint extends outside the text clip and was clipped or omitted.", PdfLayoutDiagnosticKind.ClippedContent);
+            if (outerClipped) Report(codes.AncestorClipped, "Text or inline paint was clipped by an enclosing canvas path.", PdfLayoutDiagnosticKind.ClippedContent);
+            if (outsidePage) Report(codes.PageClipped, "Text or inline paint extends outside the physical page.", PdfLayoutDiagnosticKind.ClippedContent);
+            if (overflow && !outsidePage) Report(codes.Overflow, "Paint extends outside the paragraph frame and was preserved.", PdfLayoutDiagnosticKind.Overflow, PdfConversionWarningSeverity.Information);
         }
 
         private static void RequireMeasured(bool measured) {

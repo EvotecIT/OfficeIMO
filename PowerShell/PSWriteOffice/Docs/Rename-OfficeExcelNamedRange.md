@@ -26,7 +26,7 @@ Renames a workbook or sheet-scoped Excel named range.
 
 ### EXAMPLE 1
 ```powershell
-PS> $workbook = Get-OfficeExcel -Path .\Report.xlsx
+PS> $workbook = Open-OfficeExcel -Path .\Report.xlsx
 $renamed = $workbook | Rename-OfficeExcelNamedRange -Name RevenueRange -NewName Revenue_Current -PassThru
 Save-OfficeExcel -Document $workbook
 ```

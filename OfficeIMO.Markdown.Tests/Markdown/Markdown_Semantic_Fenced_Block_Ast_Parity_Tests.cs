@@ -20,8 +20,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             MarkdownVisualContract.CreatePayload(payload));
 
         AssertSemanticBlockParity(
-            OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument());
+            OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown());
     }
 
     [Fact]
@@ -37,8 +37,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             MarkdownCodeFenceInfo.Parse("ix-chart #quarterly-summary .wide title=\"Quarterly Overview\" pinned"));
 
         AssertSemanticBlockParity(
-            OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument());
+            OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown());
     }
 
     [Fact]
@@ -54,8 +54,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             MarkdownCodeFenceInfo.Parse("ix-chart {#quarterly-summary .wide title=\"Quarterly Overview\""));
 
         AssertSemanticBlockParity(
-            OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument());
+            OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart)),
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown());
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         string html = "<pre class=\"mermaid\">" + System.Net.WebUtility.HtmlEncode(payload) + "</pre>";
 
         AssertSemanticBlockParity(
-            OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("mermaid", MarkdownSemanticKinds.Mermaid)),
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument());
+            OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("mermaid", MarkdownSemanticKinds.Mermaid)),
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown());
     }
 
     [Fact]
@@ -76,8 +76,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         string html = "<div class=\"omd-math\">$$\r\n" + System.Net.WebUtility.HtmlEncode(payload) + "\r\n$$</div>";
 
         AssertSemanticBlockParity(
-            OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("math", MarkdownSemanticKinds.Math)),
-            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument());
+            OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("math", MarkdownSemanticKinds.Math)),
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown());
     }
 
     [Fact]
@@ -99,9 +99,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         var transform = new MarkdownRegisteredFencedBlockTransform(options.FencedBlockExtensions);
         var item = ListItem.Text("Intro");
         item.NestedBlocks.Add(new CodeBlock("ix-chart", payload));
-        var document = MarkdownDoc.Create().Add(new UnorderedListBlock {
-            Items = { item }
-        });
+        var document = MarkdownDocument.Create();
+        document.Add(new UnorderedListBlock { Items = { item } });
 
         transform.Transform(
             document,
@@ -120,9 +119,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         var additional = new InlineSequence().Text("Tail");
         var item = new ListItem(lead);
         item.AdditionalParagraphs.Add(additional);
-        var document = MarkdownDoc.Create().Add(new UnorderedListBlock {
-            Items = { item }
-        });
+        var document = MarkdownDocument.Create();
+        document.Add(new UnorderedListBlock { Items = { item } });
 
         transform.Transform(
             document,
@@ -151,8 +149,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></li></ul>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -181,8 +179,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "</details><p>Tail</p></li></ul>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -210,8 +208,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "</blockquote></details></li></ul>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownList = Assert.IsType<UnorderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<UnorderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -240,8 +238,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></li></ol>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownList = Assert.IsType<OrderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<OrderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -269,8 +267,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "</blockquote></details></li></ol>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownList = Assert.IsType<OrderedListBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlList = Assert.IsType<OrderedListBlock>(Assert.Single(htmlDocument.Blocks));
@@ -299,8 +297,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></details>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownDetails = Assert.IsType<DetailsBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlDetails = Assert.IsType<DetailsBlock>(Assert.Single(htmlDocument.Blocks));
@@ -325,8 +323,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></blockquote>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownQuote = Assert.IsType<QuoteBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlQuote = Assert.IsType<QuoteBlock>(Assert.Single(htmlDocument.Blocks));
@@ -350,8 +348,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></blockquote>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownCallout = Assert.IsType<CalloutBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlCallout = Assert.IsType<CalloutBlock>(Assert.Single(htmlDocument.Blocks));
@@ -377,8 +375,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
                 MarkdownVisualContract.CreatePayload(payload))
             + "<p>Tail</p></td></tr></table>";
 
-        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
-        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownDocument.Parse(markdown, CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart));
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         var markdownTable = Assert.IsType<TableBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlTable = Assert.IsType<TableBlock>(Assert.Single(htmlDocument.Blocks));
@@ -388,7 +386,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
             MarkdownAstParityFormatter.DescribeBlocks(htmlTable.RowCells[0][0].ChildBlocks));
     }
 
-    private static void AssertSemanticBlockParity(MarkdownDoc markdownDocument, MarkdownDoc htmlDocument) {
+    private static void AssertSemanticBlockParity(MarkdownDocument markdownDocument, MarkdownDocument htmlDocument) {
         var markdownBlock = Assert.IsType<SemanticFencedBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlBlock = Assert.IsType<SemanticFencedBlock>(Assert.Single(htmlDocument.Blocks));
 
@@ -399,8 +397,8 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         Assert.Equal(markdownBlock.Caption, htmlBlock.Caption);
     }
 
-    private static MarkdownReaderOptions CreateSemanticOptions(string language, string semanticKind) {
-        var options = new MarkdownReaderOptions();
+    private static MarkdownLoadOptions CreateSemanticOptions(string language, string semanticKind) {
+        var options = new MarkdownLoadOptions();
         options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
             "Semantic AST",
             new[] { language },

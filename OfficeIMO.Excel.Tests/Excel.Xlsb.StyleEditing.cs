@@ -31,7 +31,7 @@ public sealed class ExcelXlsbStyleEditingTests {
         styles.CellFormats.Append(new CellFormat { FontId = font, FillId = fill, BorderId = border, NumberFormatId = numberFormat, FormatId = 0, ApplyFont = true, ApplyFill = true, ApplyBorder = true, ApplyNumberFormat = true });
         document.Sheets[0].CellValue(200, 3, 1.23456);
         document.Sheets[0].SetCellStyleIndex(200, 3, format, save: false);
-        byte[] saved = document.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
         var snapshot = reloaded.Sheets[0].GetCellStyle(200, 3);
         Assert.True(snapshot.Bold);
@@ -56,12 +56,12 @@ public sealed class ExcelXlsbStyleEditingTests {
     [InlineData(true)]
     public void Native_locale_number_format_records_survive_appended_styles(bool encrypted) {
         using var seed = ExcelDocument.Create();
-        var sheet = seed.AddWorksheet("Data"); sheet.CellValue(1, 1, 12.5D); sheet.CellItalic(1, 1);
+        var sheet = seed.AddSheet("Data"); sheet.CellValue(1, 1, 12.5D); sheet.CellItalic(1, 1);
         var styles = seed.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
         styles.NumberingFormats ??= new NumberingFormats();
         styles.NumberingFormats.Append(new NumberingFormat { NumberFormatId = 5, FormatCode = "\"PLN\" #,##0.00" });
         styles.NumberingFormats.Count = (uint)styles.NumberingFormats.ChildElements.Count;
-        byte[] original = seed.ToBytes(ExcelFileFormat.Xlsb);
+        byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var document = ExcelDocument.Load(new MemoryStream(original));
         document.Sheets[0].CellBold(1, 1);
         using var output = new MemoryStream();

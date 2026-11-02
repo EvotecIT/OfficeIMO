@@ -18,7 +18,7 @@ public sealed class StudioShellExperienceTests {
         await session.Dispatch(async () => {
             var services = TestAppBuilder.CreateTestServices();
             string source = Path.Combine(services.Paths.Root, "toast.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Size(400, 500))).Save(source);
+            PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)))).Save(source);
             var window = new MainWindow(services) { Width = 960, Height = 620 };
             try {
                 window.Show();
@@ -116,7 +116,7 @@ public sealed class StudioShellExperienceTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-reopen-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "closed.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)))).Save(path);
         try {
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {
@@ -148,7 +148,7 @@ public sealed class StudioShellExperienceTests {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-selection-markup-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "markup.pdf");
-        PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)
+        PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
             .Content(content => content.Text("Highlight this sentence from the reader.")))).Save(path);
         try {
             using var session = TestAppBuilder.StartSession();

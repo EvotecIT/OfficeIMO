@@ -12,7 +12,7 @@ Place the chart inside a `WordParagraph` block and set spacing on that paragraph
 
 ```powershell
 WordParagraph {
-    WordParagraphStyle -SpacingBeforePoints 14 -SpacingAfterPoints 12
+    Set-OfficeWordParagraph -SpacingBefore 14 -SpacingAfter 12
     WordChart -Type Bar -InputObject $rows -CategoryProperty Site `
         -SeriesProperty Patched, Pending -Title 'Patched and pending by site' `
         -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
@@ -23,9 +23,9 @@ Keep headings with the content that follows them:
 
 ```powershell
 WordParagraph {
-    WordParagraphStyle -Style Heading1 -SpacingBeforePoints 16 `
-        -SpacingAfterPoints 8 -KeepWithNext $true
-    WordText 'Compliance by site' -Bold -FontSize 15 -Color '17365D'
+    Set-OfficeWordParagraph -Style Heading1 -SpacingBefore 16 `
+        -SpacingAfter 8 -KeepWithNext
+    WordText 'Compliance by site' -Bold -Size 15pt -Color '17365D'
 }
 ```
 
@@ -53,4 +53,4 @@ Use the chart height that supports the message. A five-category chart in a one-p
 
 ## Check the delivered file
 
-Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/5eec5f076636e14030c148538357aae4a6b6b5ab/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.
+Run the [patch compliance recipe](https://github.com/EvotecIT/OfficeIMO/blob/e18316ebaee4f069f2c25ea99012f28b1e07071a/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-PatchCompliance.ps1), open the DOCX and inspect the exported PDF. Check every page for clipped text, split headings, table widths and chart labels. Native PDF conversion can paginate differently from a desktop Word editor; the PDF is the delivery copy when its layout is the agreed result.

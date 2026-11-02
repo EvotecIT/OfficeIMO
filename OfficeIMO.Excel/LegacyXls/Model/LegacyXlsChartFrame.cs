@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes shallow metadata decoded from a chart Frame record.
     /// </summary>
-    public sealed class LegacyXlsChartFrame {
+    internal sealed class LegacyXlsChartFrame {
         internal LegacyXlsChartFrame(ushort frameType, string frameTypeName, ushort flags, bool automaticSize, bool automaticPosition) {
             FrameType = frameType;
             FrameTypeName = frameTypeName ?? throw new ArgumentNullException(nameof(frameTypeName));

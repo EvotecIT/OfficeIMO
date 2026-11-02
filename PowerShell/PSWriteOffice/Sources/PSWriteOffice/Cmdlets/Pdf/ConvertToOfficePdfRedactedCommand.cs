@@ -101,7 +101,7 @@ public sealed class ConvertToOfficePdfRedactedCommand : PSCmdlet
 
         var options = new PdfRedactionApplyOptions
         {
-            FillColor = PdfCommandUtilities.ParseColor(FillColor) ?? PdfColor.Black,
+            FillColor = PdfCommandUtilities.ParseColor(FillColor) ?? global::OfficeIMO.OfficeColor.Black,
             PaintUnmatchedAreas = !OnlyPaintMatches.IsPresent
         };
 
@@ -132,7 +132,7 @@ public sealed class ConvertToOfficePdfRedactedCommand : PSCmdlet
         }
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
-        redacted.Save(outputPath).RequireSuccess();
+        redacted.Save(outputPath);
         WriteObject(new FileInfo(outputPath));
     }
 }

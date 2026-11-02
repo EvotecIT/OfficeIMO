@@ -5,7 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Shared text placement helpers for renderers that already translated document-specific alignment values.
 /// </summary>
-public static class OfficeTextPlacement {
+internal static class OfficeTextPlacement {
     /// <summary>
     /// Resolves the horizontal text anchor inside a left-based rectangle.
     /// </summary>

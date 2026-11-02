@@ -79,12 +79,12 @@ internal static partial class PdfMerger {
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
-    public static PdfMergeResult MergeResult(PdfMergeOptions options, params byte[][] pdfs) {
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, params byte[][] pdfs) {
         return MergeResult(options, (IEnumerable<byte[]>)pdfs);
     }
 
     /// <summary>Merges PDFs and returns the applied document-structure policy report.</summary>
-    public static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+    internal static PdfMergeResult MergeResult(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
         Guard.NotNull(options, nameof(options));
         return MergeCore(pdfs, primarySourceIndex: 0, options);
     }

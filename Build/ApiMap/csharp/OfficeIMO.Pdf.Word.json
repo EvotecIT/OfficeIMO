@@ -1,0 +1,48 @@
+{
+  "package": "OfficeIMO.Pdf.Word",
+  "status": "New PDF reconstruction adapter introduced by M2 Phase A.",
+  "sourceMap": "Build/ApiMap/csharp/OfficeIMO.Word.Pdf.json",
+  "changes": [
+    {
+      "old": "OfficeIMO.Word.Pdf reverse reconstruction",
+      "new": "OfficeIMO.Pdf.Word",
+      "kind": "package",
+      "action": "move",
+      "category": "package",
+      "phase": "A",
+      "applied": "applied",
+      "reason": "The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult<T> forms replace the old result pairs.",
+      "file": "OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj"
+    }
+  ],
+  "extraChanges": [
+    {
+      "category": "conversion",
+      "phase": "A",
+      "applied": "applied",
+      "note": "Async conversion entry points capture options before deferred work or resource awaits. The same snapshot supplies resource/size limits and final FailOnLoss acceptance; caller-owned template documents and callbacks retain their ownership."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Reconstruction diagnostic producer identifiers follow the new Pdf.Word package owner; export identifiers remain in Word.Pdf."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "Canonical SaveAs output failures retain the completed conversion report through the shared internal output helper; cancellation continues to propagate unchanged."
+    },
+    {
+      "phase": "A",
+      "applied": "applied",
+      "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "PDF reconstruction uses the containing Paragraph of created hyperlinks so reconstructed formatting remains attached to the imported run."
+    }
+  ],
+  "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
+  "authority": "Docs/officeimo.api-design.md, including the c526a10ad2 framework decision; the approved design overrides M0 open questions."
+}

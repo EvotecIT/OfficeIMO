@@ -49,51 +49,51 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void MaterializeDefaultSeriesColor(OpenXmlCompositeElement element,
-            OfficeChartKind kind, int seriesIndex) {
-            var appearance = new OfficeChartSeries(string.Empty, Array.Empty<double>(), null,
+            OfficeChartType kind, int seriesIndex) {
+            var appearance = new OfficeSeries(string.Empty, Array.Empty<double>(), null,
                 OfficeChartStyle.Default.GetSeriesColor(seriesIndex));
             ApplySharedSeriesShapeStyle(element, appearance, kind, null);
             SetAutomaticSeriesColor(element, true);
         }
 
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind,
-            OfficeColor? fallbackFillColor) {
+            OfficeSeries series, OfficeChartType kind,
+            OfficeColor? fallbackFillColor, OfficeTheme? theme = null) {
             OfficeColor? fillColor = series.Color ?? fallbackFillColor;
             C.ChartShapeProperties properties =
                 seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
                 new C.ChartShapeProperties();
             OfficeColor? existingOutlineColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null);
-            OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
+            OfficeColor? outlineColor = kind == OfficeChartType.Bubble
                 ? series.MarkerOutlineColor ?? existingOutlineColor ?? fillColor
                 : IsFilledSharedKind(kind) ? null : fillColor;
-            double? outlineWidth = kind == OfficeChartKind.Bubble
+            OfficeLength? outlineWidth = kind == OfficeChartType.Bubble
                 ? series.MarkerOutlineWidth ?? series.StrokeWidth
                 : series.StrokeWidth;
-            bool reenableBubbleOutline = kind == OfficeChartKind.Bubble &&
+            bool reenableBubbleOutline = kind == OfficeChartType.Bubble &&
                 series.ShowMarkerOutline &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             bool reenableConnectingLine = (!IsFilledSharedKind(kind) || IsAreaKind(kind)) && series.ConnectLine &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             bool hideAreaOutline = IsAreaKind(kind) && !series.ConnectLine;
             if (!fillColor.HasValue && !outlineColor.HasValue && outlineWidth == null &&
-                (kind != OfficeChartKind.Bubble || series.ShowMarkerOutline) &&
+                (kind != OfficeChartType.Bubble || series.ShowMarkerOutline) &&
                 series.StrokeDashStyle == null &&
                 (series.ConnectLine || IsFilledSharedKind(kind)) &&
                 !reenableBubbleOutline && !reenableConnectingLine && !hideAreaOutline) return;
-            if (fillColor.HasValue && (IsFilledSharedKind(kind) || kind == OfficeChartKind.Line)) {
+            if (fillColor.HasValue && (IsFilledSharedKind(kind) || kind == OfficeChartType.Line)) {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();
                 properties.RemoveAllChildren<A.GradientFill>();
                 properties.RemoveAllChildren<A.PatternFill>();
                 properties.RemoveAllChildren<A.BlipFill>();
                 properties.RemoveAllChildren<A.GroupFill>();
-                properties.AddChild(new A.SolidFill(CreateSharedRgbColor(fillColor.Value)), true);
+                properties.AddChild(new A.SolidFill(CreateSharedRgbColor(fillColor.Value, theme)), true);
             }
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             bool replaceOutlineFill = reenableBubbleOutline || reenableConnectingLine ||
-                (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) ||
+                (kind == OfficeChartType.Bubble && !series.ShowMarkerOutline) ||
                 (!series.ConnectLine && !IsFilledSharedKind(kind)) ||
                 hideAreaOutline ||
                 outlineColor.HasValue;
@@ -104,17 +104,17 @@ namespace OfficeIMO.OpenXml.Internal {
                 outline.RemoveAllChildren<A.PatternFill>();
                 outline.RemoveAllChildren<A.BlipFill>();
                 outline.RemoveAllChildren<A.GroupFill>();
-                if (kind == OfficeChartKind.Bubble &&
+                if (kind == OfficeChartType.Bubble &&
                     !series.ShowMarkerOutline) {
                     outline.AddChild(new A.NoFill(), true);
                 } else if (hideAreaOutline || (!series.ConnectLine && !IsFilledSharedKind(kind))) {
                     outline.AddChild(new A.NoFill(), true);
                 } else if (outlineColor.HasValue) {
-                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(outlineColor.Value)), true);
+                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(outlineColor.Value, theme)), true);
                 }
             }
             if (outlineWidth.HasValue) {
-                outline.Width = checked((int)FromPoints(outlineWidth.Value));
+                outline.Width = checked((int)outlineWidth.Value.ToEmus());
             } else if (reenableConnectingLine && outline.Width?.Value == 0) {
                 // A hidden native area outline may have zero width as well as no fill.
                 outline.Width = null;
@@ -127,33 +127,36 @@ namespace OfficeIMO.OpenXml.Internal {
                 // without an explicit shared dash means a solid native outline.
                 outline.RemoveAllChildren<A.PresetDash>();
             }
-            if (outline.Parent == null) properties.AddChild(outline, true);
+            // An empty a:ln reads back as an outline the caller never asked for, so a new
+            // outline is only written when it carries a fill, width or dash.
+            if (outline.Parent == null && (outline.HasChildren || outline.HasAttributes)) properties.AddChild(outline, true);
             if (properties.Parent == null) InsertSharedSeriesProperties(seriesElement, properties);
         }
 
         private static void ApplySharedSeriesMarker(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind, OfficeColor? fallbackColor) {
+            OfficeSeries series, OfficeChartType kind, OfficeColor? fallbackColor, OfficeTheme theme,
+            bool preservePresentation) {
             if (!IsMarkerKind(kind)) return;
             C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-            if (!series.ShowMarkers) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
-            else if (series.MarkerShape.HasValue || marker.Symbol == null)
-                marker.Symbol = new C.Symbol { Val = MapMarker(series.MarkerShape) };
-            if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = (byte)OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value) };
+            if (!preservePresentation && !series.ResolveMarkerVisibility(kind, theme)) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
+            else if (!preservePresentation && (series.ResolveMarkerShape(kind, theme).HasValue || marker.Symbol == null))
+                marker.Symbol = new C.Symbol { Val = MapMarker(series.ResolveMarkerShape(kind, theme)) };
+            if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = checked((byte)decimal.Round(OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value).ToEmus() / 12700m, 0, MidpointRounding.AwayFromZero)) };
             OfficeColor? markerFill = series.Color ?? fallbackColor;
             if (markerFill.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
                 C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
                 if (markerFill.HasValue) {
                     RemoveSharedFillChoices(properties);
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(markerFill.Value)), true);
+                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(markerFill.Value, theme)), true);
                 }
                 A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
                 OfficeColor? markerColor = series.MarkerOutlineColor ?? markerFill;
                 if (markerColor.HasValue) {
                     RemoveSharedFillChoices(outline);
-                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value)), true);
+                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value, theme)), true);
                 }
                 if (series.MarkerOutlineWidth.HasValue) {
-                    outline.Width = checked((int)FromPoints(series.MarkerOutlineWidth.Value));
+                    outline.Width = checked((int)series.MarkerOutlineWidth.Value.ToEmus());
                 }
                 if (outline.Parent == null) properties.AddChild(outline, true);
                 if (properties.Parent == null) marker.AddChild(properties, true);
@@ -161,7 +164,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (marker.Parent == null) InsertSharedMarker(seriesElement, marker);
         }
 
-        private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeChartSeries series) {
+        private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeSeries series, OfficeTheme theme) {
             if (series.PointColors == null) return;
             OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.Trendline>() ??
@@ -195,7 +198,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (marker != null) RemoveSharedFillChoices(marker);
                 if (color.HasValue) {
                     C.ChartShapeProperties properties = marker ?? direct ?? new C.ChartShapeProperties();
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value)), true);
+                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value, theme)), true);
                     if (properties.Parent == null) point.AddChild(properties, true);
                 }
                 if (direct != null && !direct.HasChildren && !direct.HasAttributes) direct.Remove();
@@ -212,7 +215,8 @@ namespace OfficeIMO.OpenXml.Internal {
             element.RemoveAllChildren<A.GroupFill>();
         }
 
-        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color) {
+        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color, OfficeTheme? theme = null) {
+            color = color.Resolve(theme ?? OfficeTheme.Default);
             var rgb = new A.RgbColorModelHex { Val = color.ToRgbHex() };
             if (color.A < byte.MaxValue) {
                 rgb.Append(new A.Alpha {

@@ -14,7 +14,7 @@ public sealed class LatexPdfAdapterContractTests {
     public void TableCaptionsRemainVisibleInRenderedPdf(string caption, string rows, string expected) {
         LatexDocument document = LatexDocument.Parse("\\documentclass{article}\\begin{document}\\begin{table}\\caption{" + caption +
             "}\\begin{tabular}{l}" + rows + "\\end{tabular}\\end{table}\\end{document}");
-        string text = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdfDocumentResult().Value.ToBytes()).ExtractText();
+        string text = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfDocumentResult().Value.ToBytes())).ExtractText();
         Assert.Contains(expected, text, StringComparison.Ordinal);
         Assert.DoesNotContain("\\%", text, StringComparison.Ordinal);
         Assert.DoesNotContain("\\textbf", text, StringComparison.Ordinal);

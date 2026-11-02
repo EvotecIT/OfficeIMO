@@ -17,8 +17,8 @@ public sealed class StudioHistoryPrivacyTests {
             string source = Path.Combine(services.Paths.Root, "session-source.pdf");
             string destination = Path.Combine(services.Paths.Root, "recovered.pdf");
             PdfDocument.Create(builder => {
-                builder.Page(page => page.Size(600, 800));
-                builder.Page(page => page.Size(600, 800));
+                builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)));
+                builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)));
             }).Save(source);
             byte[] bytes = File.ReadAllBytes(source);
             string fingerprint = OfficeIMO.Studio.Features.Workspace.PdfWorkspaceRecoveryStore.Fingerprint(bytes);
@@ -192,7 +192,7 @@ public sealed class StudioHistoryPrivacyTests {
 
     private static string CreatePdf(string root, string name) {
         string path = Path.Combine(root, name);
-        PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800))).Save(path);
+        PdfDocument.Create(builder => builder.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)))).Save(path);
         return path;
     }
 }

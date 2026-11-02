@@ -16,17 +16,17 @@ public static partial class RtfMarkdownConverterExtensions {
     /// <summary>
     /// Converts an RTF document into a Markdown document model.
     /// </summary>
-    public static MarkdownDoc ToMarkdownDocument(this RtfDocument document, RtfToMarkdownOptions? options = null) {
+    public static MarkdownDocument ToMarkdownDocument(this RtfDocument document, RtfToMarkdownOptions? options = null) {
         return document.ToMarkdownDocumentResult(options).Value;
     }
 
     /// <summary>Converts an RTF document into Markdown together with per-operation fidelity diagnostics.</summary>
-    public static RtfConversionResult<MarkdownDoc> ToMarkdownDocumentResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
+    public static RtfConversionResult<MarkdownDocument> ToMarkdownDocumentResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var context = new RtfToMarkdownConversionContext(options ?? new RtfToMarkdownOptions());
         context.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
-        MarkdownDoc value = RtfToMarkdownConverter.Convert(document, context);
-        return new RtfConversionResult<MarkdownDoc>(value, context.ConversionReport);
+        MarkdownDocument value = RtfToMarkdownConverter.Convert(document, context);
+        return new RtfConversionResult<MarkdownDocument>(value, context.ConversionReport);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public static partial class RtfMarkdownConverterExtensions {
     public static RtfConversionResult<string> ToMarkdownResult(this RtfDocument document, RtfToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var effectiveOptions = options ?? new RtfToMarkdownOptions();
-        RtfConversionResult<MarkdownDoc> converted = document.ToMarkdownDocumentResult(effectiveOptions);
+        RtfConversionResult<MarkdownDocument> converted = document.ToMarkdownDocumentResult(effectiveOptions);
         string value = converted.Value.ToMarkdown(effectiveOptions.MarkdownWriteOptions);
         return new RtfConversionResult<string>(value, converted.Report);
     }
@@ -98,12 +98,12 @@ public static partial class RtfMarkdownConverterExtensions {
     /// <summary>
     /// Converts a Markdown document model into an RTF document.
     /// </summary>
-    public static RtfDocument ToRtfDocument(this MarkdownDoc markdown, MarkdownToRtfOptions? options = null) {
+    public static RtfDocument ToRtfDocument(this MarkdownDocument markdown, MarkdownToRtfOptions? options = null) {
         return markdown.ToRtfDocumentResult(options).Value;
     }
 
     /// <summary>Converts Markdown into an RTF document together with per-operation fidelity diagnostics.</summary>
-    public static RtfConversionResult<RtfDocument> ToRtfDocumentResult(this MarkdownDoc markdown, MarkdownToRtfOptions? options = null) {
+    public static RtfConversionResult<RtfDocument> ToRtfDocumentResult(this MarkdownDocument markdown, MarkdownToRtfOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         var context = new MarkdownToRtfConversionContext(options ?? new MarkdownToRtfOptions());
         RtfDocument value = MarkdownToRtfConverter.Convert(markdown, context);
@@ -111,13 +111,13 @@ public static partial class RtfMarkdownConverterExtensions {
     }
 
     /// <summary>Converts a parsed Markdown document into RTF text.</summary>
-    public static string ToRtf(this MarkdownDoc markdown, MarkdownToRtfOptions? options = null, RtfWriteOptions? writeOptions = null) {
+    public static string ToRtf(this MarkdownDocument markdown, MarkdownToRtfOptions? options = null, RtfWriteOptions? writeOptions = null) {
         return markdown.ToRtfResult(options, writeOptions).Value;
     }
 
     /// <summary>Converts a parsed Markdown document into RTF text with per-operation fidelity diagnostics.</summary>
     public static RtfConversionResult<string> ToRtfResult(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null) {
         RtfConversionResult<RtfDocument> converted = markdown.ToRtfDocumentResult(options);
@@ -126,7 +126,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Converts a parsed Markdown document into encoded RTF bytes.</summary>
     public static byte[] ToRtfBytes(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null,
         Encoding? encoding = null) =>
@@ -134,7 +134,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Converts a parsed Markdown document into a writable RTF stream positioned at the beginning.</summary>
     public static MemoryStream ToRtfStream(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null,
         Encoding? encoding = null) =>
@@ -142,7 +142,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Saves a parsed Markdown document as RTF to a path.</summary>
     public static void SaveAsRtf(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         string path,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null,
@@ -151,7 +151,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Saves a parsed Markdown document as RTF to a caller-owned stream.</summary>
     public static void SaveAsRtf(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         Stream stream,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null,
@@ -160,7 +160,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Asynchronously saves a parsed Markdown document as RTF to a path.</summary>
     public static Task SaveAsRtfAsync(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         string path,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null,
@@ -170,7 +170,7 @@ public static partial class RtfMarkdownConverterExtensions {
 
     /// <summary>Asynchronously saves a parsed Markdown document as RTF to a caller-owned stream.</summary>
     public static Task SaveAsRtfAsync(
-        this MarkdownDoc markdown,
+        this MarkdownDocument markdown,
         Stream stream,
         MarkdownToRtfOptions? options = null,
         RtfWriteOptions? writeOptions = null,

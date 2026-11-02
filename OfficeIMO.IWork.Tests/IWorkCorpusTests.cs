@@ -121,7 +121,7 @@ public sealed class IWorkCorpusTests {
             using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path, conversionOptions: options);
             Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = PowerPointPresentation.Load(saved);
+            using var reopened = PowerPointDocument.Load(saved);
             Assert.Equal(result.Projection.Slides.Count, reopened.Slides.Count);
             Assert.Empty(reopened.ValidateDocument());
         }
@@ -261,7 +261,7 @@ public sealed class IWorkCorpusTests {
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        using PowerPointDocument reopened = PowerPointDocument.Load(saved);
         Assert.Equal(2, reopened.Slides.Count);
         Assert.Empty(reopened.ValidateDocument());
         Assert.Contains(reopened.Slides[0].TextBoxes, box => box.Text.Contains("hello keynote", StringComparison.Ordinal));
@@ -326,7 +326,7 @@ public sealed class IWorkCorpusTests {
         var savedTitle = reopened.Paragraphs.First(p => p.Text == "购 销 合 同");
         Assert.True(savedTitle.Bold);
         Assert.Equal(WordParagraphAlignment.Center, savedTitle.ParagraphAlignment);
-        Assert.Equal(26d, savedTitle.FontSizePoints);
+        Assert.Equal(26d, savedTitle.FontSize?.ToPoints());
         Assert.Equal("SimSun", savedTitle.FontFamily);
         var validation = reopened.ValidateDocument();
         Assert.True(validation.Count == 0, string.Join("\n", validation.Select(error => error.PartUri + ": " + error.Description)));
@@ -453,8 +453,8 @@ public sealed class IWorkCorpusTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("iwork-converter/a.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
-        Assert.Equal(1920d, result.Value.SlideSize.WidthPoints, 3);
-        Assert.Equal(1080d, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Equal(1920d, result.Value.SlideSize.Width.ToPoints(), 3);
+        Assert.Equal(1080d, result.Value.SlideSize.Height.ToPoints(), 3);
         PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
         Assert.Equal("Visual fallback from the source Keynote package", preview.AltText);
         IWorkTextBox box = Assert.Single(result.Projection.Slides)
@@ -506,11 +506,11 @@ public sealed class IWorkCorpusTests {
         Assert.Equal((3, 3), (table.Rows, table.Columns));
         Assert.Equal("Product", table.GetCell(0, 0).Text);
         Assert.Equal("24000", table.GetCell(1, 2).Text);
-        Assert.InRange(table.LeftPoints, 94.99d, 95.01d);
+        Assert.InRange(table.Left.ToPoints(), 94.99d, 95.01d);
         double expectedWidth = sourceTable.Geometry!.WidthPoints;
         double expectedHeight = sourceTable.Geometry.HeightPoints;
-        Assert.InRange(table.WidthPoints, expectedWidth - 0.001d, expectedWidth + 0.001d);
-        Assert.InRange(table.HeightPoints, expectedHeight - 0.001d, expectedHeight + 0.001d);
+        Assert.InRange(table.Width.ToPoints(), expectedWidth - 0.001d, expectedWidth + 0.001d);
+        Assert.InRange(table.Height.ToPoints(), expectedHeight - 0.001d, expectedHeight + 0.001d);
 
         using var imageResult = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
             Fixture("keynotekit/imagedeck-v15.2.1.key"));
@@ -543,7 +543,7 @@ public sealed class IWorkCorpusTests {
         powerPointBytes.Position = 0;
         using WordDocument word = WordDocument.Load(wordBytes);
         using ExcelDocument excel = ExcelDocument.Load(excelBytes);
-        using PowerPointPresentation powerPoint = PowerPointPresentation.Load(powerPointBytes);
+        using PowerPointDocument powerPoint = PowerPointDocument.Load(powerPointBytes);
         Assert.Contains(word.Paragraphs, paragraph => paragraph.Text == "hello pages");
         Assert.Single(excel.Sheets);
         Assert.Equal("a", excel.Sheets[0].CellAt(1, 1).GetValue<string>());
@@ -578,10 +578,10 @@ public sealed class IWorkCorpusTests {
             conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         PowerPointPicture picture = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
-        Assert.Equal(result.Value.SlideSize.WidthPoints / 72d, picture.WidthInches, 3);
-        Assert.Equal(result.Value.SlideSize.HeightPoints / 72d, picture.HeightInches, 3);
-        Assert.Equal(0d, picture.LeftInches, 3);
-        Assert.Equal(0d, picture.TopInches, 3);
+        Assert.Equal(result.Value.SlideSize.Width.ToPoints() / 72d, picture.Width.ToInches(), 3);
+        Assert.Equal(result.Value.SlideSize.Height.ToPoints() / 72d, picture.Height.ToInches(), 3);
+        Assert.Equal(0d, picture.Left.ToInches(), 3);
+        Assert.Equal(0d, picture.Top.ToInches(), 3);
     }
 
     [Fact]

@@ -10,18 +10,18 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartWorkbookBindingsTests {
     [Theory]
-    [InlineData(OfficeChartKind.ColumnClustered)]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Area)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void LegacyGrowth_DoesNotCopyPointMetadataToAddedCategorySeries(OfficeChartKind kind) {
-        using var document = PowerPointPresentation.Create();
-        var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Original", new[] { 1d, 2d }) }));
+    [InlineData(OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Area)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void LegacyGrowth_DoesNotCopyPointMetadataToAddedCategorySeries(OfficeChartType kind) {
+        using var document = PowerPointDocument.Create();
+        var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Original", new[] { 1d, 2d }) }));
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var original = (DocumentFormat.OpenXml.OpenXmlCompositeElement)part.ChartSpace!.Descendants().Single(element => element.LocalName == "ser");
         original.AddChild(new C.DataPoint(new C.Index { Val = 0 }), true);
         original.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
-        if (kind != OfficeChartKind.Doughnut) original.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
+        if (kind != OfficeChartType.Doughnut) original.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
             new C.ErrorBarValueType { Val = C.ErrorValues.FixedValue }, new C.ErrorBarValue { Val = 0.5 }), true);
         chart.UpdateData(new PowerPointChartData(new[] { "A", "B" }, new[] {
             new PowerPointChartSeries("Original", new[] { 3d, 4d }), new PowerPointChartSeries("Added", new[] { 5d, 6d }) }));
@@ -38,9 +38,9 @@ public sealed class PowerPointChartWorkbookBindingsTests {
     [InlineData(1)]
     [InlineData(2)]
     public void Updates_RejectIncompleteErrorBarCachesAcrossEntryPoints(int path) {
-        using var document = PowerPointPresentation.Create();
-        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
-        var chart = document.AddSlide().AddChart(path == 2 ? OfficeChartKind.Scatter : OfficeChartKind.Line, data);
+        using var document = PowerPointDocument.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(path == 2 ? OfficeChartType.Scatter : OfficeChartType.Line, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var source = (DocumentFormat.OpenXml.OpenXmlCompositeElement)part.ChartSpace!.Descendants().First(element => element.LocalName == "ser");
         source.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
@@ -66,9 +66,9 @@ public sealed class PowerPointChartWorkbookBindingsTests {
     [InlineData(1)]
     [InlineData(2)]
     public void Updates_RejectExternalWorkbookLinksAcrossEntryPoints(int path) {
-        using var document = PowerPointPresentation.Create();
-        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
-        var chart = document.AddSlide().AddChart(path == 2 ? OfficeChartKind.Scatter : OfficeChartKind.Line, data);
+        using var document = PowerPointDocument.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(path == 2 ? OfficeChartType.Scatter : OfficeChartType.Line, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         part.DeletePart(part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single());
         var link = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/package", new Uri("https://example.test/data.xlsx"));
@@ -89,9 +89,9 @@ public sealed class PowerPointChartWorkbookBindingsTests {
     [InlineData(2)]
     [InlineData(3)]
     public void Updates_MaterializeCachedLinkedTitlesAcrossSupportedEntryPoints(int path) {
-        using PowerPointPresentation document = PowerPointPresentation.Create();
-        OfficeChartKind kind = path == 2 ? OfficeChartKind.Scatter : path == 3 ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
-        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+        using PowerPointDocument document = PowerPointDocument.Create();
+        OfficeChartType kind = path == 2 ? OfficeChartType.Scatter : path == 3 ? OfficeChartType.ColumnClustered : OfficeChartType.Line;
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
         var chart = document.AddSlide().AddChart(kind, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         if (path == 3) {
@@ -115,7 +115,7 @@ public sealed class PowerPointChartWorkbookBindingsTests {
         Assert.Empty(title.Descendants<C.StringReference>());
         Assert.Empty(document.ValidateDocument());
         using var bytes = new MemoryStream(document.ToBytes());
-        using var reopened = PowerPointPresentation.Load(bytes);
+        using var reopened = PowerPointDocument.Load(bytes);
         Assert.Equal("Retained title", reopened.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.Title!.InnerText);
         Assert.Empty(reopened.ValidateDocument());
     }
@@ -124,11 +124,11 @@ public sealed class PowerPointChartWorkbookBindingsTests {
     [InlineData(false)]
     [InlineData(true)]
     public void LegacyUpdates_RejectMixedNativeLayersWithoutChangingChart(bool scatter) {
-        using PowerPointPresentation document = PowerPointPresentation.Create();
-        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+        using PowerPointDocument document = PowerPointDocument.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
         var slide = document.AddSlide();
-        var chart = slide.AddChart(scatter ? OfficeChartKind.Scatter : OfficeChartKind.Line, data);
-        slide.AddChart(OfficeChartKind.Pie, data);
+        var chart = slide.AddChart(scatter ? OfficeChartType.Scatter : OfficeChartType.Line, data);
+        slide.AddChart(OfficeChartType.Pie, data);
         var part = slide.SlidePart.ChartParts.Single(item => !item.ChartSpace!.Descendants<C.PieChart>().Any());
         var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         var source = slide.SlidePart.ChartParts.Single(item => item.ChartSpace!.Descendants<C.PieChart>().Any()).ChartSpace!.Descendants<C.PieChartSeries>().Single();

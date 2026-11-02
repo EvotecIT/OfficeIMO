@@ -376,7 +376,7 @@ namespace OfficeIMO.Excel {
                 columnNames[i] = "Column" + (i + 1).ToString(CultureInfo.InvariantCulture);
             }
 
-            string range = A1.CellReference(1, 1) + ":" + A1.CellReference(buffer.RowCount, buffer.ColumnCount);
+            string range = ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(buffer.RowCount, buffer.ColumnCount);
             bool registered = _excelDocument.RegisterDeferredDirectTabularSaveCandidate(
                 this,
                 "Cells",

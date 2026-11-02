@@ -25,16 +25,16 @@ internal static partial class PdfWriter {
                 if (IsNonVisualFlowMarker(block)) continue;
                 inspected++;
                 if (KeepsWithNext(block)) references.AddRange(FootnoteReferenceSegments(PdfFootnoteTraversal.References(block)));
-                else { references.AddRange(FirstVisualFootnoteSegments(block, currentOpts.MarginLeft, width)); break; }
+                else { references.AddRange(FirstVisualFootnoteSegments(block, currentOpts.MarginLeft.ToPoints(), width)); break; }
             }
             if (!HasUnscheduledFootnote(references)) return;
-            double height = MeasureKeepWithNextChainHeight(blocks, start, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, 0D);
+            double height = MeasureKeepWithNextChainHeight(blocks, start, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), 0D);
             if (height > GetMaximumBlockContinuationHeight() + .001D) return;
             while (!TryReserveFootnotes(references, y - height, commit: false)) {
                 if (!HasCurrentPageBodyContent())
                     throw new ArgumentException("The kept body group and first footnote fragments exceed the available page body height.");
                 NewBlockFrame();
-                height = MeasureKeepWithNextChainHeight(blocks, start, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, 0D);
+                height = MeasureKeepWithNextChainHeight(blocks, start, currentOpts.MarginLeft.ToPoints(), width, currentOpts.DefaultFontSize.ToPoints(), 0D);
                 if (height > GetMaximumBlockContinuationHeight() + .001D) return;
             }
             TryReserveFootnotes(references, y - height, commit: true);
@@ -43,7 +43,7 @@ internal static partial class PdfWriter {
         private IEnumerable<RichSeg> FirstVisualFootnoteSegments(IPdfBlock block, double frameX, double frameWidth) {
             if (block is RichParagraphBlock paragraph) {
                 PdfParagraphStyle? style = EffectiveParagraphStyle(paragraph);
-                double size = style?.FontSize ?? currentOpts.DefaultFontSize;
+                double size = style?.FontSize?.ToPoints() ?? currentOpts.DefaultFontSize.ToPoints();
                 double leading = GetParagraphLeading(style, size);
                 var frame = GetParagraphTextFrame(style, frameX, frameWidth);
                 var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, frame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading,
@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
                 PdfHeadingStyle? style = ResolveHeadingStyle(heading, currentOpts);
                 double size = GetHeadingFontSize(heading, style);
                 double before = y < GetCurrentFramePageStartY() - .001D || style?.ApplySpacingBeforeAtTop == true
-                    ? style?.SpacingBefore ?? 0D : 0D;
+                    ? (style?.SpacingBefore.ToPoints()) ?? 0D : 0D;
                 var savedPictures = pictureAnchors.Working.ToArray();
                 try {
                     var wrap = WrapHeadingForFrame(heading, CreateHeadingTextRuns(heading, style, heading.Color ?? style?.Color),
@@ -69,13 +69,13 @@ internal static partial class PdfWriter {
                 }
             }
             if (block is PdfListBlock list) {
-                PreparedListLayout prepared = PrepareListLayout(list, frameWidth, currentOpts.DefaultFontSize, topLevelSpacing: true);
+                PreparedListLayout prepared = PrepareListLayout(list, frameWidth, currentOpts.DefaultFontSize.ToPoints(), topLevelSpacing: true);
                 return prepared.Items.Count == 0 ? Array.Empty<RichSeg>() : prepared.Items[0].TextLayout.Lines.Take(1).SelectMany(line => line);
             }
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
                 var frame = ResolveContainerFrame(container, style, frameX, frameWidth);
-                return FirstNestedFootnoteSegments(container.Blocks, frame.X + style.PaddingX, frame.ContentWidth);
+                return FirstNestedFootnoteSegments(container.Blocks, frame.X + style.PaddingX.ToPoints(), frame.ContentWidth);
             }
             if (block is TableBlock table) return GetFirstTableFootnoteSegments(table);
             if (block is FlowBlock { StaticBlocks: { } flow }) return FirstNestedFootnoteSegments(flow, frameX, frameWidth);

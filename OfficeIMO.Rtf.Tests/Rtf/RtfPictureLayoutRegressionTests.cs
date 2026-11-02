@@ -83,9 +83,9 @@ public class RtfPictureLayoutRegressionTests {
         using WordDocument word = document.ToWordDocument();
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word._wordprocessingDocument));
         WordImage output = Assert.Single(word.Images);
-        Assert.Equal(visibleWidth / 15d, output.Width);
-        Assert.Equal(padding ? -10000 : 10000, output.CropLeft);
-        Assert.Equal(20000, output.CropRight);
+        Assert.Equal(visibleWidth / 15d, (output.Width?.ToPixels()));
+        Assert.Equal(padding ? -10000 : 10000, (output.CropLeftRatio is double cropRatio3 ? (int?)System.Math.Round(cropRatio3 * 100000D, System.MidpointRounding.AwayFromZero) : null));
+        Assert.Equal(20000, (output.CropRightRatio is double cropRatio5 ? (int?)System.Math.Round(cropRatio5 * 100000D, System.MidpointRounding.AwayFromZero) : null));
         using var bytes = new MemoryStream();
         word.Save(bytes);
         bytes.Position = 0;
@@ -101,7 +101,7 @@ public class RtfPictureLayoutRegressionTests {
     public void Pdf_Handles_Cropping_And_Padding_And_Rejects_Empty_Visible_Areas() {
         foreach (bool padding in new[] { false, true }) {
             RtfDocument document = CreatePicture(padding);
-            var result = document.ToPdfDocumentResult();
+            var result = document.ConvertToPdfWithEvidence();
             Assert.DoesNotContain(result.Warnings, warning => warning.Code is "ImageCropPaddingFlattened" or "ImageCropDecodeFailed" or "ImageLayoutInvalid");
             using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.Value.ToBytes());
             Assert.Single(pdf.GetPage(1).GetImages());
@@ -117,7 +117,7 @@ public class RtfPictureLayoutRegressionTests {
         RtfDocument invalid = CreatePicture();
         Assert.IsType<RtfImage>(invalid.Blocks[0]).CropLeftTwips = 2000;
         Assert.Contains(invalid.ToHtmlResult(RtfToHtmlOptions.CreateRoundTripProfile()).RtfReport.Diagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
-        Assert.Contains(invalid.ToPdfDocumentResult().Warnings, item => item.Code == "ImageLayoutInvalid");
+        Assert.Contains(invalid.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ImageLayoutInvalid");
         Assert.Contains(invalid.ToWordDocumentResult().Report.Diagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
     }
 }

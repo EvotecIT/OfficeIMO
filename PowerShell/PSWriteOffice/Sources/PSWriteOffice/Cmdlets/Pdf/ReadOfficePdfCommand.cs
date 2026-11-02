@@ -27,13 +27,13 @@ public sealed class ReadOfficePdfCommand : PSCmdlet
     [Alias("FilePath")]
     public string Path { get; set; } = string.Empty;
 
-    /// <summary>An existing OfficeIMO.Pdf document, such as output from Get-OfficePdf.</summary>
+    /// <summary>An existing OfficeIMO.Pdf document, such as output from Open-OfficePdf.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     public PdfDocument? Document { get; set; }
 
     /// <summary>Advanced structured-read settings. Friendly parameters override the corresponding setting when explicitly supplied.</summary>
     [Parameter]
-    public PdfReadOptions? Options { get; set; }
+    public PdfLoadOptions? Options { get; set; }
 
     /// <summary>Semantic reconstruction profile. Structured is the default; Fast omits optional document-wide enrichment.</summary>
     [Parameter]
@@ -54,7 +54,7 @@ public sealed class ReadOfficePdfCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        PdfReadOptions effectiveOptions = CreateEffectiveOptions();
+        PdfLoadOptions effectiveOptions = CreateEffectiveOptions();
         PdfDocument document = ParameterSetName == ParameterSetDocument
             ? Document ?? throw new PSArgumentNullException(nameof(Document))
             : PdfDocument.Load(
@@ -64,13 +64,13 @@ public sealed class ReadOfficePdfCommand : PSCmdlet
         WriteObject(document.Read(effectiveOptions));
     }
 
-    private PdfReadOptions CreateEffectiveOptions()
+    private PdfLoadOptions CreateEffectiveOptions()
     {
-        PdfReadOptions source = Options?.Clone() ?? PdfReadOptions.Default;
+        PdfLoadOptions source = Options?.Clone() ?? new PdfLoadOptions();
         bool profileWasBound = MyInvocation.BoundParameters.ContainsKey(nameof(Profile));
         bool pageRangeWasBound = MyInvocation.BoundParameters.ContainsKey(nameof(PageRange));
 
-        return new PdfReadOptions
+        return new PdfLoadOptions
         {
             Profile = profileWasBound ? Profile : source.Profile,
             PageSelection = pageRangeWasBound

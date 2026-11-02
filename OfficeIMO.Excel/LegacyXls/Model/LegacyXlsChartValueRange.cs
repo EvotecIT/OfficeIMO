@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes decoded ValueRange chart-axis scaling metadata.
     /// </summary>
-    public sealed class LegacyXlsChartValueRange {
+    internal sealed class LegacyXlsChartValueRange {
         internal LegacyXlsChartValueRange(
             double minimum,
             double maximum,

@@ -100,7 +100,7 @@ public class WordCreateReportComparisonBenchmarks {
         using WordDocument document = WordDocument.Create();
         document.HeaderDefaultOrCreate.AddParagraph(WordBenchmarkCorpus.ReportHeader);
         document.FooterDefaultOrCreate.AddParagraph(WordBenchmarkCorpus.ReportFooter);
-        document.AddParagraph(WordBenchmarkCorpus.ReportTitle).SetBold().SetFontSize(18);
+        document.AddParagraph(WordBenchmarkCorpus.ReportTitle).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
         document.AddParagraph(WordBenchmarkCorpus.ReportSummary);
         WordTable table = document.AddTable(RowCount + 1, 2);
         table.SetCellText(0, 0, "Record", bold: true);

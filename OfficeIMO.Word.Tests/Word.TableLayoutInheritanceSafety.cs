@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             for (int index = 0; index < styleCount; index++) {
                 var style = new Style { Type = StyleValues.Table, StyleId = "Layout" + index };
                 if (index > 0) style.Append(new BasedOn { Val = "Layout" + (index - 1) });
-                else style.Append(new StyleTableProperties(new TableLayout { Type = TableLayoutValues.Fixed }));
+                else style.Append(new StyleTableProperties(new DocumentFormat.OpenXml.Wordprocessing.TableLayout { Type = TableLayoutValues.Fixed }));
                 styles.Append(style);
             }
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);

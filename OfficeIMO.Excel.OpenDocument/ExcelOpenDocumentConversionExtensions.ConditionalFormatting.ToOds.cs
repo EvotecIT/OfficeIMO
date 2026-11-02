@@ -18,7 +18,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static int ApplyExcelConditionalFormatting(ExcelSheet sourceSheet,
-        ExcelWorksheetSnapshot worksheet, OdsDocument document, OdsSheet targetSheet,
+        ExcelWorksheetInfo worksheet, OdsDocument document, OdsSheet targetSheet,
         ExcelOpenDocumentConversionOptions options, HashSet<(int Row, int Column)> materializedCoordinates,
         ref long materializedCells, ref bool truncated) {
         int ruleCount = worksheet.ConditionalFormattingRuleCount;
@@ -92,7 +92,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static bool TryGetExcelConditionalRange(string rangeText,
-        ExcelWorksheetSnapshot worksheet, ExcelOpenDocumentConversionOptions options,
+        ExcelWorksheetInfo worksheet, ExcelOpenDocumentConversionOptions options,
         out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
         firstRow = firstColumn = lastRow = lastColumn = 0;
         if (string.IsNullOrWhiteSpace(rangeText)
@@ -106,7 +106,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         firstColumn = parsed.Start.Column!.Value;
         lastRow = checked((int)end.Row!.Value);
         lastColumn = end.Column!.Value;
-        foreach (ExcelMergedRangeSnapshot merge in worksheet.MergedRanges) {
+        foreach (ExcelMergedRangeInfo merge in worksheet.MergedRanges) {
             if (merge.StartRow <= lastRow && merge.EndRow >= firstRow
                 && merge.StartColumn <= lastColumn && merge.EndColumn >= firstColumn) return false;
         }

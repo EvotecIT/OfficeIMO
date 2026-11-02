@@ -49,7 +49,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetParagraphSpacingBefore(PdfParagraphStyle? style) {
-        double spacingBefore = style?.SpacingBefore ?? 0;
+        double spacingBefore = style?.SpacingBefore.ToPoints() ?? 0;
         if (spacingBefore < 0 || double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore)) {
             throw new ArgumentException("Paragraph spacing before must be a non-negative finite value.");
         }
@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetParagraphSpacingAfter(PdfParagraphStyle? style, double leading) {
-        double spacingAfter = style?.SpacingAfter ?? leading * 0.3;
+        double spacingAfter = style?.SpacingAfter?.ToPoints() ?? leading * 0.3;
         if (spacingAfter < 0 || double.IsNaN(spacingAfter) || double.IsInfinity(spacingAfter)) {
             throw new ArgumentException("Paragraph spacing after must be a non-negative finite value.");
         }
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
     }
 
     private static double GetParagraphTabStopWidth(PdfParagraphStyle? style) {
-        double tabStopWidth = style?.DefaultTabStopWidth ?? DefaultParagraphTabStopWidth;
+        double tabStopWidth = style?.DefaultTabStopWidth?.ToPoints() ?? DefaultParagraphTabStopWidth;
         if (tabStopWidth <= 0 || double.IsNaN(tabStopWidth) || double.IsInfinity(tabStopWidth)) {
             throw new ArgumentException("Paragraph default tab stop width must be a positive finite value.");
         }
@@ -78,7 +78,7 @@ internal static partial class PdfWriter {
     private static PdfTabStop[]? GetParagraphTabStops(PdfParagraphStyle? style) =>
         style?.TabStops.Count > 0 ? style.TabStops.ToArray() : null;
 
-    private static PdfHeadingStyle? ResolveHeadingStyle(HeadingBlock block, PdfOptions options) {
+    private static PdfHeadingStyle? ResolveHeadingStyle(HeadingBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultHeadingStylesSnapshot?.GetSnapshot(block.Level);
     }
 
@@ -98,12 +98,12 @@ internal static partial class PdfWriter {
         return style?.Bold ?? true;
     }
 
-    private static PdfStandardFont GetHeadingFont(PdfOptions options, PdfHeadingStyle? style) {
+    private static PdfStandardFont GetHeadingFont(PdfCreateOptions options, PdfHeadingStyle? style) {
         var normalFont = ChooseNormal(style?.Font ?? options.DefaultFont);
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
 
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, global::OfficeIMO.OfficeColor? color) =>
         heading.Runs ?? System.Array.AsReadOnly(new[] {
             new PdfTextRun(
                 heading.Text,
@@ -117,8 +117,31 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? "F2" : "F1";
     }
 
-    private static PdfListStyle? ResolveListStyle(PdfListBlock block, PdfOptions options) {
-        return block.Style ?? options.DefaultListStyleSnapshot;
+    // A list's own style overrides the document default field by field: values it leaves unset, such as
+    // the theme's marker colour, still come from the default list style.
+    private static PdfListStyle? ResolveListStyle(PdfListBlock block, PdfCreateOptions options) {
+        PdfListStyle? defaults = options.DefaultListStyleSnapshot;
+        if (block.Style == null || defaults == null) return block.Style ?? defaults;
+        PdfListStyle style = block.Style.Clone();
+        style.FontSize ??= defaults.FontSize;
+        if (style.LineSpacing == null && style.LineHeight == null) {
+            style.LineSpacing = defaults.LineSpacing;
+            style.LineHeight = defaults.LineHeight;
+        }
+        style.MarkerGap ??= defaults.MarkerGap;
+        style.MarkerWidth ??= defaults.MarkerWidth;
+        style.SpacingAfter ??= defaults.SpacingAfter;
+        style.ItemSpacing ??= defaults.ItemSpacing;
+        style.Color ??= defaults.Color;
+        style.MarkerColor ??= defaults.MarkerColor;
+        style.MarkerAlign ??= defaults.MarkerAlign;
+        if (style.MarkerFont == null && style.MarkerFontFamily == null) {
+            style.MarkerFont = defaults.MarkerFont;
+            style.MarkerFontFamily = defaults.MarkerFontFamily;
+        }
+        style.MarkerFontSize ??= defaults.MarkerFontSize;
+        style.MarkerFeatureSettings ??= defaults.MarkerFeatureSettings;
+        return style;
     }
 
     private static double GetListFontSize(PdfListStyle? style, double defaultFontSize) {
@@ -141,11 +164,11 @@ internal static partial class PdfWriter {
                 _ => 1D
             };
         }
-        return Math.Max(estimatedWidth, style?.MarkerWidth ?? estimatedWidth);
+        return Math.Max(estimatedWidth, ((style?.MarkerWidth)?.ToPoints()) ?? estimatedWidth);
     }
 
     private static double GetListMarkerFontSize(PdfListStyle? style, double listFontSize) {
-        return style?.MarkerFontSize ?? listFontSize;
+        return ((style?.MarkerFontSize)?.ToPoints()) ?? listFontSize;
     }
 
     private static PdfStandardFont GetListMarkerFont(PdfListStyle? style, PdfStandardFont defaultFont) {
@@ -165,7 +188,7 @@ internal static partial class PdfWriter {
         return normalFont;
     }
 
-    private static PdfNamedFontFace? GetListMarkerNamedFont(PdfListStyle? style, PdfOptions options) {
+    private static PdfNamedFontFace? GetListMarkerNamedFont(PdfListStyle? style, PdfCreateOptions options) {
         if (style == null ||
             !options.TryResolveNamedFontFace(style.MarkerFontFamily, style.MarkerBold, style.MarkerItalic, out PdfNamedFontFace namedFont)) {
             return null;
@@ -187,26 +210,26 @@ internal static partial class PdfWriter {
     }
 
 
-    private static PdfHorizontalRuleStyle ResolveHorizontalRuleStyle(HorizontalRuleBlock block, PdfOptions options) {
+    private static PdfHorizontalRuleStyle ResolveHorizontalRuleStyle(HorizontalRuleBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultHorizontalRuleStyleSnapshot ?? new PdfHorizontalRuleStyle();
     }
 
-    private static PdfImageStyle ResolveImageStyle(ImageBlock block, PdfOptions options) {
+    private static PdfImageStyle ResolveImageStyle(ImageBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultImageStyleSnapshot ?? new PdfImageStyle();
     }
 
-    private static PdfDrawingStyle ResolveDrawingStyle(ShapeBlock block, PdfOptions options) {
+    private static PdfDrawingStyle ResolveDrawingStyle(ShapeBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultDrawingStyleSnapshot ?? new PdfDrawingStyle();
     }
 
-    private static PdfDrawingStyle ResolveDrawingStyle(DrawingBlock block, PdfOptions options) {
+    private static PdfDrawingStyle ResolveDrawingStyle(DrawingBlock block, PdfCreateOptions options) {
         return block.Style ?? options.DefaultDrawingStyleSnapshot ?? new PdfDrawingStyle();
     }
 
     private static (double X, double Width, double FirstLineX, double FirstLineWidth) GetParagraphTextFrame(PdfParagraphStyle? style, double x, double width) {
-        double leftIndent = style?.LeftIndent ?? 0;
-        double rightIndent = style?.RightIndent ?? 0;
-        double firstLineIndent = style?.FirstLineIndent ?? 0;
+        double leftIndent = style?.LeftIndent.ToPoints() ?? 0;
+        double rightIndent = style?.RightIndent.ToPoints() ?? 0;
+        double firstLineIndent = style?.FirstLineIndent.ToPoints() ?? 0;
         if (double.IsNaN(leftIndent) || double.IsInfinity(leftIndent)) {
             throw new ArgumentException("Paragraph left indent must be a finite value.");
         }

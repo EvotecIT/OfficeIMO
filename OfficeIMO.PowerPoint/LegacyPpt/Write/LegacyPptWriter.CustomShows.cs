@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordNamedShow = 0x0411;
         private const ushort RecordNamedShowSlides = 0x0412;
 
-        internal static bool TryReadCustomShows(PowerPointPresentation presentation,
+        internal static bool TryReadCustomShows(PowerPointDocument presentation,
             out LegacyPptWriterCustomShowCatalog catalog, out string? reason) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             catalog = new LegacyPptWriterCustomShowCatalog();

@@ -17,7 +17,7 @@ public class PdfTextShapingProviderTests {
         foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases) {
             byte[] fontData = LoadTypographyFont(evidence);
             var report = new PdfConversionReport();
-            var options = new PdfOptions { CompressContentStreams = false }
+            var options = new PdfCreateOptions { CompressContentStreams = false }
                 .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
                 .SetLanguage(evidence.Language)
@@ -25,7 +25,7 @@ public class PdfTextShapingProviderTests {
 
             byte[] bytes = PdfDocument.Create(options)
                 .Paragraph(paragraph => paragraph.FontFamily(evidence.Family).Text(evidence.Text))
-                .ToBytes();
+                .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             string extracted = PdfReadDocument.Open(bytes).ExtractText();
             foreach (string logicalToken in evidence.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -51,21 +51,21 @@ public class PdfTextShapingProviderTests {
             .AddFont(evidence.Family, fontData)
             .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D, new OfficeFontInfo(evidence.Family, 36D));
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 180D,
-                PageHeight = 240D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(180D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(240D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetLanguage(evidence.Language)
             .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
 
-        byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
@@ -90,12 +90,12 @@ public class PdfTextShapingProviderTests {
             .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
                 new OfficeFontInfo(evidence.Family, 36D));
         var report = new PdfConversionReport();
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetTextShapingProvider(provider)
             .ReportDiagnosticsTo(report, "Incomplete vertical advances");
 
-        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(provider.Requests, request => request.Direction == OfficeTextDirection.TopToBottom);
         Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
@@ -121,12 +121,12 @@ public class PdfTextShapingProviderTests {
             .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
                 new OfficeFontInfo(evidence.Family, 36D));
         var report = new PdfConversionReport();
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetTextShapingProvider(provider)
             .ReportDiagnosticsTo(report, "Partial vertical run");
 
-        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Single(report.FidelityDiagnostics, diagnostic =>
@@ -135,8 +135,10 @@ public class PdfTextShapingProviderTests {
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
-    [Fact]
-    public void VerticalProviderWithBaselineRelativeOffsetsAlignsInkBeforePdfClipping() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VerticalProviderWithBaselineRelativeOffsetsAlignsInkBeforePdfClipping(bool bold) {
         TypographyEvidenceCase evidence = Assert.Single(TypographyEvidenceCorpus.Cases,
             item => item.Direction == OfficeTextDirection.TopToBottom);
         byte[] fontData = LoadTypographyFont(evidence);
@@ -150,18 +152,18 @@ public class PdfTextShapingProviderTests {
         var drawing = new OfficeDrawing(120D, 180D)
             .AddFont(evidence.Family, fontData)
             .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
-                new OfficeFontInfo(evidence.Family, 20D));
+                new OfficeFontInfo(evidence.Family, 20D, bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular));
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
-                CompressContentStreams = false, PageWidth = 120D, PageHeight = 180D,
-                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+        var options = new PdfCreateOptions {
+                CompressContentStreams = false, PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetTextShapingProvider(provider)
             .ReportDiagnosticsTo(report, "Baseline-relative vertical glyphs");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)))
             .ToBytes();
         PixelBounds bounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf)));
 
@@ -190,7 +192,7 @@ public class PdfTextShapingProviderTests {
             .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
                 new OfficeFontInfo(evidence.Family, 20D), OfficeColor.FromRgba(255, 0, 0, alpha));
         var report = new PdfConversionReport();
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
             .SetTextShapingProvider(new DirectionRecordingTextShapingProvider(evidence.Text, glyphs))
             .ReportDiagnosticsTo(report, "Vertical alpha");
@@ -225,12 +227,12 @@ public class PdfTextShapingProviderTests {
         var drawing = new OfficeDrawing(100D, 100D)
             .AddVerticalText(value, 10D, 10D, 80D, 80D, new OfficeFontInfo(family, 24D));
         var report = new PdfConversionReport();
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
             .SetTextShapingProvider(provider)
             .ReportDiagnosticsTo(report, "Malformed CFF glyph");
 
-        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(provider.Requests, request =>
             request.Direction == OfficeTextDirection.TopToBottom && request.IsOpenTypeCff);
@@ -253,19 +255,19 @@ public class PdfTextShapingProviderTests {
         var drawing = new OfficeDrawing(100D, 160D)
             .AddActualTextDrawing(evidence.Text, paint, 50D, 20D);
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = 140D,
-                PageHeight = 200D,
-                MarginLeft = 20D,
-                MarginRight = 20D,
-                MarginTop = 20D,
-                MarginBottom = 20D
+                PageWidth = global::OfficeIMO.OfficeLength.Points(140D),
+                PageHeight = global::OfficeIMO.OfficeLength.Points(200D),
+                MarginLeft = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginTop = global::OfficeIMO.OfficeLength.Points(20D),
+                MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Pdf.Tests")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData));
 
-        byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Single(report.FidelityDiagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
@@ -294,7 +296,7 @@ public class PdfTextShapingProviderTests {
             glyphs.Add(new OfficeShapedGlyph(glyphId, value[index].ToString(), index, fontProgram.UnitsPerEm / 2));
         }
         var provider = new DirectionRecordingTextShapingProvider(value, glyphs);
-        var options = new PdfOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { CompressContentStreams = false }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
             .SetTextShapingProvider(provider);
 
@@ -330,20 +332,20 @@ public class PdfTextShapingProviderTests {
             Assert.True(OfficeSvgDrawingReader.TryRead(svg, svgOptions, out OfficeDrawing? svgDrawing), evidence.Name);
             PixelBounds svgBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(svgDrawing!, rasterOptions));
 
-            var pdfOptions = new PdfOptions {
-                    PageWidth = 600D,
-                    PageHeight = 140D,
-                    MarginLeft = 0D,
-                    MarginRight = 0D,
-                    MarginTop = 0D,
-                    MarginBottom = 0D
+            var pdfOptions = new PdfCreateOptions {
+                    PageWidth = global::OfficeIMO.OfficeLength.Points(600D),
+                    PageHeight = global::OfficeIMO.OfficeLength.Points(140D),
+                    MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
+                    MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
+                    MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
+                    MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
                 }
                 .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
                 .SetLanguage(evidence.Language)
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
             byte[] pdf = PdfDocument.Create(pdfOptions)
-                .Canvas(canvas => canvas.Drawing(drawing, 20D, 20D, 560D, 100D))
-                .ToBytes();
+                .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(560D), global::OfficeIMO.OfficeLength.Points(100D)))
+                .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             PixelBounds pdfBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf), rasterOptions));
 
             AssertGeometryClose(directBounds, svgBounds, evidence.Name + " raster/SVG", offsetX: 0, offsetY: 0);
@@ -405,11 +407,11 @@ public class PdfTextShapingProviderTests {
         Assert.Equal(0, successes);
 
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report)
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Diagnosed lam-alef");
         if (explicitManaged) options.UseManagedTextShaping();
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping"
@@ -442,11 +444,11 @@ public class PdfTextShapingProviderTests {
             Assert.Equal(0, successes);
         }
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report)
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Managed Marks");
         if (explicitManaged) options.UseManagedTextShaping();
 
-        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(text)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.True(report.HasLoss);
@@ -473,7 +475,7 @@ public class PdfTextShapingProviderTests {
         Assert.Contains(run.Glyphs, glyph => glyph.AdvanceWidth1000 == 0 && glyph.OffsetY1000 != 0);
 
         var report = new PdfConversionReport();
-        var options = new PdfOptions().ReportDiagnosticsTo(report)
+        var options = new PdfCreateOptions().ReportDiagnosticsTo(report)
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Noto Arabic Marks", fontData));
         if (explicitManaged) options.UseManagedTextShaping();
         byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.FontFamily("Noto Arabic Marks").Text(text)).ToBytes();
@@ -499,7 +501,7 @@ public class PdfTextShapingProviderTests {
 
         var provider = new MappingTextShapingProvider(text, isOpenTypeCff: false, CreateGlyphMap(text, fontProgram));
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
@@ -532,7 +534,7 @@ public class PdfTextShapingProviderTests {
 
         var provider = new DecliningTextShapingProvider();
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
@@ -541,7 +543,7 @@ public class PdfTextShapingProviderTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text(text))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
         Assert.True(provider.CallCount >= 1);
@@ -572,7 +574,7 @@ public class PdfTextShapingProviderTests {
             new[] { PdfStandardFont.TimesRoman });
         var provider = new MappingTextShapingProvider(text, isOpenTypeCff: false, CreateGlyphMap(text, fontProgram));
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
@@ -610,7 +612,7 @@ public class PdfTextShapingProviderTests {
             new[] { PdfStandardFont.TimesRoman });
         var provider = new DecliningTextShapingProvider();
         var report = new PdfConversionReport();
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
@@ -619,7 +621,7 @@ public class PdfTextShapingProviderTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text(text))
-            .ToBytes();
+            .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
@@ -650,7 +652,7 @@ public class PdfTextShapingProviderTests {
                 new OfficeShapedGlyph(cGlyphId, "c", 4),
                 new OfficeShapedGlyph(eGlyphId, "e", 5)
             });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }
@@ -690,7 +692,7 @@ public class PdfTextShapingProviderTests {
                 new OfficeShapedGlyph(aGlyphId, "A", 0, halfEm),
                 new OfficeShapedGlyph(bGlyphId, "B", 1, halfEm, offsetX, offsetY)
             });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false
             }
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Positioned Provider Font")
@@ -733,9 +735,9 @@ public class PdfTextShapingProviderTests {
                 new OfficeShapedGlyph(aGlyphId, "A", 0, fontProgram.UnitsPerEm),
                 new OfficeShapedGlyph(bGlyphId, "B", 1, fontProgram.UnitsPerEm, 0, offsetY)
             });
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                DefaultFontSize = 12D
+                DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D)
             }
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Positioned Superscript Font")
             .SetTextShapingProvider(provider);

@@ -87,7 +87,7 @@ public sealed class StudioAnnotationSelectionTests {
                 await model.GroupAnnotationsCommand.ExecuteAsync(null);
                 Assert.Null(model.ErrorMessage);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                var grouped = PdfDocument.Load(File.ReadAllBytes(saved));
+                var grouped = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved)));
                 Assert.Single(grouped.Inspect().Annotations, annotation => annotation.Review?.IsGroup == true);
                 var annotation = grouped.Inspect().Annotations.First(item => item.Name == "square");
                 model.Pages[0].SelectObject(new(PdfEditorSelectionKind.Annotation, 1, new(60, 140, 140, 200), ObjectNumber: annotation.ObjectNumber, Subtype: "Square"));
@@ -96,6 +96,7 @@ public sealed class StudioAnnotationSelectionTests {
                 window.UpdateLayout(); await model.SelectedPage!.EnsureRenderedAsync(); window.UpdateLayout();
                 canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control =>
                     control.Scene?.PageNumber == 1 && control.SelectionMode == PdfEditorSelectionMode.Annotations);
+                double pointerTolerance = canvas.Scene!.Drawing.Width / canvas.Bounds.Width;
                 window.MouseDown(At(100, 170), MouseButton.Left);
                 window.MouseMove(At(125, 160), RawInputModifiers.LeftMouseButton);
                 window.MouseUp(At(125, 160), MouseButton.Left);
@@ -104,13 +105,15 @@ public sealed class StudioAnnotationSelectionTests {
                 }
                 Assert.Null(model.ErrorMessage);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                var moved = PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations.Where(item => item.Name is "square" or "circle").ToArray();
-                // Headless pointer delivery rounds device pixels; both members must receive the same translation.
-                Assert.InRange(moved.Single(item => item.Name == "square").X1, 84, 86);
+                var moved = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations.Where(item => item.Name is "square" or "circle").ToArray();
+                // Dragging can snap within four page points of a nearby edge; pointer delivery also rounds pixels.
+                // Both members must still receive exactly the same translation.
+                Assert.InRange(moved.Single(item => item.Name == "square").X1,
+                    85 - 4 - pointerTolerance, 85 + 4 + pointerTolerance);
                 Assert.Equal(100, moved.Single(item => item.Name == "circle").X1 - moved.Single(item => item.Name == "square").X1, 7);
                 await model.UndoCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                var undone = PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations;
+                var undone = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations;
                 Assert.Equal(60, undone.Single(item => item.Name == "square").X1);
                 Assert.Equal(160, undone.Single(item => item.Name == "circle").X1);
                 Assert.Single(undone, item => item.Review?.IsGroup == true);
@@ -140,7 +143,7 @@ public sealed class StudioAnnotationSelectionTests {
                 }
                 Assert.Null(model.ErrorMessage);
                 await model.SaveAsCommand.ExecuteAsync(null);
-                var nudged = PdfDocument.Load(File.ReadAllBytes(saved)).Inspect().Annotations;
+                var nudged = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations;
                 Assert.Equal(61, nudged.Single(item => item.Name == "square").X1);
                 Assert.Equal(161, nudged.Single(item => item.Name == "circle").X1);
                 await model.UndoCommand.ExecuteAsync(null);
@@ -193,10 +196,10 @@ public sealed class StudioAnnotationSelectionTests {
         Directory.CreateDirectory(root);
         try {
             string path = Path.Combine(root, "annotations.pdf");
-            PdfDocument.Load(CreateSource()).Pages.SetCropBox(20, 30, 580, 770, 1).Pages.Rotate(rotation, 1).Save(path);
+            PdfDocument.Load(new System.IO.MemoryStream(CreateSource())).Pages.SetCropBox(20, 30, 580, 770, 1).Pages.Rotate(rotation, 1).Save(path);
             using var workspace = await PdfWorkspace.OpenAsync(path, CancellationToken.None, new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")));
             var before = workspace.DocumentInfo!.Annotations.Take(2).ToArray();
-            var page = workspace.CreateDocumentSnapshot().Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }).Pages[0];
+            var page = workspace.CreateDocumentSnapshot().Read(new PdfLoadOptions { Profile = PdfReadProfile.Fast }).Pages[0];
             var selections = before.Select(annotation => {
                 var quad = page.MapUserSpaceRectangleToVisual(annotation.X1, annotation.Y1, annotation.X2, annotation.Y2);
                 return new PdfEditorSelection(PdfEditorSelectionKind.Annotation, 1, new(quad.Left, quad.Top, quad.Right, quad.Bottom),
@@ -221,8 +224,10 @@ public sealed class StudioAnnotationSelectionTests {
     }
 
     private static byte[] CreateSource() {
-        var document = PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800).Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text("Annotation selection workspace"))))));
+        // Keep body text away from the group drag's horizontal snap guides.
+        var document = PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content =>
+            content.Item(item => item.Paragraph(paragraph => paragraph.Text("Annotation selection workspace"),
+                style: new PdfParagraphStyle { LeftIndent = global::OfficeIMO.OfficeLength.Points(360) })))));
         document = document.Annotations.Add(new PdfAnnotationCreateOptions { Subtype = "Square", Name = "square", Contents = "Review box",
             Rectangle = new[] { 60D, 600D, 140D, 660D }, Color = new[] { 0.9D, 0.2D, 0.2D }, GenerateAppearance = true }).ToDocument();
         document = document.Annotations.Add(new PdfAnnotationCreateOptions { Subtype = "Circle", Name = "circle", Contents = "Review circle",

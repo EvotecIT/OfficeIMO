@@ -93,9 +93,9 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     /// <summary>Parsed inline representation of the current data rows.</summary>
     public IReadOnlyList<IReadOnlyList<InlineSequence>> RowInlines => BuildRowInlines();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
-    public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
-    /// <summary>Optional fixed column widths in points. Null entries are sized by weights or defaults.</summary>
-    public List<double?> ColumnWidthPoints { get; } = new List<double?>();
+    public List<MarkdownColumnAlignment> Alignments { get; } = new List<MarkdownColumnAlignment>();
+    /// <summary>Optional fixed physical column widths. Null entries are sized by weights or defaults.</summary>
+    public List<OfficeLength?> ColumnWidths { get; } = new List<OfficeLength?>();
     /// <summary>Optional relative column width weights. Missing columns default to 1.0 in consumers that support widths.</summary>
     public List<double> ColumnWidthWeights { get; } = new List<double>();
     /// <summary>Number of rows skipped due to table limits.</summary>
@@ -117,7 +117,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
     // When a table is produced by the reader, we keep the parse options/state so inline parsing in cells
     // (links/emphasis/etc) can honor URL safety settings and reference-style link definitions.
-    internal MarkdownReaderOptions? InlineRenderOptions { get; set; }
+    internal MarkdownLoadOptions? InlineRenderOptions { get; set; }
     internal MarkdownReaderState? InlineRenderState { get; set; }
 
     internal void SetParsedCells(
@@ -214,7 +214,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             var alignRow = new string[columnCount];
             for (int i = 0; i < columnCount; i++) {
                 var a = GetAlignment(i);
-                alignRow[i] = a switch { ColumnAlignment.Left => ":---", ColumnAlignment.Center => ":---:", ColumnAlignment.Right => "---:", _ => "---" };
+                alignRow[i] = a switch { MarkdownColumnAlignment.Left => ":---", MarkdownColumnAlignment.Center => ":---:", MarkdownColumnAlignment.Right => "---:", _ => "---" };
             }
             AppendRow(sb, alignRow);
 
@@ -256,6 +256,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
+        bool[] numericColumns = ResolveNumericColumns();
         sb.Append("<table").Append(MarkdownHtmlAttributes.Render(Attributes, null)).Append(">");
         AppendColumnGroupHtml(sb, GetEffectiveColumnCount());
         var headerCells = HeaderCells;
@@ -273,7 +274,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             int headerRenderCount = GetHtmlRenderCellCount(preparedHeaders.Count, preparedStructuredHeaders);
             for (int i = 0; i < headerRenderCount; i++) {
                 var h = preparedHeaders[i];
-                var style = GetAlignment(i);
+                var style = GetHtmlAlignment(i, numericColumns);
                 TableCell? structuredCell = preparedStructuredHeaders?[i];
                 sb.Append($"<th{RenderCellAttributes(structuredCell, style)}>");
                 sb.Append(RenderCellHtml(h, structuredCell, preparedParsedHeaders?[i]));
@@ -297,7 +298,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 int renderCellCount = GetHtmlRenderCellCount(cells.Count, structuredCells);
                 for (int i = 0; i < renderCellCount; i++) {
                     var cell = cells[i];
-                    var style = GetAlignment(i);
+                    var style = GetHtmlAlignment(i, numericColumns);
                     TableCell? structuredCell = structuredCells?[i];
                     sb.Append($"<td{RenderCellAttributes(structuredCell, style)}>");
                     sb.Append(RenderCellHtml(cell, structuredCell, parsedCells?[i]));
@@ -361,8 +362,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
 
         sb.Append("<colgroup>");
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            double? fixedWidth = columnIndex < ColumnWidthPoints.Count ? ColumnWidthPoints[columnIndex] : null;
-            if (fixedWidth.HasValue && fixedWidth.Value > 0D && !double.IsNaN(fixedWidth.Value) && !double.IsInfinity(fixedWidth.Value)) {
+            double? fixedWidth = columnIndex < ColumnWidths.Count ? ColumnWidths[columnIndex]?.ToPoints() : null;
+            if (fixedWidth.HasValue && fixedWidth.Value > 0D) {
                 sb.Append("<col style=\"width:");
                 sb.Append(fixedWidth.Value.ToString("0.###", CultureInfo.InvariantCulture));
                 sb.Append("pt\">");
@@ -374,7 +375,8 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
                 continue;
             }
 
-            double weight = columnIndex < ColumnWidthWeights.Count && ColumnWidthWeights[columnIndex] > 0D
+            double weight = columnIndex < ColumnWidthWeights.Count && ColumnWidthWeights[columnIndex] > 0D &&
+                !double.IsNaN(ColumnWidthWeights[columnIndex]) && !double.IsInfinity(ColumnWidthWeights[columnIndex])
                 ? ColumnWidthWeights[columnIndex]
                 : 1D;
             double percentage = weight / totalWeight * 100D;
@@ -392,7 +394,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         }
 
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-            if (columnIndex < ColumnWidthPoints.Count && ColumnWidthPoints[columnIndex].HasValue) {
+            if (columnIndex < ColumnWidths.Count && ColumnWidths[columnIndex].HasValue) {
                 return true;
             }
         }
@@ -400,7 +402,42 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         return ColumnWidthWeights.Count > 0;
     }
 
-    private static string RenderCellAttributes(TableCell? cell, ColumnAlignment alignment) {
+    private MarkdownColumnAlignment GetHtmlAlignment(int index, bool[] numericColumns) {
+        MarkdownColumnAlignment authored = GetAlignment(index);
+        return authored == MarkdownColumnAlignment.None && index < numericColumns.Length && numericColumns[index]
+            ? MarkdownColumnAlignment.Right
+            : authored;
+    }
+
+    // Styled HTML right-aligns columns of numbers that the source left unaligned, as the visual design asks.
+    // Plain and GitHub-compatible output keep the source alignment exactly.
+    private bool[] ResolveNumericColumns() {
+        var options = HtmlRenderContext.Options;
+        if (options == null || options.Style == MarkdownHtmlStyle.Plain || options.GitHubTaskListHtml || Rows.Count == 0) {
+            return Array.Empty<bool>();
+        }
+
+        int columnCount = GetEffectiveColumnCount();
+        var numeric = new bool[columnCount];
+        for (int column = 0; column < columnCount; column++) {
+            bool any = false;
+            bool all = true;
+            foreach (IReadOnlyList<string> row in Rows) {
+                string value = column < row.Count ? row[column] ?? string.Empty : string.Empty;
+                if (value.Trim().Length == 0) continue;
+                any = true;
+                if (!global::OfficeIMO.Internal.OfficeThemeCssTokens.IsNumericText(value.Replace("\\", string.Empty).Replace("*", string.Empty))) {
+                    all = false;
+                    break;
+                }
+            }
+            numeric[column] = any && all;
+        }
+
+        return numeric;
+    }
+
+    private static string RenderCellAttributes(TableCell? cell, MarkdownColumnAlignment alignment) {
         if (cell == null) {
             return RenderStyleAttribute(alignment, null);
         }
@@ -429,15 +466,15 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
         return attributes?.ToString() ?? string.Empty;
     }
 
-    private static string RenderStyleAttribute(ColumnAlignment alignment, TableCell? cell) {
+    private static string RenderStyleAttribute(MarkdownColumnAlignment alignment, TableCell? cell) {
         StringBuilder? style = null;
-        ColumnAlignment effectiveAlignment = cell != null && cell.Alignment != ColumnAlignment.None ? cell.Alignment : alignment;
-        if (effectiveAlignment != ColumnAlignment.None) {
+        MarkdownColumnAlignment effectiveAlignment = cell != null && cell.Alignment != MarkdownColumnAlignment.None ? cell.Alignment : alignment;
+        if (effectiveAlignment != MarkdownColumnAlignment.None) {
             style ??= new StringBuilder();
             style.Append("text-align:");
             style.Append(effectiveAlignment switch {
-                ColumnAlignment.Center => "center",
-                ColumnAlignment.Right => "right",
+                MarkdownColumnAlignment.Center => "center",
+                MarkdownColumnAlignment.Right => "right",
                 _ => "left"
             });
         }

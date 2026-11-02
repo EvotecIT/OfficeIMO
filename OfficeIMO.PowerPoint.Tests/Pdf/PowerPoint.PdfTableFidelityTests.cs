@@ -15,15 +15,15 @@ public sealed class PowerPointPdfTableFidelityTests {
         // Minimal reproduction of p3-dense-layout: 76/56pt columns, 18/22pt
         // rows, empty tcPr/bodyPr and unsized runs using Medium Style 2 Accent 1.
         using var saved = new MemoryStream();
-        using (var presentation = PowerPointPresentation.Create()) {
-            presentation.SlideSize.SetSizePoints(300, 200);
+        using (var presentation = PowerPointDocument.Create()) {
+            presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
             presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-            var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 30, 132, 40);
+            var table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(132),global::OfficeIMO.OfficeLength.Points(40));
             table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
             table.FirstRow = true;
             table.BandedRows = true;
-            table.SetColumnWidthsPoints(76, 56);
-            table.SetRowHeightsPoints(18, 22);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(76),global::OfficeIMO.OfficeLength.Points(56));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(22));
             table.GetCell(0, 0).Text = "Section";
             table.GetCell(0, 1).Text = "Status";
             table.GetCell(1, 0).Text = "Packed";
@@ -32,16 +32,16 @@ public sealed class PowerPointPdfTableFidelityTests {
             presentation.Save(saved);
         }
         saved.Position = 0;
-        using var reopened = PowerPointPresentation.Load(saved);
-        var conversion = reopened.ToPdfDocumentResult();
+        using var reopened = PowerPointDocument.Load(saved);
+        var conversion = reopened.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var style = item.Block.Style!;
-        Assert.Equal(7.2D, style.CellPaddingX);
-        Assert.Equal(3.6D, style.CellPaddingY);
+        Assert.Equal(7.2D, style.CellPaddingX.ToPoints());
+        Assert.Equal(3.6D, style.CellPaddingY.ToPoints());
         Assert.True(item.Height > 40D);
-        Assert.Equal(item.Height, style.RowMinHeights!.Sum(value => value!.Value), 5);
+        Assert.Equal(item.Height, style.RowMinHeights!.Sum(value => value!.Value.ToPoints()), 5);
         Assert.True(item.Block.Cells[0][1].ShrinkTextToFit);
-        Assert.Equal(PdfCore.PdfColor.White, Assert.Single(item.Block.Cells[0][1].Runs).Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.White, Assert.Single(item.Block.Cells[0][1].Runs).Color);
         Assert.True(Assert.Single(item.Block.Cells[0][1].Runs).Bold);
         Assert.False(Assert.Single(item.Block.Cells[1][0].Runs).Bold);
         Assert.Equal("Helvetica", Assert.Single(item.Block.Cells[0][1].Runs).FontFamily);
@@ -64,38 +64,38 @@ public sealed class PowerPointPdfTableFidelityTests {
     [InlineData(8)]
     [InlineData(24)]
     public void WrappedMergedCellGrowsItsRowsAndKeepsExplicitMarginsAndRunOverrides(int fontSize) {
-        using var presentation = PowerPointPresentation.Create();
-        presentation.SlideSize.SetSizePoints(400, 300);
+        using var presentation = PowerPointDocument.Create();
+        presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300));
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-        var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 240, 24);
+        var table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(24));
         table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
         table.FirstRow = true;
-        table.SetColumnWidthsPoints(120, 120);
-        table.SetRowHeightsPoints(12, 12);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(120));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(12));
         table.MergeCells(0, 0, 1, 0);
         var cell = table.GetCell(0, 0);
         cell.Text = "Alpha beta gamma delta epsilon zeta";
-        cell.FontSize = fontSize;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         cell.Bold = false;
         cell.Color = "FF0000";
-        cell.PaddingLeftPoints = 0;
-        cell.PaddingRightPoints = 9;
-        cell.PaddingTopPoints = 8;
-        cell.PaddingBottomPoints = 10;
+        cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0);
+        cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(9);
+        cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(8);
+        cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(10);
         table.GetCell(0, 1).Text = "Header";
         table.GetCell(1, 1).Text = "Tail";
 
-        var conversion = presentation.ToPdfDocumentResult();
+        var conversion = presentation.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var mapped = item.Block.Cells[0][0];
         Assert.Equal(2, mapped.RowSpan);
         Assert.False(mapped.ShrinkTextToFit);
         var run = Assert.Single(mapped.Runs);
         Assert.False(run.Bold);
-        Assert.Equal((double)fontSize, run.FontSize);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), run.Color);
-        Assert.Equal(0D, item.Block.Style!.CellPaddings![(0, 0)].Left);
-        Assert.Equal(10D, item.Block.Style.CellPaddings[(0, 0)].Bottom);
+        Assert.Equal((double)fontSize, (run.FontSize?.ToPoints()));
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), run.Color);
+        Assert.Equal(0D, item.Block.Style!.CellPaddings![(0, 0)].Left?.ToPoints());
+        Assert.Equal(10D, item.Block.Style.CellPaddings[(0, 0)].Bottom?.ToPoints());
         Assert.True(item.Height > 24D);
         byte[] bytes = conversion.ToBytes();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "table-cell-overflow");
@@ -105,23 +105,23 @@ public sealed class PowerPointPdfTableFidelityTests {
 
     [Fact]
     public void PlainTableHasNoPdfPresetFillAndLaterRunsDoNotInheritFirstRunsDirectFormatting() {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-        var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 60);
+        var table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         table.ApplyStyle(PowerPointTableStylePreset.Plain);
         table.StyleId = null;
         table.FirstRow = true;
         var cell = table.GetCell(0, 0);
         cell.Text = "Large";
         cell.Bold = true;
-        cell.FontSize = 28;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(28);
         cell.Color = "FF0000";
         cell.AddRun(" regular");
         // AddRun copies the template for editing convenience; unspecify the
         // second run to reproduce genuine imported runs with no local style.
         cell.Cell.TextBody!.Elements<A.Paragraph>().Single().Elements<A.Run>().Last().RunProperties = new A.RunProperties();
 
-        var conversion = presentation.ToPdfDocumentResult();
+        var conversion = presentation.ConvertToPdfWithEvidence();
         var item = TableItem(conversion.Value);
         var style = item.Block.Style!;
         Assert.Null(style.HeaderFill);
@@ -129,8 +129,8 @@ public sealed class PowerPointPdfTableFidelityTests {
         Assert.False(style.HeaderBold);
         Assert.True(item.Block.Cells[0][0].Runs[0].Bold);
         Assert.False(item.Block.Cells[0][0].Runs[1].Bold);
-        Assert.NotEqual(28D, item.Block.Cells[0][0].Runs[1].FontSize);
-        Assert.NotEqual(PdfCore.PdfColor.FromRgb(255, 0, 0), item.Block.Cells[0][0].Runs[1].Color);
+        Assert.NotEqual(28D, (item.Block.Cells[0][0].Runs[1].FontSize?.ToPoints()));
+        Assert.NotEqual(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), item.Block.Cells[0][0].Runs[1].Color);
         conversion.ToBytes();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "table-cell-overflow");
     }
@@ -139,14 +139,14 @@ public sealed class PowerPointPdfTableFidelityTests {
     [InlineData(false)]
     [InlineData(true)]
     public void LegacyTablePreviewRetainsRowsThatGrowBeyondTheAuthoredFrame(bool onMaster) {
-        using var presentation = PowerPointPresentation.Create();
+        using var presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-        var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 120, 12);
+        var table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(12));
         table.StyleId = null;
         var cell = table.GetCell(0, 0);
         cell.Text = "First\nSecond\nTail";
         cell.FontName = "Helvetica";
-        cell.FontSize = 18;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         if (onMaster) {
             // Legacy export wraps master frames without attaching them to a
             // consuming slide. Theme tokens must resolve through that part.
@@ -170,10 +170,10 @@ public sealed class PowerPointPdfTableFidelityTests {
         Assert.NotEmpty(preview.Elements);
         // Read back the actual preview, including text below the original
         // frame, rather than only checking its enlarged model dimensions.
-        var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
-            PageWidth = preview.Width,
-            PageHeight = preview.Height,
-            Margins = PdfCore.PageMargins.Uniform(0)
+        var pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
+            PageWidth = global::OfficeIMO.OfficeLength.Points(preview.Width),
+            PageHeight = global::OfficeIMO.OfficeLength.Points(preview.Height),
+            Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0))
         });
         pdf.Canvas(canvas => canvas.DrawingForClippedRendering(preview, 0, 0, preview.Width, preview.Height));
         byte[] bytes = pdf.ToBytes();

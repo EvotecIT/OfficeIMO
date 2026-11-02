@@ -228,7 +228,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
             }
 
             PdfCommandUtilities.EnsureDirectory(outputPath);
-            LoadRtfDocument().SaveAsPdf(outputPath, options).RequireSuccess();
+            LoadRtfDocument().SaveAsPdf(outputPath, options);
 
             if (PassThru.IsPresent)
             {
@@ -238,7 +238,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
             return;
         }
 
-        var document = LoadRtfDocument().ToPdfDocument(options);
+        var document = LoadRtfDocument().ToPdf(options);
         WriteObject(document);
     }
 
@@ -283,9 +283,9 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
         return LoadRtfDocument().ToWordDocument();
     }
 
-    private WordToHtmlOptions CreateWordToHtmlOptions()
+    private WordHtmlExportOptions CreateWordToHtmlOptions()
     {
-        var options = new WordToHtmlOptions
+        var options = new WordHtmlExportOptions
         {
             IncludeFontStyles = IncludeFontStyles.IsPresent,
             IncludeListStyles = IncludeListStyles.IsPresent,

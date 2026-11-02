@@ -8,13 +8,12 @@ Targeted updates are useful for recurring decks where the design should remain s
 
 ## Replace repeated text
 
-Open the presentation, run `Update-OfficePowerPointText`, and close it with `-Save`. Use `-IncludeNotes` when the same term must change in speaker notes; table text is included by default and can be controlled explicitly.
+Open the presentation in a content block to save the completed edit atomically. Use `-IncludeNotes` to update speaker notes and `-NoTables` to leave table cells unchanged. Supply `-Slide` with a native slide or a one-based slide number to limit the replacement.
 
 ```powershell
-$deck = Get-OfficePowerPoint -Path '.\FY24-Review.pptx'
-Update-OfficePowerPointText -Presentation $deck `
-    -OldValue FY24 -NewValue FY25 -IncludeNotes
-Close-OfficePowerPoint -Presentation $deck -Save
+Open-OfficePowerPoint -Path '.\FY24-Review.pptx' {
+    Update-OfficePowerPointText -OldValue FY24 -NewValue FY25 -IncludeNotes
+}
 ```
 
-Use targeted shape, table, notes, background, theme, layout, transition, and section commands when the change is structural. The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/5eec5f076636e14030c148538357aae4a6b6b5ab/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-UpdateExisting.ps1) demonstrates the complete lifecycle.
+Use targeted shape, table, notes, background, theme, layout, transition, and section commands when the change is structural. The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/e18316ebaee4f069f2c25ea99012f28b1e07071a/PowerShell/PSWriteOffice/Examples/PowerPoint/Recipe-PowerPoint-UpdateExisting.ps1) demonstrates the complete lifecycle.

@@ -10,6 +10,15 @@ namespace OfficeIMO.Drawing;
 /// document-specific layout policy in their own option types.
 /// </remarks>
 public class OfficeImageExportOptions {
+    /// <summary>Image encoding used by options-based exports.</summary>
+    public OfficeImageExportFormat Format { get; set; } = OfficeImageExportFormat.Png;
+
+    /// <summary>Controls an existing file at the requested output path.</summary>
+    public OfficeImageExportFileConflictPolicy FileConflictPolicy { get; set; } = OfficeImageExportFileConflictPolicy.FailIfExists;
+
+    /// <summary>Rejects fidelity loss before an image is written.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Default maximum number of pixels allocated for one raster export.</summary>
     public const long DefaultMaximumRasterPixels = 50_000_000L;
 
@@ -142,12 +151,16 @@ public class OfficeImageExportOptions {
         if (result == null) throw new ArgumentNullException(nameof(result));
         ValidateImageExportOptions();
         Policy.EnsureAccepted(result.Diagnostics);
+        if (FailOnLoss) OfficeImageExportEvidence.CreateReport(result.Source ?? "Image", result).ThrowIfLoss();
         return result;
     }
 
     /// <summary>Copies the shared image-export settings to another options instance.</summary>
     protected internal T CopyImageExportOptionsTo<T>(T target) where T : OfficeImageExportOptions {
         if (target == null) throw new ArgumentNullException(nameof(target));
+        target.Format = Format;
+        target.FileConflictPolicy = FileConflictPolicy;
+        target.FailOnLoss = FailOnLoss;
         target.Scale = Scale;
         target.MaximumOutputWidth = MaximumOutputWidth;
         target.MaximumOutputHeight = MaximumOutputHeight;
@@ -172,7 +185,7 @@ public class OfficeImageExportOptions {
     }
 
     /// <summary>
-    /// Creates the detached, validated snapshot consumed by one fluent export operation.
+    /// Creates the detached, validated snapshot consumed by one image export operation.
     /// Target-DPI-derived scale and density are intentionally resolved only on the snapshot.
     /// </summary>
     internal T CreateEffectiveImageExportOptions<T>() where T : OfficeImageExportOptions {
@@ -186,6 +199,8 @@ public class OfficeImageExportOptions {
 
     /// <summary>Validates the shared image-export settings.</summary>
     protected internal void ValidateImageExportOptions() {
+        if (!Enum.IsDefined(typeof(OfficeImageExportFormat), Format)) throw new ArgumentOutOfRangeException(nameof(Format));
+        if (!Enum.IsDefined(typeof(OfficeImageExportFileConflictPolicy), FileConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(FileConflictPolicy));
         ValidateScale(Scale, nameof(Scale));
         if (MaximumRasterPixels < 1L) {
             throw new ArgumentOutOfRangeException(nameof(MaximumRasterPixels), "Maximum raster pixels must be positive.");
