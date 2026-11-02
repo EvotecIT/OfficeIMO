@@ -54,9 +54,15 @@ namespace OfficeIMO.Excel {
                 EnsureMutationPlanCanInspectWithoutMaterializing();
                 MutationPlanScanBudget budget = CreateMutationPlanScanBudget(effective);
                 int last = firstColumn + count - 1;
-                PreflightColumnMutation(firstColumn, last, count, deleting, budget);
-                int cells = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
-                    .Count(item => item.Column >= firstColumn);
+                // One walk of the grid serves both checks; each still charges the budget for every cell it inspects.
+                int maximumCellColumn = 0, cells = 0, gridCells = 0;
+                foreach (var item in EnumerateCellsWithEffectiveCoordinates()) {
+                    gridCells++;
+                    if (item.Column > maximumCellColumn) maximumCellColumn = item.Column;
+                    if (item.Column >= firstColumn) cells++;
+                }
+                PreflightColumnMutation(firstColumn, last, count, deleting, budget, maximumCellColumn, gridCells);
+                for (int index = 0; index < gridCells; index++) budget.Consume();
                 if (cells > effective.MaximumAffectedCells) {
                     throw new InvalidOperationException($"Column mutation affects {cells} cells, exceeding MaximumAffectedCells ({effective.MaximumAffectedCells}).");
                 }
@@ -99,10 +105,12 @@ namespace OfficeIMO.Excel {
             int lastColumn,
             int count,
             bool deleting,
-            MutationPlanScanBudget? budget = null) {
+            MutationPlanScanBudget budget,
+            int maximumCellColumn,
+            int gridCells) {
             ValidatePackageMutationReferenceSafety(
                 "Structural column edits",
-                budget == null ? null : new Action(budget.Consume),
+                new Action(budget.Consume),
                 capacityTransform: reference => ExcelDocument.TransformColumnReference(
                     reference,
                     firstColumn,
@@ -115,9 +123,7 @@ namespace OfficeIMO.Excel {
             ValidateColumnConnectionParameters(firstColumn, count, deleting, budget);
             if (!deleting) ValidateColumnCommentVmlAnchorCapacity(firstColumn, count, budget);
             if (!deleting) {
-                int maximumCellColumn = InspectMutationPlanElements(EnumerateCellsWithEffectiveCoordinates(), budget)
-                    .Select(item => item.Column)
-                    .DefaultIfEmpty(0).Max();
+                for (int index = 0; index < gridCells; index++) budget.Consume();
                 int maximumDefinedColumn = InspectMutationPlanElements(WorksheetRoot.MetadataDescendants<Column>(), budget)
                     .Select(column => checked((int)(column.Max?.Value ?? column.Min?.Value ?? 0U)))
                     .DefaultIfEmpty(0).Max();
