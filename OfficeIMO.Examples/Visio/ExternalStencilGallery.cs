@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Visio {
                 FontFamily = "Aptos",
                 Size = 8.2D,
                 Color = Color.FromRgb(91, 101, 112),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 

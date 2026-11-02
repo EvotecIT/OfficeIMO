@@ -134,7 +134,7 @@ public sealed partial class VisioMasterReplacementTests {
         foreach (VisioDocument candidate in new[] { document, Reopen(document, format) }) {
             VisioShape retained = candidate.Pages[0].Shapes[0];
             Assert.Equal("Retained text", retained.Text); Assert.Equal(12, retained.TextStyle!.Size!.Value, 8);
-            Assert.Equal(VisioTextHorizontalAlignment.Center, retained.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Center, retained.TextStyle.HorizontalAlignment);
             XElement pageShape = XDocument.Load(new MemoryStream(candidate.ToLegacyXmlResult().Value)).Descendants(Legacy + "Page").Single().Descendants(Legacy + "Shape").Single();
             Assert.Equal("7", Assert.Single(pageShape.Elements(Legacy + "Char")).Attribute("IX")!.Value);
             Assert.Equal("9", Assert.Single(pageShape.Elements(Legacy + "Para")).Attribute("IX")!.Value);

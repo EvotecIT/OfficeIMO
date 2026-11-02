@@ -20,7 +20,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             ShowPageNumbers = true,
             FooterFormat = "Footer check",
             FooterFont = PdfStandardFont.HelveticaBold,
-            FooterAlign = PdfAlign.Left
+            FooterAlign = OfficeAlignment.Left
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -69,7 +69,7 @@ public partial class PdfReaderAndFooterRegressionTests {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.TimesRoman,
             FooterFont = PdfStandardFont.HelveticaBold,
-            FooterAlign = PdfAlign.Left,
+            FooterAlign = OfficeAlignment.Left,
             FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> {
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, "Direct footer"),
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, " "),

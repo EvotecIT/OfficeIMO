@@ -5,17 +5,17 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPanelInsetTests {
     [Theory]
-    [InlineData(false, 18D, PdfAlign.Left, 38D)]
-    [InlineData(true, 18D, PdfAlign.Left, 38D)]
-    [InlineData(false, -10D, PdfAlign.Left, 10D)]
-    [InlineData(false, 18D, PdfAlign.Right, 164D)]
-    public void InsetsPlaceTheWholeFrameAndSurvivePageContinuation(bool row, double left, PdfAlign align, double expectedX) {
+    [InlineData(false, 18D, OfficeAlignment.Left, 38D)]
+    [InlineData(true, 18D, OfficeAlignment.Left, 38D)]
+    [InlineData(false, -10D, OfficeAlignment.Left, 10D)]
+    [InlineData(false, 18D, OfficeAlignment.Right, 164D)]
+    public void InsetsPlaceTheWholeFrameAndSurvivePageContinuation(bool row, double left, OfficeAlignment align, double expectedX) {
         using PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(160), MarginLeft = OfficeLength.Points(20), MarginRight = OfficeLength.Points(20), MarginTop = OfficeLength.Points(20), MarginBottom = OfficeLength.Points(20)
         });
         var style = new PdfPanelStyle {
             LeftInset = OfficeLength.Points(left), RightInset = OfficeLength.Points(16),
-            MaxWidth = align == PdfAlign.Right ? OfficeLength.Points(100) : null, Align = align,
+            MaxWidth = align == OfficeAlignment.Right ? OfficeLength.Points(100) : null, Align = align,
             PaddingX = OfficeLength.Points(0), PaddingY = OfficeLength.Points(0), SpacingBefore = OfficeLength.Points(0), SpacingAfter = OfficeLength.Points(0),
             BorderColor = OfficeColor.Black, BorderWidth = OfficeLength.Points(1)
         };

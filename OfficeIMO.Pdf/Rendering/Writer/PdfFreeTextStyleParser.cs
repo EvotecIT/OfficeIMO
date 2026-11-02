@@ -5,7 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal readonly struct PdfFreeTextDefaultStyle {
-    public PdfFreeTextDefaultStyle(double? fontSize, global::OfficeIMO.OfficeColor? textColor, PdfAlign? textAlign) {
+    public PdfFreeTextDefaultStyle(double? fontSize, global::OfficeIMO.OfficeColor? textColor, OfficeAlignment? textAlign) {
         FontSize = fontSize;
         TextColor = textColor;
         TextAlign = textAlign;
@@ -15,7 +15,7 @@ internal readonly struct PdfFreeTextDefaultStyle {
 
     public global::OfficeIMO.OfficeColor? TextColor { get; }
 
-    public PdfAlign? TextAlign { get; }
+    public OfficeAlignment? TextAlign { get; }
 }
 
 internal readonly struct PdfFreeTextRichTextRun {
@@ -81,7 +81,7 @@ internal static class PdfFreeTextStyleParser {
 
         double? fontSize = null;
         global::OfficeIMO.OfficeColor? textColor = null;
-        PdfAlign? textAlign = null;
+        OfficeAlignment? textAlign = null;
         for (int start = 0; start < defaultStyle!.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             int end = start;
@@ -110,7 +110,7 @@ internal static class PdfFreeTextStyleParser {
                             TryReadCssColor(value, out global::OfficeIMO.OfficeColor parsedColor)) {
                             textColor = parsedColor;
                         } else if (MatchesCssProperty(defaultStyle, propertyStart, propertyLength, "text-align") &&
-                                   TryReadCssTextAlign(value, out PdfAlign parsedAlign)) {
+                                   TryReadCssTextAlign(value, out OfficeAlignment parsedAlign)) {
                             textAlign = parsedAlign;
                         }
                     }
@@ -348,22 +348,22 @@ internal static class PdfFreeTextStyleParser {
         }
     }
 
-    private static bool TryReadCssTextAlign(string value, out PdfAlign align) {
+    private static bool TryReadCssTextAlign(string value, out OfficeAlignment align) {
         switch (value.Trim().ToLowerInvariant()) {
             case "left":
             case "start":
-                align = PdfAlign.Left;
+                align = OfficeAlignment.Left;
                 return true;
             case "center":
             case "middle":
-                align = PdfAlign.Center;
+                align = OfficeAlignment.Center;
                 return true;
             case "right":
             case "end":
-                align = PdfAlign.Right;
+                align = OfficeAlignment.Right;
                 return true;
             default:
-                align = PdfAlign.Left;
+                align = OfficeAlignment.Left;
                 return false;
         }
     }

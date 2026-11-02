@@ -8,11 +8,11 @@ public sealed partial class PdfHeaderBuilder {
     private readonly PdfDocument _doc;
     internal PdfHeaderBuilder(PdfDocument doc, PdfCreateOptions opts) { _doc = doc; _opts = opts; }
     /// <summary>Sets header alignment to the left.</summary>
-    public PdfHeaderBuilder AlignLeft() { _opts.HeaderAlign = PdfAlign.Left; return this; }
+    public PdfHeaderBuilder AlignLeft() { _opts.HeaderAlign = OfficeAlignment.Left; return this; }
     /// <summary>Sets header alignment to the center.</summary>
-    public PdfHeaderBuilder AlignCenter() { _opts.HeaderAlign = PdfAlign.Center; return this; }
+    public PdfHeaderBuilder AlignCenter() { _opts.HeaderAlign = OfficeAlignment.Center; return this; }
     /// <summary>Sets header alignment to the right.</summary>
-    public PdfHeaderBuilder AlignRight() { _opts.HeaderAlign = PdfAlign.Right; return this; }
+    public PdfHeaderBuilder AlignRight() { _opts.HeaderAlign = OfficeAlignment.Right; return this; }
     /// <summary>Sets header text color.</summary>
     public PdfHeaderBuilder Color(global::OfficeIMO.OfficeColor color) { _opts.HeaderTextColor = color; return this; }
     /// <summary>Sets header font.</summary>
@@ -88,48 +88,48 @@ public sealed partial class PdfHeaderBuilder {
 
     /// <summary>Adds a meaningful image to the running header with alternate text.</summary>
     public PdfHeaderBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
-        Image(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
+        Image(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText);
 
     /// <summary>Adds an image to the running header.</summary>
-    public PdfHeaderBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
+    public PdfHeaderBuilder Image(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         _opts.AddHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
     /// <summary>Adds a meaningful image to the page-1-only header with alternate text.</summary>
     public PdfHeaderBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
-        FirstPageImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
+        FirstPageImage(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText);
 
     /// <summary>Adds an image to the page-1-only header.</summary>
-    public PdfHeaderBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
+    public PdfHeaderBuilder FirstPageImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         _opts.AddFirstPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
     /// <summary>Adds a meaningful image to the even-page-only header with alternate text.</summary>
     public PdfHeaderBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText) =>
-        EvenPagesImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
+        EvenPagesImage(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText);
 
     /// <summary>Adds an image to the even-page-only header.</summary>
-    public PdfHeaderBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
+    public PdfHeaderBuilder EvenPagesImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         _opts.AddEvenPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
     /// <summary>Adds a shape to the running header.</summary>
-    public PdfHeaderBuilder Shape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+    public PdfHeaderBuilder Shape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) {
         _opts.AddHeaderShapeForCompose(new PdfHeaderFooterShape(shape, align));
         return this;
     }
 
     /// <summary>Adds a shape to the page-1-only header.</summary>
-    public PdfHeaderBuilder FirstPageShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+    public PdfHeaderBuilder FirstPageShape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) {
         _opts.AddFirstPageHeaderShapeForCompose(new PdfHeaderFooterShape(shape, align));
         return this;
     }
 
     /// <summary>Adds a shape to the even-page-only header.</summary>
-    public PdfHeaderBuilder EvenPagesShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+    public PdfHeaderBuilder EvenPagesShape(OfficeShape shape, OfficeAlignment align = OfficeAlignment.Left) {
         _opts.AddEvenPageHeaderShapeForCompose(new PdfHeaderFooterShape(shape, align));
         return this;
     }

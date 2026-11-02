@@ -4,31 +4,31 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
-    internal PdfDocument TextField(string name, OfficeLength? width = null, OfficeLength? height = null, string value = "", PdfAlign align = PdfAlign.Left, OfficeLength? fontSize = null, OfficeLength? spacingBefore = null, OfficeLength? spacingAfter = null, PdfFormFieldStyle? style = null) {
+    internal PdfDocument TextField(string name, OfficeLength? width = null, OfficeLength? height = null, string value = "", OfficeAlignment align = OfficeAlignment.Left, OfficeLength? fontSize = null, OfficeLength? spacingBefore = null, OfficeLength? spacingAfter = null, PdfFormFieldStyle? style = null) {
         AddBlock(new TextFieldBlock(name, (width ?? OfficeLength.Points(180)).ToPoints(), (height ?? OfficeLength.Points(22)).ToPoints(), value, align, (fontSize ?? OfficeLength.Points(10)).ToPoints(), (spacingBefore ?? OfficeLength.Zero).ToPoints(), (spacingAfter ?? OfficeLength.Points(6)).ToPoints(), style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm check box at the current flow position.</summary>
-    internal PdfDocument CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
+    internal PdfDocument CheckBox(string name, bool isChecked = false, double size = 14, OfficeAlignment align = OfficeAlignment.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
         AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm choice field at the current flow position.</summary>
-    internal PdfDocument ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true, PdfFormFieldStyle? style = null) {
+    internal PdfDocument ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, OfficeAlignment align = OfficeAlignment.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true, PdfFormFieldStyle? style = null) {
         AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm multi-select choice field at the current flow position.</summary>
-    internal PdfDocument MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+    internal PdfDocument MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, OfficeAlignment align = OfficeAlignment.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
         AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true, style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm radio button group at the current flow position.</summary>
-    internal PdfDocument RadioButtonGroup(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double size = 14, double gap = 6, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+    internal PdfDocument RadioButtonGroup(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double size = 14, double gap = 6, OfficeAlignment align = OfficeAlignment.Left, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
         AddBlock(new RadioButtonGroupBlock(name, options, value, size, gap, align, spacingBefore, spacingAfter, style));
         return this;
     }

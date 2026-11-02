@@ -30,7 +30,7 @@ public sealed class VisioTextStylePreservationTests {
         }
         var style = document.Pages[0].Shapes[0].TextStyle!;
         style.Color = OfficeColor.Red;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        style.HorizontalAlignment = OfficeAlignment.Right;
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             var shape = ExportShape(candidate);
             var character = Assert.Single(shape.Elements(legacy + "Char"));
@@ -65,7 +65,7 @@ public sealed class VisioTextStylePreservationTests {
         var document = Load(connector, charIndex: 7, paraIndex: 4);
         VisioTextStyle style = connector ? document.Pages[0].Connectors[0].TextStyle! : document.Pages[0].Shapes[0].TextStyle!;
         style.Color = OfficeColor.Red;
-        style.HorizontalAlignment = VisioTextHorizontalAlignment.Right;
+        style.HorizontalAlignment = OfficeAlignment.Right;
         if (package) document = VisioDocument.Load(new MemoryStream(document.ToBytes()));
         XElement shape = SavedShape(document);
         XElement character = Assert.Single(shape.Elements(Legacy + "Char"));

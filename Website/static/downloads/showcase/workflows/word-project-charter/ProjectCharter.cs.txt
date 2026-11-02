@@ -8,7 +8,7 @@ internal static class ProjectCharter {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-        document.BuiltinDocumentProperties.Title = "Project charter";
+        document.Properties.Title = "Project charter";
         document.AddParagraph("Project charter").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / CUSTOMER PORTAL / VERSION 1.0");
         document.AddParagraph("Give the delivery team one agreed reference for the outcome, scope, and acceptance decision.");

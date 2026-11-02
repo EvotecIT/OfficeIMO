@@ -79,7 +79,7 @@ public sealed class PdfWordSpaceExpansionTests {
             }).Compose(document => document.Content(content => content.Paragraph(paragraph => {
                 if (anchored) paragraph.Text("TAG").Tab();
                 paragraph.Runs(runs).LineBreak().Text("NEXT");
-            }, PdfAlign.Justify, style: style))).ToBytes();
+            }, OfficeAlignment.Justify, style: style))).ToBytes();
         }
         List<List<Letter>> Lines(byte[] bytes) {
             using var pdf = PdfPigDocument.Open(bytes);
@@ -121,7 +121,7 @@ public sealed class PdfWordSpaceExpansionTests {
         PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(width + 40D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false })
-        .Paragraph(p => p.Runs(runs), PdfAlign.Justify, style: new PdfParagraphStyle {
+        .Paragraph(p => p.Runs(runs), OfficeAlignment.Justify, style: new PdfParagraphStyle {
             UseWordJustificationSpacing = native, JustifyLastLine = lastLine, TextWhitespaceMode = whitespace }).ToBytes();
 
     private static double Span(IReadOnlyList<Letter> letters) => letters[letters.Count - 1].EndBaseLine.X - letters[0].StartBaseLine.X;

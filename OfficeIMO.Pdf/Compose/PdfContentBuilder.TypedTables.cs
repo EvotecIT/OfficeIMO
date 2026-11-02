@@ -18,14 +18,14 @@ public sealed partial class PdfContentBuilder {
     /// <summary>Adds a table from typed properties, tuples, or string-keyed dictionaries using the shared bounded projection engine.</summary>
     /// <param name="rows">Source rows, enumerated once while this call snapshots the table.</param>
     /// <param name="options">Common column selection, ordering, header, formatting and alignment options.</param>
-    /// <remarks>A table name becomes the PDF caption. Logical start/end align left/right; justified columns use PDF's left alignment.</remarks>
+    /// <remarks>A table name becomes the PDF caption. Logical start/end align left/right; PDF table columns cannot be justified, so Justify is rejected.</remarks>
     public PdfContentBuilder Table<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> rows, OfficeTableOptions? options) {
         Guard.NotNull(rows, nameof(rows));
         ObjectDataHelpers.ValidateTableAlignments(options);
         var pdfOptions = options as PdfTableOptions;
-        PdfAlign align = pdfOptions?.Align ?? PdfAlign.Left;
-        Guard.LeftCenterRightAlign(align, nameof(options), "Table");
+        OfficeAlignment align = pdfOptions?.Align ?? OfficeAlignment.Left;
+        align = Guard.LeftCenterRightAlign(align, nameof(options), "Table");
         var projectionOptions = pdfOptions?.Projection?.CreateProjectionSnapshot() ?? new ObjectFlattenerOptions();
         ObjectDataHelpers.ConfigureTableProjection(projectionOptions, options);
         bool headers = options?.IncludeHeaders ?? true;
@@ -57,15 +57,11 @@ public sealed partial class PdfContentBuilder {
         effectiveStyle.RepeatHeaderRowCount = headers ? 1 : 0;
         if (options?.Name != null) effectiveStyle.Caption = options.Name;
         if (options != null && options.Alignments.Count > 0) {
-            var alignments = new List<PdfColumnAlign>();
+            var alignments = new List<OfficeAlignment>();
             for (int column = 0; column < paths.Count; column++) {
                 OfficeAlignment? selected = column < options.Alignments.Count ? options.Alignments[column] : null;
-                alignments.Add(selected.HasValue ? selected.Value switch {
-                    OfficeAlignment.Center => PdfColumnAlign.Center,
-                    OfficeAlignment.Right or OfficeAlignment.End => PdfColumnAlign.Right,
-                    _ => PdfColumnAlign.Left
-                } : effectiveStyle.Alignments != null && column < effectiveStyle.Alignments.Count
-                    ? effectiveStyle.Alignments[column] : PdfColumnAlign.Left);
+                alignments.Add(selected.HasValue ? Guard.TableColumnAlign(selected.Value, nameof(options)) : effectiveStyle.Alignments != null && column < effectiveStyle.Alignments.Count
+                    ? effectiveStyle.Alignments[column] : OfficeAlignment.Left);
             }
             effectiveStyle.Alignments = alignments;
         }

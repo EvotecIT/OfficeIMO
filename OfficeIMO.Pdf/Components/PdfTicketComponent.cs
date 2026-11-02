@@ -41,8 +41,8 @@ public sealed class PdfTicketComponent : IPdfComponent {
     public void Compose(PdfContentBuilder content) {
         Guard.NotNull(content, nameof(content));
         content.Panel(panel => {
-            panel.H1(Title, PdfAlign.Center);
-            panel.H2(TicketNumber, PdfAlign.Center);
+            panel.H1(Title, OfficeAlignment.Center);
+            panel.H2(TicketNumber, OfficeAlignment.Center);
             var details = new List<string[]>();
             if (StartsAt.HasValue) details.Add(new[] { "Starts", StartsAt.Value.ToString("g", _culture) });
             if (!string.IsNullOrWhiteSpace(Venue)) details.Add(new[] { "Venue", Venue! });

@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
             List<List<RichSeg>> lines, IReadOnlyList<double> heights, double firstBaseline,
             double fontSize, double leading, double textX, double textWidth,
             TableCellContentFrame frame, bool clipsToFrame = true,
-            IReadOnlyList<PdfAlign?>? alignments = null, IReadOnlyList<double>? offsets = null,
+            IReadOnlyList<OfficeAlignment?>? alignments = null, IReadOnlyList<double>? offsets = null,
             IReadOnlyList<double>? widths = null, PdfStandardFont? baselineFont = null,
             OfficeTransform? localTransform = null, TableCellContentFrame? secondClip = null,
             double? firstLineX = null, double? firstLineWidth = null, List<double>? topGaps = null,
@@ -69,15 +69,15 @@ internal static partial class PdfWriter {
                     double lineY = AdjustRichLineBaseline(baseline - (topGaps?[index] ?? 0D), line, currentOpts, fontSize, baselineFont);
                     double available = ResolveRichLineWidth(textWidth, firstLineWidth, widths, index);
                     double origin = ResolveRichLineXOrigin(textX, firstLineX, offsets, index);
-                    PdfAlign alignment = ResolveRichLineAlignment(block.Align, alignments, index);
+                    OfficeAlignment alignment = ResolveRichLineAlignment(block.Align, alignments, index);
                     RichLineJustification justification = PlanRichLineJustification(line, alignment,
                         block.Style ?? currentOpts.DefaultParagraphStyleSnapshot, available,
                         index == lines.Count - 1 && !hasFollowingParagraphLines, currentOpts);
                     line = justification.Segments;
                     double advance = justification.Width;
                     double wordSpacing = justification.WordSpacing;
-                    double dx = alignment == PdfAlign.Center ? Math.Max(0D, (available - advance) / 2D)
-                        : alignment == PdfAlign.Right ? Math.Max(0D, available - advance) : 0D;
+                    double dx = alignment == OfficeAlignment.Center ? Math.Max(0D, (available - advance) / 2D)
+                        : alignment == OfficeAlignment.Right ? Math.Max(0D, available - advance) : 0D;
                     BidiLineLayout? bidi = bidiLevel.HasValue ? CreateBidiLineLayout(line, bidiLevel.Value, wordSpacing) : null;
                     double cursor = dx;
                     // Paragraph frames may differ on the first line or alongside floats.

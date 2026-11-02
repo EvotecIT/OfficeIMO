@@ -28,9 +28,9 @@ public sealed partial class PdfTableCellViewportTests {
     public void Icon_alignment_can_differ_from_text_and_stays_in_the_original_fragment(string mode) {
         var left = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24)));
         var right = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), offsetX: global::OfficeIMO.OfficeLength.Points(100)));
-        var icon = new PdfCellIcon { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 255, 0), HorizontalAlignment = PdfColumnAlign.Left };
+        var icon = new PdfCellIcon { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 255, 0), HorizontalAlignment = OfficeAlignment.Left };
         void Configure(PdfTableStyle style) {
-            style.CellAlignments = new Dictionary<(int, int), PdfColumnAlign> { [(0, 0)] = PdfColumnAlign.Right };
+            style.CellAlignments = new Dictionary<(int, int), OfficeAlignment> { [(0, 0)] = OfficeAlignment.Right };
             style.CellIcons = new Dictionary<(int, int), PdfCellIcon> { [(0, 0)] = icon };
         }
         byte[] first = Render(mode, left, PdfCellVerticalAlign.Top, Configure);
@@ -41,8 +41,8 @@ public sealed partial class PdfTableCellViewportTests {
         using PdfPigDocument secondPdf = PdfPigDocument.Open(second);
         Assert.DoesNotContain("99", firstPdf.GetPage(1).Text);
         Assert.Contains("99", secondPdf.GetPage(1).Text);
-        Assert.Equal(PdfColumnAlign.Left, icon.Clone().HorizontalAlignment);
-        Assert.Throws<ArgumentOutOfRangeException>(() => icon.HorizontalAlignment = (PdfColumnAlign)99);
+        Assert.Equal(OfficeAlignment.Left, icon.Clone().HorizontalAlignment);
+        Assert.Throws<ArgumentOutOfRangeException>(() => icon.HorizontalAlignment = (OfficeAlignment)99);
     }
 
     [Theory]

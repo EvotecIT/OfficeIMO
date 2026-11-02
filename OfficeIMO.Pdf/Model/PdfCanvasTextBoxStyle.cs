@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// Reusable visual and text defaults for fixed-position canvas text boxes.
 /// </summary>
 public sealed class PdfCanvasTextBoxStyle {
-    private PdfAlign _align = PdfAlign.Left;
+    private OfficeAlignment _align = OfficeAlignment.Left;
     private global::OfficeIMO.OfficeLength _borderWidth = global::OfficeIMO.OfficeLength.Points(0.5D);
     private global::OfficeIMO.OfficeLength _paddingX = global::OfficeIMO.OfficeLength.Points(6D);
     private global::OfficeIMO.OfficeLength _paddingY = global::OfficeIMO.OfficeLength.Points(4D);
@@ -132,10 +132,10 @@ public sealed class PdfCanvasTextBoxStyle {
     public global::OfficeIMO.OfficeColor? TextColor { get; set; }
 
     /// <summary>Text alignment inside the text box.</summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.ParagraphAlign(value, nameof(Align), "Canvas text box");
+            value = Guard.ParagraphAlign(value, nameof(Align), "Canvas text box");
             _align = value;
         }
     }

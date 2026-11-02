@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed partial class LayoutContext {
-        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, global::OfficeIMO.OfficeColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null, OfficeTextFeatureSettings? featureSettings = null) {
+        private void WriteLinesInternal(string fontRes, double fontSize, double lineHeight, double x, double widthUsed, double startY, System.Collections.Generic.List<string> lines, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null, PdfNamedFontFace? namedFont = null, OfficeTextFeatureSettings? featureSettings = null) {
             EnsurePage();
             pageDirty = true;
             AppendMarkedContentBegin(sb, structureType, markedContentId);
@@ -34,8 +34,8 @@ internal static partial class PdfWriter {
                 string line = lines[i];
                 double dx = 0;
                 double estWidth = EstimateSimpleTextWidthForOptions(line, lineFont, namedFont, fontSize, currentOpts, featureSettings);
-                if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
-                else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
+                if (align == OfficeAlignment.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
+                else if (align == OfficeAlignment.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(dx, 0);
                 content.ShowText(EncodeTextShowCommand(line, lineFont, namedFont, currentOpts, featureSettings), fontSize);
                 if (Math.Abs(dx) > 0.0001) content.MoveText(-dx, 0);
@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             AppendMarkedContentEnd(sb, markedContentId);
         }
 
-        private void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, System.Collections.Generic.List<string> lines, PdfAlign align, global::OfficeIMO.OfficeColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null)
+        private void WriteLines(string fontRes, double fontSize, double lineHeight, double x, double startY, System.Collections.Generic.List<string> lines, OfficeAlignment align, global::OfficeIMO.OfficeColor? color = null, bool applyBaselineTweak = false, string? structureType = null, int? markedContentId = null)
             => WriteLinesInternal(fontRes, fontSize, lineHeight, x, width, startY, lines, align, color, applyBaselineTweak, structureType, markedContentId);
 
         private void AddHeadingLinkAnnotations(HeadingBlock heading, System.Collections.Generic.List<string> lines, PdfStandardFont font, double fontSize, double lineHeight, double x, double widthUsed, double startBaselineY, int? structElementIndex = null) {
@@ -63,8 +63,8 @@ internal static partial class PdfWriter {
                 }
 
                 double dx = 0D;
-                if (heading.Align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - lineWidth) / 2);
-                else if (heading.Align == PdfAlign.Right) dx = Math.Max(0, widthUsed - lineWidth);
+                if (heading.Align == OfficeAlignment.Center) dx = Math.Max(0, (widthUsed - lineWidth) / 2);
+                else if (heading.Align == OfficeAlignment.Right) dx = Math.Max(0, widthUsed - lineWidth);
                 double baselineY = startBaselineY - i * lineHeight;
                 double x1 = x + dx;
                 double x2 = x1 + Math.Min(widthUsed, lineWidth);
@@ -102,8 +102,8 @@ internal static partial class PdfWriter {
 
                 double frameWidth = widths?[i] ?? widthUsed;
                 double dx = 0D;
-                if (heading.Align == PdfAlign.Center) dx = Math.Max(0, (frameWidth - lineWidth) / 2);
-                else if (heading.Align == PdfAlign.Right) dx = Math.Max(0, frameWidth - lineWidth);
+                if (heading.Align == OfficeAlignment.Center) dx = Math.Max(0, (frameWidth - lineWidth) / 2);
+                else if (heading.Align == OfficeAlignment.Right) dx = Math.Max(0, frameWidth - lineWidth);
                 double baselineY = AdjustRichLineBaseline(startBaselineY - offset - (gaps?[i] ?? 0D), lines[i], currentOpts, fontSize, font);
                 GetRichLineInkMetrics(lines[i], currentOpts, out double asc, out double desc);
                 double x1 = x + (offsets?[i] ?? 0D) + dx;

@@ -26,10 +26,10 @@ namespace OfficeIMO.Word.Pdf {
             var cellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
-            var cellAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
+            var cellAlignments = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>();
             var cellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
             NativeTableColumnAlignments tableAlignments = CreateNativeTableColumnAlignments(layout);
-            List<PdfCore.PdfColumnAlign>? horizontalAlignments = tableAlignments.Horizontal;
+            List<global::OfficeIMO.OfficeAlignment>? horizontalAlignments = tableAlignments.Horizontal;
             List<PdfCore.PdfCellVerticalAlign>? verticalAlignments = tableAlignments.Vertical;
             int tableColumnCount = GetNativeTableColumnCount(layout);
             int repeatedHeaderRowCount = GetNativeTableRepeatedHeaderRowCount(table, layout.Rows.Count);
@@ -112,8 +112,8 @@ namespace OfficeIMO.Word.Pdf {
                         directCellBorders[(rowIndex, logicalColumnIndex)] = cell.Borders;
                     }
 
-                    PdfCore.PdfColumnAlign cellAlignment = GetNativeCellHorizontalAlignment(cell);
-                    if (cellAlignment != PdfCore.PdfColumnAlign.Left) {
+                    global::OfficeIMO.OfficeAlignment cellAlignment = GetNativeCellHorizontalAlignment(cell);
+                    if (cellAlignment != global::OfficeIMO.OfficeAlignment.Left) {
                         cellAlignments[(rowIndex, logicalColumnIndex)] = cellAlignment;
                     }
 

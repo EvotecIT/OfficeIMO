@@ -869,7 +869,7 @@ public class PdfDocumentWorkflowTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Annotation workflow"))
             .TextAnnotation("Review note", width: 20, height: 20, icon: PdfTextAnnotationIcon.Note, open: true)
-            .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: PdfAlign.Center)
+            .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: OfficeAlignment.Center)
             .ToBytes();
 
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));

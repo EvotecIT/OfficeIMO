@@ -247,12 +247,12 @@ namespace OfficeIMO.Word.Pdf {
             return max > 0D ? max : 11D;
         }
 
-        private static PdfCore.PdfAlign GetNativeVmlTextAlign(OpenXmlElement element) {
+        private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(OpenXmlElement element) {
             W.Justification? justification = element.Descendants<W.Justification>().FirstOrDefault();
             W.JustificationValues? value = justification?.Val?.Value;
-            if (value == W.JustificationValues.Center) return PdfCore.PdfAlign.Center;
-            if (value == W.JustificationValues.Right) return PdfCore.PdfAlign.Right;
-            return PdfCore.PdfAlign.Left;
+            if (value == W.JustificationValues.Center) return global::OfficeIMO.OfficeAlignment.Center;
+            if (value == W.JustificationValues.Right) return global::OfficeIMO.OfficeAlignment.Right;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         private static PdfCore.PdfVerticalAlign GetNativeVmlVerticalAlign(OpenXmlElement element) {

@@ -95,7 +95,7 @@ public partial class PdfPageFootnoteTests {
         if (introducesReference) run = run.WithFootnoteReference(note);
         if (owner == "heading") {
             document.Content.Heading(2, "OwnerBody", paragraph => paragraph.Runs(new[] { run }),
-                PdfAlign.Left, null, new PdfHeadingStyle {
+                OfficeAlignment.Left, null, new PdfHeadingStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(8), Font = PdfStandardFont.Helvetica, Bold = false,
                     LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(8),
                     KeepWithNext = false

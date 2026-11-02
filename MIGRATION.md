@@ -3709,6 +3709,58 @@ including Markdown and PDF. PDF Markdown text extraction is `ExtractMarkdown()`;
 `To{Target}` names return target models. Rename lifecycle settings to `{Format}CreateOptions`,
 `{Format}LoadOptions` and `{Format}SaveOptions`; use the load options type's
 `UntrustedDefaults` for external input. Inspection snapshots use `Info` names and
+</details>
+
+#### OfficeIMO.Reader.IWork
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Reader.IWork.ReaderIWorkOptions.MaximumTableColumns / MaximumProjectedTableCells` | Renamed | `MaxTableColumns / MaxProjectedTableCells` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Rtf
+
+<details>
+<summary>7 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Rtf.RtfDocument.Info` | Renamed | `OfficeIMO.Rtf.RtfDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
+| contract | `OfficeIMO.Rtf.RtfConversionReport.Diagnostics` | Renamed | `OfficeIMO.Rtf.RtfConversionReport.NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()` | Removed | &mdash; | new RtfReadOptions() |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxBinaryBytesPerPayload / MaxImageBytesPerImage / MaxObjectBytesPerObject` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxBinaryPayloadBytes / MaxImageBytes / MaxObjectBytes` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth` | Moved | `OfficeIMO.Rtf.RtfReadOptions.Limits (RtfReadLimits)` | new RtfReadOptions { Limits = { MaxDepth = 64 } } |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxTokenCount / MaxGroupCount / MaxImageCount / MaxObjectCount / MaxSemanticBlockCount` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxTokens / MaxGroups / MaxImages / MaxObjects / MaxSemanticBlocks` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Visio
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Visio.VisioDocument.Title / Author` | Moved | `OfficeIMO.Visio.VisioDocument.Properties (VisioDocumentProperties)` | document.Properties.Title = "..." |
+| Naming | `OfficeIMO.Visio.VisioTextHorizontalAlignment` | Merged | `OfficeIMO.OfficeAlignment` | HorzAlign is mapped explicitly; Start and End write Left and Right. |
+| limits | `OfficeIMO.Visio.VisioLoadOptions.MaxInputBytes / MaxLegacyXmlCharacters / MaxPackageXmlCharacters / MaxLegacyXmlDepth / MaxLegacyXmlElements / DefaultMaxInputBytes` | Moved | `OfficeIMO.Visio.VisioLoadOptions.Limits (VisioLoadLimits)` | new VisioLoadOptions { Limits = { MaxInputBytes = null } } |
+
+</details>
+
+#### OfficeIMO.Xps
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth` | Moved | `OfficeIMO.Xps.XpsReadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)` | new XpsReadOptions { Limits = { MaxPages = 100 } } |
+
 are reached through `Inspect()`. Shared `OfficeColor` and `OfficeColorRole` move
 from `OfficeIMO.Drawing` to `OfficeIMO`.
 

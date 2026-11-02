@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples.Visio {
                 FontFamily = "Aptos",
                 Size = 9.5,
                 Color = Color.FromRgb(87, 96, 106),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
@@ -101,14 +101,14 @@ namespace OfficeIMO.Examples.Visio {
                 Size = 21,
                 Bold = true,
                 Color = Color.FromRgb(32, 55, 75),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             page.AddTextBox("subtitle", 7, 7.48, 10.8, 0.34, "Dependency-free .vssx/.vstx catalog discovery, source-aware auto-import, and graph-style placement").TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 10.5,
                 Color = Color.FromRgb(85, 99, 113),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
         }
@@ -125,7 +125,7 @@ namespace OfficeIMO.Examples.Visio {
                 Size = 10,
                 Bold = true,
                 Color = Color.FromRgb(71, 85, 99),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             label.MarkAsGeneratedDiagramAdornment();
@@ -137,7 +137,7 @@ namespace OfficeIMO.Examples.Visio {
                 FontFamily = "Aptos",
                 Size = 9.5,
                 Color = Color.FromRgb(33, 37, 41),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             label.MarkAsGeneratedDiagramAdornment();

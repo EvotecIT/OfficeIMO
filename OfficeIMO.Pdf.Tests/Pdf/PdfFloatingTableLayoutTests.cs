@@ -411,7 +411,7 @@ public class PdfFloatingTableLayoutTests {
 
     [Fact]
     public void DelimitedContinuationChunksRespectNarrowFloatingFrame() {
-        var style = Floating(120, 220); style.Position = new PdfTablePosition(horizontalAlignment: PdfAlign.Right);
+        var style = Floating(120, 220); style.Position = new PdfTablePosition(horizontalAlignment: OfficeAlignment.Right);
         const string token = "https://example.test/long_identifier_segment/another_long_identifier_segment/repeated_long_identifier_segment";
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(paragraph => paragraph.Text(token)).ToBytes());
@@ -432,7 +432,7 @@ public class PdfFloatingTableLayoutTests {
 
     [Fact]
     public void WordRechecksWidthWhenItsNewLineEntersFloat() {
-        var style = Floating(200, 220); style.Position = new PdfTablePosition(horizontalAlignment: PdfAlign.Right, verticalOffset: global::OfficeIMO.OfficeLength.Points(20));
+        var style = Floating(200, 220); style.Position = new PdfTablePosition(horizontalAlignment: OfficeAlignment.Right, verticalOffset: global::OfficeIMO.OfficeLength.Points(20));
         string pending = new string('W', 20);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(paragraph => paragraph.Text("prefixprefixprefixprefixprefix " + pending)).ToBytes());
@@ -501,7 +501,7 @@ public class PdfFloatingTableLayoutTests {
     public void NestedTablesDistinguishPageMarginAndFlowAnchors(PdfTableAnchor anchor, double expected) {
         var table = Floating(); table.Position = new PdfTablePosition(horizontalAnchor: anchor);
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Panel(panel => panel.Table(new[] { new[] { "nested" } }, style: table),
-            new PdfPanelStyle { MaxWidth = global::OfficeIMO.OfficeLength.Points(200), Align = PdfAlign.Right, PaddingX = global::OfficeIMO.OfficeLength.Points(10), PaddingY = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = false }).ToBytes());
+            new PdfPanelStyle { MaxWidth = global::OfficeIMO.OfficeLength.Points(200), Align = OfficeAlignment.Right, PaddingX = global::OfficeIMO.OfficeLength.Points(10), PaddingY = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = false }).ToBytes());
         Assert.Equal(expected, pdf.GetPage(1).GetWords().Single(word => word.Text == "nested").BoundingBox.Left, 1);
     }
 

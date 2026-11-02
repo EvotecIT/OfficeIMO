@@ -123,7 +123,7 @@ public class PdfImportedColumnPreferenceTests {
         source.MaxWidthFraction = source.PreferredWidthFraction = .5D;
         source.FrameWidthAdjustment = -1D;
         var nested = new TableBlock(new[] { new[] { new PdfTableCell(leftText), new PdfTableCell(rightText) } },
-            PdfAlign.Left, source);
+            OfficeAlignment.Left, source);
         var captured = new PdfTableCell(Array.Empty<PdfTextRun>(), null, blocks: new IPdfBlock[] { nested })
             .WithNamedDestination("ConstrainedImportedCell").WithNoWrap(false);
         source.PreserveAuthoredPreferencesAtWidthLimit = false;

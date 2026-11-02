@@ -7,15 +7,15 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.WithPageNumbers.pdf");
             var options = new PdfCreateOptions {
                 HeaderFormat = "OfficeIMO.Pdf headers and footers",
-                HeaderAlign = PdfAlign.Left,
+                HeaderAlign = OfficeAlignment.Left,
                 HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(18),
                 ShowHeader = true,
-                FooterAlign = PdfAlign.Center,
+                FooterAlign = OfficeAlignment.Center,
                 ShowPageNumbers = true
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Headers and page numbers", PdfAlign.Left)
+                .H1("Headers and page numbers", OfficeAlignment.Left)
                 .Paragraph(p => p.Text("The first page includes a header and the total page count."))
                 .PanelParagraph(
                     p => p.Text("A page break starts a new section while retaining the document header and footer."),
@@ -26,9 +26,9 @@ namespace OfficeIMO.Examples.Pdf {
                         PaddingY = global::OfficeIMO.OfficeLength.Points(7)
                     })
                 .PageBreak()
-                .H2("Continuation Page", PdfAlign.Left)
+                .H2("Continuation Page", OfficeAlignment.Left)
                 .Paragraph(p => p.Text("Page numbers stay correct after an explicit page break."))
-                .Paragraph(p => p.Text("Right-aligned continuation note."), PdfAlign.Right, OfficeColor.FromRgb(80, 80, 80))), options)
+                .Paragraph(p => p.Text("Right-aligned continuation note."), OfficeAlignment.Right, OfficeColor.FromRgb(80, 80, 80))), options)
                 .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
                 .Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

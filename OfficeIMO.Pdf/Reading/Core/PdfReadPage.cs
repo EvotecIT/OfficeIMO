@@ -415,7 +415,7 @@ public sealed partial class PdfReadPage {
                 out string? richContentsPlainText,
                 out double? effectiveFontSize,
                 out global::OfficeIMO.OfficeColor? effectiveTextColor,
-                out PdfAlign? effectiveTextAlign,
+                out OfficeAlignment? effectiveTextAlign,
                 cancellationToken);
             ReadAnnotationVisualStyleMetadata(
                 annotation,
@@ -1970,7 +1970,7 @@ public sealed partial class PdfReadPage {
         out string? richContentsPlainText,
         out double? effectiveFontSize,
         out global::OfficeIMO.OfficeColor? effectiveTextColor,
-        out PdfAlign? effectiveTextAlign,
+        out OfficeAlignment? effectiveTextAlign,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         defaultAppearance = null;
@@ -1998,17 +1998,17 @@ public sealed partial class PdfReadPage {
         effectiveTextAlign = TryReadFreeTextAlignment(annotation, parsedDefaultStyle.TextAlign);
     }
 
-    private PdfAlign? TryReadFreeTextAlignment(PdfDictionary annotation, PdfAlign? defaultAlignment) {
+    private OfficeAlignment? TryReadFreeTextAlignment(PdfDictionary annotation, OfficeAlignment? defaultAlignment) {
         int? alignment = TryReadInteger(annotation.Items.TryGetValue("Q", out PdfObject? alignmentObject) ? alignmentObject : null);
         if (!alignment.HasValue) {
             return defaultAlignment;
         }
 
         return alignment.Value == 1
-            ? PdfAlign.Center
+            ? OfficeAlignment.Center
             : alignment.Value == 2
-                ? PdfAlign.Right
-                : PdfAlign.Left;
+                ? OfficeAlignment.Right
+                : OfficeAlignment.Left;
     }
 
     private IReadOnlyList<double> ReadNumberArray(PdfObject? obj, CancellationToken cancellationToken = default) {

@@ -68,7 +68,7 @@ public class PdfContainerAndColumnTests {
                 PaddingX = global::OfficeIMO.OfficeLength.Points(12D),
                 PaddingY = global::OfficeIMO.OfficeLength.Points(10D),
                 MaxWidth = global::OfficeIMO.OfficeLength.Points(300D),
-                Align = PdfAlign.Center
+                Align = OfficeAlignment.Center
             })
             .ToBytes();
 
@@ -269,7 +269,7 @@ public class PdfContainerAndColumnTests {
             .Columns(columns => columns.Paragraph(paragraph => paragraph.Text(
                 "Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu " +
                 "amber bronze copper denim emerald fuchsia garnet hazel ivory jade khaki lilac magenta navy ochre peach quartz ruby silver teal umber violet wheat yellow zinc"),
-                align: PdfAlign.Justify), new PdfMultiColumnOptions {
+                align: OfficeAlignment.Justify), new PdfMultiColumnOptions {
                     ColumnCount = 2,
                     Gap = global::OfficeIMO.OfficeLength.Points(20),
                     BalanceLastPage = true,

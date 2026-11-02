@@ -80,8 +80,8 @@ public class PdfDocumentBulletListTests {
             Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
-        var bulletBlock = new BulletListBlock(new[] { "A" }, PdfAlign.Left, null, style);
-        var numberedBlock = new NumberedListBlock(new[] { "One" }, PdfAlign.Left, null, 1, style);
+        var bulletBlock = new BulletListBlock(new[] { "A" }, OfficeAlignment.Left, null, style);
+        var numberedBlock = new NumberedListBlock(new[] { "One" }, OfficeAlignment.Left, null, 1, style);
 
         style.FontSize = global::OfficeIMO.OfficeLength.Points(20);
         style.LeftIndent = global::OfficeIMO.OfficeLength.Points(0);
@@ -126,8 +126,8 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void ListBlockItemCollections_AreReadOnlySnapshots() {
-        var bulletBlock = new BulletListBlock(new[] { "A", null!, "B" }, PdfAlign.Left, null);
-        var numberedBlock = new NumberedListBlock(new[] { "One", null!, "Two" }, PdfAlign.Left, null, 1);
+        var bulletBlock = new BulletListBlock(new[] { "A", null!, "B" }, OfficeAlignment.Left, null);
+        var numberedBlock = new NumberedListBlock(new[] { "One", null!, "Two" }, OfficeAlignment.Left, null, 1);
 
         Assert.Equal(new[] { "A", "B" }, bulletBlock.Items);
         Assert.Equal(new[] { "One", "Two" }, numberedBlock.Items);
@@ -341,9 +341,9 @@ public class PdfDocumentBulletListTests {
         // Compare alignment against the same explicit frame before and after option snapshotting.
         var options = new PdfCreateOptions { MarginLeft = global::OfficeIMO.OfficeLength.Points(72), MarginRight = global::OfficeIMO.OfficeLength.Points(72) };
         var doc = PdfDocument.Create(options);
-        doc.Bullets(new[] { "Left aligned" }, PdfAlign.Left);
-        doc.Bullets(new[] { "Centered bullet" }, PdfAlign.Center);
-        doc.Bullets(new[] { "Right aligned bullet" }, PdfAlign.Right);
+        doc.Bullets(new[] { "Left aligned" }, OfficeAlignment.Left);
+        doc.Bullets(new[] { "Centered bullet" }, OfficeAlignment.Center);
+        doc.Bullets(new[] { "Right aligned bullet" }, OfficeAlignment.Right);
 
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);
@@ -388,7 +388,7 @@ public class PdfDocumentBulletListTests {
     public void Bullets_ApplyCustomColorToGlyphs() {
         var doc = PdfDocument.Create();
         var color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.4, 0.6);
-        doc.Bullets(new[] { "Colored bullet" }, PdfAlign.Left, color);
+        doc.Bullets(new[] { "Colored bullet" }, OfficeAlignment.Left, color);
 
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);
@@ -401,7 +401,7 @@ public class PdfDocumentBulletListTests {
     public void Numbered_ApplyCustomColorToMarkers() {
         var doc = PdfDocument.Create();
         var color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.4, 0.6);
-        doc.Numbered(new[] { "Colored marker" }, PdfAlign.Left, color);
+        doc.Numbered(new[] { "Colored marker" }, OfficeAlignment.Left, color);
 
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);
@@ -537,7 +537,7 @@ public class PdfDocumentBulletListTests {
         };
 
         var doc = PdfDocument.Create(options);
-        doc.Bullets(new[] { "A" }, PdfAlign.Right);
+        doc.Bullets(new[] { "A" }, OfficeAlignment.Right);
 
         var bytes = doc.ToBytes();
         Assert.NotEmpty(bytes);

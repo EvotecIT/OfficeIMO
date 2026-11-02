@@ -42,7 +42,7 @@ public sealed class AddOfficePdfImageCommand : PSCmdlet
 
     /// <summary>Image alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Alternative text for meaningful images.</summary>
     [Parameter]

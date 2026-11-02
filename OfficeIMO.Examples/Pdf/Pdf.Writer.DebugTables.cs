@@ -32,8 +32,8 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Table Debug — Offset -1.0", PdfAlign.Left)
-                .Table(rows, PdfAlign.Left, new PdfTableStyle {
+                .H1("Table Debug — Offset -1.0", OfficeAlignment.Left)
+                .Table(rows, OfficeAlignment.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
                     BorderColor = styleBase.BorderColor,
                     BorderWidth = styleBase.BorderWidth,
@@ -42,8 +42,8 @@ namespace OfficeIMO.Examples.Pdf {
                     RowBaselineOffset = global::OfficeIMO.OfficeLength.Points(-1.0)
                 })
                 .Spacer(global::OfficeIMO.OfficeLength.Points(14))
-                .H1("Table Debug — Offset 0.0", PdfAlign.Left)
-                .Table(rows, PdfAlign.Left, new PdfTableStyle {
+                .H1("Table Debug — Offset 0.0", OfficeAlignment.Left)
+                .Table(rows, OfficeAlignment.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
                     BorderColor = styleBase.BorderColor,
                     BorderWidth = styleBase.BorderWidth,
@@ -52,8 +52,8 @@ namespace OfficeIMO.Examples.Pdf {
                     RowBaselineOffset = global::OfficeIMO.OfficeLength.Points(0.0)
                 })
                 .Spacer(global::OfficeIMO.OfficeLength.Points(14))
-                .H1("Table Debug — Offset +1.0", PdfAlign.Left)
-                .Table(rows, PdfAlign.Left, new PdfTableStyle {
+                .H1("Table Debug — Offset +1.0", OfficeAlignment.Left)
+                .Table(rows, OfficeAlignment.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,
                     BorderColor = styleBase.BorderColor,
                     BorderWidth = styleBase.BorderWidth,

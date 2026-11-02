@@ -62,7 +62,7 @@ public class RtfPdfBarTabTests {
         string before = Snapshot(source);
 
         RtfToPdfOptions options = Options();
-        if (plainPresentation) options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Right;
+        if (plainPresentation) options.PdfOptions!.HeaderAlign = global::OfficeIMO.OfficeAlignment.Right;
         PdfCore.PdfDocumentConversionResult result = source.ConvertToPdfWithEvidence(options);
         using var actual = PdfPigDocument.Open(result.ToBytes());
         if (plainPresentation) {

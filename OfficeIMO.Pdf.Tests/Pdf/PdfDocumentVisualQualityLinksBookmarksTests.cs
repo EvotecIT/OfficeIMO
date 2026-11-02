@@ -73,7 +73,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Image(CreateMinimalRgbPng(), 80, 40, PdfAlign.Center, fit: OfficeImageFit.Contain, linkUri: "https://evotec.xyz/image", linkContents: "Image metadata")
+            .Image(CreateMinimalRgbPng(), 80, 40, OfficeAlignment.Center, fit: OfficeImageFit.Contain, linkUri: "https://evotec.xyz/image", linkContents: "Image metadata")
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -105,7 +105,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), PdfAlign.Right, linkUri: "https://evotec.xyz/column-image", linkContents: "Column image"))))))
+                                column.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), OfficeAlignment.Right, linkUri: "https://evotec.xyz/column-image", linkContents: "Column image"))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -134,7 +134,7 @@ public partial class PdfDocumentVisualQualityTests {
         var shape = OfficeShape.Rectangle(40, 20);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Shape(shape, PdfAlign.Right, linkUri: "https://evotec.xyz/shape", linkContents: "Shape metadata")
+            .Shape(shape, OfficeAlignment.Right, linkUri: "https://evotec.xyz/shape", linkContents: "Shape metadata")
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -163,7 +163,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Rectangle(40, 20, align: PdfAlign.Center, linkUri: "https://evotec.xyz/rectangle", linkContents: "Rectangle metadata")
+            .Rectangle(40, 20, align: OfficeAlignment.Center, linkUri: "https://evotec.xyz/rectangle", linkContents: "Rectangle metadata")
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -193,9 +193,9 @@ public partial class PdfDocumentVisualQualityTests {
             .Compose(document =>
                 document.Page(page =>
                     page.Content(content => content
-                        .Item(item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20), align: PdfAlign.Center, linkUri: "https://evotec.xyz/item-rectangle", linkContents: "Item rectangle"))
+                        .Item(item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20), align: OfficeAlignment.Center, linkUri: "https://evotec.xyz/item-rectangle", linkContents: "Item rectangle"))
                         .Item(item => item.Element(element => element.Content(nested =>
-                            nested.Ellipse(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(18), align: PdfAlign.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), linkUri: "https://evotec.xyz/element-ellipse", linkContents: "Element ellipse")))))))
+                            nested.Ellipse(global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(18), align: OfficeAlignment.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), linkUri: "https://evotec.xyz/element-ellipse", linkContents: "Element ellipse")))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -229,7 +229,7 @@ public partial class PdfDocumentVisualQualityTests {
             .AddShape(OfficeShape.Rectangle(60, 30), 0, 0);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Drawing(drawing, PdfAlign.Center, linkUri: "https://evotec.xyz/drawing", linkContents: "Drawing metadata")
+            .Drawing(drawing, OfficeAlignment.Center, linkUri: "https://evotec.xyz/drawing", linkContents: "Drawing metadata")
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -261,8 +261,8 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Rectangle(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(18), align: PdfAlign.Right, linkUri: "https://evotec.xyz/column-rectangle", linkContents: "Column rectangle")
-                                .Ellipse(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(18), align: PdfAlign.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), linkUri: "https://evotec.xyz/column-ellipse", linkContents: "Column ellipse"))))))
+                                .Rectangle(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(18), align: OfficeAlignment.Right, linkUri: "https://evotec.xyz/column-rectangle", linkContents: "Column rectangle")
+                                .Ellipse(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(18), align: OfficeAlignment.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), linkUri: "https://evotec.xyz/column-ellipse", linkContents: "Column ellipse"))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -300,8 +300,8 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Shape(OfficeShape.Rectangle(24, 18), PdfAlign.Right, linkUri: "https://evotec.xyz/column-shape", linkContents: "Column shape")
-                                .Drawing(drawing, PdfAlign.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), linkUri: "https://evotec.xyz/column-drawing", linkContents: "Column drawing"))))))
+                                .Shape(OfficeShape.Rectangle(24, 18), OfficeAlignment.Right, linkUri: "https://evotec.xyz/column-shape", linkContents: "Column shape")
+                                .Drawing(drawing, OfficeAlignment.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), linkUri: "https://evotec.xyz/column-drawing", linkContents: "Column drawing"))))))
             .ToBytes();
 
         string pdf = Encoding.ASCII.GetString(bytes);
@@ -370,7 +370,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.H3("ColumnHead", PdfAlign.Right, linkUri: "https://evotec.xyz/right-heading", linkContents: "Right heading"))))))
+                                column.H3("ColumnHead", OfficeAlignment.Right, linkUri: "https://evotec.xyz/right-heading", linkContents: "Right heading"))))))
             .ToBytes();
 
         string pdfText = Encoding.ASCII.GetString(bytes);

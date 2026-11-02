@@ -23,8 +23,8 @@ public sealed class PdfRunningContentImageOwnershipTests {
         Assert.Equal(original, first.Images[0].Data);
         Assert.Equal(original, second.Images[0].Data);
         Assert.Equal(90, first.Images[0].Style!.RotationAngle);
-        Assert.Same(first.Images[0].ToImageBlock(PdfAlign.Left).Data,
-            second.Images[0].ToImageBlock(PdfAlign.Left).Data);
+        Assert.Same(first.Images[0].ToImageBlock(OfficeAlignment.Left).Data,
+            second.Images[0].ToImageBlock(OfficeAlignment.Left).Data);
     }
 
     [Theory]

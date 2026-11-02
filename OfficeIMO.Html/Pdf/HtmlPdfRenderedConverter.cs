@@ -924,10 +924,10 @@ internal static partial class HtmlPdfRenderedConverter {
             OfficeConversionLossKind.Omission));
     }
 
-    private static PdfCore.PdfAlign MapAlignment(OfficeTextAlignment alignment) {
-        if (alignment == OfficeTextAlignment.Center) return PdfCore.PdfAlign.Center;
-        if (alignment == OfficeTextAlignment.Right) return PdfCore.PdfAlign.Right;
-        if (alignment == OfficeTextAlignment.Justify) return PdfCore.PdfAlign.Justify;
-        return PdfCore.PdfAlign.Left;
+    private static global::OfficeIMO.OfficeAlignment MapAlignment(OfficeTextAlignment alignment) {
+        if (alignment == OfficeTextAlignment.Center) return global::OfficeIMO.OfficeAlignment.Center;
+        if (alignment == OfficeTextAlignment.Right) return global::OfficeIMO.OfficeAlignment.Right;
+        if (alignment == OfficeTextAlignment.Justify) return global::OfficeIMO.OfficeAlignment.Justify;
+        return global::OfficeIMO.OfficeAlignment.Left;
     }
 }

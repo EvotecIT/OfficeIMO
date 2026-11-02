@@ -1004,7 +1004,7 @@ public class PdfDocumentCanvasTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(24),
                 CompressContentStreams = false
             })
-            .Drawing(drawing, PdfAlign.Left)
+            .Drawing(drawing, OfficeAlignment.Left)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -1110,7 +1110,7 @@ public class PdfDocumentCanvasTests {
                 PaddingY = global::OfficeIMO.OfficeLength.Points(6D),
                 FontSize = global::OfficeIMO.OfficeLength.Points(10D),
                 TextColor = global::OfficeIMO.OfficeColor.FromRgb(20, 40, 70),
-                Align = PdfAlign.Center
+                Align = OfficeAlignment.Center
             }))
             .ToBytes();
 
@@ -1281,8 +1281,8 @@ public class PdfDocumentCanvasTests {
             CellPaddings = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding> {
                 [(1, 1)] = new PdfCellPadding { Left = global::OfficeIMO.OfficeLength.Points(8D), Right = global::OfficeIMO.OfficeLength.Points(8D), Top = global::OfficeIMO.OfficeLength.Points(4D), Bottom = global::OfficeIMO.OfficeLength.Points(4D) }
             },
-            CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(1, 1)] = PdfColumnAlign.Center
+            CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(1, 1)] = OfficeAlignment.Center
             },
             CellVerticalAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
                 [(1, 1)] = PdfCellVerticalAlign.Middle

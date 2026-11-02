@@ -40,7 +40,7 @@ public sealed class AddOfficePdfListCommand : PSCmdlet
 
     /// <summary>List alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Emit the updated document.</summary>
     [Parameter]

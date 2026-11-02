@@ -292,15 +292,15 @@ public static partial class MarkdownPdfConverterExtensions {
             return;
         }
 
-        var alignments = new List<PdfCore.PdfColumnAlign>(columnCount);
+        var alignments = new List<global::OfficeIMO.OfficeAlignment>(columnCount);
         var cellAlignments = style.CellAlignments == null
-            ? new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>()
-            : new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>(style.CellAlignments);
+            ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>()
+            : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>(style.CellAlignments);
         bool hasExplicitAlignment = false;
 
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
             MarkdownColumnAlignment markdownAlignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : MarkdownColumnAlignment.None;
-            PdfCore.PdfColumnAlign pdfAlignment = MapMarkdownTableAlignment(markdownAlignment);
+            global::OfficeIMO.OfficeAlignment pdfAlignment = MapMarkdownTableAlignment(markdownAlignment);
             alignments.Add(pdfAlignment);
 
             if (markdownAlignment == MarkdownColumnAlignment.None) {
@@ -323,8 +323,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static void ApplyMarkdownTableCellAlignments(PdfCore.PdfTableStyle style, TableBlock table) {
         var cellAlignments = style.CellAlignments == null
-            ? new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>()
-            : new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>(style.CellAlignments);
+            ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>()
+            : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>(style.CellAlignments);
 
         bool hasExplicitAlignment = cellAlignments.Count > 0;
         int columnCount = GetMarkdownTableColumnCount(table);
@@ -342,7 +342,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void ApplyMarkdownTableCellAlignments(Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign> cellAlignments, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasExplicitAlignment) {
+    private static void ApplyMarkdownTableCellAlignments(Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment> cellAlignments, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasExplicitAlignment) {
         int meaningfulCount = GetMeaningfulCellCount(cells);
         int logicalColumn = 0;
         for (int cellIndex = 0; cellIndex < meaningfulCount; cellIndex++) {
@@ -381,11 +381,11 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static PdfCore.PdfColumnAlign MapMarkdownTableAlignment(MarkdownColumnAlignment alignment) {
+    private static global::OfficeIMO.OfficeAlignment MapMarkdownTableAlignment(MarkdownColumnAlignment alignment) {
         return alignment switch {
-            MarkdownColumnAlignment.Center => PdfCore.PdfColumnAlign.Center,
-            MarkdownColumnAlignment.Right => PdfCore.PdfColumnAlign.Right,
-            _ => PdfCore.PdfColumnAlign.Left
+            MarkdownColumnAlignment.Center => global::OfficeIMO.OfficeAlignment.Center,
+            MarkdownColumnAlignment.Right => global::OfficeIMO.OfficeAlignment.Right,
+            _ => global::OfficeIMO.OfficeAlignment.Left
         };
     }
 

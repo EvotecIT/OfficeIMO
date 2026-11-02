@@ -164,7 +164,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    HeaderAlign = (PdfAlign)99
+                    HeaderAlign = (OfficeAlignment)99
                 })
                 .Paragraph(p => p.Text("Invalid header alignment"))
                 .ToBytes());
@@ -175,7 +175,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create(new PdfCreateOptions {
                     ShowHeader = true,
                     HeaderFormat = "Header",
-                    HeaderAlign = PdfAlign.Justify
+                    HeaderAlign = OfficeAlignment.Justify
                 })
                 .Paragraph(p => p.Text("Unsupported header alignment"))
                 .ToBytes());
@@ -214,7 +214,7 @@ public partial class PdfDocumentVisualQualityTests {
         var footerAlignException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    FooterAlign = (PdfAlign)99
+                    FooterAlign = (OfficeAlignment)99
                 })
                 .Paragraph(p => p.Text("Invalid footer alignment"))
                 .ToBytes());
@@ -224,7 +224,7 @@ public partial class PdfDocumentVisualQualityTests {
         var footerJustifyException = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfCreateOptions {
                     ShowPageNumbers = true,
-                    FooterAlign = PdfAlign.Justify
+                    FooterAlign = OfficeAlignment.Justify
                 })
                 .Paragraph(p => p.Text("Unsupported footer alignment"))
                 .ToBytes());

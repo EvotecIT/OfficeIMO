@@ -323,7 +323,7 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] { "6", "CustodiPuella", "79.05", "8", "632.40" },
                 new[] { "", "TotalDue", "", "", "1499.12" }
             }, style: style)
-            .Paragraph(p => p.Text("LineItemGateEnd"), PdfAlign.Center)
+            .Paragraph(p => p.Text("LineItemGateEnd"), OfficeAlignment.Center)
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

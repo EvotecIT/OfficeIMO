@@ -74,17 +74,17 @@ internal sealed partial class PdfWorkspace {
                 double lineHeight = options.FontSize * 1.6D;
                 double headerY = options.Margin * 0.6D;
                 double footerY = Math.Max(0D, context.Height.ToPoints() - options.Margin * 0.6D - lineHeight);
-                void Draw(string? template, double y, PdfAlign align) {
+                void Draw(string? template, double y, OfficeAlignment align) {
                     if (string.IsNullOrWhiteSpace(template)) return;
                     canvas.Text(Expand(template), global::OfficeIMO.OfficeLength.Points(options.Margin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(lineHeight), fontSize: global::OfficeIMO.OfficeLength.Points(options.FontSize),
                         color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103), align: align);
                 }
-                Draw(options.HeaderLeft, headerY, PdfAlign.Left);
-                Draw(options.HeaderCenter, headerY, PdfAlign.Center);
-                Draw(options.HeaderRight, headerY, PdfAlign.Right);
-                Draw(options.FooterLeft, footerY, PdfAlign.Left);
-                Draw(options.FooterCenter, footerY, PdfAlign.Center);
-                Draw(options.FooterRight, footerY, PdfAlign.Right);
+                Draw(options.HeaderLeft, headerY, OfficeAlignment.Left);
+                Draw(options.HeaderCenter, headerY, OfficeAlignment.Center);
+                Draw(options.HeaderRight, headerY, OfficeAlignment.Right);
+                Draw(options.FooterLeft, footerY, OfficeAlignment.Left);
+                Draw(options.FooterCenter, footerY, OfficeAlignment.Center);
+                Draw(options.FooterRight, footerY, OfficeAlignment.Right);
             }, stampOptions).ToBytes(),
             cancellationToken, progress);
     }

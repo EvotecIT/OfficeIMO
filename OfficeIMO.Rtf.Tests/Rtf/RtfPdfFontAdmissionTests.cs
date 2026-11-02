@@ -205,7 +205,7 @@ public sealed class RtfPdfFontAdmissionTests {
         var options = Options();
         options.IncludeImages = scenario != "disabled-image";
         options.IncludeHeaderFooters = scenario != "disabled-story";
-        if (scenario == "plain-story") options.PdfOptions!.HeaderAlign = PdfCore.PdfAlign.Left;
+        if (scenario == "plain-story") options.PdfOptions!.HeaderAlign = global::OfficeIMO.OfficeAlignment.Left;
         int calls = 0;
         options.ImageConverter = _ => { calls++; return scenario == "failed-conversion" ? null : png; };
         byte[] before = document.ToBytes();

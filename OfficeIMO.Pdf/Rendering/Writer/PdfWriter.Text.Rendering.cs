@@ -139,7 +139,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D, Action<Action>? foregroundGroup = null, bool suppressInlineAccessibility = false) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<OfficeAlignment?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D, Action<Action>? foregroundGroup = null, bool suppressInlineAccessibility = false) {
         List<List<RichSeg>> logicalRows = lines;
         RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
             xOverride ?? opts.MarginLeft.ToPoints(), widthOverride ?? opts.PageWidth.ToPoints() - opts.MarginLeft.ToPoints() - opts.MarginRight.ToPoints(),
@@ -212,12 +212,12 @@ internal static partial class PdfWriter {
             double lineY = AdjustRichLineBaseline(startY - backgroundYOffset - (lineTopGaps != null ? lineTopGaps[li] : 0D), lines[li], opts, fontSize, baselineFont);
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
-            PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
+            OfficeAlignment lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
             double wordSpacing = justification[li].WordSpacing;
             double lineWForAlign = justification[li].Width;
             double dx = 0;
-            if (lineAlign == PdfAlign.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
-            else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
+            if (lineAlign == OfficeAlignment.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
+            else if (lineAlign == OfficeAlignment.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
 
             double xCursor = dx;
             BidiLineLayout? backgroundBidi = bidiParagraphLevels[li].HasValue ? CreateBidiLineLayout(segs, bidiParagraphLevels[li]!.Value, wordSpacing) : null;
@@ -304,14 +304,14 @@ internal static partial class PdfWriter {
             double lineWidthUsed = ResolveRichLineWidth(widthUsed, firstLineWidthOverride, lineWidths, li);
             double lineXOrigin = ResolveRichLineXOrigin(xOrigin, firstLineXOverride, lineXOffsets, li);
             var segs = justification[li].Segments;
-            PdfAlign lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
+            OfficeAlignment lineAlign = ResolveRichLineAlignment(block.Align, lineAlignments, li);
             double wordSpacing = justification[li].WordSpacing;
             // Tw applies only to single-byte code 32. Composite-font lines are positioned explicitly.
             double pdfWordSpacing = wordSpacing != 0D && !segs.All(seg => UsesSimpleFontText(seg, opts)) ? 0D : wordSpacing;
             double lineWForAlign = justification[li].Width;
             double dx = 0;
-            if (lineAlign == PdfAlign.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
-            else if (lineAlign == PdfAlign.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
+            if (lineAlign == OfficeAlignment.Center) dx = Math.Max(0, (lineWidthUsed - lineWForAlign) / 2);
+            else if (lineAlign == OfficeAlignment.Right) dx = Math.Max(0, lineWidthUsed - lineWForAlign);
             content
                 .TextMatrix(lineXOrigin + dx, lineY)
                 .WordSpacing(pdfWordSpacing);

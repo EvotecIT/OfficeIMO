@@ -30,7 +30,7 @@ public partial class PdfDocumentVisualQualityTests {
                 strokeColor: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 strokeWidth: 2,
                 fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 179, 153),
-                align: PdfAlign.Center,
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6)
             .ToBytes();
@@ -63,7 +63,7 @@ public partial class PdfDocumentVisualQualityTests {
                 y2: 40,
                 strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 2,
-                align: PdfAlign.Center,
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6,
                 strokeDashStyle: OfficeStrokeDashStyle.Dash)
@@ -94,7 +94,7 @@ public partial class PdfDocumentVisualQualityTests {
                 y2: 0,
                 strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 3,
-                align: PdfAlign.Center,
+                align: OfficeAlignment.Center,
                 spacingBefore: 4,
                 spacingAfter: 6,
                 strokeLineCap: OfficeStrokeLineCap.Square,
@@ -125,7 +125,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(30),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
             })
-            .Shape(shape, align: PdfAlign.Right)
+            .Shape(shape, align: OfficeAlignment.Right)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -576,7 +576,7 @@ public partial class PdfDocumentVisualQualityTests {
                 height: 24,
                 strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 2,
-                align: PdfAlign.Left,
+                align: OfficeAlignment.Left,
                 strokeDashStyle: OfficeStrokeDashStyle.DashDot)
             .ToBytes();
 
@@ -605,7 +605,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -638,7 +638,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -670,7 +670,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -700,7 +700,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -732,7 +732,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
-            .Shape(shape, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Shape(shape, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -768,7 +768,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             })
-            .Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6)
+            .Drawing(drawing, align: OfficeAlignment.Center, spacingBefore: 4, spacingAfter: 6)
             .ToBytes();
 
         string content = PdfTestContentText.ReadDecoded(bytes);
@@ -812,7 +812,7 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20D),
                 CompressContentStreams = false
             })
-            .Drawing(scaled, align: PdfAlign.Center)
+            .Drawing(scaled, align: OfficeAlignment.Center)
             .ToBytes();
 
         PdfReadDocument readback = PdfReadDocument.Open(bytes);

@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.StyleCheatsheet.pdf");
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Style Cheatsheet", PdfAlign.Left)
+                .H1("Style Cheatsheet", OfficeAlignment.Left)
                 .PanelParagraph(
                     p => p.Text("A compact visual sample for rich text, color, underline, and alignment behavior."),
                     new PdfPanelStyle {
@@ -42,12 +42,12 @@ namespace OfficeIMO.Examples.Pdf {
                     .Underline(true).Text("ul on ")
                     .Underline(false).Text("ul off"))
                 .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
-                .Paragraph(p => p.Text("Center aligned line"), PdfAlign.Center)
-                .Paragraph(p => p.Text("Right aligned line"), PdfAlign.Right)), new PdfCreateOptions {
+                .Paragraph(p => p.Text("Center aligned line"), OfficeAlignment.Center)
+                .Paragraph(p => p.Text("Right aligned line"), OfficeAlignment.Right)), new PdfCreateOptions {
                     HeaderFormat = "OfficeIMO.Pdf style cheatsheet",
-                    HeaderAlign = PdfAlign.Left,
+                    HeaderAlign = OfficeAlignment.Left,
                     ShowHeader = true,
-                    FooterAlign = PdfAlign.Right,
+                    FooterAlign = OfficeAlignment.Right,
                     ShowPageNumbers = true
                 }).Meta(title: "OfficeIMO.Pdf Style Cheatsheet", author: "OfficeIMO");
 

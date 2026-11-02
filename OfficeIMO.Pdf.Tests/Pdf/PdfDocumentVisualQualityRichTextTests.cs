@@ -22,7 +22,7 @@ public partial class PdfDocumentVisualQualityTests {
                 .Text("A A")
                 .CharacterSpacing(OfficeLength.Points(0))
                 .Underline(false)
-                .Text(new string('B', 120)), PdfAlign.Justify);
+                .Text(new string('B', 120)), OfficeAlignment.Justify);
 
         Assert.Throws<NotSupportedException>(() => document.ToBytes());
     }
@@ -270,7 +270,7 @@ public partial class PdfDocumentVisualQualityTests {
             WidowControl = true
         };
 
-        var paragraph = new RichParagraphBlock(runs, PdfAlign.Left, null, paragraphStyle);
+        var paragraph = new RichParagraphBlock(runs, OfficeAlignment.Left, null, paragraphStyle);
 
         runs[0] = PdfTextRun.Normal("Mutated alpha");
         runs.Add(PdfTextRun.Normal("Late gamma"));

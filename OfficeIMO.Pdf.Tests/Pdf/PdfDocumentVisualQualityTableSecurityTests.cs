@@ -25,11 +25,11 @@ public partial class PdfDocumentVisualQualityTests {
             if (rowColumn) {
                 document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
                     row.PercentColumn(100, column => {
-                        column.Table(new[] { new[] { "Floating" } }, align: PdfAlign.Right, style: style);
+                        column.Table(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
                         column.Paragraph(paragraph => paragraph.Text("Following"));
                     })))));
             } else {
-                document.Table(new[] { new[] { "Floating" } }, align: PdfAlign.Right, style: style);
+                document.Table(new[] { new[] { "Floating" } }, align: OfficeAlignment.Right, style: style);
                 document.Paragraph(paragraph => paragraph.Text("Following"));
             }
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
@@ -238,12 +238,12 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTextRun[] label = { PdfTextRun.Normal("Total Award Percent:") };
         PdfTableCell[][] rows = {
             new[] {
-                new PdfTableCell(label, new[] { new PdfTableCellParagraph(label, align: PdfAlign.Right) }, noWrap: true),
+                new PdfTableCell(label, new[] { new PdfTableCellParagraph(label, align: OfficeAlignment.Right) }, noWrap: true),
                 PdfTableCell.TextCell("6.00%")
             }
         };
 
-        byte[] pdf = PdfDocument.Create(options).Table(rows, PdfAlign.Right, style).ToBytes();
+        byte[] pdf = PdfDocument.Create(options).Table(rows, OfficeAlignment.Right, style).ToBytes();
 
         using PdfPigDocument parsed = PdfPigDocument.Open(pdf);
         Assert.Contains("Total Award Percent:", string.Concat(parsed.GetPages().Select(page => page.Text)), System.StringComparison.Ordinal);

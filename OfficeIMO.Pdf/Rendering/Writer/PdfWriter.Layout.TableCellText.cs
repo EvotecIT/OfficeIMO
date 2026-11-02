@@ -111,7 +111,7 @@ internal static partial class PdfWriter {
     private static TableCellTextLayout CreateTableCellParagraphTextLayout(System.Collections.Generic.IReadOnlyList<PdfTableCellParagraph> paragraphs, double wrapWidth, double cellInnerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfCreateOptions? options, RichWrapPurpose purpose = RichWrapPurpose.Layout, System.Threading.CancellationToken cancellationToken = default) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
         var lineHeights = new System.Collections.Generic.List<double>();
-        var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
+        var lineAlignments = new System.Collections.Generic.List<OfficeAlignment?>();
         var lineXOffsets = new System.Collections.Generic.List<double>();
         var lineWidths = new System.Collections.Generic.List<double>();
         var lineBoxHeights = new System.Collections.Generic.List<double>();
@@ -139,7 +139,7 @@ internal static partial class PdfWriter {
                 options,
                 paragraphStyle.TabStops.ToArray(), lineSpacing: paragraphStyle.LineSpacing, purpose: purpose,
                 inlineRuleWidth: alignmentFrame.Width, firstLineInlineRuleWidth: alignmentFrame.FirstLineWidth,
-                wordJustificationMode: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null,
+                wordJustificationMode: paragraphStyle.UseWordJustificationSpacing && paragraph.Align == OfficeAlignment.Justify ? paragraphStyle.JustificationMode : null,
                 cancellationToken: cancellationToken);
             if (wrap.Lines.Count == 0) {
                 wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());

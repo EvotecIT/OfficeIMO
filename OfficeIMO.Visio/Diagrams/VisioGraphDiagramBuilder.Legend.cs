@@ -136,7 +136,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 style.Color = _theme.Container.TextStyle?.Color ?? _theme.Connector.LineColor;
             }
             style.BackgroundTransparency = 100;
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.HorizontalAlignment = OfficeAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             return style;
         }

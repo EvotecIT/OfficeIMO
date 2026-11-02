@@ -88,7 +88,7 @@ public sealed class VisioConnectorLabelRenderingTests {
             Size = 9,
             Color = OfficeColor.Black,
             BackgroundColor = OfficeColor.Red,
-            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            HorizontalAlignment = OfficeAlignment.Center,
             VerticalAlignment = VisioTextVerticalAlignment.Middle
         };
         return document;

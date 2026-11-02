@@ -24,9 +24,9 @@ internal static partial class RtfPdfConverter {
     private static bool HasRunningStoryPresentationOverrides(PdfCore.PdfCreateOptions? options, bool isFooter) => options != null &&
         (isFooter
             ? options.FooterOffsetY.ToPoints() != 18D || options.HasExplicitFooterFont || options.FooterFontFamily != null ||
-                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != PdfCore.PdfAlign.Center
+                options.FooterFontSize.ToPoints() != 9D || options.FooterTextColor.HasValue || options.FooterAlign != global::OfficeIMO.OfficeAlignment.Center
             : options.HeaderOffsetY.ToPoints() != 18D || options.HasExplicitHeaderFont || options.HeaderFontFamily != null ||
-                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != PdfCore.PdfAlign.Center);
+                options.HeaderFontSize.ToPoints() != 9D || options.HeaderTextColor.HasValue || options.HeaderAlign != global::OfficeIMO.OfficeAlignment.Center);
 
     /// <summary>Captures rich source stories once through the same document and paragraph/image owners used by ordinary flow.</summary>
     private static void ApplyHeaderFooterContent(RtfDocument document, RtfPageSetup setup, PdfCore.PdfDocument pdf,

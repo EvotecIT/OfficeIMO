@@ -348,7 +348,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
                     global::OfficeIMO.OfficeLength.Points(18D),
                     fontSize: global::OfficeIMO.OfficeLength.Points(10D),
                     color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103),
-                    align: PdfAlign.Center),
+                    align: OfficeAlignment.Center),
                 new PdfCanvasStampOptions()).ToBytes(),
             cancellationToken,
             progress);

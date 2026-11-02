@@ -79,7 +79,7 @@ public sealed class PdfTableCellImage {
 
     internal PdfTableCellImage Clone() => new PdfTableCellImage(this);
 
-    internal ImageBlock ToImageBlock(PdfAlign fallbackAlign) {
+    internal ImageBlock ToImageBlock(OfficeAlignment fallbackAlign) {
         PdfImageStyle style = Style?.Clone() ?? new PdfImageStyle {
             Align = fallbackAlign
         };

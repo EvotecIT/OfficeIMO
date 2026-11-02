@@ -401,7 +401,7 @@ namespace OfficeIMO.Visio {
                 Size = 7.5D,
                 Color = Color.FromRgb(15, 23, 42),
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle,
                 LeftMargin = 0.03D,
                 RightMargin = 0.03D,

@@ -111,7 +111,7 @@ internal static partial class PdfWriter {
         int totalPages,
         int documentPages,
         bool isHeader) {
-        var consumedWidths = new System.Collections.Generic.Dictionary<PdfAlign, double>();
+        var consumedWidths = new System.Collections.Generic.Dictionary<OfficeAlignment, double>();
         foreach (PdfHeaderFooterImage image in images) {
             double textWidth = MeasureHeaderFooterTextWidth(
                 options,
@@ -159,7 +159,7 @@ internal static partial class PdfWriter {
         page.Images.Add(pageImage);
     }
 
-    private static double MeasureHeaderFooterImagesWidth(System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images, PdfAlign align) {
+    private static double MeasureHeaderFooterImagesWidth(System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images, OfficeAlignment align) {
         double width = 0D;
         int count = 0;
         foreach (PdfHeaderFooterImage image in images) {
@@ -174,7 +174,7 @@ internal static partial class PdfWriter {
         return width + Math.Max(0, count - 1) * HeaderFooterInlineGap;
     }
 
-    private static double MeasureHeaderFooterShapesWidth(System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> shapes, PdfAlign align) {
+    private static double MeasureHeaderFooterShapesWidth(System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> shapes, OfficeAlignment align) {
         double width = 0D;
         int count = 0;
         foreach (PdfHeaderFooterShape shape in shapes) {
@@ -204,7 +204,7 @@ internal static partial class PdfWriter {
         return width + Math.Max(0, groups - 1) * HeaderFooterInlineGap;
     }
 
-    private static double AlignHeaderFooterGroup(PdfCreateOptions options, double groupWidth, PdfAlign align) {
+    private static double AlignHeaderFooterGroup(PdfCreateOptions options, double groupWidth, OfficeAlignment align) {
         double contentLeft = options.MarginLeft.ToPoints();
         double contentWidth = options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints();
         return GetHeaderFooterAlignedObjectX(contentLeft, contentWidth, groupWidth, align);
@@ -256,7 +256,7 @@ internal static partial class PdfWriter {
         int totalPages,
         int documentPages,
         bool isHeader) {
-        var consumedWidths = new System.Collections.Generic.Dictionary<PdfAlign, double>();
+        var consumedWidths = new System.Collections.Generic.Dictionary<OfficeAlignment, double>();
         System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> images = isHeader
             ? options.GetHeaderImagesForPage(variantPageNumber)
             : options.GetFooterImagesForPage(variantPageNumber);
@@ -462,9 +462,9 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static double GetHeaderFooterAlignedObjectX(double containerX, double containerWidth, double objectWidth, PdfAlign align) {
-        if (align == PdfAlign.Center) return containerX + ((containerWidth - objectWidth) / 2);
-        if (align == PdfAlign.Right) return containerX + containerWidth - objectWidth;
+    private static double GetHeaderFooterAlignedObjectX(double containerX, double containerWidth, double objectWidth, OfficeAlignment align) {
+        if (align == OfficeAlignment.Center) return containerX + ((containerWidth - objectWidth) / 2);
+        if (align == OfficeAlignment.Right) return containerX + containerWidth - objectWidth;
         return containerX;
     }
 

@@ -160,7 +160,7 @@ internal static partial class PdfWriter {
         double y,
         PdfCreateOptions opts,
         double? lineBoxWidth = null,
-        PdfAlign align = PdfAlign.Left) {
+        OfficeAlignment align = OfficeAlignment.Left) {
         var lines = BuildPageTextLineRuns(runs);
         double[] baselines = BuildPageTextLineBaselines(lines, y, fontSize);
         AppendPageTextRunDecorations(sb, lines, baselines, baseFont, fontSize, color, x, opts, lineBoxWidth, align);
@@ -177,9 +177,9 @@ internal static partial class PdfWriter {
             double dx = 0D;
             if (lineBoxWidth.HasValue) {
                 double lineWidth = MeasurePageTextLineRuns(line, baseFont, fontSize, opts);
-                if (align == PdfAlign.Center) {
+                if (align == OfficeAlignment.Center) {
                     dx = Math.Max(0D, (lineBoxWidth.Value - lineWidth) / 2D);
-                } else if (align == PdfAlign.Right) {
+                } else if (align == OfficeAlignment.Right) {
                     dx = Math.Max(0D, lineBoxWidth.Value - lineWidth);
                 }
             }

@@ -12,22 +12,22 @@ public sealed class PdfHeaderFooterImage {
 
     /// <summary>Creates a meaningful header/footer image with alternate text.</summary>
     public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText)
-        : this(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText) {
+        : this(data, width, height, OfficeAlignment.Left, OfficeImageFit.Stretch, alternativeText) {
     }
 
     /// <summary>Creates a header/footer image.</summary>
-    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null)
+    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align = OfficeAlignment.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null)
         : this(data, width, height, align, new PdfImageStyle { Fit = fit, AlternativeText = alternativeText }) {
     }
 
     /// <summary>Creates a header/footer image with source crop, rotation, mirrors and alternate text from a reusable style.</summary>
     /// <remarks>The style is copied; the explicit alignment controls the image's position in its running-story group.</remarks>
-    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfAlign align, PdfImageStyle style) {
+    public PdfHeaderFooterImage(byte[] data, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, OfficeAlignment align, PdfImageStyle style) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.NotNull(style, nameof(style));
         Guard.Positive(width.ToPoints(), nameof(width));
         Guard.Positive(height.ToPoints(), nameof(height));
-        Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer image");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer image");
         _style = style.Clone();
         _style.Align = align;
         PdfDocument.ValidateImageStyleForBox(_style, width.ToPoints(), height.ToPoints(), nameof(style));
@@ -55,7 +55,7 @@ public sealed class PdfHeaderFooterImage {
     public global::OfficeIMO.OfficeLength Height { get; }
 
     /// <summary>Horizontal placement inside the page content width.</summary>
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
 
     /// <summary>Image fit behavior inside the requested image box.</summary>
     public OfficeImageFit Fit { get; }

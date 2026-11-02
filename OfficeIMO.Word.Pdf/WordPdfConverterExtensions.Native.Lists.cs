@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap,
             IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
             if (elements[index] is not WordParagraph firstParagraph ||
-                !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out PdfCore.PdfAlign align, out global::OfficeIMO.OfficeColor? color, out PdfCore.PdfListStyle? style)) {
+                !TryGetNativeListItem(firstParagraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool ordered, out int level, out int startNumber, out PdfCore.PdfListItem? item, out global::OfficeIMO.OfficeAlignment align, out global::OfficeIMO.OfficeColor? color, out PdfCore.PdfListStyle? style)) {
                 return false;
             }
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Pdf {
             // A Word keep-lines constraint applies to one numbered paragraph, not the whole list.
             while (style?.KeepTogether != true && nextIndex < elements.Count &&
                    elements[nextIndex] is WordParagraph paragraph &&
-                   TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out PdfCore.PdfAlign nextAlign, out global::OfficeIMO.OfficeColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
+                   TryGetNativeListItem(paragraph, listMarkers, listIndices, footnoteNumbersById, nativeDefaults, nativeFontMap, headingDestinations, out bool nextOrdered, out int nextLevel, out int nextNumber, out PdfCore.PdfListItem? nextItem, out global::OfficeIMO.OfficeAlignment nextAlign, out global::OfficeIMO.OfficeColor? nextColor, out PdfCore.PdfListStyle? nextStyle) &&
                    nextOrdered == ordered &&
                    nextLevel == level &&
                    nextAlign == align &&
@@ -86,14 +86,14 @@ namespace OfficeIMO.Word.Pdf {
             out int level,
             out int index,
             out PdfCore.PdfListItem? item,
-            out PdfCore.PdfAlign align,
+            out global::OfficeIMO.OfficeAlignment align,
             out global::OfficeIMO.OfficeColor? color,
             out PdfCore.PdfListStyle? style) {
             ordered = false;
             level = 0;
             index = 1;
             item = null;
-            align = PdfCore.PdfAlign.Left;
+            align = global::OfficeIMO.OfficeAlignment.Left;
             color = null;
             style = null;
 
@@ -238,7 +238,7 @@ namespace OfficeIMO.Word.Pdf {
                 // A Word marker inherits the source text colour when its numbering level leaves it unset.
                 // Make that resolved colour explicit so PDF authoring-theme defaults do not replace it.
                 MarkerColor = ParseNativeColor(info.MarkerColorHex) ?? markerTextStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
-                MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification) ?? PdfCore.PdfAlign.Left,
+                MarkerAlign = MapNativeListMarkerAlign(info.LevelJustification) ?? global::OfficeIMO.OfficeAlignment.Left,
                 MarkerBold = info.MarkerBold ?? markerTextStyle.Bold,
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
             };
@@ -506,23 +506,23 @@ namespace OfficeIMO.Word.Pdf {
             return WordDocumentTraversal.ShouldUseTextFontForMarker(info, marker);
         }
 
-        private static PdfCore.PdfAlign? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {
+        private static global::OfficeIMO.OfficeAlignment? MapNativeListMarkerAlign(W.LevelJustificationValues? value) {
             if (!value.HasValue) {
                 return null;
             }
 
             if (value.Value == W.LevelJustificationValues.Center) {
-                return PdfCore.PdfAlign.Center;
+                return global::OfficeIMO.OfficeAlignment.Center;
             }
 
             if (value.Value == W.LevelJustificationValues.Right) {
-                return PdfCore.PdfAlign.Right;
+                return global::OfficeIMO.OfficeAlignment.Right;
             }
 
-            return value.Value == W.LevelJustificationValues.Left ? PdfCore.PdfAlign.Left : null;
+            return value.Value == W.LevelJustificationValues.Left ? global::OfficeIMO.OfficeAlignment.Left : null;
         }
 
-        private static PdfCore.PdfAlign? MapNativeListMarkerAlign(WordListLevelAlignment? value) =>
+        private static global::OfficeIMO.OfficeAlignment? MapNativeListMarkerAlign(WordListLevelAlignment? value) =>
             MapNativeListMarkerAlign(value.ToOpenXml());
 
         private static List<WordParagraph> GetNativeRuns(WordParagraph paragraph, bool includeInlineContentControls = false) {

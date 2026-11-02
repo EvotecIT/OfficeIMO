@@ -143,7 +143,7 @@ public sealed class VisioDrawingProjectionTests {
     public void JustifiedParagraphsReachTheSharedParagraphLayout() {
         VisioPage page = VisioDocument.Create().AddPage("Justified");
         VisioShape shape = page.AddRectangle(2, 2, 3, 2, "One two three\nfour five six");
-        shape.TextStyle = new VisioTextStyle { HorizontalAlignment = VisioTextHorizontalAlignment.Justify };
+        shape.TextStyle = new VisioTextStyle { HorizontalAlignment = OfficeAlignment.Justify };
         OfficeDrawing scene = page.ToDrawing().Value;
         OfficeDrawingEffectGroup group = Assert.Single(scene.Elements.OfType<OfficeDrawingEffectGroup>());
         OfficeDrawingRichText text = Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingRichText>());

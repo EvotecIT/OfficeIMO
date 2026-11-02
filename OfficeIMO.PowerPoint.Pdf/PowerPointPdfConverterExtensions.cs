@@ -125,7 +125,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 left + (cellWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
             canvas.Text("Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture),
                 global::OfficeIMO.OfficeLength.Points(left), global::OfficeIMO.OfficeLength.Points(top + thumbHeight + 2D), global::OfficeIMO.OfficeLength.Points(cellWidth), global::OfficeIMO.OfficeLength.Points(labelHeight), fontSize: global::OfficeIMO.OfficeLength.Points(8D),
-                color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
+                color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96), align: global::OfficeIMO.OfficeAlignment.Center);
             if (notesHeight > 0D && slides[index].Slide.Notes.TryGetText(out string notes) &&
                 !string.IsNullOrWhiteSpace(notes)) {
                 RenderSpeakerNotes(canvas, notes, left, top + thumbHeight + labelHeight + 2D, cellWidth, notesHeight,
@@ -468,29 +468,29 @@ public static partial class PowerPointPdfConverterExtensions {
 
 
 
-    private static PdfCore.PdfAlign MapAlign(TextAlignmentTypeValues? alignment) {
+    private static global::OfficeIMO.OfficeAlignment MapAlign(TextAlignmentTypeValues? alignment) {
         if (alignment == TextAlignmentTypeValues.Center) {
-            return PdfCore.PdfAlign.Center;
+            return global::OfficeIMO.OfficeAlignment.Center;
         }
 
         if (alignment == TextAlignmentTypeValues.Right) {
-            return PdfCore.PdfAlign.Right;
+            return global::OfficeIMO.OfficeAlignment.Right;
         }
 
-        return PdfCore.PdfAlign.Left;
+        return global::OfficeIMO.OfficeAlignment.Left;
     }
 
-    private static PdfCore.PdfColumnAlign? MapColumnAlign(TextAlignmentTypeValues? alignment) {
+    private static global::OfficeIMO.OfficeAlignment? MapColumnAlign(TextAlignmentTypeValues? alignment) {
         if (alignment == TextAlignmentTypeValues.Center) {
-            return PdfCore.PdfColumnAlign.Center;
+            return global::OfficeIMO.OfficeAlignment.Center;
         }
 
         if (alignment == TextAlignmentTypeValues.Right) {
-            return PdfCore.PdfColumnAlign.Right;
+            return global::OfficeIMO.OfficeAlignment.Right;
         }
 
         if (alignment == TextAlignmentTypeValues.Left) {
-            return PdfCore.PdfColumnAlign.Left;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         return null;

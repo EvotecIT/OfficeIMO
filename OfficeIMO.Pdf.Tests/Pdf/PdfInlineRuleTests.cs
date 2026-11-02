@@ -44,10 +44,10 @@ public sealed class PdfInlineRuleTests {
     }
 
     [Theory]
-    [InlineData(PdfAlign.Left, 20D)]
-    [InlineData(PdfAlign.Center, 50D)]
-    [InlineData(PdfAlign.Right, 80D)]
-    public void ParagraphAlignmentUsesTheResolvedBandWidth(PdfAlign alignment, double expectedX) {
+    [InlineData(OfficeAlignment.Left, 20D)]
+    [InlineData(OfficeAlignment.Center, 50D)]
+    [InlineData(OfficeAlignment.Right, 80D)]
+    public void ParagraphAlignmentUsesTheResolvedBandWidth(OfficeAlignment alignment, double expectedX) {
         byte[] bytes = Create(100D).Paragraph(p => p.Runs(new[] {
             PdfTextRun.Inline(new PdfInlineRule(global::OfficeIMO.OfficeLength.Points(.5D), RuleColor, maximumWidth: global::OfficeIMO.OfficeLength.Points(40D)))
         }), alignment, style: Style()).ToBytes();

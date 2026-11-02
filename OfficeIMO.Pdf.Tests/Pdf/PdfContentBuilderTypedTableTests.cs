@@ -27,7 +27,7 @@ public sealed class PdfContentBuilderTypedTableTests {
         var block = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         Assert.Equal(new[] { "Total", "Header Name" }, block.Rows[0]);
         Assert.Equal(new[] { "12.50", "Ada" }, block.Rows[1]);
-        Assert.Equal(PdfColumnAlign.Right, block.Style!.Alignments![0]);
+        Assert.Equal(OfficeAlignment.Right, block.Style!.Alignments![0]);
         Assert.Equal(1, block.Style.HeaderRowCount);
         Assert.Equal(0, style.HeaderRowCount);
         Assert.Equal("Original", style.Caption);

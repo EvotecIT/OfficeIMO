@@ -22,7 +22,7 @@ internal static partial class PdfWriter {
             TableCellContentFrame contentFrame = textFrame.Content;
             double innerW = textFrame.InnerWidth;
             double cellBottom = cellTop - cellHeight;
-            PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, c, cell.Text);
+            OfficeAlignment align = GetTableCellAlignment(style, rowIndex, c, cell.Text);
             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             // A neighboring horizontal cell can continue the row after the
             // turned cell's content has already been painted on its first fragment.

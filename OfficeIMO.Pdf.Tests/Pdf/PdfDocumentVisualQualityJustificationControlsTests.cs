@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests.Pdf {
                 ManagedTextShapingTestAssets.CreateCharacterDistributionControlFont()))
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
             byte[] Render(string value) => PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text(value),
-                PdfAlign.Justify, style: new PdfParagraphStyle {
+                OfficeAlignment.Justify, style: new PdfParagraphStyle {
                     JustificationMode = PdfJustificationMode.Characters, JustifyLastLine = true,
                     UseWordJustificationSpacing = wordSpacing
                 }).ToBytes();
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests.Pdf {
                 ManagedTextShapingTestAssets.CreateCharacterDistributionControlFont()))
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
             byte[] actual = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("a\u200E"),
-                PdfAlign.Justify, style: new PdfParagraphStyle {
+                OfficeAlignment.Justify, style: new PdfParagraphStyle {
                     JustificationMode = PdfJustificationMode.Characters, JustifyLastLine = true,
                     UseWordJustificationSpacing = wordSpacing
                 }).ToBytes();

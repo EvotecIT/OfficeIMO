@@ -159,8 +159,8 @@ internal static partial class PdfWriter {
     private static double GetListMarkerWidth(PdfListStyle? style, double estimatedWidth) {
         if (style?.MarkerAlignsAtIndent == true) {
             estimatedWidth *= style.MarkerAlign switch {
-                PdfAlign.Right => 0D,
-                PdfAlign.Center => 0.5D,
+                OfficeAlignment.Right => 0D,
+                OfficeAlignment.Center => 0.5D,
                 _ => 1D
             };
         }
@@ -197,12 +197,12 @@ internal static partial class PdfWriter {
         return namedFont;
     }
 
-    private static PdfAlign GetBulletMarkerAlign(PdfListStyle? style) {
-        return style?.MarkerAlign ?? PdfAlign.Left;
+    private static OfficeAlignment GetBulletMarkerAlign(PdfListStyle? style) {
+        return style?.MarkerAlign ?? OfficeAlignment.Left;
     }
 
-    private static PdfAlign GetNumberedMarkerAlign(PdfListStyle? style) {
-        return style?.MarkerAlign ?? PdfAlign.Right;
+    private static OfficeAlignment GetNumberedMarkerAlign(PdfListStyle? style) {
+        return style?.MarkerAlign ?? OfficeAlignment.Right;
     }
 
     private static double GetListItemSpacing(PdfListStyle? style, double leading) {

@@ -419,7 +419,7 @@ namespace OfficeIMO.Visio.Fluent {
                 Color = Color.FromRgb(0, 73, 108),
                 Size = 22,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             RegisterShape(shape);

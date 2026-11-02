@@ -204,8 +204,8 @@ internal static partial class PdfWriter {
             parentLeft += style.LeftInset.ToPoints();
             parentWidth = ResolveContainerAvailableWidth(style, parentWidth);
             double outerX = style.Align switch {
-                PdfAlign.Center => parentLeft + (parentWidth - outerWidth) / 2D,
-                PdfAlign.Right => parentLeft + parentWidth - outerWidth,
+                OfficeAlignment.Center => parentLeft + (parentWidth - outerWidth) / 2D,
+                OfficeAlignment.Right => parentLeft + parentWidth - outerWidth,
                 _ => parentLeft
             };
             double contentWidth = outerWidth - 2D * style.PaddingX.ToPoints();

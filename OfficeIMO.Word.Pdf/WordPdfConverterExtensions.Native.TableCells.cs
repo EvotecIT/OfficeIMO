@@ -12,7 +12,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private readonly record struct NativeTableColumnAlignments(
-            List<PdfCore.PdfColumnAlign>? Horizontal,
+            List<global::OfficeIMO.OfficeAlignment>? Horizontal,
             List<PdfCore.PdfCellVerticalAlign>? Vertical);
 
         private static NativeTableColumnAlignments CreateNativeTableColumnAlignments(TableLayout layout) {
@@ -21,12 +21,12 @@ namespace OfficeIMO.Word.Pdf {
                 return default;
             }
 
-            var horizontalValues = new PdfCore.PdfColumnAlign?[columnCount];
+            var horizontalValues = new global::OfficeIMO.OfficeAlignment?[columnCount];
             var verticalValues = new PdfCore.PdfCellVerticalAlign?[columnCount];
             var horizontalConflicts = new bool[columnCount];
             var verticalConflicts = new bool[columnCount];
             foreach ((WordTableCell Cell, int Column, int ColumnSpan) cell in EnumerateNativeTableCells(layout)) {
-                PdfCore.PdfColumnAlign horizontal = GetNativeCellHorizontalAlignment(cell.Cell);
+                global::OfficeIMO.OfficeAlignment horizontal = GetNativeCellHorizontalAlignment(cell.Cell);
                 PdfCore.PdfCellVerticalAlign? vertical = MapNativeNullableCellVerticalAlign(cell.Cell.VerticalAlignment);
                 int endColumn = Math.Min(columnCount, cell.Column + cell.ColumnSpan);
                 for (int columnIndex = Math.Max(0, cell.Column); columnIndex < endColumn; columnIndex++) {
@@ -52,18 +52,18 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
-            var horizontalAlignments = new List<PdfCore.PdfColumnAlign>(columnCount);
+            var horizontalAlignments = new List<global::OfficeIMO.OfficeAlignment>(columnCount);
             var verticalAlignments = new List<PdfCore.PdfCellVerticalAlign>(columnCount);
             bool hasExplicitHorizontalAlignment = false;
             bool hasExplicitVerticalAlignment = false;
             for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                PdfCore.PdfColumnAlign horizontal = horizontalConflicts[columnIndex]
-                    ? PdfCore.PdfColumnAlign.Left
-                    : horizontalValues[columnIndex] ?? PdfCore.PdfColumnAlign.Left;
+                global::OfficeIMO.OfficeAlignment horizontal = horizontalConflicts[columnIndex]
+                    ? global::OfficeIMO.OfficeAlignment.Left
+                    : horizontalValues[columnIndex] ?? global::OfficeIMO.OfficeAlignment.Left;
                 PdfCore.PdfCellVerticalAlign vertical = verticalConflicts[columnIndex]
                     ? PdfCore.PdfCellVerticalAlign.Top
                     : verticalValues[columnIndex] ?? PdfCore.PdfCellVerticalAlign.Top;
-                if (horizontal != PdfCore.PdfColumnAlign.Left) {
+                if (horizontal != global::OfficeIMO.OfficeAlignment.Left) {
                     hasExplicitHorizontalAlignment = true;
                 }
                 if (vertical != PdfCore.PdfCellVerticalAlign.Top) {

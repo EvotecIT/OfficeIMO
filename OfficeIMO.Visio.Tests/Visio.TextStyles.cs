@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                     Bold = true,
                     Italic = true,
                     Underline = false,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                    HorizontalAlignment = OfficeAlignment.Center,
                     VerticalAlignment = VisioTextVerticalAlignment.Middle,
                     LeftMargin = 0.08,
                     RightMargin = 0.09,
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                     Color = Color.Crimson,
                     Size = 12,
                     Bold = true,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Right,
+                    HorizontalAlignment = OfficeAlignment.Right,
                     VerticalAlignment = VisioTextVerticalAlignment.Bottom,
                     LeftMargin = 0.12,
                     BackgroundColor = Color.LightCyan,
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
             Assert.True(loadedShape.TextStyle.Bold);
             Assert.False(loadedShape.TextStyle.Italic);
             Assert.False(loadedShape.TextStyle.Underline);
-            Assert.Equal(VisioTextHorizontalAlignment.Right, loadedShape.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Right, loadedShape.TextStyle.HorizontalAlignment);
             Assert.Equal(VisioTextVerticalAlignment.Bottom, loadedShape.TextStyle.VerticalAlignment);
             Assert.Equal(0.12, loadedShape.TextStyle.LeftMargin);
             Assert.Equal(Color.LightCyan, loadedShape.TextStyle.BackgroundColor);
@@ -289,7 +289,7 @@ namespace OfficeIMO.Tests {
                     Size = 9.5,
                     Bold = true,
                     Underline = true,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                    HorizontalAlignment = OfficeAlignment.Center,
                     VerticalAlignment = VisioTextVerticalAlignment.Middle,
                     LeftMargin = 0.03,
                     RightMargin = 0.04,
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
                     Color = Color.Crimson,
                     Size = 10,
                     Italic = true,
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Right,
+                    HorizontalAlignment = OfficeAlignment.Right,
                     VerticalAlignment = VisioTextVerticalAlignment.Bottom,
                     LeftMargin = 0.07,
                     BackgroundColor = Color.LightCyan,
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
             Assert.False(loadedConnector.TextStyle.Bold);
             Assert.True(loadedConnector.TextStyle.Italic);
             Assert.False(loadedConnector.TextStyle.Underline);
-            Assert.Equal(VisioTextHorizontalAlignment.Right, loadedConnector.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Right, loadedConnector.TextStyle.HorizontalAlignment);
             Assert.Equal(VisioTextVerticalAlignment.Bottom, loadedConnector.TextStyle.VerticalAlignment);
             Assert.Equal(0.07, loadedConnector.TextStyle.LeftMargin);
             Assert.Equal(Color.LightCyan, loadedConnector.TextStyle.BackgroundColor);
@@ -467,7 +467,7 @@ namespace OfficeIMO.Tests {
             VisioTextStyle style = new() {
                 Size = 11,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Justify
+                HorizontalAlignment = OfficeAlignment.Justify
             };
 
             page.SelectShapes(_ => true).ApplyTextStyle(style);
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(11, second.TextStyle!.Size);
             Assert.False(first.TextStyle.Bold);
             Assert.True(second.TextStyle.Bold);
-            Assert.Equal(VisioTextHorizontalAlignment.Justify, second.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Justify, second.TextStyle.HorizontalAlignment);
         }
 
         [Fact]
@@ -495,7 +495,7 @@ namespace OfficeIMO.Tests {
             VisioTextStyle style = new() {
                 Size = 8,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center
+                HorizontalAlignment = OfficeAlignment.Center
             };
 
             new VisioConnectorSelection(new[] { first, second }).ApplyTextStyle(style);
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8, second.TextStyle!.Size);
             Assert.False(first.TextStyle.Bold);
             Assert.True(second.TextStyle.Bold);
-            Assert.Equal(VisioTextHorizontalAlignment.Center, second.TextStyle.HorizontalAlignment);
+            Assert.Equal(OfficeAlignment.Center, second.TextStyle.HorizontalAlignment);
         }
 
         [Fact]

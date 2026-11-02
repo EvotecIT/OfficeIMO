@@ -246,7 +246,7 @@ its fixed advance.
 
 ## Paragraph justification
 
-`PdfAlign.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
+`OfficeAlignment.Justify` uses `PdfParagraphStyle.JustificationMode` to select expandable boundaries. `Words`, the default, distributes extra width between word separators. `Characters` distributes it uniformly between shaped grapheme clusters, keeping combining sequences and shaped ligatures together. `JustifyExplicitLineBreaks` and `JustifyLastLine` independently select expansion for explicit-break and final lines; both default to `false`.
 
 ```csharp
 var style = new PdfParagraphStyle {
@@ -258,7 +258,7 @@ var document = PdfDocument.Create();
 document.Compose(layout => layout.Content(content => content
     .Paragraph(paragraph => paragraph
         .Text("Distributed first line").LineBreak().Text("Final line"),
-        PdfAlign.Justify, style: style)));
+        OfficeAlignment.Justify, style: style)));
 document.Save("distributed-text.pdf");
 ```
 
@@ -409,7 +409,7 @@ PdfDocument.Create(document => document
         .Border(OfficeColor.FromRgb(148, 163, 184))
         .Padding(vertical: 10, horizontal: 12)
         .MaxWidth(420)
-        .Align(PdfAlign.Center)
+        .Align(OfficeAlignment.Center)
         .KeepTogether()
         .Content(article => article
             .H1("Accessible report")

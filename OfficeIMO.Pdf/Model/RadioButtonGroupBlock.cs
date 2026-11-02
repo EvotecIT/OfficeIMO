@@ -6,18 +6,18 @@ internal sealed class RadioButtonGroupBlock : IPdfBlock {
     public string Value { get; }
     public double Size { get; }
     public double Gap { get; }
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
     public PdfFormFieldStyle Style { get; }
     public double Height => Options.Count * Size + Math.Max(0, Options.Count - 1) * Gap;
 
-    public RadioButtonGroupBlock(string name, IEnumerable<string> options, string? value, double size, double gap, PdfAlign align, double spacingBefore, double spacingAfter, PdfFormFieldStyle? style = null) {
+    public RadioButtonGroupBlock(string name, IEnumerable<string> options, string? value, double size, double gap, OfficeAlignment align, double spacingBefore, double spacingAfter, PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
         Guard.Positive(size, nameof(size));
         Guard.NonNegative(gap, nameof(gap));
-        Guard.LeftCenterRightAlign(align, nameof(align), "Radio button group");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "Radio button group");
         Guard.NonNegative(spacingBefore, nameof(spacingBefore));
         Guard.NonNegative(spacingAfter, nameof(spacingAfter));
 

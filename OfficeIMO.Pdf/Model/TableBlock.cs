@@ -7,15 +7,15 @@ internal sealed class TableBlock : IPdfBlock {
     public System.Collections.Generic.IReadOnlyList<string[]> Rows { get; }
     public System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<PdfTableCell>> Cells { get; }
     public int ColumnCount { get; }
-    public PdfAlign Align { get; }
+    public OfficeAlignment Align { get; }
     public PdfTableStyle? Style { get; }
     internal int CellBlockDepth { get; }
     // Optional per-cell link URIs: key = (rowIndex, colIndex)
     public System.Collections.Generic.IReadOnlyDictionary<(int Row, int Col), string> Links => _linksView;
 
-    public TableBlock(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align, PdfTableStyle? style) {
+    public TableBlock(System.Collections.Generic.IEnumerable<string[]> rows, OfficeAlignment align, PdfTableStyle? style) {
         Guard.NotNull(rows, nameof(rows));
-        Guard.LeftCenterRightAlign(align, nameof(align), "Table");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "Table");
         _linksView = new System.Collections.ObjectModel.ReadOnlyDictionary<(int Row, int Col), string>(_links);
         Align = align; Style = style?.Clone();
         var cellSnapshot = new System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTableCell>>();
@@ -37,9 +37,9 @@ internal sealed class TableBlock : IPdfBlock {
         ColumnCount = GetColumnCount(Cells);
     }
 
-    public TableBlock(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, PdfAlign align, PdfTableStyle? style) {
+    public TableBlock(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, OfficeAlignment align, PdfTableStyle? style) {
         Guard.NotNull(rows, nameof(rows));
-        Guard.LeftCenterRightAlign(align, nameof(align), "Table");
+        align = Guard.LeftCenterRightAlign(align, nameof(align), "Table");
         _linksView = new System.Collections.ObjectModel.ReadOnlyDictionary<(int Row, int Col), string>(_links);
         Align = align; Style = style?.Clone();
         var cellSnapshot = new System.Collections.Generic.List<System.Collections.Generic.IReadOnlyList<PdfTableCell>>();

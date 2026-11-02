@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 FontFamily = "Aptos",
                 Size = 18,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center
+                HorizontalAlignment = OfficeAlignment.Center
             };
 
             Assert.Equal("Text Box", textBox.NameU);

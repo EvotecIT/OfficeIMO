@@ -12,7 +12,7 @@ public sealed partial class PdfInvoiceDocument {
                             _layout.LogoBytesSnapshot,
                             global::OfficeIMO.OfficeLength.Points(_layout.LogoWidth),
                             global::OfficeIMO.OfficeLength.Points(_layout.LogoHeight),
-                            align: PdfAlign.Left,
+                            align: OfficeAlignment.Left,
                             clipPath: null,
                             fit: _layout.LogoFit,
                             spacingBefore: null,
@@ -22,11 +22,11 @@ public sealed partial class PdfInvoiceDocument {
                             linkContents: null,
                             alternativeText: _layout.LogoAlternativeText);
                     } else {
-                        column.H2(_invoice.Seller.Name, PdfAlign.Left, theme.Text, style: SectionHeadingStyle());
+                        column.H2(_invoice.Seller.Name, OfficeAlignment.Left, theme.Text, style: SectionHeadingStyle());
                     }
                 })
                 .PercentColumn(56D, column => {
-                    column.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold(DocumentTitle, theme.Text), PdfAlign.Right, style: new PdfParagraphStyle {
+                    column.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold(DocumentTitle, theme.Text), OfficeAlignment.Right, style: new PdfParagraphStyle {
                         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D),
                         WidowControl = true
@@ -37,7 +37,7 @@ public sealed partial class PdfInvoiceDocument {
                         .Bold(Date(_invoice.IssueDate), theme.Text)
                         .Color(theme.MutedText)
                         .Text("\n" + Label(InvoicePdfText.Due) + ": ")
-                        .Bold(Date(_invoice.DueDate), theme.Text), PdfAlign.Right);
+                        .Bold(Date(_invoice.DueDate), theme.Text), OfficeAlignment.Right);
                 });
         });
 
@@ -159,11 +159,11 @@ public sealed partial class PdfInvoiceDocument {
                     RowStripeFill = theme.Surface,
                     CellPaddingX = OfficeLength.Points(9D),
                     CellPaddingY = OfficeLength.Points(5D),
-                    CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                        [(summary.Count - 1, 1)] = PdfColumnAlign.Right
+                    CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                        [(summary.Count - 1, 1)] = OfficeAlignment.Right
                     },
                     AutoFitColumns = true,
-                    Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
+                    Alignments = new List<OfficeAlignment> { OfficeAlignment.Left, OfficeAlignment.Right }
                 });
             }));
     }
@@ -179,9 +179,9 @@ public sealed partial class PdfInvoiceDocument {
                 VatCategory(item.Tax!.Code, item.Tax.Rate),
                 Money(item.Amount)
             });
-            content.H2(Label(InvoicePdfText.DocumentAdjustments), PdfAlign.Left, theme.Text, style: SectionHeadingStyle());
+            content.H2(Label(InvoicePdfText.DocumentAdjustments), OfficeAlignment.Left, theme.Text, style: SectionHeadingStyle());
             content.Table(adjustments, style: ModernFinancialTableStyle(theme, false,
-                PdfColumnAlign.Left, PdfColumnAlign.Left, PdfColumnAlign.Left, PdfColumnAlign.Right));
+                OfficeAlignment.Left, OfficeAlignment.Left, OfficeAlignment.Left, OfficeAlignment.Right));
         }
 
         if (_amounts.Taxes.Count != 0) {
@@ -195,11 +195,11 @@ public sealed partial class PdfInvoiceDocument {
                 Join(tax.ExemptionReasonCode, tax.ExemptionReason)
             }));
             content.Table(taxes, style: ModernFinancialTableStyle(theme, true,
-                PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Left));
+                OfficeAlignment.Left, OfficeAlignment.Right, OfficeAlignment.Right, OfficeAlignment.Left));
         }
     }
 
-    private static PdfTableStyle ModernFinancialTableStyle(InvoicePdfTheme theme, bool hasHeader, params PdfColumnAlign[] alignments) => new PdfTableStyle {
+    private static PdfTableStyle ModernFinancialTableStyle(InvoicePdfTheme theme, bool hasHeader, params OfficeAlignment[] alignments) => new PdfTableStyle {
         HeaderRowCount = hasHeader ? 1 : 0,
         HeaderFill = theme.Text,
         HeaderTextColor = OfficeColor.White,
@@ -214,12 +214,12 @@ public sealed partial class PdfInvoiceDocument {
         SpacingAfter = OfficeLength.Points(12D),
         ColumnWidthWeights = new List<double> { 1.6D, 1.4D, 1.4D, 1.6D },
         AutoFitColumns = true,
-        Alignments = new List<PdfColumnAlign>(alignments)
+        Alignments = new List<OfficeAlignment>(alignments)
     };
 
     private void ComposeApprovals(PdfContentBuilder content, InvoicePdfTheme theme) {
         if (_layout.Approvals.Count == 0) return;
-        content.H2(Label(InvoicePdfText.Approvals), PdfAlign.Left, theme.Text, style: SectionHeadingStyle());
+        content.H2(Label(InvoicePdfText.Approvals), OfficeAlignment.Left, theme.Text, style: SectionHeadingStyle());
         content.Row(row => {
             row.Style(new PdfRowStyle { Gap = global::OfficeIMO.OfficeLength.Points(12D) });
             foreach (InvoicePdfApproval approval in _layout.Approvals) {

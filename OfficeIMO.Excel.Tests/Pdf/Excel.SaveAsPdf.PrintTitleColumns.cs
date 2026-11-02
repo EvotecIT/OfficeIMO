@@ -47,11 +47,11 @@ public partial class Excel {
             HeaderRowCount = 0, WorksheetLayout = ExcelPdfWorksheetLayoutMode.FlowTable
         });
         PdfCore.TableBlock table = Assert.Single(Assert.IsType<PdfCore.PageBlock>(Assert.Single(pdf.Blocks)).Blocks.OfType<PdfCore.TableBlock>());
-        Assert.Equal(PdfCore.PdfColumnAlign.Right, table.Style!.CellAlignments![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeAlignment.Right, table.Style!.CellAlignments![(0, 0)]);
         Assert.False(table.Style.CellAlignments.ContainsKey((0, 1)));
-        Assert.Equal(PdfCore.PdfColumnAlign.Center, table.Style.CellAlignments[(0, 2)]);
+        Assert.Equal(global::OfficeIMO.OfficeAlignment.Center, table.Style.CellAlignments[(0, 2)]);
         Assert.Equal("TRUE", table.Cells[0][2].Text);
-        Assert.Equal(PdfCore.PdfColumnAlign.Left, table.Style.CellAlignments[(0, 3)]);
+        Assert.Equal(global::OfficeIMO.OfficeAlignment.Left, table.Style.CellAlignments[(0, 3)]);
     }
 
     [Fact]

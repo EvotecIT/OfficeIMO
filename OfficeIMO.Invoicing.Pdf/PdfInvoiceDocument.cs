@@ -137,7 +137,7 @@ public sealed partial class PdfInvoiceDocument {
             // Invoices that run over a page keep their page count visible without extra configuration.
             configured.ShowPageNumbers = true;
             configured.FooterFormat = Label(InvoicePdfText.Page) + " {page} " + Label(InvoicePdfText.PageOf) + " {pages}";
-            configured.FooterAlign = PdfAlign.Right;
+            configured.FooterAlign = OfficeAlignment.Right;
             if (configured.FooterTextColor == null) configured.FooterTextColor = (_layout.Theme ?? new InvoicePdfTheme()).MutedText;
         }
         // The invoice language and its title identify the document to readers and assistive technology.

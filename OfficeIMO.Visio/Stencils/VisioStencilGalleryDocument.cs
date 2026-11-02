@@ -98,7 +98,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Size = 22D,
                 Bold = true,
                 Color = OfficeColor.FromRgb(27, 43, 57),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
@@ -112,7 +112,7 @@ namespace OfficeIMO.Visio.Stencils {
                 FontFamily = "Aptos",
                 Size = 10.5D,
                 Color = OfficeColor.FromRgb(78, 93, 108),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
@@ -143,7 +143,7 @@ namespace OfficeIMO.Visio.Stencils {
                     FontFamily = "Aptos",
                     Size = 9.4D,
                     Color = OfficeColor.FromRgb(41, 54, 68),
-                    HorizontalAlignment = VisioTextHorizontalAlignment.Left,
+                    HorizontalAlignment = OfficeAlignment.Left,
                     VerticalAlignment = VisioTextVerticalAlignment.Middle
                 };
                 row.SetShapeData("Category", group.Key, "Category", VisioShapeDataType.String);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Size = 10D,
                 Bold = true,
                 Color = OfficeColor.FromRgb(27, 43, 57),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
             page.Shapes.Add(shape);
@@ -184,7 +184,7 @@ namespace OfficeIMO.Visio.Stencils {
                 FontFamily = "Aptos",
                 Size = 7.5D,
                 Color = OfficeColor.FromRgb(93, 107, 122),
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
         }

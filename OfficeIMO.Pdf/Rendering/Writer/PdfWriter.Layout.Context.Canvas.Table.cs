@@ -339,7 +339,7 @@ internal static partial class PdfWriter {
             double textClipBleed = style.ClipTextToCellBounds ? 0D : TableCellClipBleed;
             TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
             if (cell.TextRotation != 0) {
-                PdfColumnAlign orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
+                OfficeAlignment orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
                 global::OfficeIMO.OfficeColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
                 var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
                 string orientedRole = cellIsHeader ? "TH" : "TD";
@@ -403,7 +403,7 @@ internal static partial class PdfWriter {
                 visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
             }
 
-            PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
+            OfficeAlignment align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             global::OfficeIMO.OfficeColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);

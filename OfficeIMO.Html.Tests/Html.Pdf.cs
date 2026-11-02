@@ -2545,7 +2545,7 @@ public sealed class HtmlPdfTests {
                 CellPaddingX = global::OfficeIMO.OfficeLength.Points(6),
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
-            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, PdfCore.PdfAlign.Left, null, null, 6, 0, null, linkUri, "Summary link")
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, global::OfficeIMO.OfficeAlignment.Left, null, null, 6, 0, null, linkUri, "Summary link")
             .ToBytes();
     }
 

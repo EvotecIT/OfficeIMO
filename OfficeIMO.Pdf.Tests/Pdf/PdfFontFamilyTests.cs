@@ -989,7 +989,7 @@ public partial class PdfFontFamilyTests {
 
         byte[] first = PdfWriter.Write(
             PdfDocument.Create(),
-            new IPdfBlock[] { new RichParagraphBlock(new[] { PdfTextRun.Normal("Łódź") }, PdfAlign.Left, defaultColor: null) },
+            new IPdfBlock[] { new RichParagraphBlock(new[] { PdfTextRun.Normal("Łódź") }, OfficeAlignment.Left, defaultColor: null) },
             options,
             title: null,
             author: null,
@@ -1003,7 +1003,7 @@ public partial class PdfFontFamilyTests {
 
         byte[] second = PdfWriter.Write(
             PdfDocument.Create(),
-            new IPdfBlock[] { new RichParagraphBlock(new[] { PdfTextRun.Normal("A") }, PdfAlign.Left, defaultColor: null) },
+            new IPdfBlock[] { new RichParagraphBlock(new[] { PdfTextRun.Normal("A") }, OfficeAlignment.Left, defaultColor: null) },
             options,
             title: null,
             author: null,

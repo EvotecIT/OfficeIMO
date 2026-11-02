@@ -297,13 +297,13 @@ namespace OfficeIMO.Word.Pdf {
             return symbol is { Length: 1 } && !char.IsControl(symbol[0]) && !char.IsSurrogate(symbol[0]) ? symbol[0] : null;
         }
 
-        private static PdfCore.PdfAlign MapNativeParagraphAlign(W.JustificationValues? alignment, bool allowJustify = true) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeParagraphAlign(W.JustificationValues? alignment, bool allowJustify = true) {
             if (alignment == W.JustificationValues.Center) {
-                return PdfCore.PdfAlign.Center;
+                return global::OfficeIMO.OfficeAlignment.Center;
             }
 
             if (alignment == W.JustificationValues.Right) {
-                return PdfCore.PdfAlign.Right;
+                return global::OfficeIMO.OfficeAlignment.Right;
             }
 
             if (allowJustify &&
@@ -313,19 +313,19 @@ namespace OfficeIMO.Word.Pdf {
                  alignment == W.JustificationValues.LowKashida ||
                  alignment == W.JustificationValues.MediumKashida ||
                  alignment == W.JustificationValues.ThaiDistribute)) {
-                return PdfCore.PdfAlign.Justify;
+                return global::OfficeIMO.OfficeAlignment.Justify;
             }
 
-            return PdfCore.PdfAlign.Left;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         private static W.JustificationValues? ResolveNativeParagraphJustification(WordParagraph paragraph) =>
             paragraph.ParagraphAlignment.ToOpenXml() ?? GetNativeParagraphStyleDefaults(paragraph).Alignment;
 
-        private static PdfCore.PdfAlign ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) {
+        private static global::OfficeIMO.OfficeAlignment ResolveNativeParagraphAlign(WordParagraph paragraph, bool allowJustify = true) {
             W.JustificationValues? alignment = ResolveNativeParagraphJustification(paragraph);
             if (alignment == null && IsNativeBiDiParagraph(paragraph)) {
-                return PdfCore.PdfAlign.Right;
+                return global::OfficeIMO.OfficeAlignment.Right;
             }
 
             return MapNativeParagraphAlign(alignment, allowJustify);
@@ -334,19 +334,19 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsNativeBiDiParagraph(WordParagraph paragraph) =>
             ReadNativeDirectParagraphOnOff<W.BiDi>(paragraph) == true;
 
-        private static PdfCore.PdfColumnAlign ResolveNativeColumnAlign(WordParagraph paragraph) =>
+        private static global::OfficeIMO.OfficeAlignment ResolveNativeColumnAlign(WordParagraph paragraph) =>
             MapNativeColumnAlign(ResolveNativeParagraphJustification(paragraph));
 
-        private static PdfCore.PdfColumnAlign MapNativeColumnAlign(W.JustificationValues? alignment) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeColumnAlign(W.JustificationValues? alignment) {
             if (alignment == W.JustificationValues.Center) {
-                return PdfCore.PdfColumnAlign.Center;
+                return global::OfficeIMO.OfficeAlignment.Center;
             }
 
             if (alignment == W.JustificationValues.Right) {
-                return PdfCore.PdfColumnAlign.Right;
+                return global::OfficeIMO.OfficeAlignment.Right;
             }
 
-            return PdfCore.PdfColumnAlign.Left;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         private static PdfCore.PdfCellVerticalAlign MapNativeCellVerticalAlign(W.TableVerticalAlignmentValues? alignment) =>

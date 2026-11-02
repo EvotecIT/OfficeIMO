@@ -910,8 +910,8 @@ namespace OfficeIMO.Tests {
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ResolveNativeParagraphAlign", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph), typeof(bool) }, modifiers: null)!;
 
-            Assert.Equal(PdfAlign.Center, (PdfAlign)method.Invoke(null, new object[] { styled, true })!);
-            Assert.Equal(PdfAlign.Right, (PdfAlign)method.Invoke(null, new object[] { directOverride, true })!);
+            Assert.Equal(OfficeAlignment.Center, (OfficeAlignment)method.Invoke(null, new object[] { styled, true })!);
+            Assert.Equal(OfficeAlignment.Right, (OfficeAlignment)method.Invoke(null, new object[] { directOverride, true })!);
         }
 
         [Fact]

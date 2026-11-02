@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests.Pdf {
             var style = new PdfPanelStyle {
                 PaddingX = global::OfficeIMO.OfficeLength.Points(16),
                 MaxWidth = global::OfficeIMO.OfficeLength.Points(180),
-                Align = PdfAlign.Center,
+                Align = OfficeAlignment.Center,
                 Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests.Pdf {
 
                 style.PaddingX = global::OfficeIMO.OfficeLength.Points(2);
                 style.MaxWidth = global::OfficeIMO.OfficeLength.Points(300);
-                style.Align = PdfAlign.Right;
+                style.Align = OfficeAlignment.Right;
                 style.Background = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposePage_DefaultImageStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             byte[] png = CreateMinimalRgbPng();
             var style = new PdfImageStyle {
-                Align = PdfAlign.Center,
+                Align = OfficeAlignment.Center,
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
             };
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests.Pdf {
                                 .Paragraph(p => p.Text("PageOneImage"))));
                 });
 
-                style.Align = PdfAlign.Right;
+                style.Align = OfficeAlignment.Right;
                 style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void ComposePage_DefaultDrawingStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfDrawingStyle {
-                Align = PdfAlign.Center,
+                Align = OfficeAlignment.Center,
                 SpacingBefore = global::OfficeIMO.OfficeLength.Points(4),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(12)
             };
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests.Pdf {
                                 .Paragraph(p => p.Text("PageOneDrawing"))));
                 });
 
-                style.Align = PdfAlign.Right;
+                style.Align = OfficeAlignment.Right;
                 style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
 
                 c.Page(page => {

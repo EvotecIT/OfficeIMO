@@ -17,13 +17,13 @@ namespace OfficeIMO.Examples.Pdf {
 
             // 1) Plain paragraph
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lorem Ipsum — Plain Paragraph", PdfAlign.Center)
+                .H1("Lorem Ipsum — Plain Paragraph", OfficeAlignment.Center)
                 .Paragraph(p => p.Text(longText))))
                 .Save(path1);
 
             // 2) Inside panel
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lorem Ipsum — Panel Paragraph", PdfAlign.Center)
+                .H1("Lorem Ipsum — Panel Paragraph", OfficeAlignment.Center)
                 .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.96, 0.96, 0.98),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Pdf {
                     PaddingX = global::OfficeIMO.OfficeLength.Points(8),
                     PaddingY = global::OfficeIMO.OfficeLength.Points(6),
                     MaxWidth = global::OfficeIMO.OfficeLength.Points(380),
-                    Align = PdfAlign.Center
+                    Align = OfficeAlignment.Center
                 })))
                 .Save(path2);
 

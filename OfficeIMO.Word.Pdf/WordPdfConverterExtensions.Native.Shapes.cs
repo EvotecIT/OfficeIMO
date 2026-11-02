@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             RenderNativeFlowObject(pdf, paragraphSpacing,
-                flow => flow.Shape(nativeShape, PdfCore.PdfAlign.Left, spacingAfter: spacingAfter), alignToLineTop);
+                flow => flow.Shape(nativeShape, global::OfficeIMO.OfficeAlignment.Left, spacingAfter: spacingAfter), alignToLineTop);
             return true;
         }
 
