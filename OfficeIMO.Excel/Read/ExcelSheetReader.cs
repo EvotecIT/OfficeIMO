@@ -259,10 +259,6 @@ namespace OfficeIMO.Excel {
             return cell.CellValue is not null && string.IsNullOrEmpty(cell.CellValue.InnerText);
         }
 
-        private static string? ExtractRawText(Cell cell) {
-            return cell.CellValue?.InnerText;
-        }
-
         private IEnumerable<Row> EnumerateWorksheetRows(CancellationToken ct = default) {
             if (CanStreamWorksheetPart()) {
                 foreach (var row in EnumerateRowsWithCoordinates(EnumerateWorksheetRowsFromPart(ct), ct)) {
@@ -375,14 +371,9 @@ namespace OfficeIMO.Excel {
             };
         }
 
-        private static string? ExtractFormulaText(Cell cell) {
-            return cell.CellFormula?.Text;
-        }
+        private static string? ExtractInlineString(InlineString? inline, CellValues? typeHint) {
+            if (typeHint != CellValues.InlineString && inline is null) return null;
 
-        private static string? ExtractInlineString(Cell cell, CellValues? typeHint) {
-            if (typeHint != CellValues.InlineString && cell.InlineString is null) return null;
-
-            var inline = cell.InlineString;
             if (inline?.Text?.Text != null) return inline.Text.Text;
             if (inline?.HasChildren == true) {
                 return SharedStringCache.GetRunText(inline);
@@ -395,30 +386,52 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
+        /// <summary>The SDK's child properties each allocate a lookup key, which dominates reading a large worksheet.</summary>
+        private static void GetCellChildren(Cell cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString) {
+            formula = null;
+            cellValue = null;
+            inlineString = null;
+            for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                switch (child) {
+                    case CellFormula candidate:
+                        formula ??= candidate;
+                        break;
+                    case CellValue candidate:
+                        cellValue ??= candidate;
+                        break;
+                    case InlineString candidate:
+                        inlineString ??= candidate;
+                        break;
+                }
+            }
+        }
+
         private bool TryConvertCell(Cell cell, out object? value) {
             value = null;
             CellValues? typeHint = cell.DataType?.Value;
-            bool hasFormula = cell.CellFormula is not null;
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString);
+            bool hasFormula = formula is not null;
             string? formulaText = null;
             if (hasFormula) {
-                formulaText = ExtractFormulaText(cell);
+                formulaText = formula!.Text;
                 if (!_opt.UseCachedFormulaResult && formulaText != null) {
                     value = formulaText;
                     return true;
                 }
             }
 
+            string? cellText = cellValue?.InnerText;
             string? rawText = typeHint == CellValues.Error && cell.ValueMetaIndex != null
-                ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, ExtractRawText(cell))
-                : ExtractRawText(cell);
-            string? inlineText = ExtractInlineString(cell, typeHint);
+                ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellText)
+                : cellText;
+            string? inlineText = ExtractInlineString(inlineString, typeHint);
             if (hasFormula && _opt.UseCachedFormulaResult && rawText == null && formulaText != null) {
                 value = formulaText;
                 return true;
             }
 
             if (rawText == null && inlineText == null && formulaText == null) {
-                if (!CellHasExplicitBlank(cell) && !_opt.FillBlanksInRanges) {
+                if (!(cellValue is not null && cellText!.Length == 0) && !_opt.FillBlanksInRanges) {
                     return false;
                 }
             }
@@ -496,8 +509,9 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw SnapshotCell(Cell cell, int row = 0, int col = 0) {
-            var hasFormula = cell.CellFormula is not null;
-            var formulaText = hasFormula ? ExtractFormulaText(cell) : null;
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out InlineString? inlineString);
+            var hasFormula = formula is not null;
+            var formulaText = formula?.Text;
             var preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
             var typeHint = cell.DataType?.Value;
 
@@ -509,8 +523,8 @@ namespace OfficeIMO.Excel {
                 HasFormula = hasFormula,
                 FormulaText = formulaText,
                 RawText = preferFormulaText ? null : typeHint == CellValues.Error && cell.ValueMetaIndex != null
-                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, ExtractRawText(cell)) : ExtractRawText(cell),
-                InlineText = preferFormulaText ? null : ExtractInlineString(cell, typeHint)
+                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, cellValue?.InnerText) : cellValue?.InnerText,
+                InlineText = preferFormulaText ? null : ExtractInlineString(inlineString, typeHint)
             };
         }
 

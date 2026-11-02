@@ -412,7 +412,8 @@ namespace OfficeIMO.Excel {
 
         private bool TryConvertCellForDataReader(Cell cell, out object? value) {
             CellValues? typeHint = cell.DataType?.Value;
-            string? rawText = ExtractRawText(cell);
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out _);
+            string? rawText = cellValue?.InnerText;
             uint? styleIndex = cell.StyleIndex?.Value;
             bool canPreserveDateSerial =
                 _opt.TreatDatesUsingNumberFormat
@@ -423,7 +424,7 @@ namespace OfficeIMO.Excel {
                 && typeHint != CellValues.String
                 && typeHint != CellValues.InlineString
                 && typeHint != CellValues.Date
-                && (cell.CellFormula == null || _opt.UseCachedFormulaResult);
+                && (formula == null || _opt.UseCachedFormulaResult);
             if (canPreserveDateSerial
                 && Styles.IsDateLike(styleIndex!.Value)
                 && (TryParseInvariantDouble(rawText, out double serial)
