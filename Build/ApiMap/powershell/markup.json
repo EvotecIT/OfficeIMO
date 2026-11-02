@@ -649,7 +649,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates HTML-to-Markdown options for Convert-OfficeDocument -To Markdown.",
-      "outputType": "OfficeIMO.Html.HtmlToMarkdownOptions",
+      "outputType": "OfficeIMO.Markdown.Html.MarkdownHtmlImportOptions",
       "shouldProcess": false,
       "parameterSets": [
         {
@@ -658,7 +658,7 @@
           "parameters": [
             {
               "name": "BaseOptions",
-              "type": "HtmlToMarkdownOptions",
+              "type": "MarkdownHtmlImportOptions",
               "mandatory": false,
               "pipeline": "byValue"
             },
@@ -706,7 +706,7 @@
             },
             {
               "name": "Base64ImageHandling",
-              "type": "HtmlBase64ImageHandling",
+              "type": "MarkdownHtmlBase64ImageHandling",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -718,7 +718,7 @@
             },
             {
               "name": "ListingCardMetadataMode",
-              "type": "HtmlListingCardMetadataMode",
+              "type": "MarkdownHtmlListingCardMetadataMode",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -730,7 +730,7 @@
             },
             {
               "name": "WriteOptions",
-              "type": "MarkdownWriteOptions",
+              "type": "MarkdownSaveOptions",
               "mandatory": false,
               "pipeline": "none"
             },

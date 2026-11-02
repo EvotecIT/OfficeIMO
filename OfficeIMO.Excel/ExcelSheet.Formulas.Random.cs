@@ -8,9 +8,8 @@ namespace OfficeIMO.Excel {
             result = default;
             IReadOnlyList<string> tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count != 2 || tokens.Any(string.IsNullOrWhiteSpace)
-                || !TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue lower)
-                || !TryResolveFormulaArgument(tokens[1], out FormulaArgumentValue upper)
-                || lower.IsUnresolvedFormula || upper.IsUnresolvedFormula) return false;
+                || !TryResolveFormulaValueArgument(tokens[0], out FormulaArgumentValue lower)
+                || !TryResolveFormulaValueArgument(tokens[1], out FormulaArgumentValue upper)) return false;
             if (lower.IsError) { result = lower; return true; }
             if (upper.IsError) { result = upper; return true; }
             if (!IsFiniteFormulaNumber(lower) || !IsFiniteFormulaNumber(upper)) return false;

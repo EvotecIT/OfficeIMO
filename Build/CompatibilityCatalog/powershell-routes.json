@@ -175,9 +175,9 @@
   },
   {
     "route": "html-markdown",
-    "cmdlet": "ConvertFrom-OfficeMarkdownHtml",
-    "example": "ConvertFrom-OfficeMarkdownHtml -Path ./in.html -OutputPath ./out.md",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Markdown/ConvertFromOfficeMarkdownHtmlCommand.cs L46 (-OutputPath); L175 (HtmlConversionDocument.Parse(html).ToMarkdown(options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.html -To Markdown -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs forwards admitted files to OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs html-markdown applies settings.HtmlMarkdown and calls SaveAsMarkdownAsync."
   },
   {
     "route": "html-pdf",

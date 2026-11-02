@@ -29,6 +29,13 @@ internal static class OfficeConversionOptionBinding {
 
     private static void Apply(EngineIntrinsics engine, OfficeConversionOptions destination, object? value,
         IReadOnlyList<OfficeConversionCapability> routes) {
+        if (value is Models.Pdf.PdfReadOptions pdf) {
+            var captured = pdf.Snapshot();
+            if (captured.OcrMergeOptions != null)
+                throw new PSArgumentException("PDF OCR merge settings apply to Read-OfficeDocument -As Ocr.");
+            Apply(engine, destination, captured.LoadOptions, routes);
+            return;
+        }
         if (value is IDictionary dictionary && IsFormatDictionary(dictionary)) {
             foreach (DictionaryEntry entry in dictionary) {
                 var format = OfficeFormatSelection.Parse((string)entry.Key)!;

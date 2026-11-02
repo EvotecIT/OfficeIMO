@@ -519,13 +519,13 @@ Describe 'Expanded OfficeIMO support' {
         New-OfficeWord -Path $wordPath { WordSection { WordParagraph -Text 'Google plan' } } | Out-Null
         New-OfficeExcel -Path $excelPath { ExcelSheet 'Data' { ExcelCell -Address A1 -Value 'Google plan' } } | Out-Null
 
-        (Export-OfficeWordGoogleDocument -Path $wordPath -PlanOnly).GetType().FullName |
+        (Export-OfficeWordGoogleDocument -Path $wordPath -Mode Plan).GetType().FullName |
             Should -Be 'OfficeIMO.Word.GoogleDocs.GoogleDocsTranslationPlan'
-        (Export-OfficeWordGoogleDocument -Path $wordPath -AsBatch).GetType().FullName |
+        (Export-OfficeWordGoogleDocument -Path $wordPath -Mode Batch).GetType().FullName |
             Should -Be 'OfficeIMO.Word.GoogleDocs.GoogleDocsBatch'
-        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -PlanOnly).GetType().FullName |
+        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -Mode Plan).GetType().FullName |
             Should -Be 'OfficeIMO.Excel.GoogleSheets.GoogleSheetsTranslationPlan'
-        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -AsBatch).GetType().FullName |
+        (Export-OfficeExcelGoogleSpreadsheet -Path $excelPath -Mode Batch).GetType().FullName |
             Should -Be 'OfficeIMO.Excel.GoogleSheets.GoogleSheetsBatch'
     }
 }

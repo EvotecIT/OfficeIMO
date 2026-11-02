@@ -26,7 +26,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 -SpreadsheetId existing -ExpectedDriveVersion 42 -UnsupportedFormula Error -FunctionMapping @{ MYTOTAL = 'SUM' } `
                 -Locale pl_PL -TimeZone Europe/Warsaw -RecalculationInterval Hour `
                 -Editor editor@example.invalid -DomainUsersCanEdit:$domainUsersCanEdit
-            Export-OfficeExcelGoogleSpreadsheet -Document $document -Options $options -AsBatch -ErrorAction Stop
+            Export-OfficeExcelGoogleSpreadsheet -Document $document -Options @($options, @{ Spreadsheet = $options.Spreadsheet; Protection = $options.Protection }, @{ Spreadsheet = @{ Locale = 'en_GB' }; Protection = @{ WarningOnly = $true } }) -Mode Batch -ErrorAction Stop
             $options
             """);
         var output = shell.Invoke();
@@ -40,16 +40,19 @@ public sealed partial class ConversionCmdletWorkflowTests {
         var batch = Assert.IsType<GoogleSheetsBatch>(output[1].BaseObject);
         Assert.Equal("Forecast review", batch.Title);
         var properties = Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateSpreadsheetPropertiesRequest>());
-        Assert.Equal("pl_PL", properties.Locale);
+        Assert.Equal("en_GB", properties.Locale);
         Assert.Equal("Europe/Warsaw", properties.TimeZone);
         Assert.Equal(GoogleSheetsRecalculationInterval.Hour, properties.RecalculationInterval);
         var formula = Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>().SelectMany(request => request.Cells),
             cell => cell.Value.Kind == GoogleSheetsCellValueKind.Formula);
         Assert.Equal("SUM(A1:A2)", Assert.IsType<string>(formula.Value.Value).TrimStart('='));
         var protection = Assert.Single(batch.Requests.OfType<GoogleSheetsAddProtectedRangeRequest>());
+        Assert.True(protection.WarningOnly);
         Assert.Equal(domainUsersCanEdit, protection.DomainUsersCanEdit);
         Assert.Equal("editor@example.invalid", Assert.Single(protection.EditorEmailAddresses));
         var options = Assert.IsType<GoogleSheetsSaveOptions>(output[2].BaseObject);
+        Assert.Equal("pl_PL", options.Spreadsheet.Locale);
+        Assert.False(options.Protection.WarningOnly);
         Assert.Equal("existing", options.Location.ExistingFileId);
         Assert.Equal("folder", options.Location.FolderId);
         Assert.Equal("drive", options.Location.DriveId);

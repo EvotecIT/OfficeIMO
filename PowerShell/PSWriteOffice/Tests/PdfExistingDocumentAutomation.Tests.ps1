@@ -20,7 +20,14 @@ Describe 'Authenticated PDF automation' {
         Copy-Item -LiteralPath $source -Destination $second
         $xfdf = (Export-OfficePdfXfdf -Path $source) -replace '>Ada<', '>Grace<'
         [IO.File]::WriteAllText($xfdfPath, $xfdf)
-        Get-Item -LiteralPath $source | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output
+        $tooSmall = New-OfficePdfFormFillOptions -MaxFields 1 -MaxValueCharacters 4
+        { Import-OfficePdfXfdf -Path $source -XfdfPath $xfdfPath -OutputPath $output -Options $tooSmall -ErrorAction Stop } |
+            Should -Throw '*value character limit*'
+        Test-Path -LiteralPath $output | Should -BeFalse
+        $fillOptions = New-OfficePdfFormFillOptions -MaxFields 1 -MaxValueCharacters 5 -KeepNeedAppearances
+        Get-Item -LiteralPath $source | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output -Options $fillOptions
+        $filled = [OfficeIMO.Pdf.PdfDocument]::Load($output)
+        try { $filled.Inspect().AcroFormNeedAppearances | Should -BeTrue } finally { $filled.Dispose() }
         (Get-OfficePdfFormField -Path $output | Where-Object Name -eq Name).Value | Should -Be 'Grace'
         $original = [Convert]::ToBase64String([IO.File]::ReadAllBytes($output))
         { Get-Item -LiteralPath $source, $second | Import-OfficePdfXfdf -XfdfPath $xfdfPath -OutputPath $output -ErrorAction Stop } |
@@ -28,6 +35,17 @@ Describe 'Authenticated PDF automation' {
         [Convert]::ToBase64String([IO.File]::ReadAllBytes($output)) | Should -Be $original
         $xfdf -split '\r?\n' | Import-OfficePdfXfdf -Path $source -OutputPath $output
         (Get-OfficePdfFormField -Path $output | Where-Object Name -eq Name).Value | Should -Be 'Grace'
+    }
+
+    It 'uses factory interaction limits when recovering native selection regions' {
+        $source = Join-Path $TestDrive 'interaction-limits.pdf'
+        New-OfficePdf -Path $source { PdfParagraph 'More than one selectable glyph' } | Out-Null
+        $small = New-OfficePdfInteractionOptions -MaxTextRegions 1
+        { Get-OfficePdfInteractionMap -Path $source -Options $small -ErrorAction Stop } | Should -Throw '*limit*'
+        $options = New-OfficePdfInteractionOptions -MaxTextRegions 1000 -MaxImageRegions 10
+        $map = Get-OfficePdfInteractionMap -Path $source -Options $options
+        $map.PageNumber | Should -Be 1
+        $map.TextRegions.Count | Should -BeGreaterThan 1
     }
 
     It 'exposes an explicit authenticated permission override on PDF readers' {

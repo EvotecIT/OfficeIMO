@@ -3,6 +3,15 @@ BeforeAll {
     Import-Module $moduleManifest -Global -ErrorAction Stop
 }
 Describe 'Foundation output views' {
+    It 'summarizes PDF read policy without exposing its open password' {
+        $secret = 'synthetic-pdf-view-secret'
+        $policy = New-OfficePdfReadOptions -Profile Fast -Page '2-4' -Password (ConvertTo-SecureString $secret -AsPlainText -Force) -LoadOptions @{ Limits = @{ MaxInputBytes = 4096 } }
+        $output = $policy | Out-String
+        $output | Should -Match 'Fast'
+        $output | Should -Match '4096'
+        $output | Should -Not -Match ([regex]::Escape($secret))
+        $output | Should -Not -Match '\bPassword\b'
+    }
     It 'registers compact report, diagnostic, length, theme and image views' {
         foreach ($name in 'OfficeIMO.OfficeConversionReport','OfficeIMO.OfficeDiagnostic','OfficeIMO.OfficeLength','OfficeIMO.OfficeTheme','OfficeIMO.Drawing.OfficeImageExportResult') {
             @(Get-FormatData -TypeName $name).Count | Should -BeGreaterThan 0

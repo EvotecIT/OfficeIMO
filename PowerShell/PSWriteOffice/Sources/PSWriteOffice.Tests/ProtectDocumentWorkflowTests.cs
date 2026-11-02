@@ -173,13 +173,13 @@ public sealed class ProtectDocumentWorkflowTests {
     public void ExcelStructureWindowsAndReservationUseNativeOptionsAndReadBack(bool nativeReservation) {
         using var files = new ProtectionFiles();
         string source = files.Create("source.xlsx"), output = files.PathFor("protected.xlsx");
-        var options = new ExcelWorkbookProtectionOptions { ProtectStructure = true, LegacyPasswordHash = "abcd" };
+        var options = new ExcelWorkbookProtectionOptions { ProtectStructure = true, LegacyPasswordHash = nativeReservation ? "abcd" : null };
         var reservationOptions = new ExcelWorkbookWriteReservationOptions { UserName = "Reporting", LegacyPasswordHash = "1234" };
         using var password = Password("edit-secret");
         using var runspace = OpenRunspace();
         Set(runspace, ("source", source), ("output", output), ("options", options), ("password", password), ("reservation", reservationOptions));
         Assert.Empty(Invoke(runspace, "Protect-OfficeDocument -Path $source -Restriction Structure, Windows, ReadOnlyRecommended -RestrictionPassword $password -Options $options, " +
-            (nativeReservation ? "$reservation" : "@{ ReservedBy = 'Reporting'; ModifyPasswordHash = '1234' }") + " -OutputPath $output -ErrorAction Stop"));
+            (nativeReservation ? "$reservation" : "(New-OfficeExcelProtectionOptions -LegacyPasswordHash abcd -ModifyPasswordHash 1234 -ReservedBy Reporting)") + " -OutputPath $output -ErrorAction Stop"));
         using var saved = ExcelDocument.Load(output);
         Assert.True(saved.IsWorkbookProtected);
         var reservation = saved.GetWriteReservation();
@@ -192,7 +192,7 @@ public sealed class ProtectDocumentWorkflowTests {
         Assert.Contains(protection.Attribute("lockStructure")!.Value, new[] { "1", "true" });
         Assert.Contains(protection.Attribute("lockWindows")!.Value, new[] { "1", "true" });
         Assert.Equal("ABCD", protection.Attribute("workbookPassword")!.Value);
-        Assert.Equal("abcd", options.LegacyPasswordHash);
+        Assert.Equal(nativeReservation ? "abcd" : null, options.LegacyPasswordHash);
         Assert.False(options.ProtectWindows); // Option overrides do not mutate the caller's object.
         Assert.False(reservationOptions.ReadOnlyRecommended);
     }

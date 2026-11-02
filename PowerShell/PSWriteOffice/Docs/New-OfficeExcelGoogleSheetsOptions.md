@@ -22,7 +22,7 @@ Creates native Excel-to-Google-Sheets planning and export settings without conta
 ### EXAMPLE 1
 ```powershell
 $options = New-OfficeExcelGoogleSheetsOptions -Title 'Quarterly forecast' -UnsupportedFormula PreserveWithWarning
-Export-OfficeExcelGoogleSpreadsheet -Document $workbook -Options $options -PlanOnly
+Export-OfficeExcelGoogleSpreadsheet -Document $workbook -Options $options -Mode Plan
 ```
 
 

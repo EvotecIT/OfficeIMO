@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FormulaEvaluator_ReportsUnsupportedIndexMatchShapes() {
+        public void Test_FormulaEvaluator_CalculatesTypedLookupShapeErrors() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IndexMatchUnsupported.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -80,9 +80,12 @@ namespace OfficeIMO.Tests {
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
 
                 Assert.Equal(3, inspection.TotalFormulas);
-                Assert.Equal(0, inspection.SupportedFormulas);
-                Assert.All(inspection.Formulas, formula => Assert.Contains("supported function", formula.UnsupportedReason));
-                Assert.Equal(0, document.Calculate());
+                Assert.Equal(3, inspection.SupportedFormulas);
+                Assert.True(inspection.Formulas.Single(formula => formula.CellReference == "A4").IsSupportedByOfficeIMO);
+                Assert.Equal(3, document.Calculate());
+                AssertFormulaCache(sheet, 4, 1, "#REF!");
+                AssertFormulaCache(sheet, 5, 1, "#N/A");
+                AssertFormulaCache(sheet, 6, 1, "2");
             }
         }
 
@@ -104,9 +107,13 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(2, 3, "West");
                 sheet.CellValue(3, 3, "East");
                 sheet.CellValue(4, 3, "North");
+                sheet.CellValue(1, 4, 40d);
+                sheet.CellValue(2, 4, 30d);
+                sheet.CellValue(3, 4, 20d);
+                sheet.CellValue(4, 4, 10d);
 
                 sheet.CellFormula(1, 5, "MATCH(25,A1:A4,1)");
-                sheet.CellFormula(2, 5, "MATCH(25,A1:A4,-1)");
+                sheet.CellFormula(2, 5, "MATCH(25,D1:D4,-1)");
                 sheet.CellFormula(3, 5, "MATCH(30,A1:A4)");
                 sheet.CellFormula(4, 5, "XMATCH(\"East\",C1:C4,0,-1)");
                 sheet.CellFormula(5, 5, "XMATCH(25,A1:A4,-1)");
@@ -118,23 +125,24 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
-                Assert.Equal(8, before.SupportedFormulas);
+                Assert.Equal(10, before.SupportedFormulas);
                 Assert.Contains("MATCH", before.Capabilities.SupportedFunctions);
                 Assert.Contains("XMATCH", before.Capabilities.SupportedFunctions);
                 Assert.Contains("XLOOKUP", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "E9" && !formula.IsSupportedByOfficeIMO);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "E10" && !formula.IsSupportedByOfficeIMO);
+                Assert.All(before.Formulas, formula => Assert.True(formula.IsSupportedByOfficeIMO));
 
-                Assert.Equal(8, document.Calculate());
+                Assert.Equal(10, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E1" && formula.CachedValue == "2");
-                Assert.Contains(after.Formulas, formula => formula.CellReference == "E2" && formula.CachedValue == "3");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "E2" && formula.CachedValue == "2");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E3" && formula.CachedValue == "3");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E4" && formula.CachedValue == "3");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E5" && formula.CachedValue == "2");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E6" && formula.CachedValue == "3");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E7" && formula.CachedValue == "Mid");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E8" && formula.CachedValue == "High");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "E9" && formula.CachedValue == "#N/A");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "E10" && formula.CachedValue == "#N/A");
                 document.Save();
             }
 
@@ -504,15 +512,15 @@ namespace OfficeIMO.Tests {
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
-                Assert.Equal(8, before.SupportedFormulas);
+                Assert.Equal(9, before.SupportedFormulas);
                 Assert.Contains("TEXTJOIN", before.Capabilities.SupportedFunctions);
                 Assert.Contains("EXACT", before.Capabilities.SupportedFunctions);
                 Assert.Contains("REPT", before.Capabilities.SupportedFunctions);
                 Assert.Contains("SUMPRODUCT", before.Capabilities.SupportedFunctions);
-                Assert.Contains(before.Formulas, formula => formula.CellReference == "E9" && !formula.IsSupportedByOfficeIMO);
+                Assert.Contains(before.Formulas, formula => formula.CellReference == "E9" && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "E10" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(8, document.Calculate());
+                Assert.Equal(9, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E1" && formula.CachedValue == "North/West/East");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E2" && formula.CachedValue == "North--West");
@@ -522,6 +530,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E6" && formula.CachedValue == "001");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E7" && formula.CachedValue == "140");
                 Assert.Contains(after.Formulas, formula => formula.CellReference == "E8" && formula.CachedValue == "6");
+                Assert.Contains(after.Formulas, formula => formula.CellReference == "E9" && formula.CachedValue == "#VALUE!");
                 document.Save();
             }
 

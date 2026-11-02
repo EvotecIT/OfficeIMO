@@ -43,28 +43,21 @@ namespace OfficeIMO.Excel {
             }
 #endif
 
-            var workbook = WorkbookRoot;
-            var definedNames = workbook.DefinedNames ??= new DefinedNames();
-
-            // Validate or sanitize the defined name
             name = NormalizeDefinedName(name, validationMode);
+            string reference = scope == null ? NormalizeRange(range, validationMode)
+                : NormalizeLocalNamedRange(scope, range, validationMode);
+            StoreDefinedName(name, reference, scope, save, hidden);
+        }
 
-            if (scope == null) {
-                string reference = NormalizeRange(range, validationMode); // may already contain a sheet prefix
-                // Workbook-global name: remove any existing global with same name
-                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId == null).ToList())
-                    dn.Remove();
-                var dnNew = new DefinedName { Name = name, Text = reference, Hidden = hidden ? true : (bool?)null };
-                definedNames.Append(dnNew);
-            } else {
-                // Sheet-local name: remove existing with same name for this sheet
-                ushort sheetPos = GetSheetPositionIndex(scope);
-                string localRef = NormalizeLocalNamedRange(scope, range, validationMode);
-                foreach (var dn in definedNames.Elements<DefinedName>().Where(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == sheetPos).ToList())
-                    dn.Remove();
-                var dnNew = new DefinedName { Name = name, Text = localRef, LocalSheetId = sheetPos, Hidden = hidden ? true : (bool?)null };
-                definedNames.Append(dnNew);
-            }
+        private void StoreDefinedName(string name, string expression, ExcelSheet? scope, bool save, bool hidden) {
+            uint? sheetIndex = scope == null ? null : GetSheetPositionIndex(scope);
+            var definedNames = WorkbookRoot.DefinedNames ??= new DefinedNames();
+            foreach (var existing in definedNames.Elements<DefinedName>().Where(definition => string.Equals(definition.Name?.Value, name, StringComparison.OrdinalIgnoreCase)
+                && definition.LocalSheetId?.Value == sheetIndex).ToList()) existing.Remove();
+            var definition = new DefinedName { Name = name, Text = expression, Hidden = hidden ? true : (bool?)null };
+            if (sheetIndex.HasValue) definition.LocalSheetId = sheetIndex.Value;
+            definedNames.Append(definition);
+            InvalidateDefinedNameInputs();
             MarkPackageDirty();
             SaveWorkbookScopedChange(save);
         }
@@ -120,7 +113,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
         /// <param name="scope">Optional sheet scope to resolve a local name.</param>
-        /// <returns>A1 range string or null if not found.</returns>
+        /// <returns>The stored range or formula expression, or null if not found.</returns>
         public string? GetNamedRange(string name, ExcelSheet? scope = null) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
@@ -134,16 +127,16 @@ namespace OfficeIMO.Excel {
 
             if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
-                var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
+                var dnLocal = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
                 var text = dnLocal?.Text;
                 if (!string.IsNullOrEmpty(text)) {
                     return StripSheetPrefixIfMatches(text!, scope);
                 }
 
-                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId == null);
                 return dnGlobal?.Text;
             } else {
-                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                var dnGlobal = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId == null);
                 return dnGlobal?.Text;
             }
         }
@@ -153,7 +146,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyDictionary<string, string> GetAllNamedRanges(ExcelSheet? scope = null) {
             var definedNames = WorkbookRoot.DefinedNames;
-            var result = new System.Collections.Generic.Dictionary<string, string>();
+            var result = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (definedNames == null) return result;
 
             if (scope != null) {
@@ -194,18 +187,26 @@ namespace OfficeIMO.Excel {
             DefinedName? target = null;
             if (scope != null) {
                 ushort pos = GetSheetPositionIndex(scope);
-                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
+                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId != null && d.LocalSheetId.Value == pos);
             } else {
-                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => d.Name == name && d.LocalSheetId == null);
+                target = definedNames.Elements<DefinedName>().FirstOrDefault(d => string.Equals(d.Name?.Value, name, StringComparison.OrdinalIgnoreCase) && d.LocalSheetId == null);
             }
             if (target == null) return false;
             target.Remove();
             if (!definedNames.Elements<DefinedName>().Any()) {
                 WorkbookRoot.DefinedNames = null;
             }
+            InvalidateDefinedNameInputs();
             MarkPackageDirty();
             SaveWorkbookScopedChange(save);
             return true;
+        }
+
+        private void InvalidateDefinedNameInputs() {
+            MarkFormulaInputMutation();
+            // Persist freshness on the cells as well as in the in-memory version.
+            // Do not set the user's explicit full-calculation-on-open policy.
+            foreach (var sheet in Sheets) sheet.InvalidateFormulas();
         }
 
         private uint GetSheetIndex(ExcelSheet sheet) {
@@ -337,6 +338,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (toRemove.Count > 0) {
+                if (toRemove.Any(definition => !(definition.Name?.Value ?? string.Empty).StartsWith("_xlnm.", StringComparison.OrdinalIgnoreCase)))
+                    InvalidateDefinedNameInputs();
                 foreach (var dn in toRemove) dn.Remove();
                 if (!definedNames.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>().Any()) {
                     wb.DefinedNames = null;

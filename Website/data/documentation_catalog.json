@@ -9,7 +9,7 @@
     "validationProjectCount": 67,
     "apiReferenceCount": 122,
     "conceptualPageCount": 132,
-    "conceptualWordCount": 60794
+    "conceptualWordCount": 60801
   },
   "categories": [
     {
@@ -649,7 +649,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1284,
+      "sourceFileCount": 1289,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -675,7 +675,7 @@
       "description": "Create, safely replace, import, diff, and translate Google Sheets documents with OfficeIMO.Excel.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.GoogleSheets/OfficeIMO.Excel.GoogleSheets.csproj",
-      "sourceFileCount": 32,
+      "sourceFileCount": 33,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel-google-sheets/",
@@ -2131,7 +2131,7 @@
       "description": "Create, safely replace, import, diff, and translate Google Docs documents with OfficeIMO.Word.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.GoogleDocs/OfficeIMO.Word.GoogleDocs.csproj",
-      "sourceFileCount": 30,
+      "sourceFileCount": 31,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-google-docs/",
@@ -2274,7 +2274,7 @@
       "description": "PSWriteOffice is a focused component in the OfficeIMO managed document platform.",
       "kind": "library",
       "projectPath": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/PSWriteOffice.csproj",
-      "sourceFileCount": 776,
+      "sourceFileCount": 789,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/pswriteoffice/",
       "apiUrl": null,
