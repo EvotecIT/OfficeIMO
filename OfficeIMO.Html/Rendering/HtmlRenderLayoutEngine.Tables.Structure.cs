@@ -162,7 +162,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (cell.Nodes != null) return CreateAnonymousBoxStyle(cell.ParentStyle, "table-cell", "anonymous-table-cell");
         if (cell.TryGetRememberedStyle(width, out HtmlRenderBoxStyle? remembered)) return remembered!;
         HtmlRenderBoxStyle style = _styleResolver.Resolve(cell.Element, width, cell.ParentStyle);
-        if (!cell.HasRememberedStyle) cell.RememberStyle(width, style);
+        if (!cell.HasRememberedStyle) cell.RememberStyle(width, style.Clone());
         return style;
     }
 
@@ -309,10 +309,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private double _rememberedWidth = double.NaN;
         private HtmlRenderBoxStyle? _rememberedStyle;
 
-        /// <summary>Keeps an unshared copy of the style resolved at <paramref name="width"/>.</summary>
+        /// <summary>Keeps the style resolved at <paramref name="width"/>; the caller must not use or share it afterwards.</summary>
         internal TableFormattingCell RememberStyle(double width, HtmlRenderBoxStyle style) {
             _rememberedWidth = width;
-            _rememberedStyle = style.Clone();
+            _rememberedStyle = style;
             return this;
         }
 
