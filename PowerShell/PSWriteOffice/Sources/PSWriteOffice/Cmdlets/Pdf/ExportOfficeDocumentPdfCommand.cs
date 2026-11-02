@@ -148,6 +148,11 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = ParameterSetPath)]
     public SwitchParameter PassThru { get; set; }
 
+    /// <summary>Refuse to replace an existing destination PDF.</summary>
+    [Parameter(ParameterSetName = ParameterSetDocument)]
+    [Parameter(ParameterSetName = ParameterSetPath)]
+    public SwitchParameter NoClobber { get; set; }
+
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync() {
         if (ParameterSetName == ParameterSetDirectory) { await ExportBatchAsync(null); return; }
@@ -167,6 +172,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
         if (!PdfCommandUtilities.ShouldWrite(this, outputPath, "Export document to PDF")) {
             return;
         }
+        OfficePath.ValidateDestination(outputPath, NoClobber.IsPresent);
 
         PdfCommandUtilities.EnsureDirectory(outputPath);
         object document;
@@ -222,7 +228,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
                 PSWriteOffice.Services.OfficeWorkflowCommandUtilities.RegisterConversions();
                 var options = new OfficeConversionOptions {
                     SourcePassword = Password.ToPlainText(), MaximumInputBytes = MaximumInputBytes,
-                    FileConflictPolicy = OfficePublicationPolicy.Replace,
+                    FileConflictPolicy = NoClobber.IsPresent ? OfficePublicationPolicy.Fail : OfficePublicationPolicy.Replace,
                     Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
                     Markdown = PrepareMarkdownOptions(file.FullName), Html = HtmlOptions, PlainText = TextOptions,
                     WordLoad = new WordLoadOptions { FailOnLoss = !AllowLegacyImportLoss.IsPresent },

@@ -11,7 +11,7 @@ Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf [-Document] <Object> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Directory
@@ -26,7 +26,7 @@ Export-OfficeDocumentPdf -InputPaths <Object[]> -OutputDirectory <string> [-Chec
 
 ### Path
 ```powershell
-Export-OfficeDocumentPdf [-InputPath] <string> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeDocumentPdf [-InputPath] <string> [-Path] <string> [-Password <securestring>] [-WordOptions <WordPdfExportOptions>] [-ExcelOptions <ExcelPdfExportOptions>] [-PowerPointOptions <PowerPointPdfExportOptions>] [-MarkdownOptions <MarkdownPdfExportOptions>] [-RtfOptions <RtfToPdfOptions>] [-HtmlOptions <HtmlToPdfOptions>] [-TextOptions <PdfTextImportOptions>] [-AllowLegacyImportLoss] [-MaximumInputBytes <long>] [-SourceConversionReportVariable <string>] [-PdfWarningVariable <string>] [-PdfConversionReportVariable <string>] [-Open] [-PassThru] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -330,6 +330,22 @@ Maximum output bytes per document.
 ```yaml
 Type: Int64
 Parameter Sets: Directory, Files
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoClobber
+Refuse to replace an existing destination PDF.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document, Path
 Aliases: None
 Possible values:
 
