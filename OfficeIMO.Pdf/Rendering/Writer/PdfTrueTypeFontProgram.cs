@@ -46,6 +46,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: true);
         _subsetFontFingerprint = SubsetFontFingerprint.Create(_data);
+        SharedIdentity = new object();
     }
 
     private PdfTrueTypeFontProgram(PdfTrueTypeFontProgram source) {
@@ -73,6 +74,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         // data. Every hit still replays usage into this document's own subset.
         _shortMeasurements = source._shortMeasurements;
         _scalarCoverageProofs = source._scalarCoverageProofs;
+        SharedIdentity = source.SharedIdentity;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
@@ -138,6 +140,10 @@ internal sealed partial class PdfTrueTypeFontProgram {
     public int GlyphCount => _advanceWidths1000.Length;
 
     internal byte[] FontDataForInspection => _data;
+
+    // Identifies the immutable program shared by every document fork, so per-program
+    // caches survive ForkForDocument.
+    internal object SharedIdentity { get; }
 
     public bool TryGetGlyphId(int unicodeScalar, out int glyphId) =>
         _cmap.TryGetValue(unicodeScalar, out glyphId);
