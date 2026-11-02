@@ -36,7 +36,7 @@ public sealed class SetOfficeExcelFormulaCommand : PSWriteOffice.Cmdlets.OfficeM
         var context = ExcelDslContext.Require(this);
         var sheet = context.RequireSheet();
         var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-        sheet.Cell(row, column, value: null, formula: Formula, numberFormat: null);
+        sheet.Cell(row, column).SetFormula(Formula);
         WritePassThru(sheet);
     }
 }

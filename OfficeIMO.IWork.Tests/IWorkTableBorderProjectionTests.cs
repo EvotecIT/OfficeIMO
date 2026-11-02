@@ -79,12 +79,12 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToExcelDocumentResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables); result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved); var output = Assert.Single(reopened.Sheets);
-            Assert.Equal("thick", output.GetCellStyle(1, 1).Border!.Bottom!.Style);
-            Assert.Equal("FFFF0000", output.GetCellStyle(1, 1).Border!.Bottom!.ColorArgb);
-            Assert.Equal("none", output.GetCellStyle(1, 2).Border!.Bottom!.Style);
-            Assert.Equal("none", output.GetCellStyle(2, 2).Border!.Top!.Style);
-            Assert.Equal("thin", output.GetCellStyle(3, 2).Border!.Bottom!.Style);
-            Assert.Equal("FF000000", output.GetCellStyle(3, 2).Border!.Bottom!.ColorArgb);
+            Assert.Equal("thick", output.Cell(1, 1).GetStyle().Border!.Bottom!.Style);
+            Assert.Equal("FFFF0000", output.Cell(1, 1).GetStyle().Border!.Bottom!.ColorArgb);
+            Assert.Equal("none", output.Cell(1, 2).GetStyle().Border!.Bottom!.Style);
+            Assert.Equal("none", output.Cell(2, 2).GetStyle().Border!.Top!.Style);
+            Assert.Equal("thin", output.Cell(3, 2).GetStyle().Border!.Bottom!.Style);
+            Assert.Equal("FF000000", output.Cell(3, 2).GetStyle().Border!.Bottom!.ColorArgb);
         } else {
             using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(Assert.Single(result.Projection.Slides).Tables); result.Value.Save(saved); saved.Position = 0;
@@ -267,7 +267,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
-        using var reopened = ExcelDocument.Load(saved); var side = reopened.Sheets[0].GetCellStyle(3, 2).Border!.Bottom!;
+        using var reopened = ExcelDocument.Load(saved); var side = reopened.Sheets[0].Cell(3, 2).GetStyle().Border!.Bottom!;
         Assert.Equal(expected, side.Style); Assert.Equal("FF000000", side.ColorArgb);
     }
 

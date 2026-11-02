@@ -29,8 +29,8 @@ public sealed partial class IWorkBoundaryTests {
         });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(ExcelCellDataKind.Formula, reopened.Sheets[1].CellAt(1, 1).GetValue().Kind);
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(ExcelCellDataKind.Formula, reopened.Sheets[1].Cell(1, 1).GetValue().Kind);
     }
 
     [Fact]

@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
             if (fill.ThemeSlot == null) fill = fill.Resolve(_theme.Theme);
             int headerRow = _row;
             for (int c = 0; c < headers.Count; c++) {
-                Sheet.Cell(headerRow, c + 1, headers[c]);
+                Sheet.Cell(headerRow, c + 1).SetValue(headers[c]);
                 Sheet.CellBold(headerRow, c + 1, true);
                 Sheet.CellBackground(headerRow, c + 1, fill);
             }
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
                 foreach (var rvals in rows) {
                     int cols = System.Math.Min(rvals.Count, headers.Count);
                     for (int c = 0; c < cols; c++)
-                        Sheet.Cell(_row, c + 1, rvals[c] ?? string.Empty);
+                        Sheet.Cell(_row, c + 1).SetValue(rvals[c] ?? string.Empty);
                     if (cols > 0 && firstColumnFillByValue != null) {
                         if (Sheet.TryGetCellText(_row, 1, out var v) && v != null && firstColumnFillByValue.TryGetValue(v, out var color))
                             Sheet.CellBackground(_row, 1, color.ThemeSlot != null ? color : color.Resolve(_theme.Theme));

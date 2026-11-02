@@ -106,8 +106,8 @@ public sealed class FoundationBindingTests {
         Assert.Equal("Data", selector.Resolve(book.Sheets, sheet => sheet.Name).Name);
         book.SheetCachingEnabled = false;
         var selected = selector.Resolve(book.Sheets, sheet => sheet.Name);
-        selected.CellValue(1, 1, "Same native worksheet");
-        Assert.Equal("Same native worksheet", original.CellAt(1, 1).GetValue<string>());
+        selected.Cell(1, 1).SetValue("Same native worksheet");
+        Assert.Equal("Same native worksheet", original.Cell(1, 1).GetValue<string>());
         using var foreign = OfficeIMO.Excel.ExcelDocument.Create();
         Assert.Throws<ArgumentException>(() => OfficeSheetSelector.From(foreign.AddSheet("Data"))
             .Resolve(book.Sheets, sheet => sheet.Name));

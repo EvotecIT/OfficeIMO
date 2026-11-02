@@ -32,7 +32,7 @@ public sealed class IWorkConvertCommandTests {
         } else {
             using var document = OfficeIMO.Excel.ExcelDocument.Load(destination);
             var sheet = Assert.Single(document.Sheets);
-            Assert.Equal(42d, sheet.CellAt(1, 1).GetValue<double>());
+            Assert.Equal(42d, sheet.Cell(1, 1).GetValue<double>());
         }
     }
 
@@ -60,9 +60,9 @@ public sealed class IWorkConvertCommandTests {
             diagnostic.GetProperty("code").GetString() == "conversion-output-reopened");
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(destination);
         var sheet = Assert.Single(reopened.Sheets);
-        Assert.Equal("a", sheet.CellAt(1, 1).GetValue<string>());
-        Assert.Equal(2d, sheet.CellAt(2, 2).GetValue<double>());
-        Assert.Equal("Z", sheet.CellAt(3, 3).GetValue<string>());
+        Assert.Equal("a", sheet.Cell(1, 1).GetValue<string>());
+        Assert.Equal(2d, sheet.Cell(2, 2).GetValue<double>());
+        Assert.Equal("Z", sheet.Cell(3, 3).GetValue<string>());
         Assert.Equal(source, File.ReadAllBytes(files.Input));
     }
 

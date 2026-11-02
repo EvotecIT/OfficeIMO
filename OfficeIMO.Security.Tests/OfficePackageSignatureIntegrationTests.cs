@@ -194,7 +194,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
                 break;
             case "xlsx":
                 using (ExcelDocument document = ExcelDocument.Create(path)) {
-                    document.AddSheet("Data").CellValue(1, 1, "signed content");
+                    document.AddSheet("Data").Cell(1, 1).SetValue("signed content");
                     document.Save();
                 }
                 break;

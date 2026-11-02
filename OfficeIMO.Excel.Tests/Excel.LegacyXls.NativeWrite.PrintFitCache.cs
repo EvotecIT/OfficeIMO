@@ -15,7 +15,7 @@ public partial class Excel {
         string xls = Path.ChangeExtension(xlsx, ".xls");
         using (var workbook = ExcelDocument.Create(xlsx, new ExcelCreateOptions { FirstSheetName = "Print" })) {
             ExcelSheet sheet = workbook.Sheets[0];
-            sheet.CellValue(1, 1, "Cached fit dimensions");
+            sheet.Cell(1, 1).SetValue("Cached fit dimensions");
             sheet.SetPageSetup(fitToWidth: 2, fitToHeight: 0, scale: 85);
             PageSetupProperties properties = sheet.WorksheetPart.Worksheet
                 .GetFirstChild<SheetProperties>()!.GetFirstChild<PageSetupProperties>()!;

@@ -14,13 +14,13 @@ namespace OfficeIMO.Tests {
 
         private static ExcelSheet CreateOrdersTable(ExcelDocument document, int orders) {
             ExcelSheet sheet = document.AddSheet("Orders");
-            sheet.CellValue(1, 1, "Customer");
-            sheet.CellValue(1, 2, "Date");
-            sheet.CellValue(1, 3, "Amount");
+            sheet.Cell(1, 1).SetValue("Customer");
+            sheet.Cell(1, 2).SetValue("Date");
+            sheet.Cell(1, 3).SetValue("Amount");
             for (int index = 0; index < orders; index++) {
-                sheet.CellValue(index + 2, 1, "Customer " + (index + 1));
-                sheet.CellValue(index + 2, 2, new DateTime(2026, 1, 1).AddDays(index));
-                sheet.CellValue(index + 2, 3, 10d * (index + 1));
+                sheet.Cell(index + 2, 1).SetValue("Customer " + (index + 1));
+                sheet.Cell(index + 2, 2).SetValue(new DateTime(2026, 1, 1).AddDays(index));
+                sheet.Cell(index + 2, 3).SetValue(10d * (index + 1));
             }
 
             sheet.AddTable("A1:C" + (orders + 1), true, "Orders", ExcelTableStyle.TableStyleMedium2);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         public void SetTableTotals_ThrowsWhenTheRowBelowTheTableIsOccupied() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = CreateOrdersTable(document, 2);
-            sheet.CellValue(4, 2, "Notes below the table");
+            sheet.Cell(4, 2).SetValue("Notes below the table");
 
             Assert.Throws<InvalidOperationException>(() => sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
                 ["Amount"] = ExcelTableTotalsFunction.Sum
@@ -70,12 +70,12 @@ namespace OfficeIMO.Tests {
         public void SetTableTotals_ReusesAReservedBlankLastRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Orders");
-            sheet.CellValue(1, 1, "Customer");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "Contoso");
-            sheet.CellValue(2, 2, 5d);
-            sheet.CellValue(3, 1, "Fabrikam");
-            sheet.CellValue(3, 2, 7d);
+            sheet.Cell(1, 1).SetValue("Customer");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("Contoso");
+            sheet.Cell(2, 2).SetValue(5d);
+            sheet.Cell(3, 1).SetValue("Fabrikam");
+            sheet.Cell(3, 2).SetValue(7d);
             sheet.AddTable("A1:B4", true, "Orders", ExcelTableStyle.TableStyleMedium2);
 
             sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
@@ -120,8 +120,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = CreateOrdersTable(document, 3);
 
-            Assert.True(string.IsNullOrEmpty(sheet.GetCellStyle(1, 1).HorizontalAlignment));
-            Assert.Equal("right", sheet.GetCellStyle(1, 3).HorizontalAlignment);
+            Assert.True(string.IsNullOrEmpty(sheet.Cell(1, 1).GetStyle().HorizontalAlignment));
+            Assert.Equal("right", sheet.Cell(1, 3).GetStyle().HorizontalAlignment);
         }
 
         [Fact]
@@ -129,8 +129,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Wide");
             for (int column = 1; column <= 16; column++) {
-                sheet.CellValue(1, column, "Column " + column);
-                sheet.CellValue(2, column, column);
+                sheet.Cell(1, column).SetValue("Column " + column);
+                sheet.Cell(2, column).SetValue(column);
             }
 
             sheet.AddTable("A1:P2", true, "Wide", ExcelTableStyle.TableStyleMedium2);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
                     ["Amount"] = ExcelTableTotalsFunction.Sum,
                     ["Date"] = ExcelTableTotalsFunction.Maximum
                 });
-                sheet.CellFormula(5, 2, "COUNT(Orders[Date])");
+                sheet.Cell(5, 2).SetFormula("COUNT(Orders[Date])");
                 Assert.Throws<ArgumentException>(() => sheet.SetTableTotalsByName("Orders", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["Amount"] = ExcelTableTotalsFunction.Custom
                 }));

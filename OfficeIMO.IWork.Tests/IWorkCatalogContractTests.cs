@@ -116,8 +116,8 @@ public sealed partial class IWorkBoundaryTests {
             report = result.Report;
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
-            Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-            Assert.Null(reopened.Sheets[0].CellAt(1, 1).GetValue().Formula);
+            Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+            Assert.Null(reopened.Sheets[0].Cell(1, 1).GetValue().Formula);
         } else {
             using var result = source.ToPowerPointDocumentResult(options);
             report = result.Report;

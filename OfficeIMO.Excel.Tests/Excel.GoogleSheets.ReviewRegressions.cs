@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 sheet.SetRowHeight(2000, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.SetColumnWidth(28, ExcelColumnWidth.Characters(16));
                 sheet.Protect();
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 0.1D);
+                sheet.Cell(1, 1).SetValue(0.1D);
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(1.23D)));
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16.25D));
                 ExcelCellInfo cell = Assert.Single(Assert.Single(document.Inspect().Worksheets).Cells);
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests
                 try {
                     using var document = ExcelDocument.Create(path);
                     ExcelSheet sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Value");
+                    sheet.Cell(1, 1).SetValue("Value");
                     configure?.Invoke(sheet);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/cell/1:1"];
                 } finally {
@@ -181,12 +181,12 @@ namespace OfficeIMO.Tests
 
             string baseline = CellHash();
 
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBold(1, 1)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellItalic(1, 1)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(18))));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center)));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, ExcelBorderStyle.Medium, "#FF0000")));
-            Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1,1,1)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetBold()));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetItalic()));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(18))));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Medium, "#FF0000")));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.Range(1, 1, 1, 1).SetWrapText()));
             Assert.NotEqual(baseline, CellHash(sheet => sheet.SetHyperlink(1, 1, "https://example.test/", display: "Value", style: false)));
         }
 
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
 
                 sheet.SetTabColor("#336699");
@@ -234,15 +234,15 @@ namespace OfficeIMO.Tests
                 try {
                     using var document = ExcelDocument.Create(path);
                     ExcelSheet sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Region");
-                    sheet.CellValue(2, 1, "North");
-                    sheet.CellValue(3, 1, "South");
-                    sheet.CellValue(1, 3, "Name");
-                    sheet.CellValue(1, 4, "Value");
-                    sheet.CellValue(2, 3, "A");
-                    sheet.CellValue(2, 4, 1d);
-                    sheet.CellValue(3, 3, "B");
-                    sheet.CellValue(3, 4, 2d);
+                    sheet.Cell(1, 1).SetValue("Region");
+                    sheet.Cell(2, 1).SetValue("North");
+                    sheet.Cell(3, 1).SetValue("South");
+                    sheet.Cell(1, 3).SetValue("Name");
+                    sheet.Cell(1, 4).SetValue("Value");
+                    sheet.Cell(2, 3).SetValue("A");
+                    sheet.Cell(2, 4).SetValue(1d);
+                    sheet.Cell(3, 3).SetValue("B");
+                    sheet.Cell(3, 4).SetValue(2d);
                     sheet.AddAutoFilter(range, new Dictionary<uint, IEnumerable<string>> { [0] = new[] { visibleValue } });
                     sheet.Range("C1:D3").CreateTable("DataTable", includeAutoFilter: true);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document);
@@ -333,13 +333,13 @@ namespace OfficeIMO.Tests
             {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 3, "Region");
-                sheet.CellValue(1, 4, "Value");
-                sheet.CellValue(2, 3, "North");
-                sheet.CellValue(2, 4, 10d);
-                sheet.CellValue(3, 3, "South");
-                sheet.CellValue(3, 4, 20d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 3).SetValue("Region");
+                sheet.Cell(1, 4).SetValue("Value");
+                sheet.Cell(2, 3).SetValue("North");
+                sheet.Cell(2, 4).SetValue(10d);
+                sheet.Cell(3, 3).SetValue("South");
+                sheet.Cell(3, 4).SetValue(20d);
                 sheet.AddPivotTable("C1:D3", "AA2000", options: new ExcelPivotTableOptions { Name = "ScopedHeaders", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());

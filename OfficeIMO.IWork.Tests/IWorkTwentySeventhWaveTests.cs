@@ -31,13 +31,13 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("Before\nAfter", Assert.Single(Assert.Single(
             result.Projection.Sheets).TextBoxes));
         Assert.Equal("Before\nAfter", Assert.Single(result.Value.Sheets)
-            .CellAt(1, 1).GetValue<string>());
+            .Cell(1, 1).GetValue<string>());
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.Equal("Before\nAfter", Assert.Single(reopened.Sheets)
-            .CellAt(1, 1).GetValue<string>());
+            .Cell(1, 1).GetValue<string>());
     }
 
     [Fact]

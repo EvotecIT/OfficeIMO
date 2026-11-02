@@ -33,14 +33,14 @@ namespace OfficeIMO.Tests
                 {
                     var sheet1 = document.AddSheet("Data");
                     int nextRow2 = 1;
-                    sheet1.Cell(nextRow2, 1, "Name");
-                    sheet1.Cell(nextRow2, 2, "Score");
+                    sheet1.Cell(nextRow2, 1).SetValue("Name");
+                    sheet1.Cell(nextRow2, 2).SetValue("Score");
                     nextRow2++;
-                    sheet1.Cell(nextRow2, 1, "Alice");
-                    sheet1.Cell(nextRow2, 2, 93);
+                    sheet1.Cell(nextRow2, 1).SetValue("Alice");
+                    sheet1.Cell(nextRow2, 2).SetValue(93);
                     nextRow2++;
-                    sheet1.Cell(nextRow2, 1, "Bob");
-                    sheet1.Cell(nextRow2, 2, 88);
+                    sheet1.Cell(nextRow2, 1).SetValue("Bob");
+                    sheet1.Cell(nextRow2, 2).SetValue(88);
                     nextRow2++;
                     sheet1.AddTable("A1:B3", true, "Scores");
                     sheet1.AutoFitColumn(1);
@@ -74,19 +74,19 @@ namespace OfficeIMO.Tests
                     var sheet3 = document.AddSheet("Data");
                     int nextRow4 = 1;
                     {
-                        var cell1 = sheet3.CellAt("B2");
-                        sheet3.Cell(cell1.Row, cell1.Column, "Sheet");
+                        var cell1 = sheet3.Cell("B2");
+                        sheet3.Cell(cell1.Row, cell1.Column).SetValue("Sheet");
                     }
 
                     {
-                        var cell2 = sheet3.CellAt("C" + nextRow4);
-                        sheet3.Cell(cell2.Row, cell2.Column, "Row");
+                        var cell2 = sheet3.Cell("C" + nextRow4);
+                        sheet3.Cell(cell2.Row, cell2.Column).SetValue("Row");
                     }
 
                     nextRow4++;
-                    sheet3.Cell(2, 4, "Column");
+                    sheet3.Cell(2, 4).SetValue("Column");
                     var range5 = sheet3.Range("A1:D4");
-                    sheet3.Cell(range5.CellAt(4, 4).Row, range5.CellAt(4, 4).Column, "Range");
+                    sheet3.Cell(range5.Cell(4, 4).Row, range5.Cell(4, 4).Column).SetValue("Range");
                     document.Save();
                 }
             }
@@ -128,8 +128,8 @@ namespace OfficeIMO.Tests
                 var sheet9 = document.AddSheet("Data");
 
                 {
-                    var cell3 = sheet9.CellAt("'Other'!A1");
-                    sheet9.Cell(cell3.Row, cell3.Column, "Wrong sheet");
+                    var cell3 = sheet9.Cell("'Other'!A1");
+                    sheet9.Cell(cell3.Row, cell3.Column).SetValue("Wrong sheet");
                 }
             });
             Assert.Contains("current worksheet", exception.Message, StringComparison.Ordinal);
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests
                 {
                     var sheet11 = document.AddSheet("Data");
                     int nextRow12 = 1;
-                    sheet11.Cell(nextRow12, 1, "Name");
-                    sheet11.Cell(nextRow12, 2, "Score");
+                    sheet11.Cell(nextRow12, 1).SetValue("Name");
+                    sheet11.Cell(nextRow12, 2).SetValue("Score");
                     nextRow12++;
                     sheet11.SetColumnWidth(1, ExcelColumnWidth.Characters(25));
                     sheet11.SetColumnHidden(1, true);
@@ -195,14 +195,14 @@ namespace OfficeIMO.Tests
                 {
                     var sheet13 = document.AddSheet("Data");
                     int nextRow14 = 1;
-                    sheet13.Cell(nextRow14, 1, "Name");
-                    sheet13.Cell(nextRow14, 2, "Score");
+                    sheet13.Cell(nextRow14, 1).SetValue("Name");
+                    sheet13.Cell(nextRow14, 2).SetValue("Score");
                     nextRow14++;
-                    sheet13.Cell(nextRow14, 1, "Alice");
-                    sheet13.Cell(nextRow14, 2, 1);
+                    sheet13.Cell(nextRow14, 1).SetValue("Alice");
+                    sheet13.Cell(nextRow14, 2).SetValue(1);
                     nextRow14++;
-                    sheet13.Cell(nextRow14, 1, "Bob");
-                    sheet13.Cell(nextRow14, 2, 2);
+                    sheet13.Cell(nextRow14, 1).SetValue("Bob");
+                    sheet13.Cell(nextRow14, 2).SetValue(2);
                     nextRow14++;
                     sheet13.AddAutoFilter("A1:B3", criteria);
                     sheet13.AddConditionalColorScale("B2:B3", OfficeColor.Red, OfficeColor.Lime);

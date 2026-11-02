@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             lookups.ClearCachedFormulaResults();
             Assert.Equal(924, lookups.RecalculateSupportedFormulas());
             for (int row = 1; row <= 924; row++) {
-                var actual = lookups.CellAt(row, 2).GetValue().Value;
+                var actual = lookups.Cell(row, 2).GetValue().Value;
                 Assert.True(expected[row - 1, 0]?.GetType() == actual?.GetType(), $"B{row}: Excel={expected[row - 1, 0]}; OfficeIMO={actual}");
                 AssertPivotLookupOracleValue(expected[row - 1, 0], actual);
             }

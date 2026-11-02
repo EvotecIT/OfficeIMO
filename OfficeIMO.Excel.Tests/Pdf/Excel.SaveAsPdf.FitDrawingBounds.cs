@@ -12,11 +12,11 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "FitDrawingBounds.xlsx");
         using var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Banner" });
         var sheet = workbook.Sheets[0];
-        sheet.CellValue(1, 1, "Banner");
+        sheet.Cell(1, 1).SetValue("Banner");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
         for (int row = 1; row <= 10; row++) {
-            sheet.CellValue(row, 2, "Row" + row);
+            sheet.Cell(row, 2).SetValue("Row" + row);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
         sheet.AddImage(1, 1, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {

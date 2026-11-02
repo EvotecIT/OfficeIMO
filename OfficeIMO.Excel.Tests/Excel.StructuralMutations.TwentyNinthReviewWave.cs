@@ -36,10 +36,10 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sales = document.AddSheet("Sales");
-            sales.CellValue(1, 1, "Region");
-            sales.CellValue(1, 2, "Sales");
-            sales.CellValue(2, 1, "East");
-            sales.CellValue(2, 2, 10d);
+            sales.Cell(1, 1).SetValue("Region");
+            sales.Cell(1, 2).SetValue("Sales");
+            sales.Cell(2, 1).SetValue("East");
+            sales.Cell(2, 2).SetValue(10d);
             sales.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             document.AddPivotSlicer("SalesPivot", "Region", "Sales", new ExcelSlicerViewOptions { Name = "RegionFilter" });
             Assert.Single(document.GetPivotInteractions());

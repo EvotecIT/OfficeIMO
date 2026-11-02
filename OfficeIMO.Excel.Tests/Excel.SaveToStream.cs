@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var sheet = document.AddSheet("StreamData");
-                sheet.CellValue(1, 1, "Hello Stream");
+                sheet.Cell(1, 1).SetValue("Hello Stream");
 
                 using var memory = new MemoryStream();
                 document.Save(memory, new ExcelSaveOptions { ValidateOpenXml = true });
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var sheet = document.AddSheet("AsyncStream");
-                sheet.CellValue(2, 2, 42);
+                sheet.Cell(2, 2).SetValue(42);
 
                 using var memory = new MemoryStream();
                 await document.SaveAsync(memory, new ExcelSaveOptions { ValidateOpenXml = true });
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_Save_SyncAndAsync_ToNonSeekableStreams_PackagesAreReadable() {
             using var document = ExcelDocument.Create();
-            document.AddSheet("Response").CellValue(1, 1, "Streamed");
+            document.AddSheet("Response").Cell(1, 1).SetValue("Streamed");
             using var syncOutput = new NonSeekableReadWriteBuffer(new byte[0]);
             using var asyncOutput = new NonSeekableReadWriteBuffer(new byte[0]);
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = ExcelDocument.Create(filePath);
                 var sheet = document.AddSheet("StreamData");
-                sheet.CellValue(1, 1, "Fresh");
+                sheet.Cell(1, 1).SetValue("Fresh");
 
                 using var memory = new MemoryStream();
                 memory.Write(new byte[256], 0, 256);

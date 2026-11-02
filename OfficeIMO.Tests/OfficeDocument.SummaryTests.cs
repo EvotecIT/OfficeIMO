@@ -18,7 +18,7 @@ public sealed class OfficeDocumentSummaryTests {
         try {
             string path = Path.Combine(root, "inventory.xlsx");
             using (var workbook = ExcelDocument.Create()) {
-                workbook.AddSheet("Data").CellValue(1, 1, "Inventory");
+                workbook.AddSheet("Data").Cell(1, 1).SetValue("Inventory");
                 workbook.AddSheet("Empty");
                 workbook.Save(path);
             }

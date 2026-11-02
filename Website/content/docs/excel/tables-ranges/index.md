@@ -17,15 +17,15 @@ using var workbook = ExcelDocument.Create("tables.xlsx");
 var sheet = workbook.AddSheet("Sales");
 
 // Populate data
-sheet.CellAt("A1").SetValue("Product");
-sheet.CellAt("B1").SetValue("Q1");
-sheet.CellAt("C1").SetValue("Q2");
-sheet.CellAt("A2").SetValue("Widget A");
-sheet.CellAt("B2").SetValue(15000);
-sheet.CellAt("C2").SetValue(18000);
-sheet.CellAt("A3").SetValue("Widget B");
-sheet.CellAt("B3").SetValue(22000);
-sheet.CellAt("C3").SetValue(25000);
+sheet.Cell("A1").SetValue("Product");
+sheet.Cell("B1").SetValue("Q1");
+sheet.Cell("C1").SetValue("Q2");
+sheet.Cell("A2").SetValue("Widget A");
+sheet.Cell("B2").SetValue(15000);
+sheet.Cell("C2").SetValue(18000);
+sheet.Cell("A3").SetValue("Widget B");
+sheet.Cell("B3").SetValue(22000);
+sheet.Cell("C3").SetValue(25000);
 
 // Create a table over the data range
 sheet.AddTable("A1:C3", name: "SalesTable", style: ExcelTableStyle.TableStyleMedium2);

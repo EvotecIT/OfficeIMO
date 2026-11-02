@@ -26,7 +26,7 @@ public partial class Excel {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(80));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(40));
             for (int row = 1; row <= 24; row++) {
-                for (int column = 1; column <= 3; column++) sheet.CellValue(row, column, "Cell");
+                for (int column = 1; column <= 3; column++) sheet.Cell(row, column).SetValue("Cell");
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);

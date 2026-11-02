@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_LookupModesCalculateTypedResults(string caseId, string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = CreateLookupModeSheet(document);
-            sheet.CellFormula(1, 18, formula);
+            sheet.Cell(1, 18).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 18, expected);
             Assert.True(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO, caseId);
@@ -59,11 +59,11 @@ namespace OfficeIMO.Tests {
             var source = document.AddSheet("Source");
             for (int row = 1; row <= 1024; row++) {
                 int key = searchMode == 2 ? row : 1025 - row;
-                source.CellFormula(row, 1, $"PROBE({key})");
-                source.CellValue(row, 2, key * 10);
+                source.Cell(row, 1).SetFormula($"PROBE({key})");
+                source.Cell(row, 2).SetValue(key * 10);
             }
             var report = document.AddSheet("Report");
-            report.CellFormula(1, 1, $"XLOOKUP(777,Source!A1:A1024,Source!B1:B1024,,, {searchMode})");
+            report.Cell(1, 1).SetFormula($"XLOOKUP(777,Source!A1:A1024,Source!B1:B1024,,, {searchMode})");
             Assert.Equal(1, report.RecalculateSupportedFormulas());
             AssertFormulaCache(report, 1, 1, "7770");
             Assert.InRange(reads, 1, 11);
@@ -75,10 +75,10 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_UnqualifiedOrderedTextDoesNotBecomeMissingMatch(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Ordering");
-            sheet.CellValue(1, 1, "A1");
-            sheet.CellValue(2, 1, "A3");
-            sheet.CellValue(1, 4, 42d);
-            sheet.CellFormula(1, 4, $"IFERROR({formula},99)");
+            sheet.Cell(1, 1).SetValue("A1");
+            sheet.Cell(2, 1).SetValue("A3");
+            sheet.Cell(1, 4).SetValue(42d);
+            sheet.Cell(1, 4).SetFormula($"IFERROR({formula},99)");
             Assert.Equal(0, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "42");
             Assert.False(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO);
@@ -91,18 +91,18 @@ namespace OfficeIMO.Tests {
             string[] keys = { "Alpha", "Alpine", "Beta", "B?ta", "B*ta", "~tail" };
             string[] typedLabels = { "N", "T", "B", "F", "empty", "E" };
             for (int index = 0; index < ascending.Length; index++) {
-                sheet.CellValue(index + 1, 1, ascending[index]);
-                sheet.CellValue(index + 1, 2, labels[index]);
-                sheet.CellValue(index + 1, 3, keys[index]);
-                sheet.CellValue(index + 1, 4, ascending[ascending.Length - index - 1]);
-                sheet.CellValue(index + 1, 7, typedLabels[index]);
-                sheet.CellValue(1, index + 10, ascending[index]);
-                sheet.CellValue(2, index + 10, labels[index]);
+                sheet.Cell(index + 1, 1).SetValue(ascending[index]);
+                sheet.Cell(index + 1, 2).SetValue(labels[index]);
+                sheet.Cell(index + 1, 3).SetValue(keys[index]);
+                sheet.Cell(index + 1, 4).SetValue(ascending[ascending.Length - index - 1]);
+                sheet.Cell(index + 1, 7).SetValue(typedLabels[index]);
+                sheet.Cell(1, index + 10).SetValue(ascending[index]);
+                sheet.Cell(2, index + 10).SetValue(labels[index]);
             }
-            sheet.CellValue(1, 6, 1d);
-            sheet.CellValue(2, 6, "1");
-            sheet.CellValue(3, 6, true);
-            sheet.CellValue(4, 6, false);
+            sheet.Cell(1, 6).SetValue(1d);
+            sheet.Cell(2, 6).SetValue("1");
+            sheet.Cell(3, 6).SetValue(true);
+            sheet.Cell(4, 6).SetValue(false);
             return sheet;
         }
     }

@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
         using ExcelDocument workbook = source.ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCell cell = Assert.Single(Enumerable.Range(1, 4).Select(row => sheet.CellAt(row, 1)),
+        ExcelCell cell = Assert.Single(Enumerable.Range(1, 4).Select(row => sheet.Cell(row, 1)),
             candidate => candidate.GetValue<string>() == "X");
         ExcelRichTextRun exported = Assert.Single(cell.GetRichText());
         Assert.Equal(expectedBold, exported.Bold);

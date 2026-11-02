@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportToleratesMalformedDrawingTextAttributes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("MalformedShape").CellValue(1, 1, "Anchor");
+                document.AddSheet("MalformedShape").Cell(1, 1).SetValue("Anchor");
                 document.Save();
             }
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
                 sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-                sheet.CellValue(1, 1, "Visible through shape");
+                sheet.Cell(1, 1).SetValue("Visible through shape");
                 document.Save();
             }
 
@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Objects");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 2, "Reviewed");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 2).SetValue("Reviewed");
             sheet.SetComment("B2", "Needs design review", "Reviewer");
             sheet.SetComment("C3", "Outside export", "Reviewer");
 
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("CommentBody");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 2, "Reviewed");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 2).SetValue("Reviewed");
             sheet.SetCommentRichText("B2", new[] {
                 new ExcelRichTextRun("Needs ") { FontColor = "C00000", Bold = true },
                 new ExcelRichTextRun("design review") { Italic = true, Underline = true, FontColor = "2563EB" },
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("CommentBreaks");
-                sheet.CellValue(2, 2, "Reviewed");
+                sheet.Cell(2, 2).SetValue("Reviewed");
                 sheet.SetCommentRichText("B2", new[] {
                     new ExcelRichTextRun("Line one"),
                     new ExcelRichTextRun("line two") { Bold = true }
@@ -226,13 +226,13 @@ namespace OfficeIMO.Tests {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             }
 
-            sheet.CellValue(4, 1, "Month");
-            sheet.CellValue(4, 2, "Score");
-            sheet.CellValue(5, 1, "Jan");
-            sheet.CellValue(5, 2, 120);
-            sheet.CellValue(6, 1, "Feb");
-            sheet.CellValue(6, 2, 180);
-            sheet.CellValue(2, 4, "Review");
+            sheet.Cell(4, 1).SetValue("Month");
+            sheet.Cell(4, 2).SetValue("Score");
+            sheet.Cell(5, 1).SetValue("Jan");
+            sheet.Cell(5, 2).SetValue(120);
+            sheet.Cell(6, 1).SetValue("Feb");
+            sheet.Cell(6, 2).SetValue(180);
+            sheet.Cell(2, 4).SetValue("Review");
             sheet.SetComment("D2", "This note should avoid the chart when rendered.", "Reviewer");
             sheet.AddChart(OfficeChartType.ColumnClustered, "A4:B6", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(120), Title = "Trend" });
 
@@ -260,9 +260,9 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Threaded");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Reviewed");
-                sheet.CellValue(1, 4, "Outside");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Reviewed");
+                sheet.Cell(1, 4).SetValue("Outside");
                 document.Save();
             }
 
@@ -326,9 +326,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shapes");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Reviewed");
-                sheet.CellValue(1, 4, "Outside");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Reviewed");
+                sheet.Cell(1, 4).SetValue("Outside");
                 document.Save();
             }
 
@@ -356,8 +356,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("ShapeVisual");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Reviewed");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Reviewed");
                 document.Save();
             }
 
@@ -394,7 +394,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("ShapeShaping");
-                sheet.CellValue(1, 1, "Name");
+                sheet.Cell(1, 1).SetValue("Name");
                 document.Save();
             }
 
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("ShapeOnly");
-                sheet.CellValue(1, 1, "Only cell");
+                sheet.Cell(1, 1).SetValue("Only cell");
                 document.Save();
             }
 
@@ -470,7 +470,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("UnsupportedOnly");
-                sheet.CellValue(1, 1, "Only cell");
+                sheet.Cell(1, 1).SetValue("Only cell");
                 document.Save();
             }
 
@@ -497,7 +497,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8D));
                 sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8D));
                 sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8D));
-                sheet.CellValue(1, 1, "Only cell");
+                sheet.Cell(1, 1).SetValue("Only cell");
                 document.Save();
             }
 
@@ -524,7 +524,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
                 sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-                sheet.CellValue(1, 2, "Shape area");
+                sheet.Cell(1, 2).SetValue("Shape area");
                 document.Save();
             }
 
@@ -554,8 +554,8 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.EnsureWorkbookTheme();
                 ExcelSheet sheet = document.AddSheet("ThemeShape");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Themed shape");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Themed shape");
                 document.Save();
             }
 
@@ -599,8 +599,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("OutlineStyle");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Styled outline");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Styled outline");
                 document.Save();
             }
 
@@ -638,7 +638,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("BoundedOutline");
-                sheet.CellValue(1, 1, "Shape");
+                sheet.Cell(1, 1).SetValue("Shape");
                 document.Save();
             }
 
@@ -659,8 +659,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("ShapeEffects");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Styled effects");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Styled effects");
                 document.Save();
             }
 
@@ -745,8 +745,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("ShapeBreaks");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Shape breaks");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Shape breaks");
                 document.Save();
             }
 
@@ -767,8 +767,8 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.EnsureWorkbookTheme();
                 ExcelSheet sheet = document.AddSheet("DefaultStyle");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Default styled shape");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Default styled shape");
                 document.Save();
             }
 
@@ -795,8 +795,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("PresetShape");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Shared heart");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Shared heart");
                 document.Save();
             }
 
@@ -853,8 +853,8 @@ namespace OfficeIMO.Tests {
                 string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddSheet("FlowchartShape");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(2, 2, expectedName);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(2, 2).SetValue(expectedName);
                     document.Save();
                 }
 
@@ -888,8 +888,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("RotatedShape");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Rotated heart");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Rotated heart");
                 document.Save();
             }
 
@@ -936,8 +936,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("RotatedText");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Rotated label");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Rotated label");
                 document.Save();
             }
 
@@ -974,8 +974,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("AlignedText");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Aligned label");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Aligned label");
                 document.Save();
             }
 
@@ -1013,8 +1013,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("TextColor");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Colored label");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Colored label");
                 document.Save();
             }
 
@@ -1050,8 +1050,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("TextFont");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 2, "Styled label");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 2).SetValue("Styled label");
                 document.Save();
             }
 
@@ -1357,8 +1357,8 @@ namespace OfficeIMO.Tests {
             byte[] redBadge = CreateSolidPng(120, 48, OfficeColor.FromRgb(220, 38, 38));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("LayerOrder");
-                sheet.CellValue(1, 1, "Layer order");
-                sheet.CellValue(2, 2, "Overlap");
+                sheet.Cell(1, 1).SetValue("Layer order");
+                sheet.Cell(2, 2).SetValue("Overlap");
                 if (imageFirst) {
                     sheet.AddImage(2, 2, redBadge, new OfficeIMO.Excel.ExcelImageOptions {
                         ContentType = "image/png",

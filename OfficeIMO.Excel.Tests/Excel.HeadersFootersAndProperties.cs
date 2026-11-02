@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests
                 }
 
                 var sheet = doc.AddSheet("Summary");
-                sheet.Cell(1, 1, "Hello");
+                sheet.Cell(1, 1).SetValue("Hello");
                 // Header/footer with tokens and image
                 string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 byte[]? logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;

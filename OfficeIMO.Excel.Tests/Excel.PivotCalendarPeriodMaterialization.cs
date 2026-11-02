@@ -84,20 +84,20 @@ namespace OfficeIMO.Tests
                 if (oracleCase.GetProperty("date1904").GetBoolean())
                     document.DateSystem = ExcelDateSystem.NineteenFour;
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "OrderDate");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("OrderDate");
+                source.Cell(1, 2).SetValue("Sales");
                 for (int index = 0; index < 24; index++)
                 {
                     int row = index + 2;
-                    source.CellValue(row, 1, new DateTime(index < 12 ? 2024 : 2025, index % 12 + 1, 1));
-                    source.CellAt(row, 1).DateTime("yyyy-mm-dd");
-                    source.CellValue(row, 2, (double)(index + 1));
+                    source.Cell(row, 1).SetValue(new DateTime(index < 12 ? 2024 : 2025, index % 12 + 1, 1));
+                    source.Cell(row, 1).DateTime("yyyy-mm-dd");
+                    source.Cell(row, 2).SetValue((double)(index + 1));
                 }
 
-                source.CellValue(26, 1, new DateTime(2025, 1, 15, 8, 30, 0));
-                source.CellAt(26, 1).DateTime("yyyy-mm-dd hh:mm");
-                source.CellValue(26, 2, 100d);
-                source.CellValue(27, 2, 1000d);
+                source.Cell(26, 1).SetValue(new DateTime(2025, 1, 15, 8, 30, 0));
+                source.Cell(26, 1).DateTime("yyyy-mm-dd hh:mm");
+                source.Cell(26, 2).SetValue(100d);
+                source.Cell(27, 2).SetValue(1000d);
                 JsonElement month = oracleCase.GetProperty("month");
                 ExcelPivotFilter filter = month.ValueKind == JsonValueKind.Number ? ExcelPivotFilter.DateMonth("OrderDate", month.GetInt32()) : ExcelPivotFilter.DateQuarter("OrderDate", oracleCase.GetProperty("quarter").GetInt32());
                 {

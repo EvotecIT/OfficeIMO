@@ -104,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         package.Position = 0;
         var reader = new OfficeIMO.Reader.OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         var result = reader.ReadDocument(package, "features.numbers");
@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.StartsWith("SUM(", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     private static byte[] FeatureCell(bool empty, uint featureFlags = (1u << 7) | (1u << 8) | (1u << 19)) {

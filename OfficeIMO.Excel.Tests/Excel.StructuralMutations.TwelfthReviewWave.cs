@@ -14,13 +14,13 @@ namespace OfficeIMO.Tests {
         public void Test_RangeMove_RejectsPartialDestinationHyperlinkRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Move");
+            sheet.Cell(1, 1).SetValue("Move");
             sheet.SetHyperlink(1, 2, "https://destination.example/", display: "Destination", style: false);
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
             hyperlink.Reference = "B1:D1";
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-                sheet.MoveRange("A1", "B1"));
+                sheet.Range("A1").MoveTo("B1"));
 
             Assert.Contains("partially overwrite hyperlink", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal("B1:D1", hyperlink.Reference!.Value);
@@ -53,8 +53,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellValue(2, 2, 1);
-            data.CellValue(3, 3, 2);
+            data.Cell(2, 2).SetValue(1);
+            data.Cell(3, 3).SetValue(2);
             var pane = new Pane { TopLeftCell = "B2" };
             var selection = new Selection {
                 ActiveCell = "B2",
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             };
             document.WorkbookPartRoot.Workbook!.Append(new WebPublishItems(publishItem) { Count = 1U });
 
-            data.InsertColumns(1);
+            data.InsertColumnsTransactional(1);
             Assert.Equal("C2", view.TopLeftCell!.Value);
             Assert.Equal("C2", pane.TopLeftCell!.Value);
             Assert.Equal("C2", selection.ActiveCell!.Value);
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("E2:F3", consolidationSource.Reference!.Value);
             Assert.Equal("E2:F3", publishItem.SourceRef!.Value);
 
-            data.MoveRange("E2:F3", "G4");
+            data.Range("E2:F3").MoveTo("G4");
             Assert.Equal("G4", view.TopLeftCell!.Value);
             Assert.Equal("G4", pane.TopLeftCell!.Value);
             Assert.Equal("G4", selection.ActiveCell!.Value);
@@ -129,8 +129,8 @@ namespace OfficeIMO.Tests {
         public void Test_NamedStyleRedefinition_RejectsAmbiguousSharedStyleFormat() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Source");
-            sheet.CellAt(1, 1).SetFillColor("C6EFCE");
+            sheet.Cell(1, 1).SetValue("Source");
+            sheet.Cell(1, 1).SetFillColor("C6EFCE");
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             CellStyle normal = stylesheet.CellStyles!.Elements<CellStyle>()
                 .Single(style => style.Name?.Value == "Normal");

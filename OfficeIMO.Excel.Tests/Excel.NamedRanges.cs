@@ -17,9 +17,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("GlobalRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("GlobalRange"));
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.Equal("$A$1", sheet.GetNamedRange("LocalRange"));
+                Assert.Equal("$A$1", sheet.GetNamedRangeText("LocalRange"));
             }
             File.Delete(filePath);
         }
@@ -82,8 +82,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("GlobalRange"));
-                Assert.Equal("'Data'!$A$1:$A$2", sheet.GetNamedRange("GlobalRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("GlobalRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", sheet.GetNamedRangeText("GlobalRange"));
             }
             File.Delete(filePath);
         }
@@ -100,8 +100,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First(s => s.Name == "Data");
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("SharedRange"));
-                Assert.Equal("$B$1:$B$2", sheet.GetNamedRange("SharedRange"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("SharedRange"));
+                Assert.Equal("$B$1:$B$2", sheet.GetNamedRangeText("SharedRange"));
             }
             File.Delete(filePath);
         }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
                 document.SetNamedRange("OriginalName", "'Data'!A1:A2", save: false);
 
                 Assert.Throws<ArgumentException>(() => document.RenameNamedRange("OriginalName", "A1", validationMode: ExcelDefinedNameValidationMode.Strict, save: false));
-                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRange("OriginalName"));
+                Assert.Equal("'Data'!$A$1:$A$2", document.GetNamedRangeText("OriginalName"));
                 Assert.Null(document.GetNamedRange("A1"));
             }
             File.Delete(filePath);

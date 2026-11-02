@@ -294,21 +294,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleSheetsNativeExtendedValue? effective = cell.EffectiveValue;
             if (!string.IsNullOrWhiteSpace(entered?.FormulaValue)) {
                 string formula = entered!.FormulaValue!;
-                sheet.CellFormula(row, column, formula.StartsWith("=", StringComparison.Ordinal) ? formula.Substring(1) : formula);
+                sheet.Cell(row, column).SetFormula(formula.StartsWith("=", StringComparison.Ordinal) ? formula.Substring(1) : formula);
             } else if (entered?.StringValue != null) {
-                sheet.CellValue(row, column, entered.StringValue);
+                sheet.Cell(row, column).SetValue(entered.StringValue);
             } else if (entered?.NumberValue is double number) {
-                sheet.CellValue(row, column, number);
+                sheet.Cell(row, column).SetValue(number);
             } else if (entered?.BoolValue is bool boolean) {
-                sheet.CellValue(row, column, boolean);
+                sheet.Cell(row, column).SetValue(boolean);
             } else if (effective?.StringValue != null) {
-                sheet.CellValue(row, column, effective.StringValue);
+                sheet.Cell(row, column).SetValue(effective.StringValue);
             } else if (effective?.NumberValue is double effectiveNumber) {
-                sheet.CellValue(row, column, effectiveNumber);
+                sheet.Cell(row, column).SetValue(effectiveNumber);
             } else if (effective?.BoolValue is bool effectiveBoolean) {
-                sheet.CellValue(row, column, effectiveBoolean);
+                sheet.Cell(row, column).SetValue(effectiveBoolean);
             } else if (effective?.ErrorValue != null) {
-                sheet.CellValue(row, column, cell.FormattedValue ?? effective.ErrorValue.Type ?? "#ERROR!");
+                sheet.Cell(row, column).SetValue(cell.FormattedValue ?? effective.ErrorValue.Type ?? "#ERROR!");
                 report.AddUnique(
                     TranslationSeverity.Warning,
                     "FormulaErrors",
@@ -317,7 +317,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     code: "SHEETS.IMPORT.FORMULA_ERROR",
                     action: TranslationAction.Flatten);
             } else if (!string.IsNullOrEmpty(cell.FormattedValue)) {
-                sheet.CellValue(row, column, cell.FormattedValue!);
+                sheet.Cell(row, column).SetValue(cell.FormattedValue!);
             }
 
             ApplyCellFormat(sheet, row, column, cell.UserEnteredFormat);
@@ -352,33 +352,33 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int column,
             GoogleSheetsNativeCellFormat? format) {
             if (format == null) return;
-            if (!string.IsNullOrWhiteSpace(format.NumberFormat?.Pattern)) sheet.FormatCell(row, column, format.NumberFormat!.Pattern!);
-            if (format.BackgroundColor != null) sheet.CellBackground(row, column, ToHex(format.BackgroundColor));
+            if (!string.IsNullOrWhiteSpace(format.NumberFormat?.Pattern)) sheet.Cell(row, column).SetNumberFormat(format.NumberFormat!.Pattern!);
+            if (format.BackgroundColor != null) sheet.Cell(row, column).SetFillColor(ToHex(format.BackgroundColor));
             if (format.TextFormat != null) {
                 GoogleSheetsNativeTextFormat text = format.TextFormat;
-                if (text.Bold == true) sheet.CellBold(row, column);
-                if (text.Italic == true) sheet.CellItalic(row, column);
-                if (text.Underline == true) sheet.CellUnderline(row, column);
-                if (text.Strikethrough == true) sheet.CellStrikethrough(row, column);
-                if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.CellFontName(row, column, text.FontFamily!);
-                if (text.FontSize is int fontSize && fontSize > 0) sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(fontSize));
-                if (text.ForegroundColor != null) sheet.CellFontColor(row, column, ToHex(text.ForegroundColor));
+                if (text.Bold == true) sheet.Cell(row, column).SetBold();
+                if (text.Italic == true) sheet.Cell(row, column).SetItalic();
+                if (text.Underline == true) sheet.Cell(row, column).SetUnderline();
+                if (text.Strikethrough == true) sheet.Cell(row, column).SetStrikethrough();
+                if (!string.IsNullOrWhiteSpace(text.FontFamily)) sheet.Cell(row, column).SetFontName(text.FontFamily!);
+                if (text.FontSize is int fontSize && fontSize > 0) sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
+                if (text.ForegroundColor != null) sheet.Cell(row, column).SetFontColor(ToHex(text.ForegroundColor));
             }
 
             switch (format.HorizontalAlignment) {
-                case "LEFT": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Left); break;
-                case "CENTER": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Center); break;
-                case "RIGHT": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Right); break;
-                case "JUSTIFY": sheet.CellAlign(row, column, ExcelHorizontalAlignment.Justify); break;
+                case "LEFT": sheet.Cell(row, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Left); break;
+                case "CENTER": sheet.Cell(row, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center); break;
+                case "RIGHT": sheet.Cell(row, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Right); break;
+                case "JUSTIFY": sheet.Cell(row, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Justify); break;
             }
             switch (format.VerticalAlignment) {
-                case "TOP": sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Top); break;
-                case "MIDDLE": sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center); break;
-                case "BOTTOM": sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Bottom); break;
+                case "TOP": sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Top); break;
+                case "MIDDLE": sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center); break;
+                case "BOTTOM": sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Bottom); break;
             }
-            if (string.Equals(format.WrapStrategy, "WRAP", StringComparison.Ordinal)) sheet.CellWrapText(row, column);
-            if (format.TextRotation?.Vertical == true) sheet.CellTextRotation(row, column, 255);
-            else if (format.TextRotation?.Angle is int angle) sheet.CellTextRotation(row, column, angle >= 0 ? angle : 90 - angle);
+            if (string.Equals(format.WrapStrategy, "WRAP", StringComparison.Ordinal)) sheet.Cell(row, column).SetWrapText();
+            if (format.TextRotation?.Vertical == true) sheet.Cell(row, column).SetTextRotation(255);
+            else if (format.TextRotation?.Angle is int angle) sheet.Cell(row, column).SetTextRotation(angle >= 0 ? angle : 90 - angle);
         }
 
         private static void ApplyRichText(
@@ -418,7 +418,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 cursor = endIndex;
             }
 
-            if (projected.Count > 0) sheet.SetRichText(row, column, projected);
+            if (projected.Count > 0) sheet.Cell(row, column).SetRichText(projected);
         }
 
         private static bool HasValidTextFormatRunIndexes(IReadOnlyList<GoogleSheetsNativeTextFormatRun> runs, int textLength) {
@@ -449,7 +449,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static void ApplyMerges(ExcelSheet sheet, IReadOnlyList<GoogleSheetsNativeGridRange> ranges) {
             foreach (GoogleSheetsNativeGridRange range in ranges) {
                 if (TryBuildA1Range(range, out string? a1Range)) {
-                    sheet.MergeRange(a1Range!);
+                    sheet.Range(a1Range!).Merge();
                 }
             }
         }

@@ -521,8 +521,8 @@ function Invoke-ExcelBenchmarkUpdateExistingWorkbook {
             try {
                 $sheet = $document.Sheets | Where-Object { $_.Name -eq $Run.WorksheetName } | Select-Object -First 1
                 $formulaColumn = $Run.ColumnCount + 1
-                $sheet.Cell(1, $formulaColumn, 'ScoreDouble', $null, $null)
-                $sheet.Cell(2, $formulaColumn, $null, 'G2*2', '#,##0.00')
+                $sheet.Cell(1, $formulaColumn).SetValue('ScoreDouble')
+                $sheet.Cell(2, $formulaColumn).SetFormula('G2*2').SetNumberFormat('#,##0.00')
                 $document | Save-OfficeExcel
             } finally {
                 $document | Close-OfficeExcel

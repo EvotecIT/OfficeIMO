@@ -43,7 +43,7 @@ public class ExcelCsvExtensionsTests {
         Assert.Equal("Empty", result.SheetName);
         Assert.Null(result.TableName);
         Assert.Equal(string.Empty, result.Range);
-        Assert.Equal("A1:A1", document["Empty"].UsedRangeA1);
+        Assert.Equal("A1:A1", document["Empty"].UsedRange.Address);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class ExcelCsvExtensionsTests {
             existing.ImportCsvText("Name\r\nAlpha", options));
 
         Assert.DoesNotContain(document.Sheets, sheet => sheet.Name == "Rejected");
-        Assert.Equal("A1:A1", existing.UsedRangeA1);
+        Assert.Equal("A1:A1", existing.UsedRange.Address);
     }
 
     [Fact]
@@ -128,8 +128,8 @@ public class ExcelCsvExtensionsTests {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(2, 1, "Alpha");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Alpha");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         var readOptions = new ExcelReaderOptions { CancellationToken = cancellation.Token };
@@ -165,10 +165,10 @@ public class ExcelCsvExtensionsTests {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Alpha");
-        sheet.CellValue(1, 2, 10);
-        sheet.CellValue(2, 1, "Beta");
-        sheet.CellValue(2, 2, 20);
+        sheet.Cell(1, 1).SetValue("Alpha");
+        sheet.Cell(1, 2).SetValue(10);
+        sheet.Cell(2, 1).SetValue("Beta");
+        sheet.Cell(2, 2).SetValue(20);
         var saveOptions = new CsvSaveOptions { IncludeHeader = true, NewLine = "\n" };
 
         string exported = sheet.ToCsv("A1:B2", headersInFirstRow: false, csvOptions: saveOptions);

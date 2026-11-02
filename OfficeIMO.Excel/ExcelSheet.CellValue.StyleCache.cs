@@ -28,7 +28,9 @@ namespace OfficeIMO.Excel {
                 if (indexes != null && indexes.TryGetValue(baseStyleIndex, out uint cached)) return cached;
             }
 
-            uint index = GetOrCreateBuiltInNumberFormatStyleIndex(baseStyleIndex, duration ? 46U : 14U);
+            uint index = baseStyleIndex != 0U && HasMatchingTemporalNumberFormat(baseStyleIndex, duration)
+                ? baseStyleIndex
+                : GetOrCreateBuiltInNumberFormatStyleIndex(baseStyleIndex, duration ? 46U : 14U);
             // Creating the first automatic format can also create the shared format table.
             RefreshAutomaticCellFormatCaches();
             if (duration) {
@@ -39,6 +41,20 @@ namespace OfficeIMO.Excel {
                 else (_cellValueDateStyleIndexes ??= new Dictionary<uint, uint>())[baseStyleIndex] = index;
             }
             return index;
+        }
+
+        /// <summary>
+        /// Excel keeps a cell's own date format when a date is entered, and its time format for a time, so a
+        /// template's <c>yyyy-mm-dd</c> column is not replaced by the built-in short date.
+        /// </summary>
+        private bool HasMatchingTemporalNumberFormat(uint styleIndex, bool duration) {
+            Stylesheet? stylesheet = GetKnownStylesPart()?.Stylesheet;
+            if (stylesheet?.CellFormats == null || styleIndex >= (uint)stylesheet.CellFormats.ChildElements.Count) return false;
+            if (stylesheet.CellFormats.ChildElements[(int)styleIndex] is not CellFormat format) return false;
+            uint numberFormatId = format.NumberFormatId?.Value ?? 0U;
+            if (numberFormatId == 0U) return false;
+            ExcelSerialDateStyle style = ExcelNumberFormatClassifier.ClassifySerialDateStyle(numberFormatId, GetNumberFormatCode(stylesheet, numberFormatId));
+            return style == (duration ? ExcelSerialDateStyle.Time : ExcelSerialDateStyle.Calendar);
         }
 
         private static void InvalidateAutomaticCellFormatCaches(CellFormats formats) =>

@@ -19,8 +19,8 @@ namespace OfficeIMO.Tests {
                 return arguments[0];
             });
             var sheet = document.AddSheet("Custom");
-            sheet.CellValue(1, 1, "00123");
-            sheet.CellFormula(1, 4, $"ECHO({argument})");
+            sheet.Cell(1, 1).SetValue("00123");
+            sheet.Cell(1, 4).SetFormula($"ECHO({argument})");
             Assert.Equal(1, document.Calculate());
             ExcelFormulaValue value = Assert.Single(observed);
             Assert.Equal(expectedKind, value.Kind);
@@ -62,13 +62,13 @@ namespace OfficeIMO.Tests {
                         arguments.Count == 0 ? ExcelFormulaValue.FromError("#N/A") : null);
 
                     ExcelSheet sheet = document.AddSheet("Report");
-                    sheet.CellValue(1, 1, 120d);
-                    sheet.CellValue(2, 1, 90d);
-                    sheet.CellValue(3, 1, 30d);
-                    sheet.CellFormula(1, 2, "GROSSMARGIN(A1,A2)");
-                    sheet.CellFormula(2, 2, "RANGESUM(A1:A3)");
-                    sheet.CellFormula(3, 2, "LABEL(\"Margin\",B1)");
-                    sheet.CellFormula(4, 2, "CUSTOMERROR()");
+                    sheet.Cell(1, 1).SetValue(120d);
+                    sheet.Cell(2, 1).SetValue(90d);
+                    sheet.Cell(3, 1).SetValue(30d);
+                    sheet.Cell(1, 2).SetFormula("GROSSMARGIN(A1,A2)");
+                    sheet.Cell(2, 2).SetFormula("RANGESUM(A1:A3)");
+                    sheet.Cell(3, 2).SetFormula("LABEL(\"Margin\",B1)");
+                    sheet.Cell(4, 2).SetFormula("CUSTOMERROR()");
 
                     ExcelFormulaInspection before = sheet.InspectFormulas();
                     Assert.Equal(4, before.TotalFormulas);
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests {
                     document.Calculation.EvaluateFormulasBeforeSave = true;
 
                     ExcelSheet sheet = document.AddSheet("Save Calculation");
-                    sheet.CellValue(1, 1, 21d);
-                    sheet.CellFormula(1, 2, "DOUBLEVALUE(A1)");
+                    sheet.Cell(1, 1).SetValue(21d);
+                    sheet.Cell(1, 2).SetFormula("DOUBLEVALUE(A1)");
                     document.Save();
                 }
 
@@ -160,12 +160,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddSheet("Future Prefixes");
-                    sheet.CellValue(1, 1, "East");
-                    sheet.CellValue(2, 1, "West");
-                    sheet.CellValue(1, 2, 10d);
-                    sheet.CellValue(2, 2, 20d);
-                    sheet.CellFormula(1, 3, "_xlfn.XLOOKUP(\"West\",A1:A2,B1:B2)");
-                    sheet.CellFormula(2, 3, "_xlfn._xlws.XMATCH(\"East\",A1:A2,0)");
+                    sheet.Cell(1, 1).SetValue("East");
+                    sheet.Cell(2, 1).SetValue("West");
+                    sheet.Cell(1, 2).SetValue(10d);
+                    sheet.Cell(2, 2).SetValue(20d);
+                    sheet.Cell(1, 3).SetFormula("_xlfn.XLOOKUP(\"West\",A1:A2,B1:B2)");
+                    sheet.Cell(2, 3).SetFormula("_xlfn._xlws.XMATCH(\"East\",A1:A2,0)");
 
                     Assert.Equal(2, sheet.InspectFormulas().SupportedFormulas);
                     Assert.Equal(2, document.Calculate());

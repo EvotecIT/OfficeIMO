@@ -21,8 +21,8 @@ namespace OfficeIMO.Excel {
             string tocName = toc.Name;
             int r = 1;
             // Banner
-            toc.Cell(r, 1, "Workbook Navigation"); toc.CellBold(r, 1, true); toc.CellBackground(r, 1, "#D9E1F2"); r++;
-            toc.Cell(r++, 1, $"Generated: {System.DateTime.Now:yyyy-MM-dd HH:mm}");
+            toc.Cell(r, 1).SetValue("Workbook Navigation"); toc.CellBold(r, 1, true); toc.CellBackground(r, 1, "#D9E1F2"); r++;
+            toc.Cell(r++, 1).SetValue($"Generated: {System.DateTime.Now:yyyy-MM-dd HH:mm}");
 
             // Build a simple Hidden lookup for defined names only when we plan to list them.
             System.Collections.Generic.Dictionary<string, bool>? dnHiddenLookup = null;
@@ -41,9 +41,9 @@ namespace OfficeIMO.Excel {
 
             // Header
             int headerRow = r;
-            toc.Cell(headerRow, 1, "Sheet");
-            toc.Cell(headerRow, 2, "Details");
-            if (includeNamedRanges) toc.Cell(headerRow, 3, "Named Ranges");
+            toc.Cell(headerRow, 1).SetValue("Sheet");
+            toc.Cell(headerRow, 2).SetValue("Details");
+            if (includeNamedRanges) toc.Cell(headerRow, 3).SetValue("Named Ranges");
             r++;
 
             var rowsStart = r;
@@ -51,16 +51,16 @@ namespace OfficeIMO.Excel {
                 // Skip the TOC sheet itself; it will be moved to first anyway
                 if (string.Equals(sh.Name, tocName, StringComparison.OrdinalIgnoreCase)) continue;
 
-                if (withHyperlinks) toc.SetInternalLink(r, 1, sh, "A1", sh.Name); else toc.Cell(r, 1, sh.Name);
+                if (withHyperlinks) toc.SetInternalLink(r, 1, sh, "A1", sh.Name); else toc.Cell(r, 1).SetValue(sh.Name);
 
                 // Details: Used range and size
-                string used = sh.UsedRangeA1;
+                string used = sh.GetUsedRangeA1();
                 try {
                     var (r1, c1, r2, c2) = ExcelA1.ParseRange(used);
                     int rows = System.Math.Max(0, r2 - r1 + 1);
                     int cols = System.Math.Max(0, c2 - c1 + 1);
-                    toc.Cell(r, 2, $"Used {used} ({rows}×{cols})");
-                } catch { toc.Cell(r, 2, $"Used {used}"); }
+                    toc.Cell(r, 2).SetValue($"Used {used} ({rows}×{cols})");
+                } catch { toc.Cell(r, 2).SetValue($"Used {used}"); }
 
                 if (includeNamedRanges) {
                     var names = GetAllNamedRanges(sh);
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                         list.Add(name!);
                     }
                     string joined = list.Count == 0 ? "—" : string.Join(", ", list);
-                    toc.Cell(r, 3, joined);
+                    toc.Cell(r, 3).SetValue(joined);
                 }
                 r++;
             }

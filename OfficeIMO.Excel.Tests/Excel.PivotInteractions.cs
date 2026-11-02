@@ -19,15 +19,15 @@ namespace OfficeIMO.Tests
                 using (ExcelDocument document = ExcelDocument.Create(filePath))
                 {
                     ExcelSheet sheet = document.AddSheet("Sales");
-                    sheet.CellValue(1, 1, "Region");
-                    sheet.CellValue(1, 2, "OrderDate");
-                    sheet.CellValue(1, 3, "Sales");
-                    sheet.CellValue(2, 1, "East");
-                    sheet.CellValue(2, 2, new DateTime(2026, 1, 2));
-                    sheet.CellValue(2, 3, 10D);
-                    sheet.CellValue(3, 1, "West");
-                    sheet.CellValue(3, 2, new DateTime(2026, 2, 3));
-                    sheet.CellValue(3, 3, 20D);
+                    sheet.Cell(1, 1).SetValue("Region");
+                    sheet.Cell(1, 2).SetValue("OrderDate");
+                    sheet.Cell(1, 3).SetValue("Sales");
+                    sheet.Cell(2, 1).SetValue("East");
+                    sheet.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+                    sheet.Cell(2, 3).SetValue(10D);
+                    sheet.Cell(3, 1).SetValue("West");
+                    sheet.Cell(3, 2).SetValue(new DateTime(2026, 2, 3));
+                    sheet.Cell(3, 3).SetValue(20D);
                     document.Save();
                 }
 
@@ -62,18 +62,18 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "OrderDate");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, new DateTime(2026, 1, 2));
-                sheet.CellValue(2, 3, 10d);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, new DateTime(2026, 2, 3));
-                sheet.CellValue(3, 3, 20d);
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(4, 2, string.Empty);
-                sheet.CellValue(4, 3, 5d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("OrderDate");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+                sheet.Cell(2, 3).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(new DateTime(2026, 2, 3));
+                sheet.Cell(3, 3).SetValue(20d);
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(4, 2).SetValue(string.Empty);
+                sheet.Cell(4, 3).SetValue(5d);
                 sheet.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 Assert.True(sheet.TryGetCellValueSnapshot(4, 2, out ExcelNativeCellValueInfo? blankDate));
                 Assert.Equal(ExcelCellValueKind.Text, blankDate!.Kind);
@@ -127,12 +127,12 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "OrderDate");
-            sheet.CellValue(1, 3, "Sales");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, new DateTime(2026, 1, 2));
-            sheet.CellValue(2, 3, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("OrderDate");
+            sheet.Cell(1, 3).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+            sheet.Cell(2, 3).SetValue(10d);
             sheet.AddPivotTable("A1:C2", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             WorkbookPart workbookPart = document._spreadSheetDocument.WorkbookPart!;
             WriteExtendedPart(workbookPart.AddExtendedPart("http://schemas.microsoft.com/office/2007/relationships/slicerCache", "application/vnd.ms-excel.slicerCache+xml", "xml"), "<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"Slicer_Region\" sourceName=\"Region\" pivotTableName=\"SalesPivot\"/>");
@@ -156,10 +156,10 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10d);
             sheet.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             WorkbookPart workbookPart = document._spreadSheetDocument.WorkbookPart!;
 #if EXCEL_PERFORMANCE_EVIDENCE
@@ -195,12 +195,12 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet original = document.AddSheet("Original");
-            original.CellValue(1, 1, "Region");
-            original.CellValue(1, 2, "OrderDate");
-            original.CellValue(1, 3, "Sales");
-            original.CellValue(2, 1, "East");
-            original.CellValue(2, 2, new DateTime(2026, 1, 2));
-            original.CellValue(2, 3, 10d);
+            original.Cell(1, 1).SetValue("Region");
+            original.Cell(1, 2).SetValue("OrderDate");
+            original.Cell(1, 3).SetValue("Sales");
+            original.Cell(2, 1).SetValue("East");
+            original.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+            original.Cell(2, 3).SetValue(10d);
             original.AddPivotTable("A1:C2", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             PivotTablePart pivotPart = original.WorksheetPart.PivotTableParts.Single();
             PivotCacheDefinition cache = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
@@ -223,30 +223,30 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet original = document.AddSheet("Original");
-            original.CellValue(1, 1, "Region");
-            original.CellValue(1, 2, "OrderDate");
-            original.CellValue(1, 3, "Sales");
-            original.CellValue(2, 1, "East");
-            original.CellValue(2, 2, new DateTime(2026, 1, 2));
-            original.CellValue(2, 3, 10d);
+            original.Cell(1, 1).SetValue("Region");
+            original.Cell(1, 2).SetValue("OrderDate");
+            original.Cell(1, 3).SetValue("Sales");
+            original.Cell(2, 1).SetValue("East");
+            original.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+            original.Cell(2, 3).SetValue(10d);
             original.AddPivotTable("A1:C2", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             ExcelSheet replacement = document.AddSheet("Replacement");
-            replacement.CellValue(1, 1, "OrderDate");
-            replacement.CellValue(1, 2, "Date");
-            replacement.CellValue(1, 3, "Amount");
-            replacement.CellValue(2, 1, "not a date");
-            replacement.CellValue(2, 2, new DateTime(2026, 2, 3));
-            replacement.CellValue(2, 3, 20d);
+            replacement.Cell(1, 1).SetValue("OrderDate");
+            replacement.Cell(1, 2).SetValue("Date");
+            replacement.Cell(1, 3).SetValue("Amount");
+            replacement.Cell(2, 1).SetValue("not a date");
+            replacement.Cell(2, 2).SetValue(new DateTime(2026, 2, 3));
+            replacement.Cell(2, 3).SetValue(20d);
             original.UpdatePivotTableSource("SalesPivot", replacement, "A1:C2", new ExcelPivotSourceUpdateOptions { RequireMatchingHeaders = false });
             document.AddPivotTimelineCache("SalesPivot", "OrderDate");
             Assert.Equal("OrderDate", Assert.Single(document.GetWorkbookTimelineCaches()).SourceName);
             ExcelSheet misleading = document.AddSheet("Misleading");
-            misleading.CellValue(1, 1, "OrderDate");
-            misleading.CellValue(1, 2, "Date");
-            misleading.CellValue(1, 3, "Amount");
-            misleading.CellValue(2, 1, new DateTime(2026, 3, 4));
-            misleading.CellValue(2, 2, "not a date");
-            misleading.CellValue(2, 3, 30d);
+            misleading.Cell(1, 1).SetValue("OrderDate");
+            misleading.Cell(1, 2).SetValue("Date");
+            misleading.Cell(1, 3).SetValue("Amount");
+            misleading.Cell(2, 1).SetValue(new DateTime(2026, 3, 4));
+            misleading.Cell(2, 2).SetValue("not a date");
+            misleading.Cell(2, 3).SetValue(30d);
             original.UpdatePivotTableSource("SalesPivot", misleading, "A1:C2", new ExcelPivotSourceUpdateOptions { RequireMatchingHeaders = false });
             Assert.Throws<ArgumentException>(() => document.AddPivotTimelineCache("SalesPivot", "OrderDate", "InvalidTimeline"));
         }
@@ -256,15 +256,15 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Date");
-            sheet.CellValue(1, 3, "Date");
-            sheet.CellValue(1, 5, "Amount");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, "not a date");
-            sheet.CellValue(2, 3, new DateTime(2026, 1, 2));
-            sheet.CellValue(2, 4, new DateTime(2026, 2, 3));
-            sheet.CellValue(2, 5, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Date");
+            sheet.Cell(1, 3).SetValue("Date");
+            sheet.Cell(1, 5).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue("not a date");
+            sheet.Cell(2, 3).SetValue(new DateTime(2026, 1, 2));
+            sheet.Cell(2, 4).SetValue(new DateTime(2026, 2, 3));
+            sheet.Cell(2, 5).SetValue(10d);
             sheet.AddPivotTable("A1:E2", "G2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum) } });
             document.AddPivotTimelineCache("SalesPivot", "Date_2");
             document.AddPivotTimelineCache("SalesPivot", "Column4");
@@ -276,13 +276,13 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "OrderDate");
-            sheet.CellValue(1, 3, "Amount");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellFormula(2, 2, "DATE(2026,1,2)");
-            sheet.CellAt(2, 2).DateTime("yyyy-mm-dd");
-            sheet.CellValue(2, 3, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("OrderDate");
+            sheet.Cell(1, 3).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetFormula("DATE(2026,1,2)");
+            sheet.Cell(2, 2).DateTime("yyyy-mm-dd");
+            sheet.Cell(2, 3).SetValue(10d);
             Assert.Equal(1, document.Calculate());
             Cell formulaCell = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Cell>(), cell => cell.CellReference?.Value == "B2");
             formulaCell.DataType = null;

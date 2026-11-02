@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                doc.AddSheet("Data").Cell(1, 1, "Value");
+                doc.AddSheet("Data").Cell(1, 1).SetValue("Value");
                 doc.AddTableOfContents(sheetName: "Index", styled: true);
                 doc.Save();
             }
@@ -363,8 +363,8 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument doc = ExcelDocument.Load(filePath)) {
-                ExcelCellStyleInfo firstHeader = doc.Sheets[0].GetCellStyle(3, 1);
-                ExcelCellStyleInfo secondHeader = doc.Sheets[0].GetCellStyle(3, 2);
+                ExcelCellStyleInfo firstHeader = doc.Sheets[0].Cell(3, 1).GetStyle();
+                ExcelCellStyleInfo secondHeader = doc.Sheets[0].Cell(3, 2).GetStyle();
                 Assert.True(firstHeader.Bold);
                 Assert.True(secondHeader.Bold);
                 Assert.EndsWith("F2F2F2", firstHeader.FillColorArgb, StringComparison.OrdinalIgnoreCase);
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests
                 (reportBuilder13).Finish(autoFitColumns: false);
             }
 
-            report!.CellAt(1, 1).SetGradientFill("C00000", "00A000", 45D);
+            report!.Cell(1, 1).SetGradientFill("C00000", "00A000", 45D);
             ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
             string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests
                 (reportBuilder15).Finish(autoFitColumns: false);
             }
 
-            report!.CellAt(1, 1).SetBorder(ExcelBorderStyle.Double, "C00000");
+            report!.Cell(1, 1).SetBorder(ExcelBorderStyle.Double, "C00000");
             ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
             string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);

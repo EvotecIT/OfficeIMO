@@ -57,8 +57,8 @@ public sealed class IWorkNumbersWritingTests {
         output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         Assert.Equal(3, reopened.Sheets.Count);
-        Assert.Equal(20.75, reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
-        Assert.Equal("=literal", reopened.Sheets[0].CellAt(3, 4).GetValue<string>());
+        Assert.Equal(20.75, reopened.Sheets[0].Cell(2, 2).GetValue<double>());
+        Assert.Equal("=literal", reopened.Sheets[0].Cell(3, 4).GetValue<string>());
         Assert.Null(reopened.Sheets[0].GetFormulaText(3, 4));
     }
 

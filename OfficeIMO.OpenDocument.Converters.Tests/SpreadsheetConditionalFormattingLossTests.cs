@@ -77,7 +77,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         ExcelSheet sheet = source.AddSheet("Data");
         sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
-        sheet.CellAt(1, 3).SetValue("Styled").SetBold();
+        sheet.Cell(1, 3).SetValue("Styled").SetBold();
         sheet.AddConditionalRule("C1:C2", ExcelConditionalFormattingOperator.LessThan,
             "0", fillColor: "FF0000FF");
 
@@ -176,7 +176,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void ExcelConditionalFillDoesNotReplaceAnExistingCellStyle() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue("Styled").SetBold();
+        sheet.Cell(1, 1).SetValue("Styled").SetBold();
         sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan,
             "0", fillColor: "FFFF0000");
 

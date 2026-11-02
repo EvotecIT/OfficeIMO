@@ -22,19 +22,19 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
 
-                sheet.CellAt(1, 1).SetValue("Name").SetBold().SetFillColor("FFF2CC");
-                sheet.CellAt(1, 2).SetValue("Score").SetBold().SetFillColor("FFF2CC");
-                sheet.CellAt(2, 1).SetValue("Charlie");
-                sheet.CellAt(2, 2).SetValue(30d);
-                sheet.CellAt(3, 1).SetValue("Alice");
-                sheet.CellAt(3, 2).SetValue(10d);
-                sheet.CellAt(4, 1).SetValue("Bob");
-                sheet.CellAt(4, 2).SetValue(20d);
+                sheet.Cell(1, 1).SetValue("Name").SetBold().SetFillColor("FFF2CC");
+                sheet.Cell(1, 2).SetValue("Score").SetBold().SetFillColor("FFF2CC");
+                sheet.Cell(2, 1).SetValue("Charlie");
+                sheet.Cell(2, 2).SetValue(30d);
+                sheet.Cell(3, 1).SetValue("Alice");
+                sheet.Cell(3, 2).SetValue(10d);
+                sheet.Cell(4, 1).SetValue("Bob");
+                sheet.Cell(4, 2).SetValue(20d);
                 sheet.SetComment(3, 1, "temporary comment", author: "Tester", initials: "TT");
 
                 sheet.Range("A1:B4").SortByColumn(2, ascending: true, hasHeader: true);
-                Assert.Equal("Alice", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal(10d, sheet.CellAt(2, 2).GetValue<double>());
+                Assert.Equal("Alice", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal(10d, sheet.Cell(2, 2).GetValue<double>());
                 Assert.True(sheet.HasComment(2, 1));
                 Assert.False(sheet.HasComment(3, 1));
 
@@ -44,17 +44,17 @@ namespace OfficeIMO.Tests
                 table.SetStyle(ExcelTableStyle.TableStyleMedium4);
 
                 sheet.Range("D1:E1").Merge().Unmerge();
-                sheet.CellAt(6, 1).SetRichText(
+                sheet.Cell(6, 1).SetRichText(
                     new ExcelRichTextRun("Strong") { Bold = true, FontColor = "FF0000" },
                     ExcelRichTextRun.Plain(" text"));
 
-                IReadOnlyList<ExcelRichTextRun> runs = sheet.CellAt(6, 1).GetRichText();
+                IReadOnlyList<ExcelRichTextRun> runs = sheet.Cell(6, 1).GetRichText();
                 Assert.Equal(2, runs.Count);
                 Assert.True(runs[0].Bold);
                 Assert.Equal("Strong", runs[0].Text);
 
-                sheet.ClearRange("A2:A2", ExcelClearOptions.Values | ExcelClearOptions.Comments);
-                Assert.True(sheet.CellAt(2, 1).GetValue().IsBlank);
+                sheet.Range("A2:A2").Clear(ExcelClearOptions.Values | ExcelClearOptions.Comments);
+                Assert.True(sheet.Cell(2, 1).GetValue().IsBlank);
                 Assert.False(sheet.HasComment(2, 1));
 
                 document.Save();
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Merge");
-                sheet.MergeRange("A1:B1");
-                sheet.MergeRange("A1:B1");
+                sheet.Range("A1:B1").Merge();
+                sheet.Range("A1:B1").Merge();
                 document.Save();
             }
 
@@ -93,10 +93,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(1, 2, 20d);
-                sheet.CellValue(2, 1, 30d);
-                sheet.CellValue(2, 2, 40d);
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(1, 2).SetValue(20d);
+                sheet.Cell(2, 1).SetValue(30d);
+                sheet.Cell(2, 2).SetValue(40d);
 
                 sheet.Range("A1:B2").SetNumberFormat("0.00");
                 sheet.Range("C1:D2").SetFillColor("#FFF2CC");
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellAt(1, 1).SetValue("Single").SetGradientFill("#FF0000", "#00FF00", 45);
+                sheet.Cell(1, 1).SetValue("Single").SetGradientFill("#FF0000", "#00FF00", 45);
                 sheet.Range("B1:C1").SetGradientFill("112233", "445566", 90);
                 document.Save();
             }
@@ -199,12 +199,12 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales Amount");
-                sheet.CellValue(2, 1, "NA");
-                sheet.CellValue(2, 2, 100);
-                sheet.CellValue(3, 1, "EMEA");
-                sheet.CellValue(3, 2, 200);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales Amount");
+                sheet.Cell(2, 1).SetValue("NA");
+                sheet.Cell(2, 2).SetValue(100);
+                sheet.Cell(3, 1).SetValue("EMEA");
+                sheet.Cell(3, 2).SetValue(200);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "SalesTable", style: ExcelTableStyle.TableStyleMedium2);
 
                 Assert.Equal("B2:B3", sheet.GetColumnRangeByHeader("Sales Amount"));
@@ -229,10 +229,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellFormula(3, 1, "SUM(A1:A2)");
-                sheet.CellFormula(4, 1, "A1+A2");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(2, 1).SetValue(3d);
+                sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
+                sheet.Cell(4, 1).SetFormula("A1+A2");
                 document.Calculation.EvaluateFormulasBeforeSave = true;
                 document.Calculation.ForceFullCalculationOnOpen = true;
                 document.Save();
@@ -257,10 +257,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellFormula(3, 1, "SUM(A1:A2)");
-                sheet.CellFormula(4, 1, "A1+A2");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(2, 1).SetValue(3d);
+                sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
+                sheet.Cell(4, 1).SetFormula("A1+A2");
 
                 Assert.Equal(2, document.Calculate());
 
@@ -287,11 +287,11 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellFormula(1, 1, "A2+1");
-                sheet.CellFormula(2, 1, "A3+1");
-                sheet.CellFormula(3, 1, "SUM(B1:B2)");
-                sheet.CellValue(1, 2, 2d);
-                sheet.CellValue(2, 2, 3d);
+                sheet.Cell(1, 1).SetFormula("A2+1");
+                sheet.Cell(2, 1).SetFormula("A3+1");
+                sheet.Cell(3, 1).SetFormula("SUM(B1:B2)");
+                sheet.Cell(1, 2).SetValue(2d);
+                sheet.Cell(2, 2).SetValue(3d);
 
                 Assert.Equal(3, document.Calculate());
 
@@ -323,18 +323,18 @@ namespace OfficeIMO.Tests
                 ExcelSheet calc = document.AddSheet("Calc");
                 ExcelSheet data = document.AddSheet("Data Sheet");
                 ExcelSheet budget = document.AddSheet("Budget $ FY26");
-                data.CellValue(1, 1, 2d);
-                data.CellValue(2, 1, 3d);
-                data.CellValue(1, 2, 4d);
-                data.CellValue(2, 2, 6d);
-                budget.CellValue(1, 1, 7d);
+                data.Cell(1, 1).SetValue(2d);
+                data.Cell(2, 1).SetValue(3d);
+                data.Cell(1, 2).SetValue(4d);
+                data.Cell(2, 2).SetValue(6d);
+                budget.Cell(1, 1).SetValue(7d);
 
-                calc.CellFormula(1, 1, "'Data Sheet'!A1+'Data Sheet'!A2");
-                calc.CellFormula(2, 1, "SUM('Data Sheet'!B1:B2)");
-                calc.CellFormula(3, 1, "IF('Data Sheet'!B2>5,10,0)");
-                calc.CellFormula(4, 1, "'Budget $ FY26'!$A$1+1");
-                calc.CellFormula(5, 1, "IF('Budget $ FY26'!$A$1>6,11,0)");
-                calc.CellFormula(6, 1, "'Budget $ FY26'!A1+'Data Sheet'!A1");
+                calc.Cell(1, 1).SetFormula("'Data Sheet'!A1+'Data Sheet'!A2");
+                calc.Cell(2, 1).SetFormula("SUM('Data Sheet'!B1:B2)");
+                calc.Cell(3, 1).SetFormula("IF('Data Sheet'!B2>5,10,0)");
+                calc.Cell(4, 1).SetFormula("'Budget $ FY26'!$A$1+1");
+                calc.Cell(5, 1).SetFormula("IF('Budget $ FY26'!$A$1>6,11,0)");
+                calc.Cell(6, 1).SetFormula("'Budget $ FY26'!A1+'Data Sheet'!A1");
 
                 Assert.Equal(6, document.Calculate());
 
@@ -372,9 +372,9 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet calc = document.AddSheet("Calc");
                 ExcelSheet data = document.AddSheet("Data");
-                calc.CellFormula(1, 1, "Data!A1+1");
-                data.CellFormula(1, 1, "A2+1");
-                data.CellValue(2, 1, 4d);
+                calc.Cell(1, 1).SetFormula("Data!A1+1");
+                data.Cell(1, 1).SetFormula("A2+1");
+                data.Cell(2, 1).SetValue(4d);
 
                 Assert.Equal(2, document.Calculate());
 
@@ -401,18 +401,18 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet calc = document.AddSheet("Calc");
                 ExcelSheet data = document.AddSheet("Data Sheet");
-                data.CellValue(1, 1, 2d);
-                data.CellValue(2, 1, 3d);
-                data.CellValue(1, 2, 4d);
+                data.Cell(1, 1).SetValue(2d);
+                data.Cell(2, 1).SetValue(3d);
+                data.Cell(1, 2).SetValue(4d);
 
                 document.SetNamedRange("GlobalValues", "'Data Sheet'!A1:A2", save: false);
                 document.SetNamedRange("SharedInput", "'Data Sheet'!A1", save: false);
                 data.SetNamedRange("SharedInput", "B1", save: false);
 
-                calc.CellFormula(1, 1, "SUM(GlobalValues)");
-                calc.CellFormula(2, 1, "SharedInput*10");
-                calc.CellFormula(3, 1, "'Data Sheet'!SharedInput*5");
-                data.CellFormula(3, 2, "SharedInput*10");
+                calc.Cell(1, 1).SetFormula("SUM(GlobalValues)");
+                calc.Cell(2, 1).SetFormula("SharedInput*10");
+                calc.Cell(3, 1).SetFormula("'Data Sheet'!SharedInput*5");
+                data.Cell(3, 2).SetFormula("SharedInput*10");
 
                 Assert.Equal(4, document.Calculate());
 
@@ -441,25 +441,25 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet calc = document.AddSheet("Calc");
                 ExcelSheet data = document.AddSheet("Data");
-                data.CellValue(1, 1, "Region");
-                data.CellValue(1, 2, "Amount");
-                data.CellValue(1, 3, "Tax");
-                data.CellValue(2, 1, "EU");
-                data.CellValue(2, 2, 10d);
-                data.CellValue(2, 3, 1d);
-                data.CellValue(3, 1, "EU");
-                data.CellValue(3, 2, 20d);
-                data.CellValue(3, 3, 2d);
-                data.CellValue(4, 1, "US");
-                data.CellValue(4, 2, 30d);
-                data.CellValue(4, 3, 3d);
+                data.Cell(1, 1).SetValue("Region");
+                data.Cell(1, 2).SetValue("Amount");
+                data.Cell(1, 3).SetValue("Tax");
+                data.Cell(2, 1).SetValue("EU");
+                data.Cell(2, 2).SetValue(10d);
+                data.Cell(2, 3).SetValue(1d);
+                data.Cell(3, 1).SetValue("EU");
+                data.Cell(3, 2).SetValue(20d);
+                data.Cell(3, 3).SetValue(2d);
+                data.Cell(4, 1).SetValue("US");
+                data.Cell(4, 2).SetValue(30d);
+                data.Cell(4, 3).SetValue(3d);
                 data.Range("A1:C4").CreateTable("SalesData");
 
-                calc.CellFormula(1, 1, "SUM(SalesData[Amount])");
-                calc.CellFormula(2, 1, "SUM(SalesData[[#Data],[Tax]])");
-                calc.CellFormula(3, 1, "COUNTIF(SalesData[Region],\"EU\")");
-                calc.CellFormula(4, 1, "SUM(SalesData)");
-                calc.CellFormula(5, 1, "XLOOKUP(\"US\",SalesData[Region],SalesData[Amount])");
+                calc.Cell(1, 1).SetFormula("SUM(SalesData[Amount])");
+                calc.Cell(2, 1).SetFormula("SUM(SalesData[[#Data],[Tax]])");
+                calc.Cell(3, 1).SetFormula("COUNTIF(SalesData[Region],\"EU\")");
+                calc.Cell(4, 1).SetFormula("SUM(SalesData)");
+                calc.Cell(5, 1).SetFormula("XLOOKUP(\"US\",SalesData[Region],SalesData[Amount])");
 
                 Assert.Equal(5, document.Calculate());
 
@@ -490,18 +490,18 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet calc = document.AddSheet("Calc");
                 ExcelSheet data = document.AddSheet("Data");
-                data.CellValue(1, 1, "Region");
-                data.CellValue(1, 2, "Base");
-                data.CellValue(1, 3, "Amount");
-                data.CellValue(2, 1, "EU");
-                data.CellValue(2, 2, 10d);
-                data.CellFormula(2, 3, "B2*2");
-                data.CellValue(3, 1, "US");
-                data.CellValue(3, 2, 5d);
-                data.CellFormula(3, 3, "B3*3");
+                data.Cell(1, 1).SetValue("Region");
+                data.Cell(1, 2).SetValue("Base");
+                data.Cell(1, 3).SetValue("Amount");
+                data.Cell(2, 1).SetValue("EU");
+                data.Cell(2, 2).SetValue(10d);
+                data.Cell(2, 3).SetFormula("B2*2");
+                data.Cell(3, 1).SetValue("US");
+                data.Cell(3, 2).SetValue(5d);
+                data.Cell(3, 3).SetFormula("B3*3");
                 data.Range("A1:C3").CreateTable("SalesData");
 
-                calc.CellFormula(1, 1, "SUM(SalesData[Amount])");
+                calc.Cell(1, 1).SetFormula("SUM(SalesData[Amount])");
 
                 Assert.Equal(3, document.Calculate());
 
@@ -525,24 +525,24 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Text");
-                sheet.CellValue(1, 1, "North");
-                sheet.CellValue(2, 1, "South");
-                sheet.CellValue(3, 1, "  East   Hub  ");
-                sheet.CellValue(5, 1, "EU");
-                sheet.CellValue(5, 2, "Europe");
-                sheet.CellValue(6, 1, "US");
-                sheet.CellValue(6, 2, "United States");
+                sheet.Cell(1, 1).SetValue("North");
+                sheet.Cell(2, 1).SetValue("South");
+                sheet.Cell(3, 1).SetValue("  East   Hub  ");
+                sheet.Cell(5, 1).SetValue("EU");
+                sheet.Cell(5, 2).SetValue("Europe");
+                sheet.Cell(6, 1).SetValue("US");
+                sheet.Cell(6, 2).SetValue("United States");
 
-                sheet.CellFormula(1, 3, "CONCAT(A1,\"-\",A2)");
-                sheet.CellFormula(2, 3, "TEXTJOIN(\",\",TRUE,A1:A3)");
-                sheet.CellFormula(3, 3, "LEFT(A2,2)");
-                sheet.CellFormula(4, 3, "RIGHT(A2,3)");
-                sheet.CellFormula(5, 3, "MID(A2,2,3)");
-                sheet.CellFormula(6, 3, "LEN(TRIM(A3))");
-                sheet.CellFormula(7, 3, "TRIM(A3)");
-                sheet.CellFormula(8, 3, "XLOOKUP(\"US\",A5:A6,B5:B6)");
-                sheet.CellFormula(9, 3, "VLOOKUP(\"EU\",A5:B6,2,FALSE)");
-                sheet.CellFormula(10, 3, "CONCAT(\"A\"\"B\",\"-\",A1)");
+                sheet.Cell(1, 3).SetFormula("CONCAT(A1,\"-\",A2)");
+                sheet.Cell(2, 3).SetFormula("TEXTJOIN(\",\",TRUE,A1:A3)");
+                sheet.Cell(3, 3).SetFormula("LEFT(A2,2)");
+                sheet.Cell(4, 3).SetFormula("RIGHT(A2,3)");
+                sheet.Cell(5, 3).SetFormula("MID(A2,2,3)");
+                sheet.Cell(6, 3).SetFormula("LEN(TRIM(A3))");
+                sheet.Cell(7, 3).SetFormula("TRIM(A3)");
+                sheet.Cell(8, 3).SetFormula("XLOOKUP(\"US\",A5:A6,B5:B6)");
+                sheet.Cell(9, 3).SetFormula("VLOOKUP(\"EU\",A5:B6,2,FALSE)");
+                sheet.Cell(10, 3).SetFormula("CONCAT(\"A\"\"B\",\"-\",A1)");
 
                 Assert.Equal(10, document.Calculate());
 
@@ -583,8 +583,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellFormula(1, 1, "A2+1");
-                sheet.CellFormula(2, 1, "A1+1");
+                sheet.Cell(1, 1).SetFormula("A2+1");
+                sheet.Cell(2, 1).SetFormula("A1+1");
 
                 Assert.Equal(0, document.Calculate());
 
@@ -602,10 +602,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellFormula(1, 1, "A2+1");
-                sheet.CellFormula(2, 1, "A1+1");
-                sheet.CellFormula(1, 2, "CONCAT(A1,\"x\")");
-                sheet.CellFormula(2, 2, "TEXTJOIN(\",\",TRUE,A1:A2)");
+                sheet.Cell(1, 1).SetFormula("A2+1");
+                sheet.Cell(2, 1).SetFormula("A1+1");
+                sheet.Cell(1, 2).SetFormula("CONCAT(A1,\"x\")");
+                sheet.Cell(2, 2).SetFormula("TEXTJOIN(\",\",TRUE,A1:A2)");
 
                 Assert.Equal(0, document.Calculate());
 
@@ -623,10 +623,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellFormula(1, 1, "A3*2");
-                sheet.CellValue(1, 2, 2d);
-                sheet.CellValue(2, 2, 3d);
-                sheet.CellFormula(3, 1, "SUM(B1:B2)");
+                sheet.Cell(1, 1).SetFormula("A3*2");
+                sheet.Cell(1, 2).SetValue(2d);
+                sheet.Cell(2, 2).SetValue(3d);
+                sheet.Cell(3, 1).SetFormula("SUM(B1:B2)");
 
                 document.Save(filePath, new ExcelSaveOptions {
                     EvaluateFormulasBeforeSave = true,
@@ -655,13 +655,13 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Diagnostics");
-                sheet.CellValue(1, 1, "North");
-                sheet.CellValue(2, 1, "South");
+                sheet.Cell(1, 1).SetValue("North");
+                sheet.Cell(2, 1).SetValue("South");
 
-                sheet.CellFormula(1, 2, "UNIQUE(A1:A2)");
-                sheet.CellFormula(2, 2, "SUM(A1;A2)");
-                sheet.CellFormula(3, 2, "A1&A2");
-                sheet.CellFormula(4, 2, "SUM({1,2})");
+                sheet.Cell(1, 2).SetFormula("UNIQUE(A1:A2)");
+                sheet.Cell(2, 2).SetFormula("SUM(A1;A2)");
+                sheet.Cell(3, 2).SetFormula("A1&A2");
+                sheet.Cell(4, 2).SetFormula("SUM({1,2})");
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();
                 Assert.Equal(2, inspection.UnsupportedFormulas);
@@ -682,92 +682,92 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, 3d);
-                sheet.CellValue(1, 2, "EU");
-                sheet.CellValue(2, 2, "US");
-                sheet.CellValue(3, 2, "EU");
-                sheet.CellValue(4, 2, "EMEA");
-                sheet.CellValue(1, 3, 10d);
-                sheet.CellValue(2, 3, 20d);
-                sheet.CellValue(3, 3, 30d);
-                sheet.CellValue(4, 3, 40d);
-                sheet.CellValue(1, 4, new DateTime(2024, 5, 21));
-                sheet.CellValue(2, 4, new DateTime(1899, 12, 30, 14, 30, 45).ToOADate());
-                sheet.CellValue(3, 4, new DateTime(2024, 5, 27));
-                sheet.CellValue(1, 5, "EU");
-                sheet.CellValue(1, 6, "US");
-                sheet.CellValue(1, 7, "EMEA");
-                sheet.CellValue(2, 5, 100d);
-                sheet.CellValue(2, 6, 200d);
-                sheet.CellValue(2, 7, 300d);
-                sheet.CellFormula(3, 1, "SUM(A1:A2)");
-                sheet.CellFormula(4, 1, "UNIQUE(B1:B2)");
-                sheet.CellFormula(5, 1, "ABS(-4)");
-                sheet.CellFormula(6, 1, "ROUND(2.345,2)");
-                sheet.CellFormula(7, 1, "A1+A2");
-                sheet.CellFormula(8, 1, "ROUNDUP(2.341,2)");
-                sheet.CellFormula(9, 1, "ROUNDDOWN(2.349,2)");
-                sheet.CellFormula(10, 1, "INT(2.9)");
-                sheet.CellFormula(11, 1, "POWER(2,3)");
-                sheet.CellFormula(12, 1, "SQRT(9)");
-                sheet.CellFormula(13, 1, "MOD(10,3)");
-                sheet.CellFormula(14, 1, "IF(A2>A1,10,0)");
-                sheet.CellFormula(15, 1, "AND(A1>0,A2>=3)");
-                sheet.CellFormula(16, 1, "OR(A1>10,A2=3)");
-                sheet.CellFormula(17, 1, "IFERROR(SUM(A1:A2),0)");
-                sheet.CellFormula(18, 1, "IFERROR(A1/0,99)");
-                sheet.CellFormula(19, 1, "IF(A2>A1,SUM(A1:A2),0)");
-                sheet.CellFormula(20, 1, "IFERROR(A1/0,SUM(A1:A2))");
-                sheet.CellFormula(21, 1, "IF(AND(A1>0,A2>=3),20,0)");
-                sheet.CellFormula(22, 1, "IF(OR(A1>10,A2=3),30,0)");
-                sheet.CellFormula(23, 1, "NOT(A1>10)");
-                sheet.CellFormula(24, 1, "IF(NOT(A1>10),40,0)");
-                sheet.CellFormula(25, 1, "COUNTIF(B1:B4,\"EU\")");
-                sheet.CellFormula(26, 1, "COUNTIF(C1:C4,\">=20\")");
-                sheet.CellFormula(27, 1, "SUMIF(B1:B4,\"EU\",C1:C4)");
-                sheet.CellFormula(28, 1, "AVERAGEIF(C1:C4,\">20\",C1:C4)");
-                sheet.CellFormula(29, 1, "COUNTIF(B1:B4,\"E*\")");
-                sheet.CellFormula(30, 1, "COUNTIFS(B1:B4,\"EU\",C1:C4,\">=20\")");
-                sheet.CellFormula(31, 1, "SUMIFS(C1:C4,B1:B4,\"E*\",C1:C4,\">=30\")");
-                sheet.CellFormula(32, 1, "AVERAGEIFS(C1:C4,B1:B4,\"<>US\",C1:C4,\">=30\")");
-                sheet.CellFormula(33, 1, "DATE(2024,5,21)");
-                sheet.CellFormula(34, 1, "YEAR(D1)");
-                sheet.CellFormula(35, 1, "MONTH(D1)");
-                sheet.CellFormula(36, 1, "DAY(D1)");
-                sheet.CellFormula(37, 1, "TIME(14,30,45)");
-                sheet.CellFormula(38, 1, "HOUR(D2)");
-                sheet.CellFormula(39, 1, "MINUTE(D2)");
-                sheet.CellFormula(40, 1, "SECOND(D2)");
-                sheet.CellFormula(41, 1, "TODAY()");
-                sheet.CellFormula(42, 1, "NOW()");
-                sheet.CellFormula(43, 1, "EDATE(D1,1)");
-                sheet.CellFormula(44, 1, "EOMONTH(D1,0)");
-                sheet.CellFormula(45, 1, "DAYS(DATE(2024,5,31),D1)");
-                sheet.CellFormula(46, 1, "WEEKDAY(D1,2)");
-                sheet.CellFormula(47, 1, "NETWORKDAYS(D1,DATE(2024,5,31),D3:D3)");
-                sheet.CellFormula(48, 1, "PRODUCT(A1:A2,2)");
-                sheet.CellFormula(49, 1, "MEDIAN(C1:C4)");
-                sheet.CellFormula(50, 1, "LARGE(C1:C4,2)");
-                sheet.CellFormula(51, 1, "SMALL(C1:C4,3)");
-                sheet.CellFormula(52, 1, "SUMPRODUCT(A1:A2,C1:C2)");
-                sheet.CellFormula(53, 1, "SIGN(-10)");
-                sheet.CellFormula(54, 1, "TRUNC(2.987,2)");
-                sheet.CellFormula(55, 1, "CEILING(2.1,0.5)");
-                sheet.CellFormula(56, 1, "FLOOR(2.9,0.5)");
-                sheet.CellFormula(57, 1, "LN(EXP(1))");
-                sheet.CellFormula(58, 1, "LOG10(100)");
-                sheet.CellFormula(59, 1, "EXP(1)");
-                sheet.CellFormula(60, 1, "PI()");
-                sheet.CellFormula(61, 1, "RADIANS(180)");
-                sheet.CellFormula(62, 1, "DEGREES(PI())");
-                sheet.CellFormula(63, 1, "VLOOKUP(\"US\",B1:C4,2,FALSE)");
-                sheet.CellFormula(64, 1, "HLOOKUP(\"US\",E1:G2,2,FALSE)");
-                sheet.CellFormula(65, 1, "XLOOKUP(\"EMEA\",B1:B4,C1:C4)");
-                sheet.CellFormula(66, 1, "MINIFS(C1:C4,B1:B4,\"EU\")");
-                sheet.CellFormula(67, 1, "MAXIFS(C1:C4,B1:B4,\"E*\",C1:C4,\">=30\")");
-                sheet.CellFormula(68, 1, "COUNTBLANK(H1:H3)");
-                sheet.CellFormula(69, 1, "SUBTOTAL(9,C1:C4)");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(2, 1).SetValue(3d);
+                sheet.Cell(1, 2).SetValue("EU");
+                sheet.Cell(2, 2).SetValue("US");
+                sheet.Cell(3, 2).SetValue("EU");
+                sheet.Cell(4, 2).SetValue("EMEA");
+                sheet.Cell(1, 3).SetValue(10d);
+                sheet.Cell(2, 3).SetValue(20d);
+                sheet.Cell(3, 3).SetValue(30d);
+                sheet.Cell(4, 3).SetValue(40d);
+                sheet.Cell(1, 4).SetValue(new DateTime(2024, 5, 21));
+                sheet.Cell(2, 4).SetValue(new DateTime(1899, 12, 30, 14, 30, 45).ToOADate());
+                sheet.Cell(3, 4).SetValue(new DateTime(2024, 5, 27));
+                sheet.Cell(1, 5).SetValue("EU");
+                sheet.Cell(1, 6).SetValue("US");
+                sheet.Cell(1, 7).SetValue("EMEA");
+                sheet.Cell(2, 5).SetValue(100d);
+                sheet.Cell(2, 6).SetValue(200d);
+                sheet.Cell(2, 7).SetValue(300d);
+                sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
+                sheet.Cell(4, 1).SetFormula("UNIQUE(B1:B2)");
+                sheet.Cell(5, 1).SetFormula("ABS(-4)");
+                sheet.Cell(6, 1).SetFormula("ROUND(2.345,2)");
+                sheet.Cell(7, 1).SetFormula("A1+A2");
+                sheet.Cell(8, 1).SetFormula("ROUNDUP(2.341,2)");
+                sheet.Cell(9, 1).SetFormula("ROUNDDOWN(2.349,2)");
+                sheet.Cell(10, 1).SetFormula("INT(2.9)");
+                sheet.Cell(11, 1).SetFormula("POWER(2,3)");
+                sheet.Cell(12, 1).SetFormula("SQRT(9)");
+                sheet.Cell(13, 1).SetFormula("MOD(10,3)");
+                sheet.Cell(14, 1).SetFormula("IF(A2>A1,10,0)");
+                sheet.Cell(15, 1).SetFormula("AND(A1>0,A2>=3)");
+                sheet.Cell(16, 1).SetFormula("OR(A1>10,A2=3)");
+                sheet.Cell(17, 1).SetFormula("IFERROR(SUM(A1:A2),0)");
+                sheet.Cell(18, 1).SetFormula("IFERROR(A1/0,99)");
+                sheet.Cell(19, 1).SetFormula("IF(A2>A1,SUM(A1:A2),0)");
+                sheet.Cell(20, 1).SetFormula("IFERROR(A1/0,SUM(A1:A2))");
+                sheet.Cell(21, 1).SetFormula("IF(AND(A1>0,A2>=3),20,0)");
+                sheet.Cell(22, 1).SetFormula("IF(OR(A1>10,A2=3),30,0)");
+                sheet.Cell(23, 1).SetFormula("NOT(A1>10)");
+                sheet.Cell(24, 1).SetFormula("IF(NOT(A1>10),40,0)");
+                sheet.Cell(25, 1).SetFormula("COUNTIF(B1:B4,\"EU\")");
+                sheet.Cell(26, 1).SetFormula("COUNTIF(C1:C4,\">=20\")");
+                sheet.Cell(27, 1).SetFormula("SUMIF(B1:B4,\"EU\",C1:C4)");
+                sheet.Cell(28, 1).SetFormula("AVERAGEIF(C1:C4,\">20\",C1:C4)");
+                sheet.Cell(29, 1).SetFormula("COUNTIF(B1:B4,\"E*\")");
+                sheet.Cell(30, 1).SetFormula("COUNTIFS(B1:B4,\"EU\",C1:C4,\">=20\")");
+                sheet.Cell(31, 1).SetFormula("SUMIFS(C1:C4,B1:B4,\"E*\",C1:C4,\">=30\")");
+                sheet.Cell(32, 1).SetFormula("AVERAGEIFS(C1:C4,B1:B4,\"<>US\",C1:C4,\">=30\")");
+                sheet.Cell(33, 1).SetFormula("DATE(2024,5,21)");
+                sheet.Cell(34, 1).SetFormula("YEAR(D1)");
+                sheet.Cell(35, 1).SetFormula("MONTH(D1)");
+                sheet.Cell(36, 1).SetFormula("DAY(D1)");
+                sheet.Cell(37, 1).SetFormula("TIME(14,30,45)");
+                sheet.Cell(38, 1).SetFormula("HOUR(D2)");
+                sheet.Cell(39, 1).SetFormula("MINUTE(D2)");
+                sheet.Cell(40, 1).SetFormula("SECOND(D2)");
+                sheet.Cell(41, 1).SetFormula("TODAY()");
+                sheet.Cell(42, 1).SetFormula("NOW()");
+                sheet.Cell(43, 1).SetFormula("EDATE(D1,1)");
+                sheet.Cell(44, 1).SetFormula("EOMONTH(D1,0)");
+                sheet.Cell(45, 1).SetFormula("DAYS(DATE(2024,5,31),D1)");
+                sheet.Cell(46, 1).SetFormula("WEEKDAY(D1,2)");
+                sheet.Cell(47, 1).SetFormula("NETWORKDAYS(D1,DATE(2024,5,31),D3:D3)");
+                sheet.Cell(48, 1).SetFormula("PRODUCT(A1:A2,2)");
+                sheet.Cell(49, 1).SetFormula("MEDIAN(C1:C4)");
+                sheet.Cell(50, 1).SetFormula("LARGE(C1:C4,2)");
+                sheet.Cell(51, 1).SetFormula("SMALL(C1:C4,3)");
+                sheet.Cell(52, 1).SetFormula("SUMPRODUCT(A1:A2,C1:C2)");
+                sheet.Cell(53, 1).SetFormula("SIGN(-10)");
+                sheet.Cell(54, 1).SetFormula("TRUNC(2.987,2)");
+                sheet.Cell(55, 1).SetFormula("CEILING(2.1,0.5)");
+                sheet.Cell(56, 1).SetFormula("FLOOR(2.9,0.5)");
+                sheet.Cell(57, 1).SetFormula("LN(EXP(1))");
+                sheet.Cell(58, 1).SetFormula("LOG10(100)");
+                sheet.Cell(59, 1).SetFormula("EXP(1)");
+                sheet.Cell(60, 1).SetFormula("PI()");
+                sheet.Cell(61, 1).SetFormula("RADIANS(180)");
+                sheet.Cell(62, 1).SetFormula("DEGREES(PI())");
+                sheet.Cell(63, 1).SetFormula("VLOOKUP(\"US\",B1:C4,2,FALSE)");
+                sheet.Cell(64, 1).SetFormula("HLOOKUP(\"US\",E1:G2,2,FALSE)");
+                sheet.Cell(65, 1).SetFormula("XLOOKUP(\"EMEA\",B1:B4,C1:C4)");
+                sheet.Cell(66, 1).SetFormula("MINIFS(C1:C4,B1:B4,\"EU\")");
+                sheet.Cell(67, 1).SetFormula("MAXIFS(C1:C4,B1:B4,\"E*\",C1:C4,\">=30\")");
+                sheet.Cell(68, 1).SetFormula("COUNTBLANK(H1:H3)");
+                sheet.Cell(69, 1).SetFormula("SUBTOTAL(9,C1:C4)");
 
                 ExcelFormulaInspection sheetInspection = sheet.InspectFormulas();
                 Assert.Equal(67, sheetInspection.TotalFormulas);
@@ -953,19 +953,19 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Product");
-                sheet.CellValue(1, 3, "Sales");
-                sheet.CellValue(2, 1, "EU");
-                sheet.CellValue(2, 2, "A");
-                sheet.CellValue(2, 3, 10d);
-                sheet.CellValue(3, 1, "EU");
-                sheet.CellValue(3, 2, "B");
-                sheet.CellValue(3, 3, 20d);
-                sheet.CellValue(4, 1, "US");
-                sheet.CellValue(4, 2, "A");
-                sheet.CellValue(4, 3, 30d);
-                sheet.CellFormula(5, 3, "SUM(C2:C4)");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Product");
+                sheet.Cell(1, 3).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("EU");
+                sheet.Cell(2, 2).SetValue("A");
+                sheet.Cell(2, 3).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("EU");
+                sheet.Cell(3, 2).SetValue("B");
+                sheet.Cell(3, 3).SetValue(20d);
+                sheet.Cell(4, 1).SetValue("US");
+                sheet.Cell(4, 2).SetValue("A");
+                sheet.Cell(4, 3).SetValue(30d);
+                sheet.Cell(5, 3).SetFormula("SUM(C2:C4)");
                 sheet.Range("A1:C4").CreateTable("SalesData");
                 sheet.Range("B2:B4").Validate.List("A", "B");
                 sheet.Range("C2:C4").ConditionalFormat.DataBar("#5B9BD5");
@@ -1011,8 +1011,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Resource");
-                sheet.CellValue(2, 1, "Spec");
+                sheet.Cell(1, 1).SetValue("Resource");
+                sheet.Cell(2, 1).SetValue("Spec");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save();
             }
@@ -1046,8 +1046,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(2, 1, "EU");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(2, 1).SetValue("EU");
                 document.Save();
             }
 
@@ -1095,8 +1095,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(2, 1, "EU");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(2, 1).SetValue("EU");
                 document.Save();
             }
 
@@ -1143,8 +1143,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(2, 1, "EU");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(2, 1).SetValue("EU");
                 document.Save();
             }
 
@@ -1169,7 +1169,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Dashboard"].CellValue(3, 1, "US");
+                document["Dashboard"].Cell(3, 1).SetValue("US");
                 document.Save();
             }
 
@@ -1210,8 +1210,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(2, 1, "EU");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(2, 1).SetValue("EU");
                 document.Save();
             }
 
@@ -1237,7 +1237,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Data"].CellValue(3, 1, "US");
+                document["Data"].Cell(3, 1).SetValue("US");
                 document.Save();
             }
 
@@ -1278,8 +1278,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Review");
-                sheet.CellValue(1, 1, "Revenue");
-                sheet.CellValue(2, 1, 1250d);
+                sheet.Cell(1, 1).SetValue("Revenue");
+                sheet.Cell(2, 1).SetValue(1250d);
                 document.Save();
             }
 
@@ -1311,7 +1311,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Review"].CellValue(3, 1, "Checked");
+                document["Review"].Cell(3, 1).SetValue("Checked");
                 document.Save();
             }
 
@@ -1346,8 +1346,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Controls");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Before");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Before");
                 document.Save();
             }
 
@@ -1359,7 +1359,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Controls"].CellValue(3, 1, "After");
+                document["Controls"].Cell(3, 1).SetValue("After");
                 document.Save();
             }
 
@@ -1389,7 +1389,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Resource");
+                sheet.Cell(1, 1).SetValue("Resource");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save();
             }
@@ -1420,8 +1420,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Resource");
-                sheet.CellValue(2, 1, "Spec");
+                sheet.Cell(1, 1).SetValue("Resource");
+                sheet.Cell(2, 1).SetValue("Spec");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save();
             }
@@ -1433,7 +1433,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Links"].CellValue(3, 1, "Edited");
+                document["Links"].Cell(3, 1).SetValue("Edited");
                 document.Save();
             }
 
@@ -1461,8 +1461,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Package");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Before");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Before");
                 document.Save();
             }
 
@@ -1480,7 +1480,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Package"].CellValue(3, 1, "After");
+                document["Package"].Cell(3, 1).SetValue("After");
                 document.Save();
             }
 
@@ -1519,8 +1519,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Signed");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Before");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Before");
                 document.Save();
             }
 
@@ -1539,7 +1539,7 @@ namespace OfficeIMO.Tests
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                document["Signed"].CellValue(3, 1, "After");
+                document["Signed"].Cell(3, 1).SetValue("After");
                 ExcelSignatureInfo signatures = document.InspectSignatures();
                 Assert.True(signatures.HasSignatures);
                 Assert.True(signatures.HasDigitalSignatureOriginPart);
@@ -1582,10 +1582,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Calc");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellFormula(2, 1, "UNIQUE(B1:B2)");
-                sheet.CellFormula(3, 1, "SUM(" + new string('A', 9000) + ")");
-                sheet.CellFormula(4, 1, "SUM(Calc!A1:A2)");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(2, 1).SetFormula("UNIQUE(B1:B2)");
+                sheet.Cell(3, 1).SetFormula("SUM(" + new string('A', 9000) + ")");
+                sheet.Cell(4, 1).SetFormula("SUM(Calc!A1:A2)");
 
                 Assert.Equal(0, document.RecalculateSupportedFormulas());
                 Assert.False(sheet.TryGetCachedFormulaValue(2, 1, out _));
@@ -1606,22 +1606,22 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sort");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, "Hundred");
-                sheet.CellValue(2, 3, 100d);
-                sheet.CellFormula(2, 2, "C2+0");
-                sheet.CellValue(3, 1, "Two");
-                sheet.CellValue(3, 3, 2d);
-                sheet.CellFormula(3, 2, "C3+0");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue("Hundred");
+                sheet.Cell(2, 3).SetValue(100d);
+                sheet.Cell(2, 2).SetFormula("C2+0");
+                sheet.Cell(3, 1).SetValue("Two");
+                sheet.Cell(3, 3).SetValue(2d);
+                sheet.Cell(3, 2).SetFormula("C3+0");
                 sheet.SetComment(3, 1, "moves with Two", author: "Tester");
 
                 Assert.Equal(2, document.RecalculateSupportedFormulas());
-                sheet.SortRangeByColumn("A1:B3", 2, ascending: true, hasHeader: true);
+                sheet.Range("A1:B3").SortByColumn(2, ascending: true, hasHeader: true);
 
-                Assert.Equal("Two", sheet.CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Two", sheet.Cell(2, 1).GetValue<string>());
                 Assert.True(sheet.HasComment(2, 1));
-                Assert.Equal("Hundred", sheet.CellAt(3, 1).GetValue<string>());
+                Assert.Equal("Hundred", sheet.Cell(3, 1).GetValue<string>());
 
                 document.Save();
             }
@@ -1637,14 +1637,14 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sort");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, "Hundred");
-                sheet.CellValue(2, 2, 100d);
-                sheet.CellValue(3, 1, "Two");
-                sheet.CellValue(3, 2, 2d);
-                sheet.CellValue(4, 1, "Fifty");
-                sheet.CellValue(4, 2, 50d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue("Hundred");
+                sheet.Cell(2, 2).SetValue(100d);
+                sheet.Cell(3, 1).SetValue("Two");
+                sheet.Cell(3, 2).SetValue(2d);
+                sheet.Cell(4, 1).SetValue("Fifty");
+                sheet.Cell(4, 2).SetValue(50d);
                 sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
                 document.Save();
             }
@@ -1658,7 +1658,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets[0];
-                sheet.SortRangeByColumn("A1:B4", 2, ascending: true, hasHeader: true);
+                sheet.Range("A1:B4").SortByColumn(2, ascending: true, hasHeader: true);
                 document.Save();
             }
 
@@ -1683,7 +1683,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Protected");
-                sheet.CellValue(1, 1, "locked");
+                sheet.Cell(1, 1).SetValue("locked");
 
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                     ProtectStructure = true,
@@ -1816,10 +1816,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Table");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Score");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 10d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Score");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(10d);
 
                 ExcelTable table = sheet.Range("A1:B2").CreateTable("My Table");
                 Assert.Equal("My_Table", table.NameOrRange);
@@ -1868,7 +1868,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("RichText");
 
-                Assert.Empty(sheet.CellAt(10, 3).GetRichText());
+                Assert.Empty(sheet.Cell(10, 3).GetRichText());
 
                 document.Save();
             }
@@ -1889,10 +1889,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "One");
-                sheet.CellValue(3, 1, "Two");
-                sheet.CellValue(4, 1, "Three");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("One");
+                sheet.Cell(3, 1).SetValue("Two");
+                sheet.Cell(4, 1).SetValue("Three");
                 sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
                 document.Save();
             }
@@ -1930,8 +1930,8 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Links");
-                sheet.CellValue(2, 1, "One");
-                sheet.CellValue(4, 1, "Two");
+                sheet.Cell(2, 1).SetValue("One");
+                sheet.Cell(4, 1).SetValue("Two");
                 sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
                 document.Save();
             }
@@ -1965,14 +1965,14 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sort");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(1, 2, "Formula");
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 1d);
-                sheet.CellAt(2, 2).SetFormula("A2");
-                sheet.CellAt(3, 2).SetFormula("A3");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(1, 2).SetValue("Formula");
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(1d);
+                sheet.Cell(2, 2).SetFormula("A2");
+                sheet.Cell(3, 2).SetFormula("A3");
 
-                sheet.SortRangeByColumn("A1:B3", 1, ascending: true, hasHeader: true);
+                sheet.Range("A1:B3").SortByColumn(1, ascending: true, hasHeader: true);
                 document.Save();
             }
 
@@ -1997,12 +1997,12 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sparse");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(1, 2, "Blank");
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 1d);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(1, 2).SetValue("Blank");
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(1d);
 
-                sheet.SortRangeByColumn("A1:B3", 1, ascending: true, hasHeader: true);
+                sheet.Range("A1:B3").SortByColumn(1, ascending: true, hasHeader: true);
                 document.Save();
             }
 
@@ -2065,7 +2065,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Clear");
-                sheet.ClearRange("C5:D6", ExcelClearOptions.None);
+                sheet.Range("C5:D6").Clear(ExcelClearOptions.None);
                 document.Save();
             }
 
@@ -2081,9 +2081,9 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Clear");
-                sheet.CellValue(1, 1, "Keep");
-                sheet.CellValue(5, 5, "Clear");
-                sheet.ClearRange("A1:E5", ExcelClearOptions.Values);
+                sheet.Cell(1, 1).SetValue("Keep");
+                sheet.Cell(5, 5).SetValue("Clear");
+                sheet.Range("A1:E5").Clear(ExcelClearOptions.Values);
                 document.Save();
             }
 
@@ -2109,12 +2109,12 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Clear");
-                sheet.CellValue(1, 1, "Keep");
-                sheet.CellAt(10, 5).SetValue("Clear").SetFillColor("FFF2CC");
-                sheet.CellAt(10, 6).SetFormula("E10");
-                sheet.CellAt(12, 5).SetValue("Outside").SetFillColor("D9EAD3");
+                sheet.Cell(1, 1).SetValue("Keep");
+                sheet.Cell(10, 5).SetValue("Clear").SetFillColor("FFF2CC");
+                sheet.Cell(10, 6).SetFormula("E10");
+                sheet.Cell(12, 5).SetValue("Outside").SetFillColor("D9EAD3");
 
-                sheet.ClearRange("E10:F10", ExcelClearOptions.Values | ExcelClearOptions.Formulas | ExcelClearOptions.Styles);
+                sheet.Range("E10:F10").Clear(ExcelClearOptions.Values | ExcelClearOptions.Formulas | ExcelClearOptions.Styles);
                 document.Save();
             }
 
@@ -2148,7 +2148,7 @@ namespace OfficeIMO.Tests
                 sheet.SetComment(5, 5, "Remove second", author: "Tester");
                 sheet.SetComment(7, 7, "Keep outside", author: "Tester");
 
-                sheet.ClearRange("A1:E5", ExcelClearOptions.Comments);
+                sheet.Range("A1:E5").Clear(ExcelClearOptions.Comments);
 
                 Assert.False(sheet.HasComment(1, 1));
                 Assert.False(sheet.HasComment(5, 5));
@@ -2190,7 +2190,7 @@ namespace OfficeIMO.Tests
                 ExcelSheet sheet = document.AddSheet("Clear");
                 sheet.SetComment(1, 1, "Keep", author: "Tester");
 
-                sheet.ClearRange("C3:D4", ExcelClearOptions.Comments);
+                sheet.Range("C3:D4").Clear(ExcelClearOptions.Comments);
                 Assert.True(sheet.HasComment(1, 1));
                 document.Save();
             }
@@ -2262,10 +2262,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Array");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(1, 2, 20d);
-                sheet.CellValue(2, 1, 30d);
-                sheet.CellValue(2, 2, 40d);
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(1, 2).SetValue(20d);
+                sheet.Cell(2, 1).SetValue(30d);
+                sheet.Cell(2, 2).SetValue(40d);
                 document.Save();
             }
 
@@ -2327,10 +2327,10 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Rules");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, 10d);
-                sheet.CellValue(3, 1, 20d);
-                sheet.CellValue(4, 1, 20d);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue(10d);
+                sheet.Cell(3, 1).SetValue(20d);
+                sheet.Cell(4, 1).SetValue(20d);
 
                 sheet.AddConditionalFormulaRule("A2:A4", "A2>15", stopIfTrue: true);
                 sheet.AddConditionalDuplicateValuesRule("A2:A4");
@@ -2384,15 +2384,15 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Rules");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, 10d);
-                sheet.CellValue(3, 1, 20d);
-                sheet.CellValue(4, 1, 30d);
-                sheet.CellValue(6, 1, 40d);
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(4, 2, 30d);
-                sheet.CellValue(6, 2, 40d);
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue(10d);
+                sheet.Cell(3, 1).SetValue(20d);
+                sheet.Cell(4, 1).SetValue(30d);
+                sheet.Cell(6, 1).SetValue(40d);
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(4, 2).SetValue(30d);
+                sheet.Cell(6, 2).SetValue(40d);
 
                 sheet.AddConditionalFormulaRule("A2:A4 A6", "A2>15");
                 sheet.ValidationWholeNumber("B2:B4 B6", ExcelDataValidationOperator.Between, 1, 50);
@@ -2410,7 +2410,7 @@ namespace OfficeIMO.Tests
                 Assert.Null(untouchedValidation.PromptTitle);
                 Assert.Null(untouchedValidation.ErrorTitle);
 
-                sheet.ClearRange("D1:D3", ExcelClearOptions.ConditionalFormatting | ExcelClearOptions.DataValidations);
+                sheet.Range("D1:D3").Clear(ExcelClearOptions.ConditionalFormatting | ExcelClearOptions.DataValidations);
                 document.Save();
             }
 

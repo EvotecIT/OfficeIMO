@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
         public void Test_CellShiftPlans_RejectFormulaReferencesBeyondWorksheetCapacity() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellFormula(2, 2, "XFD1+A1048576");
+            sheet.Cell(2, 2).SetFormula("XFD1+A1048576");
 
             Assert.Throws<InvalidOperationException>(() =>
                 sheet.PlanInsertCells("A1", ExcelCellShiftDirection.Right));
@@ -31,9 +31,9 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralMutationPlans_RejectRemovedWorksheetAcrossEveryKind() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            document.AddSheet("Survivor").CellValue(1, 1, "Unchanged");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(2, 1, "B");
+            document.AddSheet("Survivor").Cell(1, 1).SetValue("Unchanged");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(2, 1).SetValue("B");
             ExcelStructuralMutationPlan[] plans = {
                 sheet.PlanInsertColumns(1),
                 sheet.PlanDeleteColumns(1),
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("no longer part of the workbook", exception.Message, StringComparison.Ordinal);
             }
             ExcelSheet survivor = Assert.Single(document.Sheets);
-            Assert.Equal("Unchanged", survivor.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Unchanged", survivor.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet middle = document.AddSheet("Middle");
             document.AddSheet("Last Sheet");
             ExcelSheet formulas = document.AddSheet("Formulas");
-            formulas.CellFormula(1, 1, "SUM('First Sheet':'Last Sheet'!A1)");
+            formulas.Cell(1, 1).SetFormula("SUM('First Sheet':'Last Sheet'!A1)");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 middle.PlanInsertColumns(1));

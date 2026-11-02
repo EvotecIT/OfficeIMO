@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests
             var expectedView = oracle.GetSheet("Grouped").ReadRange("A4:C12");
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B6");
             using (var document = ExcelDocument.Load(PivotManualGroupOraclePath)) {
-                document.GetSheet("Source").CellValue(2, 1, "Carrot");
+                document.GetSheet("Source").Cell(2, 1).SetValue("Carrot");
                 var sheet = document.GetSheet("Grouped");
                 Assert.Equal("A4:C12", sheet.MaterializePivotTable("PivotManualGrouped").OutputRange);
                 for (int index = 0; index < ManualGroupSelections.Length; index++)
@@ -80,18 +80,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var sheet = document.AddSheet("Source");
-                sheet.CellValue(1, 1, "Product");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "Apple");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "Pear");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(4, 1, "Carrot");
-                sheet.CellValue(4, 2, 30d);
-                sheet.CellValue(5, 1, "Broccoli");
-                sheet.CellValue(5, 2, 40d);
-                sheet.CellValue(6, 1, "Apple");
-                sheet.CellValue(6, 2, 5d);
+                sheet.Cell(1, 1).SetValue("Product");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("Apple");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("Pear");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(4, 1).SetValue("Carrot");
+                sheet.Cell(4, 2).SetValue(30d);
+                sheet.Cell(5, 1).SetValue("Broccoli");
+                sheet.Cell(5, 2).SetValue(40d);
+                sheet.Cell(6, 1).SetValue("Apple");
+                sheet.Cell(6, 2).SetValue(5d);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
                     pivotOptions1.RowFields.Add("Product");
@@ -124,14 +124,14 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Product");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "Apple");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Pear");
-            sheet.CellValue(3, 2, 20d);
-            sheet.CellValue(4, 1, "Carrot");
-            sheet.CellValue(4, 2, 30d);
+            sheet.Cell(1, 1).SetValue("Product");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("Apple");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Pear");
+            sheet.Cell(3, 2).SetValue(20d);
+            sheet.Cell(4, 1).SetValue("Carrot");
+            sheet.Cell(4, 2).SetValue(30d);
             {
                 var pivotOptions2 = new ExcelPivotTableOptions();
                 pivotOptions2.RowFields.Add("Product");
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests
 
             sheet.AddPivotManualGrouping("Grouped", "Product", "Product2", new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } });
             sheet.MaterializePivotTable("Grouped");
-            sheet.CellValue(2, 1, "Kiwi");
+            sheet.Cell(2, 1).SetValue("Kiwi");
             Assert.True(sheet.MaterializePivotTable("Grouped").Mutation.PackageIsValid);
             Assert.Equal(20d, sheet.GetPivotData("Grouped", "Metric", new Dictionary<string, object?> { ["Product2"] = "Fruit" }).Value);
             Assert.Equal(10d, sheet.GetPivotData("Grouped", "Metric", new Dictionary<string, object?> { ["Product2"] = "Kiwi" }).Value);
@@ -154,18 +154,18 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "ManualGroup.Columns.xlsx");
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Product");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "Apple");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Pear");
-            sheet.CellValue(3, 2, 20d);
-            sheet.CellValue(4, 1, "Carrot");
-            sheet.CellValue(4, 2, 30d);
-            sheet.CellValue(5, 1, "Broccoli");
-            sheet.CellValue(5, 2, 40d);
-            sheet.CellValue(6, 1, "Banana");
-            sheet.CellValue(6, 2, 5d);
+            sheet.Cell(1, 1).SetValue("Product");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("Apple");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Pear");
+            sheet.Cell(3, 2).SetValue(20d);
+            sheet.Cell(4, 1).SetValue("Carrot");
+            sheet.Cell(4, 2).SetValue(30d);
+            sheet.Cell(5, 1).SetValue("Broccoli");
+            sheet.Cell(5, 2).SetValue(40d);
+            sheet.Cell(6, 1).SetValue("Banana");
+            sheet.Cell(6, 2).SetValue(5d);
             {
                 var pivotOptions3 = new ExcelPivotTableOptions();
                 pivotOptions3.ColumnFields.Add("Product");
@@ -187,14 +187,14 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Product");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "Apple");
-            sheet.CellValue(2, 2, 10d);
-            sheet.CellValue(3, 1, "Pear");
-            sheet.CellValue(3, 2, 20d);
-            sheet.CellValue(4, 1, "Carrot");
-            sheet.CellValue(4, 2, 30d);
+            sheet.Cell(1, 1).SetValue("Product");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("Apple");
+            sheet.Cell(2, 2).SetValue(10d);
+            sheet.Cell(3, 1).SetValue("Pear");
+            sheet.Cell(3, 2).SetValue(20d);
+            sheet.Cell(4, 1).SetValue("Carrot");
+            sheet.Cell(4, 2).SetValue(30d);
             sheet.AddPivotTable("A1:B4", "E4", options: new ExcelPivotTableOptions { Name = "Grouped", RowFields = new[] { "Product" } });
             sheet.AddPivotTable("A1:B4", "J4", options: new ExcelPivotTableOptions { Name = "Grouped", RowFields = new[] { "Product" } });
             string renamed = document.GetPivotTables().Single(pivot => pivot.Name != "Grouped").Name;

@@ -12,13 +12,13 @@ public partial class Excel {
     public void Batch19_MalformedStructuredRangeDoesNotResolveMissingEndpoint() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Malformed");
-        sheet.CellValue(1, 1, "A");
-        sheet.CellValue(1, 2, "B");
-        sheet.CellValue(2, 1, 1D);
-        sheet.CellValue(2, 2, 2D);
+        sheet.Cell(1, 1).SetValue("A");
+        sheet.Cell(1, 2).SetValue("B");
+        sheet.Cell(2, 1).SetValue(1D);
+        sheet.Cell(2, 2).SetValue(2D);
         sheet.AddTable("A1:B2", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
-        sheet.CellFormula(2, 4, "SUM(Sales[[B]:])");
-        sheet.CellFormula(2, 5, "SUM(Sales[@[B]:])");
+        sheet.Cell(2, 4).SetFormula("SUM(Sales[[B]:])");
+        sheet.Cell(2, 5).SetFormula("SUM(Sales[@[B]:])");
 
         ExcelFormulaDependencyGraph graph = document.InspectFormulas().DependencyGraph;
 

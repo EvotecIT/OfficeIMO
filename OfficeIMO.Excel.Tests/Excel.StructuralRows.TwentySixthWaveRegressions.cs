@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanIncludesPendingFormulaFromAnotherSheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.CellFormula(1, 1, "Data!A5");
+            summary.Cell(1, 1).SetFormula("Data!A5");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
 
@@ -31,9 +31,9 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet summary = document.AddSheet("Summary");
             for (int column = 1; column <= 128; column++) {
-                summary.CellValue(1, column, column);
+                summary.Cell(1, column).SetValue(column);
             }
-            summary.CellFormula(1, 129, $"Data!A{ExcelA1.MaxRows}");
+            summary.Cell(1, 129).SetFormula($"Data!A{ExcelA1.MaxRows}");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(document, "Data");
 
@@ -85,10 +85,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanUsesAnchoredTableFormulaSemantics() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(1, 2).SetValue("Result");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(3, 1).SetValue(20);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 2).SetValue("Result");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(3, 1).SetValue(20);
             sheet.AddTable(
                 "A1:B3",
                 hasHeader: true,

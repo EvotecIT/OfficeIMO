@@ -37,7 +37,7 @@ public sealed class IWorkWholeAxisFormulaCorpusTests {
             ExcelSheet sheet = Assert.Single(reopened.Sheets, s => s.Name == sourceName);
             Assert.Equal(function + "('" + target.Replace("'", "''") + "'!"
                 + expected.GetProperty("destinationBodyRange").GetString() + ")", sheet.GetFormulaText(row, 1));
-            Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), sheet.CellAt(row, 1).GetValue<double>());
+            Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), sheet.Cell(row, 1).GetValue<double>());
             Assert.Equal(expected.GetProperty("cachedValue").GetDouble(), expected.GetProperty("computedCurrentBodyValue").GetDouble());
         }
     }

@@ -48,17 +48,17 @@ internal static class DocumentDelivery {
             var sheet = document.AddSheet(specimen.Name);
             for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(12D));
             for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
-            sheet.MergeRange("B1:I2");
-            sheet.CellValue(1, 2, Heading(specimen));
-            sheet.CellFontName(1, 2, Style.FontFamily); sheet.CellFontSize(1, 2, global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
+            sheet.Range("B1:I2").Merge();
+            sheet.Cell(1, 2).SetValue(Heading(specimen));
+            sheet.Cell(1, 2).SetFontName(Style.FontFamily); sheet.Cell(1, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
             // The picture remains within the authored Letter print width after the half-inch margins.
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
             sheet.AddVisualArtifact("B4:I18", specimen.Artifact);
-            sheet.MergeRange("B21:I23");
-            sheet.CellValue(21, 2, specimen.Caption);
-            sheet.CellFontName(21, 2, Style.FontFamily); sheet.CellFontSize(21, 2, global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
-            sheet.CellWrapText(21, 2);
+            sheet.Range("B21:I23").Merge();
+            sheet.Cell(21, 2).SetValue(specimen.Caption);
+            sheet.Cell(21, 2).SetFontName(Style.FontFamily); sheet.Cell(21, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
+            sheet.Cell(21, 2).SetWrapText();
         }
         document.Save();
     }

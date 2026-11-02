@@ -22,10 +22,10 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("'" + target + "'!" + address, reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
-        reopened.Sheets[1].CellValue(1, 1, 29d); reopened.Calculate();
-        Assert.Equal(29d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        reopened.Sheets[1].Cell(1, 1).SetValue(29d); reopened.Calculate();
+        Assert.Equal(29d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -88,7 +88,7 @@ public sealed partial class IWorkBoundaryTests {
             string target = result.WorksheetMappings[1].DestinationName.Replace("'", "''");
             Assert.Equal("SUM('" + target + "'!" + (variant == 3 ? "$A$1 : $B$2" : "$A$1:$B$2") + ")", result.Value.Sheets[0].GetFormulaText(1, 1));
         } else Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]

@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
                     data.Columns.Add("Name", typeof(string));
                     sheet.AddTable(data, new ExcelTableOptions { Name = "EmptyResults" });
                 } else {
-                    sheet.CellValue(1, 1, "Id");
-                    sheet.CellValue(1, 2, "Name");
+                    sheet.Cell(1, 1).SetValue("Id");
+                    sheet.Cell(1, 2).SetValue("Name");
                     sheet.AddTable("A1:B1", name: "EmptyResults");
                 }
                 document.Save();

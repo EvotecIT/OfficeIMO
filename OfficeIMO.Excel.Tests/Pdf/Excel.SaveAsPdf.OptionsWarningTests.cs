@@ -50,12 +50,12 @@ public partial class Excel {
         PdfCore.PdfSaveResult saveResult;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Warnings" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "Alpha");
-            sheet.Cell(2, 2, 10);
-            sheet.Cell(3, 1, "Beta");
-            sheet.Cell(3, 2, 20);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("Beta");
+            sheet.Cell(3, 2).SetValue(20);
             sheet.SetHeaderFooter(
                 headerCenter: "&U&\"Arial,Bold\"&14&KFF0000Styled &D &T &A",
                 footerRight: "Page &P of &N");

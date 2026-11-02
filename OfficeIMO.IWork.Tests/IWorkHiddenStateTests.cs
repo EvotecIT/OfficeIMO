@@ -169,7 +169,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         package.Position = 0;
         var result = new OfficeIMO.Reader.OfficeDocumentReaderBuilder().AddIWorkHandler().Build().ReadDocument(package, "hidden.numbers");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HIDDEN_STATES_UNASSESSED");

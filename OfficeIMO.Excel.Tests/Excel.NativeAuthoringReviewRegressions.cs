@@ -29,7 +29,7 @@ public sealed class ExcelNativeAuthoringReviewRegressions {
             ("Keep", value => value)
         }, options, column: 16384);
         Assert.Equal("XFD1:XFD2", table.Range);
-        Assert.Equal(7, sheet.CellAt(2, 16384).GetValue<int>());
+        Assert.Equal(7, sheet.Cell(2, 16384).GetValue<int>());
         using var saved = new MemoryStream();
         workbook.Save(saved);
         saved.Position = 0;
@@ -57,11 +57,11 @@ public sealed class ExcelNativeAuthoringReviewRegressions {
         Assert.Equal(2, selected);
         Assert.Equal(2, formatted);
         Assert.Equal(1, transformed);
-        Assert.Equal("Revenue", sheet.CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Display Code", sheet.CellAt(1, 2).GetValue<string>());
-        Assert.Equal("USD 20", sheet.CellAt(2, 1).GetValue<string>());
-        Assert.Equal("USD 30", sheet.CellAt(3, 1).GetValue<string>());
-        Assert.Equal(3, sheet.CellAt(3, 2).GetValue<int>());
+        Assert.Equal("Revenue", sheet.Cell(1, 1).GetValue<string>());
+        Assert.Equal("Display Code", sheet.Cell(1, 2).GetValue<string>());
+        Assert.Equal("USD 20", sheet.Cell(2, 1).GetValue<string>());
+        Assert.Equal("USD 30", sheet.Cell(3, 1).GetValue<string>());
+        Assert.Equal(3, sheet.Cell(3, 2).GetValue<int>());
     }
 
     [Theory]
@@ -130,7 +130,7 @@ public sealed class ExcelNativeAuthoringReviewRegressions {
         saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet result = reopened.Sheets[0];
-        Assert.Equal(text, result.CellAt(2, 1).GetValue<string>());
+        Assert.Equal(text, result.Cell(2, 1).GetValue<string>());
         if (autoFit) Assert.True(Assert.Single(result.GetColumnDefinitions()).Width?.CharacterCount > 20);
         else Assert.Empty(result.GetColumnDefinitions());
     }
@@ -163,8 +163,8 @@ public sealed class ExcelNativeAuthoringReviewRegressions {
         }
         saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        Assert.Equal(positional ? "30" : "Mar", reopened.Sheets[0].CellAt(3, 1).GetValue<string>());
-        Assert.Equal(positional ? "Mar" : "30", reopened.Sheets[0].CellAt(3, 2).GetValue<string>());
+        Assert.Equal(positional ? "30" : "Mar", reopened.Sheets[0].Cell(3, 1).GetValue<string>());
+        Assert.Equal(positional ? "Mar" : "30", reopened.Sheets[0].Cell(3, 2).GetValue<string>());
     }
 
     [Theory]
@@ -210,7 +210,7 @@ public sealed class ExcelNativeAuthoringReviewRegressions {
         using var rows = Sales();
         sheet.WriteData(rows);
         var chart = sheet.AddChart(OfficeChartType.Column, "A1:B3", new ExcelChartOptions { IncludeCachedData = cache });
-        sheet.CellValue(1, 2, "Updated revenue");
+        sheet.Cell(1, 2).SetValue("Updated revenue");
         Assert.True(chart.TryGetData(out var current));
         Assert.Equal("Updated revenue", Assert.Single(current.Series).Name);
     }

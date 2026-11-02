@@ -30,7 +30,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(filePath)) {
-                created.AddSheet("Data").CellValue(1, 1, 1d);
+                created.AddSheet("Data").Cell(1, 1).SetValue(1d);
                 created.Save();
             }
 
@@ -69,12 +69,12 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void ExcelToOdsReportsOfficeImoPivotBindingMetadataLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet data = source.AddSheet("Data");
-        data.CellValue(1, 1, "Region");
-        data.CellValue(1, 2, "OrderDate");
-        data.CellValue(1, 3, "Sales");
-        data.CellValue(2, 1, "East");
-        data.CellValue(2, 2, new DateTime(2026, 1, 2));
-        data.CellValue(2, 3, 10d);
+        data.Cell(1, 1).SetValue("Region");
+        data.Cell(1, 2).SetValue("OrderDate");
+        data.Cell(1, 3).SetValue("Sales");
+        data.Cell(2, 1).SetValue("East");
+        data.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+        data.Cell(2, 3).SetValue(10d);
         data.AddPivotTable("A1:C2", "E2", options: new ExcelPivotTableOptions {
             Name = "SalesPivot",
             RowFields = new[] { "Region" }
@@ -126,7 +126,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void ExcelToOdsReportUsesActualSourceFormat(ExcelFileFormat format, string expectedLabel) {
         byte[] bytes;
         using (ExcelDocument created = ExcelDocument.Create()) {
-            created.AddSheet("Data").CellValue(1, 1, 1d);
+            created.AddSheet("Data").Cell(1, 1).SetValue(1d);
             bytes = created.ToBytes(new OfficeIMO.Excel.ExcelSaveOptions{Format=format});
         }
 
@@ -141,8 +141,8 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue("B2");
-        sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
+        sheet.Cell(1, 1).SetValue("B2");
+        sheet.Cell(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
@@ -161,9 +161,9 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void ExcelFormulaConversionMapsSheetQualifiedReferences() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet data = source.AddSheet("Data");
-        source.AddSheet("Other").CellAt(1, 1).SetValue(1);
-        source.AddSheet("Other Sheet").CellAt(2, 2).SetValue(2);
-        data.CellAt(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
+        source.AddSheet("Other").Cell(1, 1).SetValue(1);
+        source.AddSheet("Other Sheet").Cell(2, 2).SetValue(2);
+        data.Cell(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
@@ -182,10 +182,10 @@ public sealed class OpenDocumentConversionLossReportTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellFormula(1, 2, "A1+1");
-                sheet.CellFormula(2, 2, "A2+1");
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(1, 2).SetFormula("A1+1");
+                sheet.Cell(2, 2).SetFormula("A2+1");
                 document.Save();
             }
 
@@ -236,13 +236,13 @@ public sealed class OpenDocumentConversionLossReportTests {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet first = source.AddSheet("First Sheet");
         ExcelSheet second = source.AddSheet("Second Sheet");
-        first.CellAt(1, 1).SetValue(1);
-        second.CellAt(1, 1).SetValue(2);
+        first.Cell(1, 1).SetValue(1);
+        second.Cell(1, 1).SetValue(2);
         first.SetNamedRange("LocalValue", "A1", save: false);
         second.SetNamedRange("LocalValue", "A1", save: false);
-        first.CellAt(1, 2).SetFormula("LocalValue");
-        first.CellAt(1, 3).SetFormula("'Second Sheet'!LocalValue");
-        second.CellAt(1, 2).SetFormula("LocalValue");
+        first.Cell(1, 2).SetFormula("LocalValue");
+        first.Cell(1, 3).SetFormula("'Second Sheet'!LocalValue");
+        second.Cell(1, 2).SetFormula("LocalValue");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
         OdsDocument target = conversion.Value;
@@ -264,7 +264,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         ExcelSheet sheet = source.AddSheet("Data");
         source.OpenXmlDocument.WorkbookPart!.Workbook!.DefinedNames = new DocumentFormat.OpenXml.Spreadsheet.DefinedNames(
             new DocumentFormat.OpenXml.Spreadsheet.DefinedName("0.2") { Name = "TaxRate" });
-        sheet.CellAt(1, 1).SetFormula("TaxRate*100");
+        sheet.Cell(1, 1).SetFormula("TaxRate*100");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
 
@@ -499,8 +499,8 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void ExcelToOdsReportsConfiguredCellAndStyleOmissions() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue("One").SetBold();
-        sheet.CellAt(1, 2).SetValue("Two").SetBold();
+        sheet.Cell(1, 1).SetValue("One").SetBold();
+        sheet.Cell(1, 2).SetValue("Two").SetBold();
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(new ExcelOpenDocumentConversionOptions {
             IncludeBasicStyles = false,

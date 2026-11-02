@@ -39,10 +39,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("ImplicitChart");
             SetMissingGridFont(document);
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             X.SheetFormatProperties format = sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!;
             format.BaseColumnWidth = 8U;
             format.DefaultColumnWidth = null;
@@ -72,10 +72,10 @@ namespace OfficeIMO.Tests {
                 Min = 1U, Max = 1U, Width = 20D,
                 CustomWidth = customWidth.HasValue ? new DocumentFormat.OpenXml.BooleanValue(customWidth.Value) : null
             }), true);
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             ExcelImage image = sheet.AddImage("A1:A2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(document,

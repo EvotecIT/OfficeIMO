@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns the used range of this worksheet as an A1 string by leveraging the read bridge.
         /// </summary>
-        private string GetUsedRangeA1() {
+        internal string GetUsedRangeA1() {
             if (_excelDocument.TryGetDirectTabularSaveCandidateRange(this, out string pendingRange)) {
                 return pendingRange;
             }
@@ -255,6 +255,7 @@ namespace OfficeIMO.Excel {
 
             if (createdRowElement) {
                 Cell createdCell = new Cell { CellReference = BuildCellReference(row, column) };
+                ApplyInheritedCellStyle(createdCell, sheetData, null, column);
                 rowElement.Append(createdCell);
                 CacheLastAccessedCell(rowElement, row, column, createdCell);
                 return createdCell;
@@ -314,6 +315,7 @@ namespace OfficeIMO.Excel {
 
             if (cell == null) {
                 cell = new Cell { CellReference = BuildCellReference(row, column) };
+                ApplyInheritedCellStyle(cell, sheetData, rowElement, column);
                 if (insertAfterCell != null) {
                     if (insertAfterCell.NextSibling<Cell>() == null) {
                         rowElement.Append(cell);
@@ -341,6 +343,31 @@ namespace OfficeIMO.Excel {
 
             CacheLastAccessedCell(rowElement, row, column, cell);
             return cell;
+        }
+
+        /// <summary>
+        /// A cell Excel creates in a formatted row or column starts with that row's style, else the column's, so
+        /// values written into a template keep its number formats and fonts.
+        /// </summary>
+        private static void ApplyInheritedCellStyle(Cell cell, SheetData sheetData, Row? row, int column) {
+            if (row != null && row.CustomFormat?.Value == true && row.StyleIndex?.Value is uint rowStyle) {
+                if (rowStyle != 0U) cell.StyleIndex = rowStyle;
+                return;
+            }
+
+            // <cols> precedes <sheetData>; walking siblings avoids an enumerator per created cell.
+            for (OpenXmlElement? sibling = sheetData.PreviousSibling(); sibling != null; sibling = sibling.PreviousSibling()) {
+                if (sibling is not Columns columns) continue;
+                for (OpenXmlElement? child = columns.FirstChild; child != null; child = child.NextSibling()) {
+                    if (child is Column definition
+                        && definition.Min?.Value is uint min && min <= (uint)column
+                        && definition.Max?.Value is uint max && (uint)column <= max) {
+                        if (definition.Style?.Value is uint columnStyle && columnStyle != 0U) cell.StyleIndex = columnStyle;
+                        return;
+                    }
+                }
+                return;
+            }
         }
 
         private Cell? TryGetCell(int row, int column) {

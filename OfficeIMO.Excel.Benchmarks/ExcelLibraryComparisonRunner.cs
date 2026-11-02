@@ -1797,7 +1797,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValues(cells);
+            sheet.SetValues(cells);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues rectangle comparison");
         }
@@ -1812,7 +1812,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("SparseObjects");
-            sheet.CellValues(BuildSparseObjectCells(rowCount), ExcelExecutionMode.Parallel);
+            sheet.SetValues(BuildSparseObjectCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues sparse rectangle comparison");
         }
@@ -1827,7 +1827,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Headerless");
-            sheet.CellValues(BuildHeaderlessMixedCells(rowCount));
+            sheet.SetValues(BuildHeaderlessMixedCells(rowCount));
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "CellValues headerless rectangle comparison");
         }
@@ -2440,14 +2440,14 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValues(new[] {
+            sheet.SetValues(new[] {
                 (1, 1, (object)"Id"),
                 (1, 2, (object)"Region"),
                 (1, 3, (object)"Owner"),
                 (1, 4, (object)"Amount")
             }, ExcelExecutionMode.Sequential);
 
-            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
+            sheet.SetValues(cells, ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "append plain rows comparison");
         }
@@ -4069,7 +4069,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Strings");
-            sheet.CellValues(BuildTextHeavyCells(rowCount), ExcelExecutionMode.Parallel);
+            sheet.SetValues(BuildTextHeavyCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, "shared string comparison");
         }
@@ -4085,9 +4085,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Strings");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, "Repeated value " + (row % 12));
-                sheet.CellValue(row, 2, "Distinct value " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.CellValue(row, 3, "Long segment " + new string((char)('A' + (row % 26)), 48));
+                sheet.Cell(row, 1).SetValue("Repeated value " + (row % 12));
+                sheet.Cell(row, 2).SetValue("Distinct value " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 3).SetValue("Long segment " + new string((char)('A' + (row % 26)), 48));
             }
 
             document.Save(stream);
@@ -4104,9 +4104,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Repeated");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, RepeatedText(row, 0));
-                sheet.CellValue(row, 2, RepeatedText(row, 1));
-                sheet.CellValue(row, 3, RepeatedText(row, 2));
+                sheet.Cell(row, 1).SetValue(RepeatedText(row, 0));
+                sheet.Cell(row, 2).SetValue(RepeatedText(row, 1));
+                sheet.Cell(row, 3).SetValue(RepeatedText(row, 2));
             }
 
             document.Save(stream);
@@ -4123,9 +4123,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Distinct");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, DistinctText(row, 0));
-                sheet.CellValue(row, 2, DistinctText(row, 1));
-                sheet.CellValue(row, 3, DistinctText(row, 2));
+                sheet.Cell(row, 1).SetValue(DistinctText(row, 0));
+                sheet.Cell(row, 2).SetValue(DistinctText(row, 1));
+                sheet.Cell(row, 3).SetValue(DistinctText(row, 2));
             }
 
             document.Save(stream);
@@ -4142,9 +4142,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("EmptyText");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, string.Empty);
-                sheet.CellValue(row, 2, row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture));
-                sheet.CellValue(row, 3, row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue(string.Empty);
+                sheet.Cell(row, 2).SetValue(row % 3 == 0 ? string.Empty : "Status " + (row % 8).ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 3).SetValue(row % 5 == 0 ? string.Empty : "Note " + row.ToString(CultureInfo.InvariantCulture));
             }
 
             document.Save(stream);
@@ -4161,9 +4161,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Numbers");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, (double)row * 1.25d);
-                sheet.CellValue(row, 2, (double)row + 0.5d);
-                sheet.CellValue(row, 3, (double)(row % 17));
+                sheet.Cell(row, 1).SetValue((double)row * 1.25d);
+                sheet.Cell(row, 2).SetValue((double)row + 0.5d);
+                sheet.Cell(row, 3).SetValue((double)(row % 17));
             }
 
             document.Save(stream);
@@ -4180,9 +4180,9 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Scalars");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, row * 10.75m);
-                sheet.CellValue(row, 2, row % 2 == 0);
-                sheet.CellValue(row, 3, row % 3 == 0);
+                sheet.Cell(row, 1).SetValue(row * 10.75m);
+                sheet.Cell(row, 2).SetValue(row % 2 == 0);
+                sheet.Cell(row, 3).SetValue(row % 3 == 0);
             }
 
             document.Save(stream);
@@ -4200,9 +4200,9 @@ internal static partial class ExcelLibraryComparisonRunner {
             var sheet = document.AddSheet("Temporal");
             var start = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified);
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, start.AddDays(row));
-                sheet.CellValue(row, 2, TimeSpan.FromMinutes(row * 7));
-                sheet.CellValue(row, 3, start.AddHours(row % 24));
+                sheet.Cell(row, 1).SetValue(start.AddDays(row));
+                sheet.Cell(row, 2).SetValue(TimeSpan.FromMinutes(row * 7));
+                sheet.Cell(row, 3).SetValue(start.AddHours(row % 24));
             }
 
             document.Save(stream);
@@ -4224,10 +4224,10 @@ internal static partial class ExcelLibraryComparisonRunner {
                 object? amount = (double)row * 1.25d;
                 object? active = row % 2 == 0;
                 object? created = start.AddDays(row);
-                sheet.CellValue(row, 1, name);
-                sheet.CellValue(row, 2, amount);
-                sheet.CellValue(row, 3, active);
-                sheet.CellValue(row, 4, created);
+                sheet.Cell(row, 1).SetValue(name);
+                sheet.Cell(row, 2).SetValue(amount);
+                sheet.Cell(row, 3).SetValue(active);
+                sheet.Cell(row, 4).SetValue(created);
             }
 
             document.Save(stream);
@@ -4249,10 +4249,10 @@ internal static partial class ExcelLibraryComparisonRunner {
                 object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
                 object? active = row % 5 == 0 ? null : row % 2 == 0;
                 object? created = row % 7 == 0 ? null : start.AddDays(row);
-                sheet.CellValue(row, 1, name);
-                sheet.CellValue(row, 2, amount);
-                sheet.CellValue(row, 3, active);
-                sheet.CellValue(row, 4, created);
+                sheet.Cell(row, 1).SetValue(name);
+                sheet.Cell(row, 2).SetValue(amount);
+                sheet.Cell(row, 3).SetValue(active);
+                sheet.Cell(row, 4).SetValue(created);
             }
 
             document.Save(stream);
@@ -4275,10 +4275,10 @@ internal static partial class ExcelLibraryComparisonRunner {
                     object? amount = row % 4 == 0 ? null : (double)row * 1.25d;
                     object? active = row % 5 == 0 ? null : row % 2 == 0;
                     object? created = row % 7 == 0 ? null : start.AddDays(row);
-                    s.CellValue(row, 1, name);
-                    s.CellValue(row, 2, amount);
-                    s.CellValue(row, 3, active);
-                    s.CellValue(row, 4, created);
+                    s.Cell(row, 1).SetValue(name);
+                    s.Cell(row, 2).SetValue(amount);
+                    s.Cell(row, 3).SetValue(active);
+                    s.Cell(row, 4).SetValue(created);
                 }
             });
 
@@ -4296,10 +4296,10 @@ internal static partial class ExcelLibraryComparisonRunner {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Formulas");
             for (int row = 1; row <= rowCount; row++) {
-                sheet.CellValue(row, 1, (double)row);
-                sheet.CellValue(row, 2, (double)(row % 17));
-                sheet.CellValue(row, 3, (double)(row % 29));
-                sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+                sheet.Cell(row, 1).SetValue((double)row);
+                sheet.Cell(row, 2).SetValue((double)(row % 17));
+                sheet.Cell(row, 3).SetValue((double)(row % 29));
+                sheet.Cell(row, 4).SetFormula($"SUM(A{row}:C{row})");
             }
 
             document.Save(stream);
@@ -5118,7 +5118,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValues(BuildHelloWorldCells(rowCount), ExcelExecutionMode.Parallel);
+            sheet.SetValues(BuildHelloWorldCells(rowCount), ExcelExecutionMode.Parallel);
             document.Save(stream);
             AssertOfficeImoDirectPackageWriter(document, DenseHelloWorldReadStreamScenario + " fixture generation");
         }
@@ -5141,15 +5141,15 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Formulas");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(1, 3, "C");
-            sheet.CellValue(1, 4, "Total");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(1, 3).SetValue("C");
+            sheet.Cell(1, 4).SetValue("Total");
             for (int row = 2; row <= rowCount + 1; row++) {
-                sheet.CellValue(row, 1, (double)row);
-                sheet.CellValue(row, 2, (double)(row * 2));
-                sheet.CellValue(row, 3, (double)(row * 3));
-                sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
+                sheet.Cell(row, 1).SetValue((double)row);
+                sheet.Cell(row, 2).SetValue((double)(row * 2));
+                sheet.Cell(row, 3).SetValue((double)(row * 3));
+                sheet.Cell(row, 4).SetFormula($"SUM(A{row}:C{row})");
             }
 
             document.Save(stream);
@@ -5162,8 +5162,8 @@ internal static partial class ExcelLibraryComparisonRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellValue(lastRow, 1, "Tail");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(lastRow, 1).SetValue("Tail");
             document.Save(stream);
         }
 

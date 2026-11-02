@@ -35,13 +35,13 @@ public sealed class IWorkNativeCrossTableIntegerTests {
             reopened.Sheets.Select(sheet => sheet.Name));
         Verify(changed ? "changedCells" : "cells", true);
         Assert.Equal(9, reopened.Calculate()); Verify(changed ? "changedCells" : "cells", false);
-        reopened.Sheets.Single(sheet => sheet.Name == "Budget - Data").CellValue(2, 2, 24d);
+        reopened.Sheets.Single(sheet => sheet.Name == "Budget - Data").Cell(2, 2).SetValue(24d);
         Assert.Equal(9, reopened.Calculate()); Verify("changedCells", false);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Assert.Equal(12d, final.Sheets[2].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(360d, final.Sheets[2].CellAt(1, 2).GetValue<double>());
-        Assert.Equal(792d, final.Sheets[2].CellAt(2, 1).GetValue<double>());
+        Assert.Equal(12d, final.Sheets[2].Cell(1, 1).GetValue<double>());
+        Assert.Equal(360d, final.Sheets[2].Cell(1, 2).GetValue<double>());
+        Assert.Equal(792d, final.Sheets[2].Cell(2, 1).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
 
         void Verify(string field, bool sourceToo) {
@@ -55,7 +55,7 @@ public sealed class IWorkNativeCrossTableIntegerTests {
                     Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), cell.Value);
                 }
                 Assert.Equal(expected.GetProperty("excelFormula").GetString(), reopened.Sheets[index].GetFormulaText(row, column));
-                Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[index].CellAt(row, column).GetValue<double>());
+                Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[index].Cell(row, column).GetValue<double>());
             }
         }
     }

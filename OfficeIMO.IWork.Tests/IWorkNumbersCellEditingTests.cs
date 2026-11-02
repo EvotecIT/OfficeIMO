@@ -35,10 +35,10 @@ public sealed class IWorkNumbersCellEditingTests {
         using var stream = new MemoryStream(); converted.Value.Save(stream); stream.Position = 0;
         using var reopened = ExcelDocument.Load(stream);
         Assert.Equal(3, reopened.Sheets.Count); Assert.Empty(reopened.ValidateOpenXml());
-        Assert.Equal(42.125, reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
-        Assert.False(reopened.Sheets[0].CellAt(2, 3).GetValue<bool>());
-        Assert.Equal(123.75, reopened.Sheets[1].CellAt(1, 2).GetValue<double>());
-        Assert.True(reopened.Sheets[1].CellAt(2, 1).GetValue<bool>());
+        Assert.Equal(42.125, reopened.Sheets[0].Cell(2, 2).GetValue<double>());
+        Assert.False(reopened.Sheets[0].Cell(2, 3).GetValue<bool>());
+        Assert.Equal(123.75, reopened.Sheets[1].Cell(1, 2).GetValue<double>());
+        Assert.True(reopened.Sheets[1].Cell(2, 1).GetValue<bool>());
     }
 
     [Fact]

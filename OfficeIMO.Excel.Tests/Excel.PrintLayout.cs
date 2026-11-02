@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(2, 1, "EU");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(2, 1).SetValue("EU");
 
                 sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
                     Preset = ExcelPrintLayoutPreset.Report,
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
+                sheet.Cell(1, 1).SetValue("Region");
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
                 sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
                     Preset = ExcelPrintLayoutPreset.Worksheet

@@ -29,14 +29,14 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("header row", exception.Message);
             Assert.Equal("OFFSET(Data!$A$1,0,0,3,2)", definedName.Text);
-            Assert.Equal("Region", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Region", sheet.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_RewritesSharedChartPartOnlyOnce() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
-            data.CellAt(5, 1).SetValue(1);
+            data.Cell(5, 1).SetValue(1);
             ExcelSheet firstOwner = CreateChartOwner(document, "First owner");
             ExcelSheet secondOwner = CreateChartOwner(document, "Second owner");
 
@@ -78,10 +78,10 @@ namespace OfficeIMO.Tests {
 
         private static ExcelSheet CreateChartOwner(ExcelDocument document, string name) {
             ExcelSheet sheet = document.AddSheet(name);
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             return sheet;
         }

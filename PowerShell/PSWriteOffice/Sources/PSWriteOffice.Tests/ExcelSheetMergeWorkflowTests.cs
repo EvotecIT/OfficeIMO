@@ -10,17 +10,17 @@ public sealed class ExcelSheetMergeWorkflowTests {
     [Fact]
     public void LiveSourcesUseTypedSelectorsAndTargetAddressWithoutTakingOwnership() {
         using var target = ExcelDocument.Create();
-        target.AddSheet("Other").CellValue(1, 1, "Keep other sheet");
+        target.AddSheet("Other").Cell(1, 1).SetValue("Keep other sheet");
         ExcelSheet combined = target.AddSheet("Combined");
-        combined.CellValue(4, 2, "Amount");
-        combined.CellValue(4, 3, "Region");
+        combined.Cell(4, 2).SetValue("Amount");
+        combined.Cell(4, 3).SetValue("Region");
         using var source = ExcelDocument.Create();
-        source.AddSheet("Other").CellValue(1, 1, "Do not import");
+        source.AddSheet("Other").Cell(1, 1).SetValue("Do not import");
         ExcelSheet incoming = source.AddSheet("Incoming");
-        incoming.CellValue(1, 1, "Region");
-        incoming.CellValue(1, 2, "Amount");
-        incoming.CellValue(2, 1, "APAC");
-        incoming.CellValue(2, 2, 150);
+        incoming.Cell(1, 1).SetValue("Region");
+        incoming.Cell(1, 2).SetValue("Amount");
+        incoming.Cell(2, 1).SetValue("APAC");
+        incoming.Cell(2, 2).SetValue(150);
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("book", target);
         runspace.SessionStateProxy.SetVariable("source", PSObject.AsPSObject(source));
@@ -31,16 +31,16 @@ public sealed class ExcelSheetMergeWorkflowTests {
         Assert.Equal("Combined", result.TargetSheetName);
         Assert.Equal("Incoming", result.SourceSheetName);
         Assert.Equal(1, result.RowsCopied);
-        Assert.Equal(150, combined.CellAt(5, 2).GetValue<int>());
-        Assert.Equal("APAC", combined.CellAt(5, 3).GetValue<string>());
-        Assert.Equal("Keep other sheet", target["Other"].CellAt(1, 1).GetValue<string>());
-        Assert.Equal("APAC", source["Incoming"].CellAt(2, 1).GetValue<string>());
+        Assert.Equal(150, combined.Cell(5, 2).GetValue<int>());
+        Assert.Equal("APAC", combined.Cell(5, 3).GetValue<string>());
+        Assert.Equal("Keep other sheet", target["Other"].Cell(1, 1).GetValue<string>());
+        Assert.Equal("APAC", source["Incoming"].Cell(2, 1).GetValue<string>());
         using var saved = new MemoryStream();
         target.Save(saved);
         saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        Assert.Equal(150, reopened["Combined"].CellAt(5, 2).GetValue<int>());
-        Assert.Equal("APAC", reopened["Combined"].CellAt(5, 3).GetValue<string>());
+        Assert.Equal(150, reopened["Combined"].Cell(5, 2).GetValue<int>());
+        Assert.Equal("APAC", reopened["Combined"].Cell(5, 3).GetValue<string>());
     }
 
     [Theory]
@@ -55,14 +55,14 @@ public sealed class ExcelSheetMergeWorkflowTests {
             string sourcePath = Path.Combine(root, "source[1].xlsx");
             using (var target = ExcelDocument.Create()) {
                 var data = target.AddSheet("Data");
-                data.CellValue(1, 1, "Region");
-                data.CellValue(2, 1, "Keep");
+                data.Cell(1, 1).SetValue("Region");
+                data.Cell(2, 1).SetValue("Keep");
                 target.Save(targetPath);
             }
             using (var source = ExcelDocument.Create()) {
                 var data = source.AddSheet("Incoming");
-                data.CellValue(1, 1, "Region");
-                data.CellValue(2, 1, "APAC");
+                data.Cell(1, 1).SetValue("Region");
+                data.Cell(2, 1).SetValue("APAC");
                 source.Save(sourcePath);
             }
             byte[] targetBefore = File.ReadAllBytes(targetPath);
@@ -81,8 +81,8 @@ public sealed class ExcelSheetMergeWorkflowTests {
                 Assert.Single(Invoke(runspace, command + arguments + " -Confirm:$false")).BaseObject);
             Assert.Equal(1, result.RowsCopied);
             using var merged = ExcelDocument.Load(targetPath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("Keep", merged["Data"].CellAt(2, 1).GetValue<string>());
-            Assert.Equal("APAC", merged["Data"].CellAt(3, 1).GetValue<string>());
+            Assert.Equal("Keep", merged["Data"].Cell(2, 1).GetValue<string>());
+            Assert.Equal("APAC", merged["Data"].Cell(3, 1).GetValue<string>());
             Assert.Equal(sourceBefore, File.ReadAllBytes(sourcePath));
         } finally { Directory.Delete(root, recursive: true); }
     }
@@ -91,10 +91,10 @@ public sealed class ExcelSheetMergeWorkflowTests {
     public void SourceSelectorMustBelongToTheChosenSourceWorkbook() {
         using var target = ExcelDocument.Create();
         var targetSheet = target.AddSheet("Data");
-        targetSheet.CellValue(1, 1, "Region");
-        targetSheet.CellValue(2, 1, "Keep");
+        targetSheet.Cell(1, 1).SetValue("Region");
+        targetSheet.Cell(2, 1).SetValue("Keep");
         using var source = ExcelDocument.Create();
-        source.AddSheet("Data").CellValue(1, 1, "Wrong source");
+        source.AddSheet("Data").Cell(1, 1).SetValue("Wrong source");
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("book", target);
         runspace.SessionStateProxy.SetVariable("source", source);
@@ -104,9 +104,9 @@ public sealed class ExcelSheetMergeWorkflowTests {
         shell.AddScript("Merge-OfficeExcelSheet -Document $book -Sheet Data -Source $source -SourceSheet $foreign -Confirm:$false");
         Exception? error = Record.Exception(() => shell.Invoke());
         Assert.True(error != null || shell.HadErrors);
-        Assert.Equal("Keep", targetSheet.CellAt(2, 1).GetValue<string>());
-        Assert.Null(targetSheet.CellAt(3, 1).GetValue<string>());
-        Assert.Equal("Wrong source", source["Data"].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Keep", targetSheet.Cell(2, 1).GetValue<string>());
+        Assert.Null(targetSheet.Cell(3, 1).GetValue<string>());
+        Assert.Equal("Wrong source", source["Data"].Cell(1, 1).GetValue<string>());
     }
 
     private static Runspace Open() {

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests
                 "ABC10",
                 (_, _) => ExcelFormulaValue.FromNumber(1));
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellFormula(1, 1, "LOG10 (A1)+ABC10 (A1)");
+            sheet.Cell(1, 1).SetFormula("LOG10 (A1)+ABC10 (A1)");
 
             sheet.InsertRows(5);
 
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_RewritesAndPreflightsFormulaConditionalThresholds() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 ExcelSheet data = document.AddSheet("Data");
-                data.CellAt(5, 1).SetValue(1);
+                data.Cell(5, 1).SetValue(1);
                 ConditionalFormatValueObject threshold = AppendFormulaThreshold(
                     data,
                     "C5:C6",
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 ExcelSheet data = document.AddSheet("Data");
                 ExcelSheet summary = document.AddSheet("Summary");
-                data.CellAt(5, 1).SetValue(1);
+                data.Cell(5, 1).SetValue(1);
                 ConditionalFormatValueObject threshold = AppendFormulaThreshold(
                     summary,
                     "C2:C3",
@@ -167,12 +167,12 @@ namespace OfficeIMO.Tests
         private static ExcelSheet CreatePivotSheet(ExcelDocument document)
         {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Region");
-            sheet.CellAt(1, 2).SetValue("Sales");
-            sheet.CellAt(2, 1).SetValue("East");
-            sheet.CellAt(2, 2).SetValue(10);
-            sheet.CellAt(3, 1).SetValue("West");
-            sheet.CellAt(3, 2).SetValue(20);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("West");
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddPivotTable("A1:B3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             return sheet;
         }

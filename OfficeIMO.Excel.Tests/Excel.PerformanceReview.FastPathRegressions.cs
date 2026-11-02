@@ -21,12 +21,12 @@ namespace OfficeIMO.Tests {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var sheet = document.AddSheet("Formula");
-                sheet.CellValue(2, 1, "Id");
-                sheet.CellValue(2, 2, "Active");
-                sheet.CellValue(2, 3, "Expression");
-                sheet.CellFormula(3, 1, "1");
-                sheet.CellFormula(3, 2, "TRUE");
-                sheet.CellFormula(3, 3, "TRUE");
+                sheet.Cell(2, 1).SetValue("Id");
+                sheet.Cell(2, 2).SetValue("Active");
+                sheet.Cell(2, 3).SetValue("Expression");
+                sheet.Cell(3, 1).SetFormula("1");
+                sheet.Cell(3, 2).SetFormula("TRUE");
+                sheet.Cell(3, 3).SetFormula("TRUE");
             }
 
             using var reader = ExcelDocumentReader.Open(memory.ToArray(), new ExcelReaderOptions {
@@ -49,15 +49,15 @@ namespace OfficeIMO.Tests {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Id");
-                sheet.CellValue(1, 2, "Created");
-                sheet.CellValue(1, 3, "Active");
-                sheet.CellValue(1, 4, "Note");
-                sheet.CellValue(2, 1, 42);
-                sheet.CellValue(2, 2, expectedDate);
-                sheet.CellValue(2, 3, true);
-                sheet.CellValue(2, 4, "Complete");
-                sheet.CellValue(3, 4, "Missing typed values");
+                sheet.Cell(1, 1).SetValue("Id");
+                sheet.Cell(1, 2).SetValue("Created");
+                sheet.Cell(1, 3).SetValue("Active");
+                sheet.Cell(1, 4).SetValue("Note");
+                sheet.Cell(2, 1).SetValue(42);
+                sheet.Cell(2, 2).SetValue(expectedDate);
+                sheet.Cell(2, 3).SetValue(true);
+                sheet.Cell(2, 4).SetValue("Complete");
+                sheet.Cell(3, 4).SetValue("Missing typed values");
             }
 
             byte[] utf16WorksheetPackage = RewriteFirstWorksheetAsUtf16(memory.ToArray());

@@ -20,30 +20,27 @@ namespace OfficeIMO.Tests
                 ExcelSheet data = document.AddSheet("Data");
                 ExcelSheet summary = document.AddSheet("Summary");
 
-                data.CellAt(1, 1).SetValue("Value");
-                data.CellAt(1, 2).SetValue("Link");
-                data.CellAt(2, 1).SetValue(10);
-                data.CellAt(2, 2).SetValue("First");
-                data.CellAt(3, 1).SetValue(20);
-                data.CellAt(3, 2).SetValue("Second");
-                data.CellFormula(
-                    1,
-                    5,
-                    "SUM(A2:A3)+$A$3+SUM(2:3)+SUM(A3:A2)+SUM(3:2)+SUM(Data!A2:Data!A3)+SUM(Data!2:Data!3)");
+                data.Cell(1, 1).SetValue("Value");
+                data.Cell(1, 2).SetValue("Link");
+                data.Cell(2, 1).SetValue(10);
+                data.Cell(2, 2).SetValue("First");
+                data.Cell(3, 1).SetValue(20);
+                data.Cell(3, 2).SetValue("Second");
+                data.Cell(1, 5).SetFormula("SUM(A2:A3)+$A$3+SUM(2:3)+SUM(A3:A2)+SUM(3:2)+SUM(Data!A2:Data!A3)+SUM(Data!2:Data!3)");
                 data.SetArrayFormula("C2:C3", "A2:A3*2");
                 data.AddTable("A1:B3", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 data.SetNamedRange("LocalData", "A2:A3", save: false);
                 summary.SetNamedRange("SummaryLocal", "A2:A3", save: false);
                 document.SetNamedRange("GlobalData", "'Data'!A2:A3", save: false);
                 document.SetPrintTitles(data, firstRow: 2, lastRow: 3, firstCol: null, lastCol: null, save: false);
-                summary.CellFormula(1, 1, "'Data'!A3+A3");
+                summary.Cell(1, 1).SetFormula("'Data'!A3+A3");
                 summary.SetInternalLink(2, 1, data, "A3", display: "Second value");
                 data.Range("A2:A3").Validation.CustomFormula("A2>0");
                 data.AddConditionalFormulaRule("B2:B3", "A2>0");
                 data.SetComment(3, 1, "Second value");
                 data.AddThreadedComment("A3", "Threaded second value");
                 data.SetHyperlink(3, 2, "https://example.org", display: "Second");
-                data.MergeRange("D2:D3");
+                data.Range("D2:D3").Merge();
                 data.AutoFilterAdd("F1:G3");
                 data.AddManualRowPageBreak(3);
                 data.AddSparklines("A2:B2", "H2");
@@ -116,15 +113,12 @@ namespace OfficeIMO.Tests
                 ExcelSheet data = document.AddSheet("Data");
                 ExcelSheet summary = document.AddSheet("Summary");
                 for (int row = 1; row <= 5; row++) {
-                    data.CellAt(row, 1).SetValue(row);
+                    data.Cell(row, 1).SetValue(row);
                 }
 
-                data.CellFormula(
-                    1,
-                    5,
-                    "SUM(A2:A5)+A3+A5+SUM(2:5)+SUM(3:4)+SUM(A5:A2)+SUM(5:2)+SUM(Data!A2:Data!A5)+SUM(Data!2:Data!5)");
+                data.Cell(1, 5).SetFormula("SUM(A2:A5)+A3+A5+SUM(2:5)+SUM(3:4)+SUM(A5:A2)+SUM(5:2)+SUM(Data!A2:Data!A5)+SUM(Data!2:Data!5)");
                 data.SetArrayFormula("C2:C5", "A2:A5*2");
-                summary.CellFormula(1, 1, "'Data'!A2:A5+'Data'!A3+A3");
+                summary.Cell(1, 1).SetFormula("'Data'!A2:A5+'Data'!A3+A3");
 
                 data.DeleteRows(3, 2);
                 document.Save();
@@ -156,14 +150,14 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet data = document.AddSheet("Data");
-                data.CellAt(1, 1).SetValue("Region");
-                data.CellAt(1, 2).SetValue("Sales");
-                data.CellAt(2, 1).SetValue("East");
-                data.CellAt(2, 2).SetValue(10);
-                data.CellAt(3, 1).SetValue("West");
-                data.CellAt(3, 2).SetValue(20);
-                data.CellAt(4, 1).SetValue("East");
-                data.CellAt(4, 2).SetValue(30);
+                data.Cell(1, 1).SetValue("Region");
+                data.Cell(1, 2).SetValue("Sales");
+                data.Cell(2, 1).SetValue("East");
+                data.Cell(2, 2).SetValue(10);
+                data.Cell(3, 1).SetValue("West");
+                data.Cell(3, 2).SetValue(20);
+                data.Cell(4, 1).SetValue("East");
+                data.Cell(4, 2).SetValue(30);
                 data.AddPivotTable("A1:B4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 data.InsertRows(2);
                 document.Save();
@@ -189,12 +183,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet data = document.AddSheet("Data");
-                data.CellAt(1, 1).SetValue("Category");
-                data.CellAt(1, 2).SetValue("Value");
-                data.CellAt(2, 1).SetValue("First");
-                data.CellAt(2, 2).SetValue(10);
-                data.CellAt(3, 1).SetValue("Second");
-                data.CellAt(3, 2).SetValue(20);
+                data.Cell(1, 1).SetValue("Category");
+                data.Cell(1, 2).SetValue("Value");
+                data.Cell(2, 1).SetValue("First");
+                data.Cell(2, 2).SetValue(10);
+                data.Cell(3, 1).SetValue("Second");
+                data.Cell(3, 2).SetValue(20);
                 data.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Title = "Values" });
 
                 ChartPart chartPart = data.WorksheetPart.DrawingsPart!.ChartParts.Single();
@@ -234,7 +228,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet data = document.AddSheet("Data");
                 for (int row = 2; row <= 4; row++) {
-                    data.CellAt(row, 1).SetValue(row);
+                    data.Cell(row, 1).SetValue(row);
                 }
 
                 SheetData sheetData = data.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -287,8 +281,8 @@ namespace OfficeIMO.Tests
                 ExcelSheet data = document.AddSheet("Data");
                 ExcelSheet summary = document.AddSheet("Summary");
                 for (int row = 2; row <= 4; row++) {
-                    data.CellAt(row, 1).SetValue(row);
-                    summary.CellAt(row, 1).SetValue(row);
+                    data.Cell(row, 1).SetValue(row);
+                    summary.Cell(row, 1).SetValue(row);
                 }
 
                 SheetData sheetData = summary.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -308,10 +302,7 @@ namespace OfficeIMO.Tests
                             }
                     });
                 }
-                summary.CellFormula(
-                    1,
-                    4,
-                    "[Other.xlsx]Data!A3+'[Other.xlsx]Data'!A3+Data:Other!A3+Other:Data!A3+'Data'!A3");
+                summary.Cell(1, 4).SetFormula("[Other.xlsx]Data!A3+'[Other.xlsx]Data'!A3+Data:Other!A3+Other:Data!A3+'Data'!A3");
 
                 data.InsertRows(3);
                 document.Save();
@@ -335,8 +326,8 @@ namespace OfficeIMO.Tests
         public void Test_InsertRows_RejectsSharedFormulaFollowerOverflowBeforeMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue(1);
-            sheet.CellAt(2, 1).SetValue(2);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             Row firstRow = sheetData.Elements<Row>().Single(row => row.RowIndex?.Value == 1U);
             Row secondRow = sheetData.Elements<Row>().Single(row => row.RowIndex?.Value == 2U);
@@ -368,11 +359,11 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Keep");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("Item");
-            sheet.CellAt(2, 2).SetValue(1);
-            sheet.CellFormula(1, 10, $"A{ExcelA1.MaxRows}");
+            sheet.Cell(1, 1).SetValue("Keep");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Item");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.Cell(1, 10).SetFormula($"A{ExcelA1.MaxRows}");
             document.SetNamedRange("Bottom", $"'Data'!A{ExcelA1.MaxRows}", save: false);
             sheet.Range("C1").Validation.CustomFormula($"A{ExcelA1.MaxRows}>0");
             DataValidation validation = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DataValidation>());
@@ -386,7 +377,7 @@ namespace OfficeIMO.Tests
             sheet.AddSparklines("A1:B1", "D1");
             DocumentFormat.OpenXml.Office2010.Excel.Sparkline sparkline = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>());
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
-            sheet.CellFormula(1, 10, "A1");
+            sheet.Cell(1, 10).SetFormula("A1");
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
             document.SetNamedRange("Bottom", "'Data'!A1", save: false);
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
@@ -404,7 +395,7 @@ namespace OfficeIMO.Tests
             sparkline.ReferenceSequence.Text = "D1";
             sheet.AddManualRowPageBreak(ExcelA1.MaxRows);
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
-            Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(1, 1).GetValue<string>());
             Assert.Equal((uint)ExcelA1.MaxRows, Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<RowBreaks>()!.Elements<Break>()).Id!.Value);
         }
 
@@ -413,12 +404,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Region");
-            sheet.CellAt(1, 2).SetValue("Sales");
-            sheet.CellAt(2, 1).SetValue("East");
-            sheet.CellAt(2, 2).SetValue(10);
-            sheet.CellAt(3, 1).SetValue("West");
-            sheet.CellAt(3, 2).SetValue(20);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("West");
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddPivotTable("A1:B3", "E5", options: new ExcelPivotTableOptions { RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(6));
             Assert.Throws<InvalidOperationException>(() => sheet.DeleteRows(5));
@@ -431,11 +422,11 @@ namespace OfficeIMO.Tests
 
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(1, 2).SetValue("Result");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 2).SetValue("Result");
             for (int row = 2; row <= 4; row++) {
-                sheet.CellAt(row, 1).SetValue(row);
-                sheet.CellAt(row, 2).SetValue(row * 2);
+                sheet.Cell(row, 1).SetValue(row);
+                sheet.Cell(row, 2).SetValue(row * 2);
             }
 
             sheet.SetArrayFormula("C2:C4", "A2:A4*2");
@@ -448,7 +439,7 @@ namespace OfficeIMO.Tests
             Assert.Contains("array formula", insertArray.Message, System.StringComparison.OrdinalIgnoreCase);
             Assert.Contains("owner row", deleteArrayOwner.Message, System.StringComparison.OrdinalIgnoreCase);
             Assert.Contains("header row", deleteTableHeader.Message, System.StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(2, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(2, 1).GetValue<int>());
             Assert.Equal("A2:A4*2", sheet.GetFormulaText(2, 3));
             Assert.Equal("A1:B4", sheet.GetTableRange("OwnedData"));
         }
@@ -459,13 +450,13 @@ namespace OfficeIMO.Tests
 
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("Last");
+            sheet.Cell(ExcelA1.MaxRows, 1).SetValue("Last");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.InsertRows(0));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.InsertRows(1, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.DeleteRows(ExcelA1.MaxRows, 2));
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(ExcelA1.MaxRows));
-            Assert.Equal("Last", sheet.CellAt(ExcelA1.MaxRows, 1).GetValue<string>());
+            Assert.Equal("Last", sheet.Cell(ExcelA1.MaxRows, 1).GetValue<string>());
         }
 
         private static WorksheetPart GetStructuralWorksheetPart(SpreadsheetDocument spreadsheet, string sheetName) {

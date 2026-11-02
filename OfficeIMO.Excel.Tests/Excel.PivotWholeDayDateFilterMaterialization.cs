@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests
                 if (date1904)
                     document.DateSystem = ExcelDateSystem.NineteenFour;
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "OrderDate");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("OrderDate");
+                source.Cell(1, 2).SetValue("Sales");
                 double[] sales =
                 {
                     10d,
@@ -83,11 +83,11 @@ namespace OfficeIMO.Tests
                     int row = index + 2;
                     if (!blank || index != 1)
                     {
-                        source.CellValue(row, 1, keys[index]);
-                        source.CellAt(row, 1).DateTime("yyyy-mm-dd");
+                        source.Cell(row, 1).SetValue(keys[index]);
+                        source.Cell(row, 1).DateTime("yyyy-mm-dd");
                     }
 
-                    source.CellValue(row, 2, sales[index]);
+                    source.Cell(row, 2).SetValue(sales[index]);
                 }
 
                 ExcelPivotFilter filter = caseName switch

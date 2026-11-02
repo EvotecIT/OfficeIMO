@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
         /// Gets the worksheet print area range, or null when no print area is configured.
         /// </summary>
         public string? GetPrintArea() {
-            return _excelDocument.GetNamedRange("_xlnm.Print_Area", this);
+            return _excelDocument.GetNamedRangeText("_xlnm.Print_Area", this);
         }
 
         /// <summary>
@@ -216,7 +216,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelPrintTitles GetPrintTitles() {
             var titles = new ExcelPrintTitles();
-            string? definedName = _excelDocument.GetNamedRange("_xlnm.Print_Titles", this);
+            string? definedName = _excelDocument.GetNamedRangeText("_xlnm.Print_Titles", this);
             if (string.IsNullOrWhiteSpace(definedName)) {
                 return titles;
             }

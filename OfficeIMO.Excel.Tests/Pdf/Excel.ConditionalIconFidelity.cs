@@ -18,7 +18,7 @@ public sealed class ExcelConditionalIconFidelityTests {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Directions");
         for (int row = 1; row <= count; row++) {
-            sheet.CellValue(row, 1, row - 1);
+            sheet.Cell(row, 1).SetValue(row - 1);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
         sheet.AddConditionalIconSet("A1:A" + count, iconSet, showValue: false, reverseIconOrder: false,
@@ -65,8 +65,8 @@ public sealed class ExcelConditionalIconFidelityTests {
         sheet.SetPageSetup(scale: (uint)percent);
         int[] values = { 123, 456, 789 };
         for (int row = 1; row <= 3; row++) {
-            sheet.CellValue(row, 1, values[row - 1]);
-            sheet.CellAlign(row, 1, ExcelHorizontalAlignment.Left);
+            sheet.Cell(row, 1).SetValue(values[row - 1]);
+            sheet.Cell(row, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Left);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
         }
         sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeSymbols2, showValue, false,
@@ -123,9 +123,9 @@ public sealed class ExcelConditionalIconFidelityTests {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             ExcelSheet sheet = document.AddSheet("Custom");
-            sheet.CellValue(1, 1, -1);
-            sheet.CellValue(2, 1, 0);
-            sheet.CellValue(3, 1, 1);
+            sheet.Cell(1, 1).SetValue(-1);
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(1);
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Source = ExcelConditionalFormattingSource.Office2010Extension,
                 Range = "A1:A3", Type = "IconSet", IconSet = "ThreeSymbols2", IconSetCustom = true, IconSetShowValue = showValue, Priority = 1,

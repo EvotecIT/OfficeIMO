@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Precision");
-                sheet.CellFormula(1, 1, "1/7");
+                sheet.Cell(1, 1).SetFormula("1/7");
 
                 Assert.Equal(1, document.Calculate());
                 string cached = Assert.Single(sheet.InspectFormulas().Formulas).CachedValue!;
@@ -30,18 +30,18 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "EU");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "US");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(4, 1, "APAC");
-                sheet.CellValue(4, 2, 30d);
-                sheet.CellFormula(6, 1, "MATCH(\"US\",A2:A4,0)");
-                sheet.CellFormula(7, 1, "INDEX(B2:B4,MATCH(\"APAC\",A2:A4,0))");
-                sheet.CellFormula(8, 1, "INDEX(A2:B4,2,1)");
-                sheet.CellFormula(9, 1, "INDEX(A1:B1,2)");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("EU");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("US");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(4, 1).SetValue("APAC");
+                sheet.Cell(4, 2).SetValue(30d);
+                sheet.Cell(6, 1).SetFormula("MATCH(\"US\",A2:A4,0)");
+                sheet.Cell(7, 1).SetFormula("INDEX(B2:B4,MATCH(\"APAC\",A2:A4,0))");
+                sheet.Cell(8, 1).SetFormula("INDEX(A2:B4,2,1)");
+                sheet.Cell(9, 1).SetFormula("INDEX(A1:B1,2)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(4, before.TotalFormulas);
@@ -69,13 +69,13 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "EU");
-                sheet.CellValue(1, 2, "US");
-                sheet.CellValue(2, 1, 10d);
-                sheet.CellValue(2, 2, 20d);
-                sheet.CellFormula(4, 1, "INDEX(A1:B2,2)");
-                sheet.CellFormula(5, 1, "MATCH(\"US\",A1:B2,0)");
-                sheet.CellFormula(6, 1, "MATCH(\"ZZ\",A1:B1,1)");
+                sheet.Cell(1, 1).SetValue("EU");
+                sheet.Cell(1, 2).SetValue("US");
+                sheet.Cell(2, 1).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(20d);
+                sheet.Cell(4, 1).SetFormula("INDEX(A1:B2,2)");
+                sheet.Cell(5, 1).SetFormula("MATCH(\"US\",A1:B2,0)");
+                sheet.Cell(6, 1).SetFormula("MATCH(\"ZZ\",A1:B1,1)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
 
@@ -95,33 +95,33 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Lookup");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(2, 1, 20d);
-                sheet.CellValue(3, 1, 30d);
-                sheet.CellValue(4, 1, 40d);
-                sheet.CellValue(1, 2, "Low");
-                sheet.CellValue(2, 2, "Mid");
-                sheet.CellValue(3, 2, "High");
-                sheet.CellValue(4, 2, "Top");
-                sheet.CellValue(1, 3, "East");
-                sheet.CellValue(2, 3, "West");
-                sheet.CellValue(3, 3, "East");
-                sheet.CellValue(4, 3, "North");
-                sheet.CellValue(1, 4, 40d);
-                sheet.CellValue(2, 4, 30d);
-                sheet.CellValue(3, 4, 20d);
-                sheet.CellValue(4, 4, 10d);
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(2, 1).SetValue(20d);
+                sheet.Cell(3, 1).SetValue(30d);
+                sheet.Cell(4, 1).SetValue(40d);
+                sheet.Cell(1, 2).SetValue("Low");
+                sheet.Cell(2, 2).SetValue("Mid");
+                sheet.Cell(3, 2).SetValue("High");
+                sheet.Cell(4, 2).SetValue("Top");
+                sheet.Cell(1, 3).SetValue("East");
+                sheet.Cell(2, 3).SetValue("West");
+                sheet.Cell(3, 3).SetValue("East");
+                sheet.Cell(4, 3).SetValue("North");
+                sheet.Cell(1, 4).SetValue(40d);
+                sheet.Cell(2, 4).SetValue(30d);
+                sheet.Cell(3, 4).SetValue(20d);
+                sheet.Cell(4, 4).SetValue(10d);
 
-                sheet.CellFormula(1, 5, "MATCH(25,A1:A4,1)");
-                sheet.CellFormula(2, 5, "MATCH(25,D1:D4,-1)");
-                sheet.CellFormula(3, 5, "MATCH(30,A1:A4)");
-                sheet.CellFormula(4, 5, "XMATCH(\"East\",C1:C4,0,-1)");
-                sheet.CellFormula(5, 5, "XMATCH(25,A1:A4,-1)");
-                sheet.CellFormula(6, 5, "XMATCH(25,A1:A4,1)");
-                sheet.CellFormula(7, 5, "XLOOKUP(25,A1:A4,B1:B4,\"Missing\",-1)");
-                sheet.CellFormula(8, 5, "XLOOKUP(25,A1:A4,B1:B4,\"Missing\",1)");
-                sheet.CellFormula(9, 5, "XMATCH(25,A1:A4,2)");
-                sheet.CellFormula(10, 5, "MATCH(25,A1:B4,1)");
+                sheet.Cell(1, 5).SetFormula("MATCH(25,A1:A4,1)");
+                sheet.Cell(2, 5).SetFormula("MATCH(25,D1:D4,-1)");
+                sheet.Cell(3, 5).SetFormula("MATCH(30,A1:A4)");
+                sheet.Cell(4, 5).SetFormula("XMATCH(\"East\",C1:C4,0,-1)");
+                sheet.Cell(5, 5).SetFormula("XMATCH(25,A1:A4,-1)");
+                sheet.Cell(6, 5).SetFormula("XMATCH(25,A1:A4,1)");
+                sheet.Cell(7, 5).SetFormula("XLOOKUP(25,A1:A4,B1:B4,\"Missing\",-1)");
+                sheet.Cell(8, 5).SetFormula("XLOOKUP(25,A1:A4,B1:B4,\"Missing\",1)");
+                sheet.Cell(9, 5).SetFormula("XMATCH(25,A1:A4,2)");
+                sheet.Cell(10, 5).SetFormula("MATCH(25,A1:B4,1)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
@@ -157,37 +157,37 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Quarter");
-                sheet.CellValue(1, 3, "Amount");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, "Q1");
-                sheet.CellValue(2, 3, 10d);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, "Q1");
-                sheet.CellValue(3, 3, 15d);
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, "Q2");
-                sheet.CellValue(4, 3, 20d);
-                sheet.CellValue(5, 1, "East");
-                sheet.CellValue(5, 2, "Q1");
-                sheet.CellValue(5, 3, 30d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Quarter");
+                sheet.Cell(1, 3).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue("Q1");
+                sheet.Cell(2, 3).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue("Q1");
+                sheet.Cell(3, 3).SetValue(15d);
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue("Q2");
+                sheet.Cell(4, 3).SetValue(20d);
+                sheet.Cell(5, 1).SetValue("East");
+                sheet.Cell(5, 2).SetValue("Q1");
+                sheet.Cell(5, 3).SetValue(30d);
 
-                sheet.CellValue(1, 5, "East");
-                sheet.CellValue(2, 5, "Q1");
-                sheet.CellValue(3, 5, ">15");
+                sheet.Cell(1, 5).SetValue("East");
+                sheet.Cell(2, 5).SetValue("Q1");
+                sheet.Cell(3, 5).SetValue(">15");
 
-                sheet.CellFormula(1, 6, "COUNTIF(A2:A5,E1)");
-                sheet.CellFormula(2, 6, "SUMIF(A2:A5,E1,C2:C5)");
-                sheet.CellFormula(3, 6, "AVERAGEIF(A2:A5,E1,C2:C5)");
-                sheet.CellFormula(4, 6, "COUNTIFS(A2:A5,E1,B2:B5,E2)");
-                sheet.CellFormula(5, 6, "SUMIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
-                sheet.CellFormula(6, 6, "AVERAGEIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
-                sheet.CellFormula(7, 6, "SUMIFS(C2:C5,A2:A5,E1,C2:C5,E3)");
-                sheet.CellFormula(8, 6, "COUNTIF(A2:A5,\"E*\")");
-                sheet.CellFormula(9, 6, "MINIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
-                sheet.CellFormula(10, 6, "MAXIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
-                sheet.CellFormula(11, 6, "MINIFS(C2:C5,A2:A5,\"North\")");
+                sheet.Cell(1, 6).SetFormula("COUNTIF(A2:A5,E1)");
+                sheet.Cell(2, 6).SetFormula("SUMIF(A2:A5,E1,C2:C5)");
+                sheet.Cell(3, 6).SetFormula("AVERAGEIF(A2:A5,E1,C2:C5)");
+                sheet.Cell(4, 6).SetFormula("COUNTIFS(A2:A5,E1,B2:B5,E2)");
+                sheet.Cell(5, 6).SetFormula("SUMIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
+                sheet.Cell(6, 6).SetFormula("AVERAGEIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
+                sheet.Cell(7, 6).SetFormula("SUMIFS(C2:C5,A2:A5,E1,C2:C5,E3)");
+                sheet.Cell(8, 6).SetFormula("COUNTIF(A2:A5,\"E*\")");
+                sheet.Cell(9, 6).SetFormula("MINIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
+                sheet.Cell(10, 6).SetFormula("MAXIFS(C2:C5,A2:A5,E1,B2:B5,E2)");
+                sheet.Cell(11, 6).SetFormula("MINIFS(C2:C5,A2:A5,\"North\")");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(11, before.TotalFormulas);
@@ -225,23 +225,23 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(1, 3, "Owner");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(2, 3, "Alice");
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(3, 3, "Bob");
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, 30d);
-                sheet.CellValue(4, 3, "Ann");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(1, 3).SetValue("Owner");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(2, 3).SetValue("Alice");
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(3, 3).SetValue("Bob");
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue(30d);
+                sheet.Cell(4, 3).SetValue("Ann");
 
-                sheet.CellFormula(1, 5, "XLOOKUP(\"West\",A2:A4,B2:B4,\"Missing\",0)");
-                sheet.CellFormula(2, 5, "XLOOKUP(\"North\",A2:A4,C2:C4,\"Missing\",0)");
-                sheet.CellFormula(3, 5, "XLOOKUP(\"East\",A2:A4,C2:C4,\"Missing\",0,-1)");
-                sheet.CellFormula(4, 5, "XLOOKUP(\"North\",A2:A4,B2:B4,0,0)");
+                sheet.Cell(1, 5).SetFormula("XLOOKUP(\"West\",A2:A4,B2:B4,\"Missing\",0)");
+                sheet.Cell(2, 5).SetFormula("XLOOKUP(\"North\",A2:A4,C2:C4,\"Missing\",0)");
+                sheet.Cell(3, 5).SetFormula("XLOOKUP(\"East\",A2:A4,C2:C4,\"Missing\",0,-1)");
+                sheet.Cell(4, 5).SetFormula("XLOOKUP(\"North\",A2:A4,B2:B4,0,0)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(4, before.TotalFormulas);
@@ -267,25 +267,25 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(1, 3, "Owner");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(2, 3, "Alice");
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(3, 3, "Bob");
-                sheet.CellValue(4, 1, "East");
-                sheet.CellValue(4, 2, 30d);
-                sheet.CellValue(4, 3, "Ann");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(1, 3).SetValue("Owner");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(2, 3).SetValue("Alice");
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(3, 3).SetValue("Bob");
+                sheet.Cell(4, 1).SetValue("East");
+                sheet.Cell(4, 2).SetValue(30d);
+                sheet.Cell(4, 3).SetValue("Ann");
 
-                sheet.CellFormula(1, 5, "IF(A2=\"East\",\"Priority\",\"Standard\")");
-                sheet.CellFormula(2, 5, "IF(A3<>\"East\",\"Other\",\"Priority\")");
-                sheet.CellFormula(3, 5, "IF(B2>15,\"High\",\"Low\")");
-                sheet.CellFormula(4, 5, "IFERROR(XLOOKUP(\"North\",A2:A4,C2:C4),\"Missing\")");
-                sheet.CellFormula(5, 5, "IFERROR(XLOOKUP(\"West\",A2:A4,C2:C4),\"Missing\")");
-                sheet.CellFormula(6, 5, "IF(A2=A4,\"Same\",\"Different\")");
+                sheet.Cell(1, 5).SetFormula("IF(A2=\"East\",\"Priority\",\"Standard\")");
+                sheet.Cell(2, 5).SetFormula("IF(A3<>\"East\",\"Other\",\"Priority\")");
+                sheet.Cell(3, 5).SetFormula("IF(B2>15,\"High\",\"Low\")");
+                sheet.Cell(4, 5).SetFormula("IFERROR(XLOOKUP(\"North\",A2:A4,C2:C4),\"Missing\")");
+                sheet.Cell(5, 5).SetFormula("IFERROR(XLOOKUP(\"West\",A2:A4,C2:C4),\"Missing\")");
+                sheet.Cell(6, 5).SetFormula("IF(A2=A4,\"Same\",\"Different\")");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(6, before.TotalFormulas);
@@ -313,16 +313,16 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Summary");
-                sheet.CellValue(1, 1, "East");
-                sheet.CellValue(1, 2, 1234.5d);
-                sheet.CellValue(1, 3, 0.257d);
+                sheet.Cell(1, 1).SetValue("East");
+                sheet.Cell(1, 2).SetValue(1234.5d);
+                sheet.Cell(1, 3).SetValue(0.257d);
 
-                sheet.CellFormula(1, 5, "TEXT(B1,\"#,##0.00\")");
-                sheet.CellFormula(2, 5, "TEXT(C1,\"0.0%\")");
-                sheet.CellFormula(3, 5, "TEXT(DATE(2026,5,28),\"yyyy-mm-dd\")");
-                sheet.CellFormula(4, 5, "TEXT(DATE(2026,5,28),\"mmm yyyy\")");
-                sheet.CellFormula(5, 5, "TEXT(TIME(9,5,0),\"hh:mm\")");
-                sheet.CellFormula(6, 5, "TEXT(A1,\"@\")");
+                sheet.Cell(1, 5).SetFormula("TEXT(B1,\"#,##0.00\")");
+                sheet.Cell(2, 5).SetFormula("TEXT(C1,\"0.0%\")");
+                sheet.Cell(3, 5).SetFormula("TEXT(DATE(2026,5,28),\"yyyy-mm-dd\")");
+                sheet.Cell(4, 5).SetFormula("TEXT(DATE(2026,5,28),\"mmm yyyy\")");
+                sheet.Cell(5, 5).SetFormula("TEXT(TIME(9,5,0),\"hh:mm\")");
+                sheet.Cell(6, 5).SetFormula("TEXT(A1,\"@\")");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(6, before.TotalFormulas);
@@ -351,16 +351,16 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Labels");
-                sheet.CellValue(1, 1, "north region");
-                sheet.CellValue(2, 1, "Q1-sales review");
-                sheet.CellValue(3, 1, "  MIXED   spacing  ");
+                sheet.Cell(1, 1).SetValue("north region");
+                sheet.Cell(2, 1).SetValue("Q1-sales review");
+                sheet.Cell(3, 1).SetValue("  MIXED   spacing  ");
 
-                sheet.CellFormula(1, 3, "UPPER(A1)");
-                sheet.CellFormula(2, 3, "LOWER(\"READY\")");
-                sheet.CellFormula(3, 3, "PROPER(A2)");
-                sheet.CellFormula(4, 3, "PROPER(TRIM(A3))");
-                sheet.CellFormula(5, 3, "CONCAT(UPPER(LEFT(A1,1)),RIGHT(A1,5))");
-                sheet.CellFormula(6, 3, "PROPER(A1,A2)");
+                sheet.Cell(1, 3).SetFormula("UPPER(A1)");
+                sheet.Cell(2, 3).SetFormula("LOWER(\"READY\")");
+                sheet.Cell(3, 3).SetFormula("PROPER(A2)");
+                sheet.Cell(4, 3).SetFormula("PROPER(TRIM(A3))");
+                sheet.Cell(5, 3).SetFormula("CONCAT(UPPER(LEFT(A1,1)),RIGHT(A1,5))");
+                sheet.Cell(6, 3).SetFormula("PROPER(A1,A2)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(6, before.TotalFormulas);
@@ -391,17 +391,17 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Labels");
-                sheet.CellValue(1, 1, "North - Q1 - Draft");
-                sheet.CellValue(2, 1, "1,234.50");
-                sheet.CellValue(3, 1, "west region");
+                sheet.Cell(1, 1).SetValue("North - Q1 - Draft");
+                sheet.Cell(2, 1).SetValue("1,234.50");
+                sheet.Cell(3, 1).SetValue("west region");
 
-                sheet.CellFormula(1, 3, "SUBSTITUTE(A1,\" - \",\" / \")");
-                sheet.CellFormula(2, 3, "SUBSTITUTE(A1,\" - \",\" | \",2)");
-                sheet.CellFormula(3, 3, "FIND(\"Q1\",A1)");
-                sheet.CellFormula(4, 3, "SEARCH(\"REGION\",A3)");
-                sheet.CellFormula(5, 3, "VALUE(A2)");
-                sheet.CellFormula(6, 3, "CONCATENATE(LEFT(A3,4),\":\",VALUE(\"42\"))");
-                sheet.CellFormula(7, 3, "VALUE(SUBSTITUTE(\"$1,234\",\"$\",\"\"))");
+                sheet.Cell(1, 3).SetFormula("SUBSTITUTE(A1,\" - \",\" / \")");
+                sheet.Cell(2, 3).SetFormula("SUBSTITUTE(A1,\" - \",\" | \",2)");
+                sheet.Cell(3, 3).SetFormula("FIND(\"Q1\",A1)");
+                sheet.Cell(4, 3).SetFormula("SEARCH(\"REGION\",A3)");
+                sheet.Cell(5, 3).SetFormula("VALUE(A2)");
+                sheet.Cell(6, 3).SetFormula("CONCATENATE(LEFT(A3,4),\":\",VALUE(\"42\"))");
+                sheet.Cell(7, 3).SetFormula("VALUE(SUBSTITUTE(\"$1,234\",\"$\",\"\"))");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(7, before.TotalFormulas);
@@ -435,23 +435,23 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Labels");
-                sheet.CellValue(1, 1, "North - Q1 - Draft");
-                sheet.CellValue(2, 1, "Region=West|Status=Open");
-                sheet.CellValue(3, 1, "alpha-BETA-gamma");
+                sheet.Cell(1, 1).SetValue("North - Q1 - Draft");
+                sheet.Cell(2, 1).SetValue("Region=West|Status=Open");
+                sheet.Cell(3, 1).SetValue("alpha-BETA-gamma");
 
-                sheet.CellFormula(1, 3, "TEXTBEFORE(A1,\" - \")");
-                sheet.CellFormula(2, 3, "TEXTAFTER(A1,\" - \")");
-                sheet.CellFormula(3, 3, "TEXTBEFORE(A1,\" - \",2)");
-                sheet.CellFormula(4, 3, "TEXTAFTER(A1,\" - \",2)");
-                sheet.CellFormula(5, 3, "TEXTBEFORE(A1,\" - \",-1)");
-                sheet.CellFormula(6, 3, "TEXTAFTER(A1,\" - \",-1)");
-                sheet.CellFormula(7, 3, "TEXTBEFORE(A3,\"beta\",1,1)");
-                sheet.CellFormula(8, 3, "TEXTAFTER(A3,\"beta\",1,1)");
-                sheet.CellFormula(9, 3, "TEXTBEFORE(A2,\";\",1,0,FALSE,\"Missing\")");
-                sheet.CellFormula(10, 3, "TEXTBEFORE(A2,\";\",1,0,TRUE)");
-                sheet.CellFormula(11, 3, "TEXTAFTER(A2,\";\",1,0,FALSE,\"Missing\")");
-                sheet.CellFormula(12, 3, "TEXTBEFORE(A1,\"\")");
-                sheet.CellFormula(13, 3, "TEXTAFTER(A1,\" - \",0)");
+                sheet.Cell(1, 3).SetFormula("TEXTBEFORE(A1,\" - \")");
+                sheet.Cell(2, 3).SetFormula("TEXTAFTER(A1,\" - \")");
+                sheet.Cell(3, 3).SetFormula("TEXTBEFORE(A1,\" - \",2)");
+                sheet.Cell(4, 3).SetFormula("TEXTAFTER(A1,\" - \",2)");
+                sheet.Cell(5, 3).SetFormula("TEXTBEFORE(A1,\" - \",-1)");
+                sheet.Cell(6, 3).SetFormula("TEXTAFTER(A1,\" - \",-1)");
+                sheet.Cell(7, 3).SetFormula("TEXTBEFORE(A3,\"beta\",1,1)");
+                sheet.Cell(8, 3).SetFormula("TEXTAFTER(A3,\"beta\",1,1)");
+                sheet.Cell(9, 3).SetFormula("TEXTBEFORE(A2,\";\",1,0,FALSE,\"Missing\")");
+                sheet.Cell(10, 3).SetFormula("TEXTBEFORE(A2,\";\",1,0,TRUE)");
+                sheet.Cell(11, 3).SetFormula("TEXTAFTER(A2,\";\",1,0,FALSE,\"Missing\")");
+                sheet.Cell(12, 3).SetFormula("TEXTBEFORE(A1,\"\")");
+                sheet.Cell(13, 3).SetFormula("TEXTAFTER(A1,\" - \",0)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(13, before.TotalFormulas);
@@ -488,27 +488,27 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, 1d);
-                sheet.CellValue(2, 1, 2d);
-                sheet.CellValue(3, 1, 3d);
-                sheet.CellValue(1, 2, 10d);
-                sheet.CellValue(2, 2, 20d);
-                sheet.CellValue(3, 2, 30d);
-                sheet.CellValue(1, 3, "North");
-                sheet.CellValue(2, 3, string.Empty);
-                sheet.CellValue(3, 3, "West");
-                sheet.CellValue(4, 3, "East");
+                sheet.Cell(1, 1).SetValue(1d);
+                sheet.Cell(2, 1).SetValue(2d);
+                sheet.Cell(3, 1).SetValue(3d);
+                sheet.Cell(1, 2).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(20d);
+                sheet.Cell(3, 2).SetValue(30d);
+                sheet.Cell(1, 3).SetValue("North");
+                sheet.Cell(2, 3).SetValue(string.Empty);
+                sheet.Cell(3, 3).SetValue("West");
+                sheet.Cell(4, 3).SetValue("East");
 
-                sheet.CellFormula(1, 5, "TEXTJOIN(\"/\",TRUE,C1:C4)");
-                sheet.CellFormula(2, 5, "TEXTJOIN(\"-\",FALSE,C1:C3)");
-                sheet.CellFormula(3, 5, "EXACT(C1,\"North\")");
-                sheet.CellFormula(4, 5, "EXACT(C1,\"north\")");
-                sheet.CellFormula(5, 5, "REPT(\"*\",3)");
-                sheet.CellFormula(6, 5, "CONCAT(REPT(\"0\",2),TEXT(A1,\"0\"))");
-                sheet.CellFormula(7, 5, "SUMPRODUCT(A1:A3,B1:B3)");
-                sheet.CellFormula(8, 5, "SUMPRODUCT(A1:A3)");
-                sheet.CellFormula(9, 5, "SUMPRODUCT(A1:A3,B1:B2)");
-                sheet.CellFormula(10, 5, "REPT(\"x\",-1)");
+                sheet.Cell(1, 5).SetFormula("TEXTJOIN(\"/\",TRUE,C1:C4)");
+                sheet.Cell(2, 5).SetFormula("TEXTJOIN(\"-\",FALSE,C1:C3)");
+                sheet.Cell(3, 5).SetFormula("EXACT(C1,\"North\")");
+                sheet.Cell(4, 5).SetFormula("EXACT(C1,\"north\")");
+                sheet.Cell(5, 5).SetFormula("REPT(\"*\",3)");
+                sheet.Cell(6, 5).SetFormula("CONCAT(REPT(\"0\",2),TEXT(A1,\"0\"))");
+                sheet.Cell(7, 5).SetFormula("SUMPRODUCT(A1:A3,B1:B3)");
+                sheet.Cell(8, 5).SetFormula("SUMPRODUCT(A1:A3)");
+                sheet.Cell(9, 5).SetFormula("SUMPRODUCT(A1:A3,B1:B2)");
+                sheet.Cell(10, 5).SetFormula("REPT(\"x\",-1)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
@@ -545,36 +545,36 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Schedule");
-                sheet.CellValue(1, 1, new DateTime(2026, 5, 28, 9, 5, 7));
-                sheet.CellValue(1, 2, new DateTime(2026, 5, 27));
+                sheet.Cell(1, 1).SetValue(new DateTime(2026, 5, 28, 9, 5, 7));
+                sheet.Cell(1, 2).SetValue(new DateTime(2026, 5, 27));
 
-                sheet.CellFormula(1, 4, "YEAR(A1)");
-                sheet.CellFormula(2, 4, "MONTH(A1)");
-                sheet.CellFormula(3, 4, "DAY(A1)");
-                sheet.CellFormula(4, 4, "HOUR(A1)");
-                sheet.CellFormula(5, 4, "MINUTE(A1)");
-                sheet.CellFormula(6, 4, "SECOND(A1)");
-                sheet.CellFormula(7, 4, "TEXT(EDATE(A1,1),\"yyyy-mm-dd\")");
-                sheet.CellFormula(8, 4, "TEXT(EOMONTH(A1,0),\"yyyy-mm-dd\")");
-                sheet.CellFormula(9, 4, "DAYS(DATE(2026,6,11),DATE(2026,5,28))");
-                sheet.CellFormula(10, 4, "WEEKDAY(DATE(2026,5,31),2)");
-                sheet.CellFormula(11, 4, "NETWORKDAYS(DATE(2026,5,25),DATE(2026,5,29),B1:B1)");
-                sheet.CellFormula(12, 4, "TEXT(TIME(23,75,0),\"hh:mm\")");
-                sheet.CellFormula(13, 4, "TEXT(DATEVALUE(\"2026-05-28\"),\"yyyy-mm-dd\")");
-                sheet.CellFormula(14, 4, "YEAR(DATEVALUE(\"May 28 2026\"))");
-                sheet.CellFormula(15, 4, "TEXT(DATEVALUE(\"5/28/2026\"),\"yyyy-mm-dd\")");
-                sheet.CellFormula(16, 4, "TEXT(TIMEVALUE(\"09:05:07\"),\"hh:mm\")");
-                sheet.CellFormula(17, 4, "SECOND(TIMEVALUE(\"09:05:07\"))");
-                sheet.CellFormula(18, 4, "TEXT(DATEVALUE(TEXT(A1,\"yyyy-mm-dd\")),\"yyyy-mm-dd\")");
-                sheet.CellFormula(19, 4, "DATEVALUE(\"not a date\")");
-                sheet.CellFormula(20, 4, "DATEVALUE(\"2026-05-28\")");
-                sheet.CellFormula(21, 4, "TIMEVALUE(\"09:05:07\")");
-                sheet.CellFormula(22, 4, "WEEKNUM(A1)");
-                sheet.CellFormula(23, 4, "WEEKNUM(A1,2)");
-                sheet.CellFormula(24, 4, "ISOWEEKNUM(DATE(2021,1,1))");
-                sheet.CellFormula(25, 4, "WEEKNUM(DATE(2021,1,1),21)");
-                sheet.CellFormula(26, 4, "DAYS360(DATE(2026,2,28),DATE(2026,3,31))");
-                sheet.CellFormula(27, 4, "DAYS360(DATE(2026,2,28),DATE(2026,3,31),TRUE)");
+                sheet.Cell(1, 4).SetFormula("YEAR(A1)");
+                sheet.Cell(2, 4).SetFormula("MONTH(A1)");
+                sheet.Cell(3, 4).SetFormula("DAY(A1)");
+                sheet.Cell(4, 4).SetFormula("HOUR(A1)");
+                sheet.Cell(5, 4).SetFormula("MINUTE(A1)");
+                sheet.Cell(6, 4).SetFormula("SECOND(A1)");
+                sheet.Cell(7, 4).SetFormula("TEXT(EDATE(A1,1),\"yyyy-mm-dd\")");
+                sheet.Cell(8, 4).SetFormula("TEXT(EOMONTH(A1,0),\"yyyy-mm-dd\")");
+                sheet.Cell(9, 4).SetFormula("DAYS(DATE(2026,6,11),DATE(2026,5,28))");
+                sheet.Cell(10, 4).SetFormula("WEEKDAY(DATE(2026,5,31),2)");
+                sheet.Cell(11, 4).SetFormula("NETWORKDAYS(DATE(2026,5,25),DATE(2026,5,29),B1:B1)");
+                sheet.Cell(12, 4).SetFormula("TEXT(TIME(23,75,0),\"hh:mm\")");
+                sheet.Cell(13, 4).SetFormula("TEXT(DATEVALUE(\"2026-05-28\"),\"yyyy-mm-dd\")");
+                sheet.Cell(14, 4).SetFormula("YEAR(DATEVALUE(\"May 28 2026\"))");
+                sheet.Cell(15, 4).SetFormula("TEXT(DATEVALUE(\"5/28/2026\"),\"yyyy-mm-dd\")");
+                sheet.Cell(16, 4).SetFormula("TEXT(TIMEVALUE(\"09:05:07\"),\"hh:mm\")");
+                sheet.Cell(17, 4).SetFormula("SECOND(TIMEVALUE(\"09:05:07\"))");
+                sheet.Cell(18, 4).SetFormula("TEXT(DATEVALUE(TEXT(A1,\"yyyy-mm-dd\")),\"yyyy-mm-dd\")");
+                sheet.Cell(19, 4).SetFormula("DATEVALUE(\"not a date\")");
+                sheet.Cell(20, 4).SetFormula("DATEVALUE(\"2026-05-28\")");
+                sheet.Cell(21, 4).SetFormula("TIMEVALUE(\"09:05:07\")");
+                sheet.Cell(22, 4).SetFormula("WEEKNUM(A1)");
+                sheet.Cell(23, 4).SetFormula("WEEKNUM(A1,2)");
+                sheet.Cell(24, 4).SetFormula("ISOWEEKNUM(DATE(2021,1,1))");
+                sheet.Cell(25, 4).SetFormula("WEEKNUM(DATE(2021,1,1),21)");
+                sheet.Cell(26, 4).SetFormula("DAYS360(DATE(2026,2,28),DATE(2026,3,31))");
+                sheet.Cell(27, 4).SetFormula("DAYS360(DATE(2026,2,28),DATE(2026,3,31),TRUE)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(27, before.TotalFormulas);
@@ -632,16 +632,16 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Schedule");
-                sheet.CellValue(1, 1, new DateTime(2020, 1, 15));
-                sheet.CellValue(1, 2, new DateTime(2026, 5, 28));
+                sheet.Cell(1, 1).SetValue(new DateTime(2020, 1, 15));
+                sheet.Cell(1, 2).SetValue(new DateTime(2026, 5, 28));
 
-                sheet.CellFormula(1, 4, "DATEDIF(A1,B1,\"Y\")");
-                sheet.CellFormula(2, 4, "DATEDIF(A1,B1,\"M\")");
-                sheet.CellFormula(3, 4, "DATEDIF(A1,B1,\"D\")");
-                sheet.CellFormula(4, 4, "DATEDIF(A1,B1,\"YM\")");
-                sheet.CellFormula(5, 4, "DATEDIF(A1,B1,\"YD\")");
-                sheet.CellFormula(6, 4, "DATEDIF(A1,B1,\"MD\")");
-                sheet.CellFormula(7, 4, "DATEDIF(B1,A1,\"D\")");
+                sheet.Cell(1, 4).SetFormula("DATEDIF(A1,B1,\"Y\")");
+                sheet.Cell(2, 4).SetFormula("DATEDIF(A1,B1,\"M\")");
+                sheet.Cell(3, 4).SetFormula("DATEDIF(A1,B1,\"D\")");
+                sheet.Cell(4, 4).SetFormula("DATEDIF(A1,B1,\"YM\")");
+                sheet.Cell(5, 4).SetFormula("DATEDIF(A1,B1,\"YD\")");
+                sheet.Cell(6, 4).SetFormula("DATEDIF(A1,B1,\"MD\")");
+                sheet.Cell(7, 4).SetFormula("DATEDIF(B1,A1,\"D\")");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(7, before.TotalFormulas);
@@ -671,19 +671,19 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Schedule");
-                sheet.CellValue(1, 1, new DateTime(2024, 1, 1));
-                sheet.CellValue(1, 2, new DateTime(2025, 1, 1));
-                sheet.CellValue(2, 1, new DateTime(2024, 1, 31));
-                sheet.CellValue(2, 2, new DateTime(2024, 2, 29));
+                sheet.Cell(1, 1).SetValue(new DateTime(2024, 1, 1));
+                sheet.Cell(1, 2).SetValue(new DateTime(2025, 1, 1));
+                sheet.Cell(2, 1).SetValue(new DateTime(2024, 1, 31));
+                sheet.Cell(2, 2).SetValue(new DateTime(2024, 2, 29));
 
-                sheet.CellFormula(1, 4, "YEARFRAC(A1,B1)");
-                sheet.CellFormula(2, 4, "YEARFRAC(A1,B1,1)");
-                sheet.CellFormula(3, 4, "YEARFRAC(A1,B1,2)");
-                sheet.CellFormula(4, 4, "YEARFRAC(A1,B1,3)");
-                sheet.CellFormula(5, 4, "YEARFRAC(A2,B2,0)");
-                sheet.CellFormula(6, 4, "YEARFRAC(A2,B2,4)");
-                sheet.CellFormula(7, 4, "YEARFRAC(B1,A1,1)");
-                sheet.CellFormula(8, 4, "YEARFRAC(A1,B1,5)");
+                sheet.Cell(1, 4).SetFormula("YEARFRAC(A1,B1)");
+                sheet.Cell(2, 4).SetFormula("YEARFRAC(A1,B1,1)");
+                sheet.Cell(3, 4).SetFormula("YEARFRAC(A1,B1,2)");
+                sheet.Cell(4, 4).SetFormula("YEARFRAC(A1,B1,3)");
+                sheet.Cell(5, 4).SetFormula("YEARFRAC(A2,B2,0)");
+                sheet.Cell(6, 4).SetFormula("YEARFRAC(A2,B2,4)");
+                sheet.Cell(7, 4).SetFormula("YEARFRAC(B1,A1,1)");
+                sheet.Cell(8, 4).SetFormula("YEARFRAC(A1,B1,5)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(8, before.TotalFormulas);
@@ -714,24 +714,24 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Finance");
-                sheet.CellValue(1, 1, 0.05d / 12d);
-                sheet.CellValue(2, 1, 360d);
-                sheet.CellValue(3, 1, 250000d);
-                sheet.CellValue(6, 1, 100d);
-                sheet.CellValue(7, 1, 200d);
-                sheet.CellValue(8, 1, 300d);
+                sheet.Cell(1, 1).SetValue(0.05d / 12d);
+                sheet.Cell(2, 1).SetValue(360d);
+                sheet.Cell(3, 1).SetValue(250000d);
+                sheet.Cell(6, 1).SetValue(100d);
+                sheet.Cell(7, 1).SetValue(200d);
+                sheet.Cell(8, 1).SetValue(300d);
 
-                sheet.CellFormula(1, 4, "PMT(A1,A2,A3)");
-                sheet.CellFormula(2, 4, "PV(A1,A2,PMT(A1,A2,A3))");
-                sheet.CellFormula(3, 4, "FV(A1,60,-200,0)");
-                sheet.CellFormula(4, 4, "NPER(A1,PMT(A1,A2,A3),A3)");
-                sheet.CellFormula(5, 4, "NPV(0.1,A6:A8)");
-                sheet.CellFormula(6, 4, "PMT(0,12,1200)");
-                sheet.CellFormula(7, 4, "PV(0,12,-100)");
-                sheet.CellFormula(8, 4, "FV(0,12,-100)");
-                sheet.CellFormula(9, 4, "PMT(A1,A2,A3,0,1)");
-                sheet.CellFormula(10, 4, "PMT(A1,A2,A3,0,2)");
-                sheet.CellFormula(11, 4, "NPER(A1,0,A3)");
+                sheet.Cell(1, 4).SetFormula("PMT(A1,A2,A3)");
+                sheet.Cell(2, 4).SetFormula("PV(A1,A2,PMT(A1,A2,A3))");
+                sheet.Cell(3, 4).SetFormula("FV(A1,60,-200,0)");
+                sheet.Cell(4, 4).SetFormula("NPER(A1,PMT(A1,A2,A3),A3)");
+                sheet.Cell(5, 4).SetFormula("NPV(0.1,A6:A8)");
+                sheet.Cell(6, 4).SetFormula("PMT(0,12,1200)");
+                sheet.Cell(7, 4).SetFormula("PV(0,12,-100)");
+                sheet.Cell(8, 4).SetFormula("FV(0,12,-100)");
+                sheet.Cell(9, 4).SetFormula("PMT(A1,A2,A3,0,1)");
+                sheet.Cell(10, 4).SetFormula("PMT(A1,A2,A3,0,2)");
+                sheet.Cell(11, 4).SetFormula("NPER(A1,0,A3)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(11, before.TotalFormulas);
@@ -771,7 +771,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Stats");
                 document.AddSheet("Data");
-                sheet.CellFormula(1, 1, "COVARIANCE.P(Data!A1:XFD1048576,Data!A1:XFD1048576)");
+                sheet.Cell(1, 1).SetFormula("COVARIANCE.P(Data!A1:XFD1048576,Data!A1:XFD1048576)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
                 Assert.Equal(1, inspection.TotalFormulas);
@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Stats");
                 document.AddSheet("Data");
-                sheet.CellFormula(1, 1, "COVARIANCE.P(Data!A1:A100000,Data!B1:B100000)");
+                sheet.Cell(1, 1).SetFormula("COVARIANCE.P(Data!A1:A100000,Data!B1:B100000)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
                 Assert.Equal(1, inspection.TotalFormulas);
@@ -815,7 +815,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Lookup");
                 document.AddSheet("Data");
-                sheet.CellFormula(1, 1, "VLOOKUP(\"missing\",Data!A1:A100001,1,FALSE)");
+                sheet.Cell(1, 1).SetFormula("VLOOKUP(\"missing\",Data!A1:A100001,1,FALSE)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
                 Assert.Equal(1, inspection.TotalFormulas);
@@ -836,77 +836,77 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Stats");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(2, 1, 12d);
-                sheet.CellValue(3, 1, 14d);
-                sheet.CellValue(4, 1, 18d);
-                sheet.CellValue(5, 1, 21d);
-                sheet.CellValue(1, 2, 10d);
-                sheet.CellValue(2, 2, 12d);
-                sheet.CellValue(3, 2, 14d);
-                sheet.CellValue(4, 2, 14d);
-                sheet.CellValue(5, 2, 21d);
-                sheet.CellValue(1, 3, 1d);
-                sheet.CellValue(2, 3, 2d);
-                sheet.CellValue(3, 3, 3d);
-                sheet.CellValue(4, 3, 4d);
-                sheet.CellValue(5, 3, 5d);
-                sheet.CellValue(6, 1, "Text");
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(2, 1).SetValue(12d);
+                sheet.Cell(3, 1).SetValue(14d);
+                sheet.Cell(4, 1).SetValue(18d);
+                sheet.Cell(5, 1).SetValue(21d);
+                sheet.Cell(1, 2).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(12d);
+                sheet.Cell(3, 2).SetValue(14d);
+                sheet.Cell(4, 2).SetValue(14d);
+                sheet.Cell(5, 2).SetValue(21d);
+                sheet.Cell(1, 3).SetValue(1d);
+                sheet.Cell(2, 3).SetValue(2d);
+                sheet.Cell(3, 3).SetValue(3d);
+                sheet.Cell(4, 3).SetValue(4d);
+                sheet.Cell(5, 3).SetValue(5d);
+                sheet.Cell(6, 1).SetValue("Text");
 
-                sheet.CellFormula(1, 4, "VAR.P(A1:A5)");
-                sheet.CellFormula(2, 4, "VAR.S(A1:A5)");
-                sheet.CellFormula(3, 4, "STDEV.P(A1:A5)");
-                sheet.CellFormula(4, 4, "STDEV.S(A1:A5)");
-                sheet.CellFormula(5, 4, "PERCENTILE.INC(A1:A5,0)");
-                sheet.CellFormula(6, 4, "PERCENTILE.INC(A1:A5,0.25)");
-                sheet.CellFormula(7, 4, "PERCENTILE.INC(A1:A5,0.9)");
-                sheet.CellFormula(8, 4, "QUARTILE.INC(A1:A5,2)");
-                sheet.CellFormula(9, 4, "QUARTILE.INC(A1:A5,4)");
-                sheet.CellFormula(10, 4, "PERCENTILE.INC(A1:A5,1.5)");
-                sheet.CellFormula(11, 4, "QUARTILE.INC(A1:A5,5)");
-                sheet.CellFormula(12, 4, "STDEV.S(A1)");
-                sheet.CellFormula(13, 4, "SUMSQ(A1:A5)");
-                sheet.CellFormula(14, 4, "RANK.EQ(18,A1:A5,0)");
-                sheet.CellFormula(15, 4, "RANK.EQ(A3,A1:A5,1)");
-                sheet.CellFormula(16, 4, "RANK.EQ(15,A1:A5)");
-                sheet.CellFormula(17, 4, "RANK.AVG(14,B1:B5,0)");
-                sheet.CellFormula(18, 4, "RANK.AVG(14,B1:B5,1)");
-                sheet.CellFormula(19, 4, "PERCENTRANK.INC(A1:A5,18)");
-                sheet.CellFormula(20, 4, "PERCENTRANK.INC(A1:A5,16)");
-                sheet.CellFormula(21, 4, "PERCENTRANK.INC(A1:A5,5)");
-                sheet.CellFormula(22, 4, "PERCENTILE.EXC(A1:A5,0.25)");
-                sheet.CellFormula(23, 4, "QUARTILE.EXC(A1:A5,3)");
-                sheet.CellFormula(24, 4, "PERCENTRANK.EXC(A1:A5,18)");
-                sheet.CellFormula(25, 4, "PERCENTRANK.EXC(A1:A5,16)");
-                sheet.CellFormula(26, 4, "PERCENTILE.EXC(A1:A5,0.99)");
-                sheet.CellFormula(27, 4, "CORREL(A1:A5,C1:C5)");
-                sheet.CellFormula(28, 4, "SLOPE(A1:A5,C1:C5)");
-                sheet.CellFormula(29, 4, "INTERCEPT(A1:A5,C1:C5)");
-                sheet.CellFormula(30, 4, "RSQ(A1:A5,C1:C5)");
-                sheet.CellFormula(31, 4, "FORECAST.LINEAR(6,A1:A5,C1:C5)");
-                sheet.CellFormula(32, 4, "SLOPE(A1:A5,C1:C4)");
-                sheet.CellFormula(33, 4, "MEDIAN(A1:A5)");
-                sheet.CellFormula(34, 4, "LARGE(A1:A5,2)");
-                sheet.CellFormula(35, 4, "SMALL(A1:A5,3)");
-                sheet.CellFormula(36, 4, "MODE.SNGL(B1:B5)");
-                sheet.CellFormula(37, 4, "MODE(A1:A5)");
-                sheet.CellFormula(38, 4, "GEOMEAN(A1:A5)");
-                sheet.CellFormula(39, 4, "HARMEAN(A1:A5)");
-                sheet.CellFormula(40, 4, "AVERAGEA(A1:A6)");
-                sheet.CellFormula(41, 4, "MINA(A1:A6)");
-                sheet.CellFormula(42, 4, "MAXA(A1:A6)");
-                sheet.CellFormula(43, 4, "COUNTA(A1:A6)");
-                sheet.CellFormula(44, 4, "AVERAGEA(\"skip\",TRUE,FALSE,5)");
-                sheet.CellFormula(45, 4, "AVEDEV(A1:A5)");
-                sheet.CellFormula(46, 4, "DEVSQ(A1:A5)");
-                sheet.CellFormula(47, 4, "SUMXMY2(A1:A5,C1:C5)");
-                sheet.CellFormula(48, 4, "SUMX2MY2(A1:A5,C1:C5)");
-                sheet.CellFormula(49, 4, "SUMX2PY2(A1:A5,C1:C5)");
-                sheet.CellFormula(50, 4, "SUMXMY2(A1:A5,C1:C4)");
-                sheet.CellFormula(51, 4, "COVARIANCE.P(A1:A5,C1:C5)");
-                sheet.CellFormula(52, 4, "COVARIANCE.S(A1:A5,C1:C5)");
-                sheet.CellFormula(53, 4, "COVAR(A1:A5,C1:C5)");
-                sheet.CellFormula(54, 4, "COVARIANCE.P(A1:A5,C1:C4)");
+                sheet.Cell(1, 4).SetFormula("VAR.P(A1:A5)");
+                sheet.Cell(2, 4).SetFormula("VAR.S(A1:A5)");
+                sheet.Cell(3, 4).SetFormula("STDEV.P(A1:A5)");
+                sheet.Cell(4, 4).SetFormula("STDEV.S(A1:A5)");
+                sheet.Cell(5, 4).SetFormula("PERCENTILE.INC(A1:A5,0)");
+                sheet.Cell(6, 4).SetFormula("PERCENTILE.INC(A1:A5,0.25)");
+                sheet.Cell(7, 4).SetFormula("PERCENTILE.INC(A1:A5,0.9)");
+                sheet.Cell(8, 4).SetFormula("QUARTILE.INC(A1:A5,2)");
+                sheet.Cell(9, 4).SetFormula("QUARTILE.INC(A1:A5,4)");
+                sheet.Cell(10, 4).SetFormula("PERCENTILE.INC(A1:A5,1.5)");
+                sheet.Cell(11, 4).SetFormula("QUARTILE.INC(A1:A5,5)");
+                sheet.Cell(12, 4).SetFormula("STDEV.S(A1)");
+                sheet.Cell(13, 4).SetFormula("SUMSQ(A1:A5)");
+                sheet.Cell(14, 4).SetFormula("RANK.EQ(18,A1:A5,0)");
+                sheet.Cell(15, 4).SetFormula("RANK.EQ(A3,A1:A5,1)");
+                sheet.Cell(16, 4).SetFormula("RANK.EQ(15,A1:A5)");
+                sheet.Cell(17, 4).SetFormula("RANK.AVG(14,B1:B5,0)");
+                sheet.Cell(18, 4).SetFormula("RANK.AVG(14,B1:B5,1)");
+                sheet.Cell(19, 4).SetFormula("PERCENTRANK.INC(A1:A5,18)");
+                sheet.Cell(20, 4).SetFormula("PERCENTRANK.INC(A1:A5,16)");
+                sheet.Cell(21, 4).SetFormula("PERCENTRANK.INC(A1:A5,5)");
+                sheet.Cell(22, 4).SetFormula("PERCENTILE.EXC(A1:A5,0.25)");
+                sheet.Cell(23, 4).SetFormula("QUARTILE.EXC(A1:A5,3)");
+                sheet.Cell(24, 4).SetFormula("PERCENTRANK.EXC(A1:A5,18)");
+                sheet.Cell(25, 4).SetFormula("PERCENTRANK.EXC(A1:A5,16)");
+                sheet.Cell(26, 4).SetFormula("PERCENTILE.EXC(A1:A5,0.99)");
+                sheet.Cell(27, 4).SetFormula("CORREL(A1:A5,C1:C5)");
+                sheet.Cell(28, 4).SetFormula("SLOPE(A1:A5,C1:C5)");
+                sheet.Cell(29, 4).SetFormula("INTERCEPT(A1:A5,C1:C5)");
+                sheet.Cell(30, 4).SetFormula("RSQ(A1:A5,C1:C5)");
+                sheet.Cell(31, 4).SetFormula("FORECAST.LINEAR(6,A1:A5,C1:C5)");
+                sheet.Cell(32, 4).SetFormula("SLOPE(A1:A5,C1:C4)");
+                sheet.Cell(33, 4).SetFormula("MEDIAN(A1:A5)");
+                sheet.Cell(34, 4).SetFormula("LARGE(A1:A5,2)");
+                sheet.Cell(35, 4).SetFormula("SMALL(A1:A5,3)");
+                sheet.Cell(36, 4).SetFormula("MODE.SNGL(B1:B5)");
+                sheet.Cell(37, 4).SetFormula("MODE(A1:A5)");
+                sheet.Cell(38, 4).SetFormula("GEOMEAN(A1:A5)");
+                sheet.Cell(39, 4).SetFormula("HARMEAN(A1:A5)");
+                sheet.Cell(40, 4).SetFormula("AVERAGEA(A1:A6)");
+                sheet.Cell(41, 4).SetFormula("MINA(A1:A6)");
+                sheet.Cell(42, 4).SetFormula("MAXA(A1:A6)");
+                sheet.Cell(43, 4).SetFormula("COUNTA(A1:A6)");
+                sheet.Cell(44, 4).SetFormula("AVERAGEA(\"skip\",TRUE,FALSE,5)");
+                sheet.Cell(45, 4).SetFormula("AVEDEV(A1:A5)");
+                sheet.Cell(46, 4).SetFormula("DEVSQ(A1:A5)");
+                sheet.Cell(47, 4).SetFormula("SUMXMY2(A1:A5,C1:C5)");
+                sheet.Cell(48, 4).SetFormula("SUMX2MY2(A1:A5,C1:C5)");
+                sheet.Cell(49, 4).SetFormula("SUMX2PY2(A1:A5,C1:C5)");
+                sheet.Cell(50, 4).SetFormula("SUMXMY2(A1:A5,C1:C4)");
+                sheet.Cell(51, 4).SetFormula("COVARIANCE.P(A1:A5,C1:C5)");
+                sheet.Cell(52, 4).SetFormula("COVARIANCE.S(A1:A5,C1:C5)");
+                sheet.Cell(53, 4).SetFormula("COVAR(A1:A5,C1:C5)");
+                sheet.Cell(54, 4).SetFormula("COVARIANCE.P(A1:A5,C1:C4)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(54, before.TotalFormulas);
@@ -1019,27 +1019,27 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Rounding");
-                sheet.CellFormula(1, 1, "MROUND(23,5)");
-                sheet.CellFormula(2, 1, "MROUND(-23,-5)");
-                sheet.CellFormula(3, 1, "CEILING.MATH(23,5)");
-                sheet.CellFormula(4, 1, "FLOOR.MATH(23,5)");
-                sheet.CellFormula(5, 1, "CEILING.MATH(-23,5)");
-                sheet.CellFormula(6, 1, "CEILING.MATH(-23,5,1)");
-                sheet.CellFormula(7, 1, "FLOOR.MATH(-23,5)");
-                sheet.CellFormula(8, 1, "FLOOR.MATH(-23,5,1)");
-                sheet.CellFormula(9, 1, "MROUND(23,-5)");
-                sheet.CellFormula(10, 1, "ROUND(23.456,2)");
-                sheet.CellFormula(11, 1, "ROUND(1234,-2)");
-                sheet.CellFormula(12, 1, "ROUNDUP(23.451,2)");
-                sheet.CellFormula(13, 1, "ROUNDUP(1234,-2)");
-                sheet.CellFormula(14, 1, "ROUNDDOWN(23.459,2)");
-                sheet.CellFormula(15, 1, "ROUNDDOWN(1234,-2)");
-                sheet.CellFormula(16, 1, "TRUNC(23.459,2)");
-                sheet.CellFormula(17, 1, "TRUNC(1234,-2)");
-                sheet.CellFormula(18, 1, "INT(-23.1)");
-                sheet.CellFormula(19, 1, "CEILING(23,5)");
-                sheet.CellFormula(20, 1, "FLOOR(23,5)");
-                sheet.CellFormula(21, 1, "ROUND(23,16)");
+                sheet.Cell(1, 1).SetFormula("MROUND(23,5)");
+                sheet.Cell(2, 1).SetFormula("MROUND(-23,-5)");
+                sheet.Cell(3, 1).SetFormula("CEILING.MATH(23,5)");
+                sheet.Cell(4, 1).SetFormula("FLOOR.MATH(23,5)");
+                sheet.Cell(5, 1).SetFormula("CEILING.MATH(-23,5)");
+                sheet.Cell(6, 1).SetFormula("CEILING.MATH(-23,5,1)");
+                sheet.Cell(7, 1).SetFormula("FLOOR.MATH(-23,5)");
+                sheet.Cell(8, 1).SetFormula("FLOOR.MATH(-23,5,1)");
+                sheet.Cell(9, 1).SetFormula("MROUND(23,-5)");
+                sheet.Cell(10, 1).SetFormula("ROUND(23.456,2)");
+                sheet.Cell(11, 1).SetFormula("ROUND(1234,-2)");
+                sheet.Cell(12, 1).SetFormula("ROUNDUP(23.451,2)");
+                sheet.Cell(13, 1).SetFormula("ROUNDUP(1234,-2)");
+                sheet.Cell(14, 1).SetFormula("ROUNDDOWN(23.459,2)");
+                sheet.Cell(15, 1).SetFormula("ROUNDDOWN(1234,-2)");
+                sheet.Cell(16, 1).SetFormula("TRUNC(23.459,2)");
+                sheet.Cell(17, 1).SetFormula("TRUNC(1234,-2)");
+                sheet.Cell(18, 1).SetFormula("INT(-23.1)");
+                sheet.Cell(19, 1).SetFormula("CEILING(23,5)");
+                sheet.Cell(20, 1).SetFormula("FLOOR(23,5)");
+                sheet.Cell(21, 1).SetFormula("ROUND(23,16)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(21, before.TotalFormulas);
@@ -1092,16 +1092,16 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Selectors");
-                sheet.CellValue(1, 1, 2d);
-                sheet.CellValue(2, 1, "EU");
-                sheet.CellValue(3, 1, "US");
-                sheet.CellValue(4, 1, "APAC");
+                sheet.Cell(1, 1).SetValue(2d);
+                sheet.Cell(2, 1).SetValue("EU");
+                sheet.Cell(3, 1).SetValue("US");
+                sheet.Cell(4, 1).SetValue("APAC");
 
-                sheet.CellFormula(1, 3, "CHOOSE(2,10,20,30)");
-                sheet.CellFormula(2, 3, "CHOOSE(A1,\"Draft\",\"Final\",\"Archived\")");
-                sheet.CellFormula(3, 3, "CHOOSE(MATCH(\"US\",A2:A4,0),100,200,300)");
-                sheet.CellFormula(4, 3, "TEXT(CHOOSE(3,0.1,0.2,0.3),\"0%\")");
-                sheet.CellFormula(5, 3, "CHOOSE(4,10,20,30)");
+                sheet.Cell(1, 3).SetFormula("CHOOSE(2,10,20,30)");
+                sheet.Cell(2, 3).SetFormula("CHOOSE(A1,\"Draft\",\"Final\",\"Archived\")");
+                sheet.Cell(3, 3).SetFormula("CHOOSE(MATCH(\"US\",A2:A4,0),100,200,300)");
+                sheet.Cell(4, 3).SetFormula("TEXT(CHOOSE(3,0.1,0.2,0.3),\"0%\")");
+                sheet.Cell(5, 3).SetFormula("CHOOSE(4,10,20,30)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(5, before.TotalFormulas);
@@ -1129,18 +1129,18 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Info");
-                sheet.CellValue(1, 1, 42d);
-                sheet.CellValue(3, 1, "Ready");
+                sheet.Cell(1, 1).SetValue(42d);
+                sheet.Cell(3, 1).SetValue("Ready");
 
-                sheet.CellFormula(1, 3, "ISBLANK(A2)");
-                sheet.CellFormula(2, 3, "ISNUMBER(A1)");
-                sheet.CellFormula(3, 3, "ISTEXT(A3)");
-                sheet.CellFormula(4, 3, "IF(ISBLANK(A2),\"Missing\",\"Present\")");
-                sheet.CellFormula(5, 3, "IF(ISNUMBER(A1),A1*2,0)");
-                sheet.CellFormula(6, 3, "ISBLANK(\"\")");
-                sheet.CellFormula(7, 3, "ISNUMBER(A3)");
-                sheet.CellFormula(8, 3, "ISTEXT(A2)");
-                sheet.CellFormula(9, 3, "ISBLANK(A2,A3)");
+                sheet.Cell(1, 3).SetFormula("ISBLANK(A2)");
+                sheet.Cell(2, 3).SetFormula("ISNUMBER(A1)");
+                sheet.Cell(3, 3).SetFormula("ISTEXT(A3)");
+                sheet.Cell(4, 3).SetFormula("IF(ISBLANK(A2),\"Missing\",\"Present\")");
+                sheet.Cell(5, 3).SetFormula("IF(ISNUMBER(A1),A1*2,0)");
+                sheet.Cell(6, 3).SetFormula("ISBLANK(\"\")");
+                sheet.Cell(7, 3).SetFormula("ISNUMBER(A3)");
+                sheet.Cell(8, 3).SetFormula("ISTEXT(A2)");
+                sheet.Cell(9, 3).SetFormula("ISBLANK(A2,A3)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(9, before.TotalFormulas);
@@ -1174,22 +1174,22 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Info");
-                sheet.CellValue(1, 1, "East");
-                sheet.CellValue(2, 1, "West");
-                sheet.CellValue(1, 2, 10d);
-                sheet.CellValue(2, 2, 0d);
+                sheet.Cell(1, 1).SetValue("East");
+                sheet.Cell(2, 1).SetValue("West");
+                sheet.Cell(1, 2).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(0d);
 
-                sheet.CellFormula(1, 4, "ISERROR(XLOOKUP(\"North\",A1:A2,B1:B2))");
-                sheet.CellFormula(2, 4, "ISNA(XLOOKUP(\"North\",A1:A2,B1:B2))");
-                sheet.CellFormula(3, 4, "ISERR(FIND(\"z\",\"abc\"))");
-                sheet.CellFormula(4, 4, "ISERROR(FIND(\"a\",\"abc\"))");
-                sheet.CellFormula(5, 4, "IF(ISERROR(XLOOKUP(\"North\",A1:A2,B1:B2)),\"Missing\",\"Found\")");
-                sheet.CellFormula(6, 4, "IF(ISNA(#N/A),\"NA\",\"Other\")");
-                sheet.CellFormula(7, 4, "IF(ISERR(#DIV/0!),\"Err\",\"Other\")");
-                sheet.CellFormula(8, 4, "ISERROR(B1/B2)");
-                sheet.CellFormula(9, 4, "ISNA(FIND(\"z\",\"abc\"))");
-                sheet.CellFormula(10, 4, "ISERR(#N/A)");
-                sheet.CellFormula(11, 4, "ISERROR(\"text\",A1)");
+                sheet.Cell(1, 4).SetFormula("ISERROR(XLOOKUP(\"North\",A1:A2,B1:B2))");
+                sheet.Cell(2, 4).SetFormula("ISNA(XLOOKUP(\"North\",A1:A2,B1:B2))");
+                sheet.Cell(3, 4).SetFormula("ISERR(FIND(\"z\",\"abc\"))");
+                sheet.Cell(4, 4).SetFormula("ISERROR(FIND(\"a\",\"abc\"))");
+                sheet.Cell(5, 4).SetFormula("IF(ISERROR(XLOOKUP(\"North\",A1:A2,B1:B2)),\"Missing\",\"Found\")");
+                sheet.Cell(6, 4).SetFormula("IF(ISNA(#N/A),\"NA\",\"Other\")");
+                sheet.Cell(7, 4).SetFormula("IF(ISERR(#DIV/0!),\"Err\",\"Other\")");
+                sheet.Cell(8, 4).SetFormula("ISERROR(B1/B2)");
+                sheet.Cell(9, 4).SetFormula("ISNA(FIND(\"z\",\"abc\"))");
+                sheet.Cell(10, 4).SetFormula("ISERR(#N/A)");
+                sheet.Cell(11, 4).SetFormula("ISERROR(\"text\",A1)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(11, before.TotalFormulas);
@@ -1225,21 +1225,21 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Info");
-                sheet.CellValue(1, 1, "East");
-                sheet.CellValue(2, 1, "West");
-                sheet.CellValue(1, 2, 10d);
-                sheet.CellValue(2, 2, 20d);
+                sheet.Cell(1, 1).SetValue("East");
+                sheet.Cell(2, 1).SetValue("West");
+                sheet.Cell(1, 2).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(20d);
 
-                sheet.CellFormula(1, 4, "IFNA(XLOOKUP(\"North\",A1:A2,B1:B2),\"Missing\")");
-                sheet.CellFormula(2, 4, "IFNA(XLOOKUP(\"East\",A1:A2,B1:B2),\"Missing\")");
-                sheet.CellFormula(3, 4, "IFNA(#N/A,\"NA\")");
-                sheet.CellFormula(4, 4, "IFNA(#DIV/0!,\"NA\")");
-                sheet.CellFormula(5, 4, "IFERROR(#DIV/0!,\"Any\")");
-                sheet.CellFormula(6, 4, "IFERROR(#N/A,\"Any\")");
-                sheet.CellFormula(7, 4, "IFNA(FIND(\"z\",\"abc\"),\"NA\")");
-                sheet.CellFormula(8, 4, "IFNA(\"ready\",\"NA\")");
-                sheet.CellFormula(9, 4, "IFNA(XLOOKUP(\"North\",A1:A2,B1:B2),A1)");
-                sheet.CellFormula(10, 4, "IFNA(\"text\",A1,B1)");
+                sheet.Cell(1, 4).SetFormula("IFNA(XLOOKUP(\"North\",A1:A2,B1:B2),\"Missing\")");
+                sheet.Cell(2, 4).SetFormula("IFNA(XLOOKUP(\"East\",A1:A2,B1:B2),\"Missing\")");
+                sheet.Cell(3, 4).SetFormula("IFNA(#N/A,\"NA\")");
+                sheet.Cell(4, 4).SetFormula("IFNA(#DIV/0!,\"NA\")");
+                sheet.Cell(5, 4).SetFormula("IFERROR(#DIV/0!,\"Any\")");
+                sheet.Cell(6, 4).SetFormula("IFERROR(#N/A,\"Any\")");
+                sheet.Cell(7, 4).SetFormula("IFNA(FIND(\"z\",\"abc\"),\"NA\")");
+                sheet.Cell(8, 4).SetFormula("IFNA(\"ready\",\"NA\")");
+                sheet.Cell(9, 4).SetFormula("IFNA(XLOOKUP(\"North\",A1:A2,B1:B2),A1)");
+                sheet.Cell(10, 4).SetFormula("IFNA(\"text\",A1,B1)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
@@ -1272,26 +1272,26 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet source = document.AddSheet("Source Data");
-                source.CellValue(1, 1, 2d);
-                source.CellValue(1, 2, 3d);
-                source.CellFormula(1, 3, "A1+B1");
+                source.Cell(1, 1).SetValue(2d);
+                source.Cell(1, 2).SetValue(3d);
+                source.Cell(1, 3).SetFormula("A1+B1");
 
                 ExcelSheet sheet = document.AddSheet("Info");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(1, 2, 5d);
-                sheet.CellFormula(1, 3, "A1+B1");
-                sheet.CellFormula(2, 3, "IF(A1>3,\"High\",\"Low\")");
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(1, 2).SetValue(5d);
+                sheet.Cell(1, 3).SetFormula("A1+B1");
+                sheet.Cell(2, 3).SetFormula("IF(A1>3,\"High\",\"Low\")");
 
-                sheet.CellFormula(1, 4, "ISFORMULA(C1)");
-                sheet.CellFormula(2, 4, "ISFORMULA(A1)");
-                sheet.CellFormula(3, 4, "FORMULATEXT(C1)");
-                sheet.CellFormula(4, 4, "FORMULATEXT(C2)");
-                sheet.CellFormula(5, 4, "IF(ISFORMULA(C2),FORMULATEXT(C2),\"Missing\")");
-                sheet.CellFormula(6, 4, "LEN(FORMULATEXT(C1))");
-                sheet.CellFormula(7, 4, "ISFORMULA('Source Data'!C1)");
-                sheet.CellFormula(8, 4, "FORMULATEXT('Source Data'!C1)");
-                sheet.CellFormula(9, 4, "FORMULATEXT(A1)");
-                sheet.CellFormula(10, 4, "ISFORMULA(A1:B1)");
+                sheet.Cell(1, 4).SetFormula("ISFORMULA(C1)");
+                sheet.Cell(2, 4).SetFormula("ISFORMULA(A1)");
+                sheet.Cell(3, 4).SetFormula("FORMULATEXT(C1)");
+                sheet.Cell(4, 4).SetFormula("FORMULATEXT(C2)");
+                sheet.Cell(5, 4).SetFormula("IF(ISFORMULA(C2),FORMULATEXT(C2),\"Missing\")");
+                sheet.Cell(6, 4).SetFormula("LEN(FORMULATEXT(C1))");
+                sheet.Cell(7, 4).SetFormula("ISFORMULA('Source Data'!C1)");
+                sheet.Cell(8, 4).SetFormula("FORMULATEXT('Source Data'!C1)");
+                sheet.Cell(9, 4).SetFormula("FORMULATEXT(A1)");
+                sheet.Cell(10, 4).SetFormula("ISFORMULA(A1:B1)");
 
                 ExcelFormulaInspection before = document.InspectFormulas();
                 Assert.Equal(13, before.TotalFormulas);
@@ -1327,16 +1327,16 @@ namespace OfficeIMO.Tests {
                 document.AddSheet("Source Data");
 
                 ExcelSheet sheet = document.AddSheet("Reference");
-                sheet.CellFormula(1, 4, "ROW(A5)");
-                sheet.CellFormula(2, 4, "COLUMN(C1)");
-                sheet.CellFormula(3, 4, "ROWS(A1:B3)");
-                sheet.CellFormula(4, 4, "COLUMNS(A1:B3)");
-                sheet.CellFormula(5, 4, "ROW('Source Data'!D5)");
-                sheet.CellFormula(6, 4, "COLUMN('Source Data'!D5)");
-                sheet.CellFormula(7, 4, "ROWS('Source Data'!B2:D5)");
-                sheet.CellFormula(8, 4, "COLUMNS('Source Data'!B2:D5)");
-                sheet.CellFormula(9, 4, "ROW()");
-                sheet.CellFormula(10, 4, "ROWS(A1,B1)");
+                sheet.Cell(1, 4).SetFormula("ROW(A5)");
+                sheet.Cell(2, 4).SetFormula("COLUMN(C1)");
+                sheet.Cell(3, 4).SetFormula("ROWS(A1:B3)");
+                sheet.Cell(4, 4).SetFormula("COLUMNS(A1:B3)");
+                sheet.Cell(5, 4).SetFormula("ROW('Source Data'!D5)");
+                sheet.Cell(6, 4).SetFormula("COLUMN('Source Data'!D5)");
+                sheet.Cell(7, 4).SetFormula("ROWS('Source Data'!B2:D5)");
+                sheet.Cell(8, 4).SetFormula("COLUMNS('Source Data'!B2:D5)");
+                sheet.Cell(9, 4).SetFormula("ROW()");
+                sheet.Cell(10, 4).SetFormula("ROWS(A1,B1)");
 
                 ExcelFormulaInspection before = document.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
@@ -1373,16 +1373,16 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Schedule");
-                sheet.CellValue(1, 1, new DateTime(2026, 5, 28));
-                sheet.CellValue(1, 2, new DateTime(2026, 5, 29));
-                sheet.CellValue(2, 2, new DateTime(2026, 6, 1));
+                sheet.Cell(1, 1).SetValue(new DateTime(2026, 5, 28));
+                sheet.Cell(1, 2).SetValue(new DateTime(2026, 5, 29));
+                sheet.Cell(2, 2).SetValue(new DateTime(2026, 6, 1));
 
-                sheet.CellFormula(1, 4, "TEXT(WORKDAY(A1,1),\"yyyy-mm-dd\")");
-                sheet.CellFormula(2, 4, "TEXT(WORKDAY(A1,1,B1:B1),\"yyyy-mm-dd\")");
-                sheet.CellFormula(3, 4, "TEXT(WORKDAY(A1,1,B1:B2),\"yyyy-mm-dd\")");
-                sheet.CellFormula(4, 4, "TEXT(WORKDAY(A1,-3),\"yyyy-mm-dd\")");
-                sheet.CellFormula(5, 4, "TEXT(WORKDAY.INTL(A1,2,\"0000110\"),\"yyyy-mm-dd\")");
-                sheet.CellFormula(6, 4, "TEXT(WORKDAY.INTL(A1,1,11),\"yyyy-mm-dd\")");
+                sheet.Cell(1, 4).SetFormula("TEXT(WORKDAY(A1,1),\"yyyy-mm-dd\")");
+                sheet.Cell(2, 4).SetFormula("TEXT(WORKDAY(A1,1,B1:B1),\"yyyy-mm-dd\")");
+                sheet.Cell(3, 4).SetFormula("TEXT(WORKDAY(A1,1,B1:B2),\"yyyy-mm-dd\")");
+                sheet.Cell(4, 4).SetFormula("TEXT(WORKDAY(A1,-3),\"yyyy-mm-dd\")");
+                sheet.Cell(5, 4).SetFormula("TEXT(WORKDAY.INTL(A1,2,\"0000110\"),\"yyyy-mm-dd\")");
+                sheet.Cell(6, 4).SetFormula("TEXT(WORKDAY.INTL(A1,1,11),\"yyyy-mm-dd\")");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(6, before.TotalFormulas);
@@ -1412,21 +1412,21 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Audit");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellValue(2, 1, 20d);
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(5, 1, string.Empty);
-                sheet.CellFormula(6, 1, "A1+A2");
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(2, 1).SetValue(20d);
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(5, 1).SetValue(string.Empty);
+                sheet.Cell(6, 1).SetFormula("A1+A2");
 
-                sheet.CellFormula(1, 3, "COUNTBLANK(A1:A6)");
-                sheet.CellFormula(2, 3, "SUBTOTAL(9,A1:A6)");
-                sheet.CellFormula(3, 3, "SUBTOTAL(1,A1:A6)");
-                sheet.CellFormula(4, 3, "SUBTOTAL(2,A1:A6)");
-                sheet.CellFormula(5, 3, "SUBTOTAL(3,A1:A6)");
-                sheet.CellFormula(6, 3, "SUBTOTAL(4,A1:A6)");
-                sheet.CellFormula(7, 3, "SUBTOTAL(5,A1:A6)");
-                sheet.CellFormula(8, 3, "SUBTOTAL(109,A1:A2,A6:A6)");
-                sheet.CellFormula(9, 3, "SUBTOTAL(6,A1:A6)");
+                sheet.Cell(1, 3).SetFormula("COUNTBLANK(A1:A6)");
+                sheet.Cell(2, 3).SetFormula("SUBTOTAL(9,A1:A6)");
+                sheet.Cell(3, 3).SetFormula("SUBTOTAL(1,A1:A6)");
+                sheet.Cell(4, 3).SetFormula("SUBTOTAL(2,A1:A6)");
+                sheet.Cell(5, 3).SetFormula("SUBTOTAL(3,A1:A6)");
+                sheet.Cell(6, 3).SetFormula("SUBTOTAL(4,A1:A6)");
+                sheet.Cell(7, 3).SetFormula("SUBTOTAL(5,A1:A6)");
+                sheet.Cell(8, 3).SetFormula("SUBTOTAL(109,A1:A2,A6:A6)");
+                sheet.Cell(9, 3).SetFormula("SUBTOTAL(6,A1:A6)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(10, before.TotalFormulas);
@@ -1466,25 +1466,25 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(1, 3, "Owner");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(2, 3, "Alice");
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(3, 3, "Bob");
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(4, 2, 5d);
-                sheet.CellValue(4, 3, "Nina");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(1, 3).SetValue("Owner");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(2, 3).SetValue("Alice");
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(3, 3).SetValue("Bob");
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(4, 2).SetValue(5d);
+                sheet.Cell(4, 3).SetValue("Nina");
 
-                sheet.CellFormula(1, 5, "IFS(B2>=20,\"High\",B2>=10,\"Medium\",TRUE,\"Low\")");
-                sheet.CellFormula(2, 5, "IFS(B4>=20,\"High\",B4>=10,\"Medium\",TRUE,\"Low\")");
-                sheet.CellFormula(3, 5, "SWITCH(A3,\"East\",\"Priority\",\"West\",\"Standard\",\"Other\")");
-                sheet.CellFormula(4, 5, "SWITCH(XLOOKUP(\"East\",A2:A4,C2:C4),\"Alice\",\"Owner A\",\"Ann\",\"Owner Ann\",\"Other\")");
-                sheet.CellFormula(5, 5, "SWITCH(A4,\"East\",1,\"West\",2,0)");
-                sheet.CellFormula(6, 5, "IFS(A2=\"East\",TEXT(B2,\"0.0\"),TRUE,\"Missing\")");
+                sheet.Cell(1, 5).SetFormula("IFS(B2>=20,\"High\",B2>=10,\"Medium\",TRUE,\"Low\")");
+                sheet.Cell(2, 5).SetFormula("IFS(B4>=20,\"High\",B4>=10,\"Medium\",TRUE,\"Low\")");
+                sheet.Cell(3, 5).SetFormula("SWITCH(A3,\"East\",\"Priority\",\"West\",\"Standard\",\"Other\")");
+                sheet.Cell(4, 5).SetFormula("SWITCH(XLOOKUP(\"East\",A2:A4,C2:C4),\"Alice\",\"Owner A\",\"Ann\",\"Owner Ann\",\"Other\")");
+                sheet.Cell(5, 5).SetFormula("SWITCH(A4,\"East\",1,\"West\",2,0)");
+                sheet.Cell(6, 5).SetFormula("IFS(A2=\"East\",TEXT(B2,\"0.0\"),TRUE,\"Missing\")");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
                 Assert.Equal(6, before.TotalFormulas);
@@ -1514,11 +1514,11 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, 10d);
-                sheet.CellFormula(1, 2, "A1+5");
-                sheet.CellFormula(1, 3, "B1+1");
-                sheet.CellFormula(1, 4, "D1+1");
-                sheet.CellFormula(1, 5, "UNSUPPORTED(B1)");
+                sheet.Cell(1, 1).SetValue(10d);
+                sheet.Cell(1, 2).SetFormula("A1+5");
+                sheet.Cell(1, 3).SetFormula("B1+1");
+                sheet.Cell(1, 4).SetFormula("D1+1");
+                sheet.Cell(1, 5).SetFormula("UNSUPPORTED(B1)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
 
@@ -1548,12 +1548,12 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sales = document.AddSheet("Sales");
-                sales.CellValue(1, 1, 10d);
-                sales.CellFormula(1, 2, "A1+5");
-                sales.CellFormula(1, 3, "B1+1");
+                sales.Cell(1, 1).SetValue(10d);
+                sales.Cell(1, 2).SetFormula("A1+5");
+                sales.Cell(1, 3).SetFormula("B1+1");
 
                 ExcelSheet summary = document.AddSheet("Summary");
-                summary.CellFormula(1, 1, "Sales!C1*2");
+                summary.Cell(1, 1).SetFormula("Sales!C1*2");
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();
                 ExcelFormulaDependencyGraph graph = inspection.DependencyGraph;

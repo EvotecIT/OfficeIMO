@@ -34,7 +34,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             return arguments[0];
         });
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellFormula(1, 1, "ECHOFINITE(1E309)");
+        sheet.Cell(1, 1).SetFormula("ECHOFINITE(1E309)");
 
         Exception? exception = Record.Exception(() => document.Calculate());
 
@@ -50,7 +50,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
         try {
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "body");
+            sheet.Cell(1, 1).SetValue("body");
             sheet.SetHeaderFooter(headerLeft: "Path &[Path] &Z");
 
             string defaultSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
@@ -80,7 +80,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 document.SetCustomDocumentProperty("Valid", "retained");
-                document.AddSheet("Data").CellValue(1, 1, "body");
+                document.AddSheet("Data").Cell(1, 1).SetValue("body");
                 document.Save();
             }
 

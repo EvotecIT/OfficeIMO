@@ -104,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
             using var partial = source.ToExcelDocumentResult(options); report = partial.Report;
             partial.Value.Save(saved); saved.Position = 0;
             using ExcelDocument reopened = ExcelDocument.Load(saved);
-            marker = Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            marker = Assert.IsType<string>(reopened.Sheets[0].Cell(1, 1).GetValue<string>());
         } else {
             using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);

@@ -69,12 +69,12 @@ internal static class ReaderComparisonCorpus {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Evidence");
-                sheet.Cell(1, 1, "Control");
-                sheet.Cell(1, 2, "Owner");
-                sheet.Cell(1, 3, "Status");
-                sheet.Cell(2, 1, "Spreadsheet retention marker");
-                sheet.Cell(2, 2, "Reader team");
-                sheet.Cell(2, 3, "Ready");
+                sheet.Cell(1, 1).SetValue("Control");
+                sheet.Cell(1, 2).SetValue("Owner");
+                sheet.Cell(1, 3).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Spreadsheet retention marker");
+                sheet.Cell(2, 2).SetValue("Reader team");
+                sheet.Cell(2, 3).SetValue("Ready");
                 document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
                 document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
                 document.Save();

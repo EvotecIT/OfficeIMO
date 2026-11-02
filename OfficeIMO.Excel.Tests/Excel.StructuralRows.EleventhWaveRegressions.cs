@@ -19,10 +19,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsUnqualifiedLocalChartFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             C.Formula formula = chartPart.ChartSpace.Descendants<C.Formula>().First();
@@ -33,17 +33,17 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("row limit", exception.Message);
             Assert.Equal($"A{ExcelA1.MaxRows}", formula.Text);
-            Assert.Equal("Category", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Category", sheet.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_DoesNotPreflightStationaryOneCellToMarker() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
 
             Xdr.WorksheetDrawing drawing = sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!;
@@ -107,8 +107,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellAt(5, 1).SetValue(1);
-            data.CellAt(6, 1).SetValue(2);
+            data.Cell(5, 1).SetValue(1);
+            data.Cell(6, 1).SetValue(2);
             summary.AddSparklines("'Data'!A5:A6", "A1");
             X14.SparklineGroup group = Assert.Single(
                 summary.WorksheetPart.Worksheet.Descendants<X14.SparklineGroup>());
@@ -123,28 +123,28 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RejectsMacroSheetsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue("Keep");
+            sheet.Cell(2, 1).SetValue("Keep");
             document.WorkbookPartRoot.AddNewPart<MacroSheetPart>();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.DeleteRows(2));
 
             Assert.Contains("macro sheets", exception.Message);
-            Assert.Equal("Keep", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_RejectsLegacyRevisionTrackingAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue("Keep");
+            sheet.Cell(2, 1).SetValue("Keep");
             document.WorkbookPartRoot.AddNewPart<WorkbookRevisionHeaderPart>();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.InsertRows(2));
 
             Assert.Contains("revision tracking", exception.Message);
-            Assert.Equal("Keep", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
@@ -152,8 +152,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data\"Set");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellAt(5, 1).SetValue(1);
-            summary.CellFormula(1, 1, "'Data\"Set'!A5");
+            data.Cell(5, 1).SetValue(1);
+            summary.Cell(1, 1).SetFormula("'Data\"Set'!A5");
 
             data.InsertRows(5);
 
@@ -166,10 +166,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RewritesClassicChartExtensionFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             ChartPart chartPart = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
             var extensionFormula = new C15.Formula("A5:A6");

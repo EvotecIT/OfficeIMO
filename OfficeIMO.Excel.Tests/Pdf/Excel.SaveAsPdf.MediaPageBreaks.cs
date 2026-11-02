@@ -20,8 +20,8 @@ public partial class Excel {
         var data = new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) });
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "FirstChart" });
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = columnBreak ? 2 : 22, Column = columnBreak ? 22 : 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "SecondChart" });
-        if (cellPosition == 1) sheet.CellValue(1, 1, "EarlyCell");
-        if (cellPosition == 2) sheet.CellValue(columnBreak ? 2 : 31, columnBreak ? 31 : 2, "LateCell");
+        if (cellPosition == 1) sheet.Cell(1, 1).SetValue("EarlyCell");
+        if (cellPosition == 2) sheet.Cell(columnBreak ? 2 : 31, columnBreak ? 31 : 2).SetValue("LateCell");
         sheet.SetPageSetup(fitToWidth: columnBreak ? 0U : 1U, fitToHeight: columnBreak ? 1U : 0U);
         if (columnBreak) sheet.AddManualColumnPageBreak(21);
         else sheet.AddManualRowPageBreak(21);
@@ -48,7 +48,7 @@ public partial class Excel {
     public void SaveAsPdf_CompactLeadingChartStaysWhole(bool fit) {
         using ExcelDocument workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Compact");
-        sheet.CellValue(5, 1, "Anchor");
+        sheet.Cell(5, 1).SetValue("Anchor");
         sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" },
             new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) }), new ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(180), Title = "CompactChart" });
         sheet.SetPageSetup(fitToWidth: fit ? 1U : 0U, fitToHeight: fit ? 1U : 0U);
@@ -70,7 +70,7 @@ public partial class Excel {
     public void SaveAsPdf_OrdersCellChunksAndMediaTilesTogether(ExcelPageOrder order, bool titles) {
         using ExcelDocument workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Order");
-        sheet.CellValue(1, 1, "LeftCell"); sheet.CellValue(1, 2, "RightCell");
+        sheet.Cell(1, 1).SetValue("LeftCell"); sheet.Cell(1, 2).SetValue("RightCell");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(70)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(70));
         var data = new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Values", new[] { 1D, 2D }) });
         sheet.AddChart(OfficeChartType.ColumnClustered, data, new ExcelChartOptions { Row = 2, Column = 1, Width = OfficeLength.Pixels(200), Height = OfficeLength.Pixels(180), Title = "TopLeft" });

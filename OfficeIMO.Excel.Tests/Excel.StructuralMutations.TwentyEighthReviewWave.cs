@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => removed.Name = "Changed");
 
             ExcelSheet dataSheet = document[liveRange.SheetName];
-            Assert.Equal("B", dataSheet.CellAt(liveRange.CategoryStartRow, liveRange.CategoryStartColumn).GetValue<string>());
-            Assert.Equal(2d, dataSheet.CellAt(liveRange.CategoryStartRow, liveRange.SeriesStartColumn).GetValue<double>());
+            Assert.Equal("B", dataSheet.Cell(liveRange.CategoryStartRow, liveRange.CategoryStartColumn).GetValue<string>());
+            Assert.Equal(2d, dataSheet.Cell(liveRange.CategoryStartRow, liveRange.SeriesStartColumn).GetValue<double>());
             Assert.Equal("Live", live.Title);
             Assert.Empty(document.ValidateOpenXml());
         }
@@ -51,9 +51,9 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaSearch_ExcludesLetAndLambdaBoundCalls() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellFormula(1, 1, "LET(SUM,LAMBDA(x,x),SUM(1))");
-            sheet.CellFormula(2, 1, "LAMBDA(SUM,SUM(1))(LAMBDA(x,x))");
-            sheet.CellFormula(3, 1, "SUM(1)");
+            sheet.Cell(1, 1).SetFormula("LET(SUM,LAMBDA(x,x),SUM(1))");
+            sheet.Cell(2, 1).SetFormula("LAMBDA(SUM,SUM(1))(LAMBDA(x,x))");
+            sheet.Cell(3, 1).SetFormula("SUM(1)");
 
             ExcelFormulaCellInfo match = Assert.Single(sheet.SearchFormulas(
                 new ExcelFormulaSearchOptions { Function = "SUM" }));
@@ -72,11 +72,11 @@ namespace OfficeIMO.Tests {
                 ColumnNames = new[] { "A", "B" }
             });
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
             Assert.Equal("A1:C2", sheet.GetTableRange(source.TableName));
             AssertQueryFieldSchema(sheet, new[] { "A", "Column2", "B" });
 
-            sheet.DeleteColumns(2);
+            sheet.DeleteColumnsTransactional(2);
             Assert.Equal("A1:B2", sheet.GetTableRange(source.TableName));
             AssertQueryFieldSchema(sheet, new[] { "A", "B" });
             Assert.Empty(document.ValidateOpenXml());

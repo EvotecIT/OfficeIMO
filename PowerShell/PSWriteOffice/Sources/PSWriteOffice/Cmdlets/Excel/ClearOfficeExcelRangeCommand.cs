@@ -96,7 +96,7 @@ public sealed class ClearOfficeExcelRangeCommand : PSWriteOffice.Cmdlets.OfficeM
         var target = $"{sheet.Name}!{Range}";
 
         if (ShouldProcess(target, $"Clear Excel range ({options})")) {
-            sheet.ClearRange(Range, options);
+            sheet.Range(Range).Clear(options);
             workbook.SaveIfOwned();
             WritePassThru(workbook.Document, workbook.OwnsDocument, Path);
         }

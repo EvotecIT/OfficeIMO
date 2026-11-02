@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             using (var cells = sheet.EnumerateCells().GetEnumerator()) {
                 Assert.True(cells.MoveNext());
-                sheet.CellValue(1, 1, 10d);
+                sheet.Cell(1, 1).SetValue(10d);
                 Assert.True(cells.MoveNext());
                 Assert.Equal(2d, cells.Current.Value);
                 Assert.False(cells.MoveNext());
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
             document.Save(saved);
             Assert.Equal(new object[] { 10d, 2d }, sheet.EnumerateCells().Select(cell => cell.Value!).ToArray());
 
-            sheet.CellValue(1, 2, 20d);
+            sheet.Cell(1, 2).SetValue(20d);
             Assert.Equal(new object[] { 10d, 20d }, sheet.EnumerateCells().Select(cell => cell.Value!).ToArray());
         }
 
@@ -48,12 +48,12 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Load(new MemoryStream(package));
             ExcelSheet edited = document["Edited"];
             ExcelSheet untouched = document["Untouched"];
-            edited.CellValue(1, 2, "added");
+            edited.Cell(1, 2).SetValue("added");
 
             using (var cells = untouched.EnumerateCells().GetEnumerator()) {
                 Assert.True(cells.MoveNext());
                 Assert.Equal("shared", cells.Current.Value);
-                edited.CellValue(1, 3, "added later");
+                edited.Cell(1, 3).SetValue("added later");
                 Assert.True(cells.MoveNext());
                 Assert.Equal(2d, cells.Current.Value);
             }
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
 
                 using (var cells = sheet.EnumerateCells().GetEnumerator()) {
                     Assert.True(cells.MoveNext());
-                    sheet.CellValue(1, 1, 10d);
+                    sheet.Cell(1, 1).SetValue(10d);
                     document.Save();
                     Assert.True(cells.MoveNext());
                     Assert.Equal(2d, cells.Current.Value);

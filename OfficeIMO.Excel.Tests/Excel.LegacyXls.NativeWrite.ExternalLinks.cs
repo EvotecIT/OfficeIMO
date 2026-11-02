@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Links");
-                    sheet.CellValue(1, 1, "External link metadata");
+                    sheet.Cell(1, 1).SetValue("External link metadata");
 
                     ExternalWorkbookPart externalWorkbookPart = document.WorkbookPartRoot.AddNewPart<ExternalWorkbookPart>();
                     ExternalRelationship relationship = externalWorkbookPart.AddExternalRelationship(
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedExternalWorkbookLinkRelationshipTypesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("external workbook links", (document, sheet) => {
-                sheet.CellValue(1, 1, "Unsupported external link relationship");
+                sheet.Cell(1, 1).SetValue("Unsupported external link relationship");
 
                 ExternalWorkbookPart externalWorkbookPart = document.WorkbookPartRoot.AddNewPart<ExternalWorkbookPart>();
                 ExternalRelationship relationship = externalWorkbookPart.AddExternalRelationship(

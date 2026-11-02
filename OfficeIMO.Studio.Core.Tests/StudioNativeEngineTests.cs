@@ -882,10 +882,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string workbook = Path.Combine(_root, "figures.xlsx");
         using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Quarterly figures");
+            sheet.Cell(1, 1).SetValue("Quarterly figures");
             sheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(40)); // Search validates visible text, not clipped cell overflow.
             sheet.SetRowHeight(1, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.CellVerticalAlign(1, 1, OfficeIMO.Excel.ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(OfficeIMO.Excel.ExcelVerticalAlignment.Center);
             document.Save();
         }
         string deck = Path.Combine(_root, "deck.pptx");

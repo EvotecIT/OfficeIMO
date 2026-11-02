@@ -214,9 +214,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet options = document.AddSheet("Options");
                 ExcelSheet data = document.AddSheet("Data");
 
-                options.CellValue(1, 1, "Open");
-                options.CellValue(2, 1, "Closed");
-                options.CellValue(3, 1, "Pending");
+                options.Cell(1, 1).SetValue("Open");
+                options.Cell(2, 1).SetValue("Closed");
+                options.Cell(3, 1).SetValue("Pending");
                 document.SetNamedRange("StatusOptions", "'Options'!A1:A3", save: false);
                 data.ValidationListNamedRange("B2:B5", "StatusOptions");
                 document.Save();
@@ -241,9 +241,9 @@ namespace OfficeIMO.Tests {
                 ExcelSheet options = document.AddSheet("Options");
                 ExcelSheet data = document.AddSheet("Data");
 
-                options.CellValue(1, 1, "Open");
-                options.CellValue(2, 1, "Closed");
-                options.CellValue(3, 1, "Pending");
+                options.Cell(1, 1).SetValue("Open");
+                options.Cell(2, 1).SetValue("Closed");
+                options.Cell(3, 1).SetValue("Pending");
                 data.ValidationListRange("B2:B5", "A1:A3", "Options");
                 document.Save();
             }
@@ -266,9 +266,9 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet data = document.AddSheet("Data");
 
-                data.CellValue(1, 4, "Open");
-                data.CellValue(2, 4, "Closed");
-                data.CellValue(3, 4, "Pending");
+                data.Cell(1, 4).SetValue("Open");
+                data.Cell(2, 4).SetValue("Closed");
+                data.Cell(3, 4).SetValue("Pending");
                 data.ValidationListRange("B2:B5", "D1:D3");
                 document.Save();
             }

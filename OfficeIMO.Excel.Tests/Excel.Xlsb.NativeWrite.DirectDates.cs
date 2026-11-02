@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument loadedStandard = ExcelDocument.Load(new MemoryStream(standardBytes, writable: false));
             Assert.Equal(dateSystem, loaded.DateSystem);
             for (int row = 2; row <= rows.Length + 1; row++) {
-                Assert.Equal(loadedStandard.Sheets[0].GetCellStyle(row, 2).NumberFormatCode,
-                    loaded.Sheets[0].GetCellStyle(row, 2).NumberFormatCode);
+                Assert.Equal(loadedStandard.Sheets[0].Cell(row, 2).GetStyle().NumberFormatCode,
+                    loaded.Sheets[0].Cell(row, 2).GetStyle().NumberFormatCode);
                 Assert.Equal(AssertCellValue(loadedStandard.Sheets[0], row, 2).DateTimeValue,
                     AssertCellValue(loaded.Sheets[0], row, 2).DateTimeValue);
             }

@@ -60,7 +60,7 @@ public sealed class ExcelWorksheetGridLoaderTests {
         string worksheet = "<worksheet xmlns=\"" + MainNamespace + "\">" + grid + "</worksheet>";
         using var document = ExcelDocument.Load(new MemoryStream(CreatePackage(worksheet)));
 
-        Assert.Throws<XmlException>(() => document.Sheets[0].CellValue(9, 9, 1d));
+        Assert.Throws<XmlException>(() => document.Sheets[0].Cell(9, 9).SetValue(1d));
     }
 
     private static string Worksheet(string prefix, string declaration, string grid) =>
@@ -73,7 +73,7 @@ public sealed class ExcelWorksheetGridLoaderTests {
     private static Worksheet EditAndSave(byte[] package) {
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Load(new MemoryStream(package))) {
-            document.Sheets[0].CellValue(9, 9, 1d);
+            document.Sheets[0].Cell(9, 9).SetValue(1d);
             document.Save(output);
         }
         output.Position = 0;
@@ -84,7 +84,7 @@ public sealed class ExcelWorksheetGridLoaderTests {
     private static byte[] CreatePackage(string worksheetXml) {
         using var package = new MemoryStream();
         using (var document = ExcelDocument.Create()) {
-            document.AddSheet("Data").CellValue(1, 1, 1d);
+            document.AddSheet("Data").Cell(1, 1).SetValue(1d);
             document.Save(package);
         }
         using (var sdk = SpreadsheetDocument.Open(package, true)) {

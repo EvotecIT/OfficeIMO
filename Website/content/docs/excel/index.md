@@ -25,10 +25,10 @@ using OfficeIMO.Excel;
 using var workbook = ExcelDocument.Create("report.xlsx");
 var sheet = workbook.AddSheet("Sales");
 
-sheet.CellAt("A1").SetValue("Product");
-sheet.CellAt("B1").SetValue("Revenue");
-sheet.CellAt("A2").SetValue("Widget A");
-sheet.CellAt("B2").SetValue(15000);
+sheet.Cell("A1").SetValue("Product");
+sheet.Cell("B1").SetValue("Revenue");
+sheet.Cell("A2").SetValue("Widget A");
+sheet.Cell("B2").SetValue(15000);
 
 workbook.Save();
 ```

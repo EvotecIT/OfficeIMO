@@ -40,9 +40,9 @@ public sealed class IWorkEverydayCorpusTests {
                 Assert.True(reference.TryGetCellValueSnapshot(row + 1, column, out var expected));
                 Assert.Equal(expected!.Kind, cell!.Kind);
                 if (expected.Kind == ExcelCellValueKind.Number) Assert.Equal(expected.RawValue, cell.RawValue);
-                else Assert.Equal(reference.CellAt(row + 1, column).GetValue<string>(), destination.CellAt(row, column).GetValue<string>());
-                var style = destination.GetCellStyle(row, column);
-                var nativeStyle = reference.GetCellStyle(row + 1, column);
+                else Assert.Equal(reference.Cell(row + 1, column).GetValue<string>(), destination.Cell(row, column).GetValue<string>());
+                var style = destination.Cell(row, column).GetStyle();
+                var nativeStyle = reference.Cell(row + 1, column).GetStyle();
                 Assert.Equal(nativeStyle.Bold, style.Bold);
                 Assert.Equal(nativeStyle.FontSize, style.FontSize);
                 Assert.True(string.IsNullOrEmpty(nativeStyle.HorizontalAlignment)

@@ -33,8 +33,8 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.Equal(tables.ReconstructedCount, reopened.Sheets.Count);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(84d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(84d, reopened.Sheets[1].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.Single(reopened.Sheets);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]

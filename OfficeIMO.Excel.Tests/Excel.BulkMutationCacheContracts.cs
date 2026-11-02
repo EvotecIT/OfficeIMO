@@ -26,15 +26,15 @@ namespace OfficeIMO.Tests {
                 document.SheetCachingEnabled = false;
                 ExcelSheet sheet = document.AddSheet("Values");
                 ExcelSheet source = document.AddSheet("Styles");
-                source.CellBold(1, 1);
-                source.CellItalic(1, 2);
+                source.Cell(1, 1).SetBold();
+                source.Cell(1, 2).SetItalic();
                 source.DefineNamedStyle("Input", 1, 1);
                 sheet.ApplyNamedStyle("Input", "A2:A3");
                 void Edit() {
-                    sheet.CellValue(2, 1, value);
+                    sheet.Cell(2, 1).SetValue(value);
                     if (batched) source.Batch(_ => source.DefineNamedStyle("Input", 1, 2));
                     else document.DefineNamedStyle("Input", new ExcelStyleDefinition { Italic = true });
-                    sheet.CellValue(3, 1, value);
+                    sheet.Cell(3, 1).SetValue(value);
                 }
                 if (batched) sheet.Batch(_ => Edit());
                 else Edit();
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var reopened = ExcelDocument.Load(stream)) {
-                ExcelCellStyleInfo applied = reopened.Sheets[0].CellAt(3, 1).GetStyle();
+                ExcelCellStyleInfo applied = reopened.Sheets[0].Cell(3, 1).GetStyle();
                 Assert.True(applied.Italic);
                 Assert.False(applied.Bold);
             }
@@ -65,19 +65,19 @@ namespace OfficeIMO.Tests {
                 document.SheetCachingEnabled = false;
                 ExcelSheet held = document.AddSheet("Values");
                 ExcelSheet other = document.AddSheet("Transaction");
-                held.CellValue(1, 1, "Stable");
+                held.Cell(1, 1).SetValue("Stable");
                 object value = AutomaticFormatValue(kind);
                 Assert.Throws<InvalidOperationException>(() => other.ApplyTransactionalMutation(_ => {
-                    held.CellValue(1, 1, value);
+                    held.Cell(1, 1).SetValue(value);
                     throw new InvalidOperationException("Rollback");
                 }, 1, new ExcelMutationPlanOptions(), default));
-                held.CellValue(2, 1, value);
+                held.Cell(2, 1).SetValue(value);
                 document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = true });
             }
 
             using var saved = ExcelDocument.Load(stream);
-            Assert.Equal("Stable", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.NotEmpty(saved.Sheets[0].CellAt(2, 1).GetFormattedText());
+            Assert.Equal("Stable", saved.Sheets[0].Cell(1, 1).GetValue<string>());
+            Assert.NotEmpty(saved.Sheets[0].Cell(2, 1).GetFormattedText());
             using var package = SpreadsheetDocument.Open(stream, false);
             WorkbookPart workbookPart = package.WorkbookPart!;
             Sheet valuesSheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name?.Value == "Values");
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Settings");
-                for (int row = 1; row <= 20; row++) sheet.CellValue(row, 1, $"Old{row:D2}");
+                for (int row = 1; row <= 20; row++) sheet.Cell(row, 1).SetValue($"Old{row:D2}");
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
                 void Edit(ExcelSheet target) {
                     for (int row = 1; row <= 20; row++) {
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(120U, saved.GetZoomScale());
             Assert.True(saved.RightToLeft);
             Assert.True(saved.IsProtected);
-            for (int row = 1; row <= 20; row++) Assert.Equal($"New{row:D2}", saved.CellAt(row, 1).GetValue<string>());
+            for (int row = 1; row <= 20; row++) Assert.Equal($"New{row:D2}", saved.Cell(row, 1).GetValue<string>());
             using var package = SpreadsheetDocument.Open(stream, false);
             Assert.False(package.WorkbookPart!.WorksheetParts.Single().Worksheet.GetFirstChild<SheetProtection>()!.FormatCells!.Value);
         }
@@ -126,11 +126,11 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Projection");
-                sheet.CellBold(1, 1);
+                sheet.Cell(1, 1).SetBold();
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
                 sheet.Batch(target => {
                     for (int row = 1; row <= 20; row++) {
-                        target.CellValue(row, 1, "Value");
+                        target.Cell(row, 1).SetValue("Value");
                         target.FormatCellFont(row, 1, "Calibri", 12, "FF112233", true, true, null);
                         target.FormatCellAlignment(row, 1, HorizontalAlignmentValues.Center, VerticalAlignmentValues.Center, true);
                     }
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
             }
             using var reopened = ExcelDocument.Load(stream);
             for (int row = 1; row <= 20; row++) {
-                ExcelCellStyleInfo style = reopened.Sheets[0].CellAt(row, 1).GetStyle();
+                ExcelCellStyleInfo style = reopened.Sheets[0].Cell(row, 1).GetStyle();
                 Assert.True(style.Bold);
                 Assert.True(style.Italic);
                 Assert.True(style.WrapText);
@@ -157,50 +157,50 @@ namespace OfficeIMO.Tests {
                 ExcelSheet owner = document.AddSheet("Batch owner");
                 ExcelSheet target = document.AddSheet("Values");
                 if (materialized) {
-                    target.CellValue(1, 1, "Seed");
-                    target.CellBold(1, 1);
+                    target.Cell(1, 1).SetValue("Seed");
+                    target.Cell(1, 1).SetBold();
                 }
                 owner.Batch(_ => {
-                    target.CellValue(1, 1, "Text");
-                    target.CellValue(2, 1, 2D);
-                    target.CellValue(3, 1, 3F);
-                    target.CellValue(4, 1, 4M);
-                    target.CellValue(5, 1, 5);
-                    target.CellValue(6, 1, 6L);
-                    target.CellValue(7, 1, (short)7);
-                    target.CellValue(8, 1, 8U);
-                    target.CellValue(9, 1, 9UL);
-                    target.CellValue(10, 1, (ushort)10);
-                    target.CellValue(11, 1, (byte)11);
-                    target.CellValue(12, 1, (sbyte)12);
-                    target.CellValue(13, 1, true);
-                    target.CellValue(14, 1, new DateTime(2026, 1, 2));
-                    target.CellValue(15, 1, TimeSpan.FromHours(36));
-                    target.CellValue(16, 1, new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
+                    target.Cell(1, 1).SetValue("Text");
+                    target.Cell(2, 1).SetValue(2D);
+                    target.Cell(3, 1).SetValue(3F);
+                    target.Cell(4, 1).SetValue(4M);
+                    target.Cell(5, 1).SetValue(5);
+                    target.Cell(6, 1).SetValue(6L);
+                    target.Cell(7, 1).SetValue((short)7);
+                    target.Cell(8, 1).SetValue(8U);
+                    target.Cell(9, 1).SetValue(9UL);
+                    target.Cell(10, 1).SetValue((ushort)10);
+                    target.Cell(11, 1).SetValue((byte)11);
+                    target.Cell(12, 1).SetValue((sbyte)12);
+                    target.Cell(13, 1).SetValue(true);
+                    target.Cell(14, 1).SetValue(new DateTime(2026, 1, 2));
+                    target.Cell(15, 1).SetValue(TimeSpan.FromHours(36));
+                    target.Cell(16, 1).SetValue(new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero));
                     target.CellValue<int>(17, 1, 17);
-                    target.CellValue(18, 1, (object)18D);
-                    target.CellValue(19, 1, 42D);
-                    target.CellFormula(19, 1, "6*7");
+                    target.Cell(18, 1).SetValue((object)18D);
+                    target.Cell(19, 1).SetValue(42D);
+                    target.Cell(19, 1).SetFormula("6*7");
 #if NET6_0_OR_GREATER
-                    target.CellValue(20, 1, new DateOnly(2026, 1, 2));
-                    target.CellValue(21, 1, new TimeOnly(3, 4, 5));
+                    target.Cell(20, 1).SetValue(new DateOnly(2026, 1, 2));
+                    target.Cell(21, 1).SetValue(new TimeOnly(3, 4, 5));
 #endif
                 });
                 document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = true });
             }
             using var reopened = ExcelDocument.Load(stream);
             ExcelSheet saved = reopened.Sheets.Single(sheet => sheet.Name == "Values");
-            Assert.Equal("Text", saved.CellAt(1, 1).GetValue<string>());
-            for (int row = 2; row <= 12; row++) Assert.Equal((double)row, saved.CellAt(row, 1).GetValue<double>());
-            Assert.True(saved.CellAt(13, 1).GetValue<bool>());
-            for (int row = 14; row <= 16; row++) Assert.NotEmpty(saved.CellAt(row, 1).GetFormattedText());
-            Assert.Equal(17D, saved.CellAt(17, 1).GetValue<double>());
-            Assert.Equal(18D, saved.CellAt(18, 1).GetValue<double>());
+            Assert.Equal("Text", saved.Cell(1, 1).GetValue<string>());
+            for (int row = 2; row <= 12; row++) Assert.Equal((double)row, saved.Cell(row, 1).GetValue<double>());
+            Assert.True(saved.Cell(13, 1).GetValue<bool>());
+            for (int row = 14; row <= 16; row++) Assert.NotEmpty(saved.Cell(row, 1).GetFormattedText());
+            Assert.Equal(17D, saved.Cell(17, 1).GetValue<double>());
+            Assert.Equal(18D, saved.Cell(18, 1).GetValue<double>());
             Assert.Equal("6*7", saved.GetFormulaText(19, 1));
-            Assert.Equal(42D, saved.CellAt(19, 1).GetValue<double>());
+            Assert.Equal(42D, saved.Cell(19, 1).GetValue<double>());
 #if NET6_0_OR_GREATER
-            Assert.NotEmpty(saved.CellAt(20, 1).GetFormattedText());
-            Assert.NotEmpty(saved.CellAt(21, 1).GetFormattedText());
+            Assert.NotEmpty(saved.Cell(20, 1).GetFormattedText());
+            Assert.NotEmpty(saved.Cell(21, 1).GetFormattedText());
 #endif
         }
 
@@ -211,9 +211,9 @@ namespace OfficeIMO.Tests {
             using var seed = new MemoryStream();
             using (var creator = ExcelDocument.Create(seed)) {
                 ExcelSheet sheet = creator.AddSheet("Aliases");
-                sheet.CellValue(1, 1, "Old");
-                sheet.CellValue(1, 2, "Other");
-                sheet.CellValue(2, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Old");
+                sheet.Cell(1, 2).SetValue("Other");
+                sheet.Cell(2, 1).SetValue("Value");
                 creator.Save(seed);
             }
             using var document = ExcelDocument.Load(seed);
@@ -224,22 +224,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1", held.FindFirst("Old"));
             ExcelSheet alias = document.Sheets.Single();
             if (replaceAll) Assert.Equal(1, alias.ReplaceAll("Old", "New"));
-            else alias.CellValue(1, 1, "New");
+            else alias.Cell(1, 1).SetValue("New");
             Dictionary<string, int> updated = held.GetHeaderMap();
             Assert.False(updated.ContainsKey("Old"));
             Assert.Equal(1, updated["New"]);
             Assert.Null(held.FindFirst("Old"));
             Assert.Equal("A1", held.FindFirst("New"));
             held.SetByHeader(2, "New", "Written");
-            alias.CellValue(1, 1, "Newest");
+            alias.Cell(1, 1).SetValue("Newest");
             Assert.Equal(1, held.GetHeaderMap()["Newest"]);
             Assert.True(originalSnapshot.ContainsKey("Old"));
             Assert.False(originalSnapshot.ContainsKey("Newest"));
             using var destination = new MemoryStream();
             document.Save(destination, new ExcelSaveOptions { ValidateOpenXml = true });
             using var reopened = ExcelDocument.Load(destination);
-            Assert.Equal("Newest", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.Equal("Written", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Newest", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+            Assert.Equal("Written", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
@@ -249,27 +249,27 @@ namespace OfficeIMO.Tests {
                 document.SheetCachingEnabled = false;
                 ExcelSheet held = document.AddSheet("Values");
                 ExcelSheet owner = document.AddSheet("Transaction");
-                held.CellValue(1, 1, "Stable");
+                held.Cell(1, 1).SetValue("Stable");
                 Assert.Throws<InvalidOperationException>(() => owner.ApplyTransactionalMutation(_ => {
-                    held.CellValue(2, 1, "Transient");
+                    held.Cell(2, 1).SetValue("Transient");
                     throw new InvalidOperationException("Rollback");
                 }, 1, new ExcelMutationPlanOptions(), default));
-                owner.CellValue(2, 1, "Replacement");
-                held.CellValue(2, 1, "Transient");
+                owner.Cell(2, 1).SetValue("Replacement");
+                held.Cell(2, 1).SetValue("Transient");
                 document.Save(stream, new ExcelSaveOptions { ValidateOpenXml = true });
             }
             using var reopened = ExcelDocument.Load(stream);
-            Assert.Equal("Transient", reopened.Sheets.Single(sheet => sheet.Name == "Values").CellAt(2, 1).GetValue<string>());
-            Assert.Equal("Replacement", reopened.Sheets.Single(sheet => sheet.Name == "Transaction").CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Transient", reopened.Sheets.Single(sheet => sheet.Name == "Values").Cell(2, 1).GetValue<string>());
+            Assert.Equal("Replacement", reopened.Sheets.Single(sheet => sheet.Name == "Transaction").Cell(2, 1).GetValue<string>());
         }
 
         [Fact]
         public void BulkMutation_shared_header_cache_respects_date_options_converters_and_cancellation() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Headers");
-            sheet.CellValue(1, 1, 45292D);
-            sheet.CellValue(2, 1, "Value");
-            sheet.FormatCell(1, 1, "yyyy-mm-dd");
+            sheet.Cell(1, 1).SetValue(45292D);
+            sheet.Cell(2, 1).SetValue("Value");
+            sheet.Cell(1, 1).SetNumberFormat("yyyy-mm-dd");
             var rawOptions = new ExcelReaderOptions { TreatDatesUsingNumberFormat = false };
             Assert.Equal(1, sheet.GetHeaderMap(rawOptions)["45292"]);
             Assert.False(sheet.GetHeaderMap().ContainsKey("45292"));
@@ -298,17 +298,17 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Headers");
             ExcelSheet source = document.AddSheet("Styles");
-            sheet.CellValue(1, 1, 45292D);
-            sheet.CellValue(2, 1, "Value");
-            source.CellValue(1, 1, "Date style");
-            source.FormatCell(1, 1, "yyyy-mm-dd");
-            source.CellValue(1, 2, "General style");
+            sheet.Cell(1, 1).SetValue(45292D);
+            sheet.Cell(2, 1).SetValue("Value");
+            source.Cell(1, 1).SetValue("Date style");
+            source.Cell(1, 1).SetNumberFormat("yyyy-mm-dd");
+            source.Cell(1, 2).SetValue("General style");
             source.DefineNamedStyle("Header", 1, route == "redefine" ? 2 : 1);
             if (route == "redefine") sheet.ApplyNamedStyle("Header", "A1:A1");
             Assert.Equal(1, sheet.GetHeaderMap()["45292"]);
             switch (route) {
-                case "cell": sheet.FormatCell(1, 1, "yyyy-mm-dd"); break;
-                case "range": sheet.FormatRange("A1:A1", "yyyy-mm-dd"); break;
+                case "cell": sheet.Cell(1, 1).SetNumberFormat("yyyy-mm-dd"); break;
+                case "range": sheet.Range("A1:A1").SetNumberFormat("yyyy-mm-dd"); break;
                 case "apply": sheet.ApplyNamedStyle("Header", "A1:A1"); break;
                 case "redefine": source.DefineNamedStyle("Header", 1, 1); break;
             }

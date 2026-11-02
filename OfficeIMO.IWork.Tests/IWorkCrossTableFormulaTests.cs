@@ -125,7 +125,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
                 m.SourceSheetName == expected.GetProperty("sourceSheet").GetString()
                 && m.SourceTableName == expected.GetProperty("sourceTable").GetString()).DestinationName;
             ExcelSheet sheet = Assert.Single(reopened.Sheets, s => s.Name == sheetName);
-            ExcelCellData cell = sheet.CellAt(expected.GetProperty("row").GetInt32(),
+            ExcelCellData cell = sheet.Cell(expected.GetProperty("row").GetInt32(),
                 expected.GetProperty("column").GetInt32()).GetValue();
             IWorkTable table = Assert.Single(Assert.Single(converted.Projection.Sheets,
                 s => s.Name == expected.GetProperty("sourceSheet").GetString()).Tables,

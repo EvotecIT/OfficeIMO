@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                document.Sheets[0].CellValue(1, 1, "Normalized");
+                document.Sheets[0].Cell(1, 1).SetValue("Normalized");
             }
 
             byte[] savedBytes = File.ReadAllBytes(filePath);
@@ -158,12 +158,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Initial");
+                    sheet.Cell(1, 1).SetValue("Initial");
                     document.Save();
                 }
 
                 using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                    document.Sheets[0].CellValue(1, 1, "Updated");
+                    document.Sheets[0].Cell(1, 1).SetValue("Updated");
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                document.Sheets[0].CellValue(1, 1, "Updated");
+                document.Sheets[0].Cell(1, 1).SetValue("Updated");
             }
 
             using var reloaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions {

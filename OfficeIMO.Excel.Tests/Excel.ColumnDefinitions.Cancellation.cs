@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             if (autoFit) Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount > 0D);
             else Assert.Empty(sheet.GetColumnDefinitions());
             for (int day = 0; day < 3; day++) {
-                Assert.Equal(Date(day).UtcDateTime.ToOADate(), sheet.CellAt(day + 2, 1).GetValue<double>());
+                Assert.Equal(Date(day).UtcDateTime.ToOADate(), sheet.Cell(day + 2, 1).GetValue<double>());
             }
         }
     }

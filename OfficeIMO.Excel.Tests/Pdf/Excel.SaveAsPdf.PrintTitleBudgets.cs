@@ -11,7 +11,7 @@ public partial class Excel {
     public void SaveAsPdf_DenseMiddleTitleRowsRejectsExcessivePageProjection() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1600, 1, "End");
+        sheet.Cell(1600, 1).SetValue("End");
         document.SetPrintArea(sheet, "A1:A1600");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 1599, firstCol: null, lastCol: null);
         NotSupportedException error = Assert.Throws<NotSupportedException>(() => document.ToPdf(new ExcelPdfExportOptions {
@@ -25,7 +25,7 @@ public partial class Excel {
     public void SaveAsPdf_DenseMiddleTitleColumnsRejectsExcessivePageProjection() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1600, "End");
+        sheet.Cell(1, 1600).SetValue("End");
         document.SetPrintArea(sheet, "A1:BIN1");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 1599);
         NotSupportedException error = Assert.Throws<NotSupportedException>(() => document.ToPdf(new ExcelPdfExportOptions {
@@ -39,7 +39,7 @@ public partial class Excel {
     public void SaveAsPdf_FlowTableBoundsCombinedManualBreakTitleProjection() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(50, 50, "End");
+        sheet.Cell(50, 50).SetValue("End");
         document.SetPrintArea(sheet, "A1:AX50");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 40, firstCol: 3, lastCol: 40);
         for (int index = 1; index < 50; index++) {
@@ -56,7 +56,7 @@ public partial class Excel {
     public void SaveAsPdf_ProjectionUsesConfiguredWorksheetCellBudget() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(2, 2, "End");
+        sheet.Cell(2, 2).SetValue("End");
         document.SetPrintArea(sheet, "A1:B2");
         document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1);
         sheet.AddManualRowPageBreak(1);
@@ -72,9 +72,9 @@ public partial class Excel {
     public void SaveAsPdf_MergedPrependedTitleRetainsFullGeometryWhenBodyRowsAreCapped() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "Merged");
-        sheet.Cell(11, 1, "Body");
-        sheet.MergeRange("A1:A10");
+        sheet.Cell(1, 1).SetValue("Merged");
+        sheet.Cell(11, 1).SetValue("Body");
+        sheet.Range("A1:A10").Merge();
         document.SetPrintArea(sheet, "A11:A11");
         document.SetPrintTitles(sheet, firstRow: 1, lastRow: 10, firstCol: null, lastCol: null);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {

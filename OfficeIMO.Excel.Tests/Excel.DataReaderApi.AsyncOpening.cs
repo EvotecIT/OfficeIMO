@@ -163,13 +163,13 @@ public partial class Excel {
     private static byte[] CreateAsyncOpeningWorkbook(ExcelFileFormat format) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(1, 2, "Id");
-        sheet.CellValue(2, 1, "Alpha");
-        sheet.CellValue(2, 2, 42);
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(1, 2).SetValue("Id");
+        sheet.Cell(2, 1).SetValue("Alpha");
+        sheet.Cell(2, 2).SetValue(42);
         ExcelSheet next = document.AddSheet("Next");
-        next.CellValue(1, 1, "Name");
-        next.CellValue(2, 1, "Beta");
+        next.Cell(1, 1).SetValue("Name");
+        next.Cell(2, 1).SetValue("Beta");
         return document.ToBytes(format);
     }
 

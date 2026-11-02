@@ -18,12 +18,12 @@ namespace OfficeIMO.Excel {
         /// <summary>Writes a title (bold with themed background) and optional subtitle.</summary>
         public ExcelReportBuilder Title(string text, string? subtitle = null) {
             if (string.IsNullOrWhiteSpace(text)) return this;
-            Sheet.Cell(_row, 1, text);
+            Sheet.Cell(_row, 1).SetValue(text);
             Sheet.CellBold(_row, 1, true);
             Sheet.CellBackground(_row, 1, _theme.SectionHeaderFillHex);
             _row++;
             if (!string.IsNullOrWhiteSpace(subtitle)) {
-                Sheet.Cell(_row, 1, subtitle);
+                Sheet.Cell(_row, 1).SetValue(subtitle!);
                 _row++;
             }
             return Spacer();
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Writes a section header (bold with themed background).</summary>
         public ExcelReportBuilder Section(string text) {
-            Sheet.Cell(_row, 1, text);
+            Sheet.Cell(_row, 1).SetValue(text);
             Sheet.CellBold(_row, 1, true);
             Sheet.CellBackground(_row, 1, _theme.SectionHeaderFillHex);
             _row++;
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Writes a paragraph-like line of text.</summary>
         public ExcelReportBuilder Paragraph(string text, int widthColumns = 6) {
             if (string.IsNullOrEmpty(text)) return this;
-            Sheet.Cell(_row, 1, text);
+            Sheet.Cell(_row, 1).SetValue(text);
             _row++;
             return this;
         }
@@ -60,7 +60,7 @@ namespace OfficeIMO.Excel {
             string fill = role.Resolve(_theme.Theme).ToRgbHex();
 
             if (!string.IsNullOrWhiteSpace(title)) {
-                Sheet.Cell(_row, 1, title);
+                Sheet.Cell(_row, 1).SetValue(title);
                 Sheet.CellBold(_row, 1, true);
                 for (int c = 1; c <= Math.Max(1, widthColumns); c++) Sheet.CellBackground(_row, c, fill);
                 _row++;
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
                 if (!text.Contains("\n") && text.Length > 120) {
                     int cut = 120; text = text.Insert(cut, "\n");
                 }
-                Sheet.Cell(_row, 1, text);
+                Sheet.Cell(_row, 1).SetValue(text);
                 for (int c = 1; c <= Math.Max(1, widthColumns); c++) Sheet.CellBackground(_row, c, fill);
                 _row++;
             }
@@ -88,10 +88,10 @@ namespace OfficeIMO.Excel {
                 int col = 1;
                 for (int c = 0; c < columns && idx < list.Count; c++, idx++) {
                     var (k, v) = list[idx];
-                    Sheet.Cell(_row, col, k);
+                    Sheet.Cell(_row, col).SetValue(k);
                     Sheet.CellBold(_row, col, true);
                     Sheet.CellBackground(_row, col, _theme.KeyFillHex);
-                    Sheet.Cell(_row, col + 1, v ?? string.Empty);
+                    Sheet.Cell(_row, col + 1).SetValue(v ?? string.Empty);
                     col += 2;
                 }
                 _row++;
@@ -103,7 +103,7 @@ namespace OfficeIMO.Excel {
         public ExcelReportBuilder BulletedList(IEnumerable<string> items) {
             if (items == null) return this;
             foreach (var item in items) {
-                Sheet.Cell(_row, 1, $"• {item}");
+                Sheet.Cell(_row, 1).SetValue($"• {item}");
                 _row++;
             }
             return Spacer();
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
                 int col = 1; int rendered = 0;
                 for (; rendered < perRow && idx + rendered < list.Count; rendered++) {
                     var (label, _) = list[idx + rendered];
-                    Sheet.Cell(_row, col, label);
+                    Sheet.Cell(_row, col).SetValue(label);
                     Sheet.CellBold(_row, col, true);
                     Sheet.CellBackground(_row, col, fill);
                     Sheet.CellAlign(_row, col, ExcelHorizontalAlignment.Center);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Excel {
                 col = 1;
                 for (int i = 0; i < rendered; i++) {
                     var (_, val) = list[idx + i];
-                    Sheet.Cell(_row, col, val ?? string.Empty);
+                    Sheet.Cell(_row, col).SetValue(val ?? string.Empty);
                     Sheet.CellBold(_row, col, true);
                     Sheet.CellAlign(_row, col, ExcelHorizontalAlignment.Center);
                     col++;
@@ -163,9 +163,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Writes a labeled numeric score with a data bar visualization.</summary>
         public ExcelReportBuilder Score(string label, double value, double min = 0, double max = 10) {
-            Sheet.Cell(_row, 1, label);
+            Sheet.Cell(_row, 1).SetValue(label);
             Sheet.CellBold(_row, 1, true);
-            Sheet.Cell(_row, 2, value);
+            Sheet.Cell(_row, 2).SetValue(value);
             string range = $"B{_row}:B{_row}";
             Sheet.AddConditionalDataBar(range, OfficeIMO.OfficeColor.LightGreen);
             _row++;

@@ -10,8 +10,8 @@ public sealed class ExcelImageOptionsTests {
     public void WorksheetVisualReviewPreservesCellAndEncodedByteLimits() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "One");
-        sheet.CellValue(1, 2, "Two");
+        sheet.Cell(1, 1).SetValue("One");
+        sheet.Cell(1, 2).SetValue("Two");
         var options = new ExcelHtmlSaveOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
             VisualOptions = new ExcelImageExportOptions { MaximumRenderedCells = 1 }

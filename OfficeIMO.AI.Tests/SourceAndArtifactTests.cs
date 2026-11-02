@@ -44,7 +44,7 @@ public sealed class SourceAndArtifactTests {
             if (exportable) {
                 await ArtifactWriter.SaveAsync(output, document, result);
                 using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-                Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+                Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
             } else {
                 await Assert.ThrowsAsync<NotSupportedException>(() => ArtifactWriter.SaveAsync(output, document, result));
                 Assert.False(Directory.Exists(output));
@@ -70,7 +70,7 @@ public sealed class SourceAndArtifactTests {
                 return;
             }
             using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-            Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
         } finally { if (Directory.Exists(output)) Directory.Delete(output, recursive: true); }
     }
 
@@ -93,7 +93,7 @@ public sealed class SourceAndArtifactTests {
             if (exportable) {
                 await ArtifactWriter.SaveAsync(output, document, result);
                 using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-                Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+                Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
             } else {
                 await Assert.ThrowsAsync<NotSupportedException>(() => ArtifactWriter.SaveAsync(output, document, result));
                 Assert.False(Directory.Exists(output));
@@ -187,7 +187,7 @@ public sealed class SourceAndArtifactTests {
         try {
             await ArtifactWriter.SaveAsync(output, document, result);
             using var workbook = ExcelDocument.Load(Path.Combine(output, "extraction.xlsx"));
-            Assert.Equal(raw, workbook.Sheets[0].CellAt(2, 3).GetValue<string>());
+            Assert.Equal(raw, workbook.Sheets[0].Cell(2, 3).GetValue<string>());
             Assert.Contains("'=2+3", File.ReadAllText(Path.Combine(output, "Fields.csv")));
             using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "report.json")));
             Assert.Contains(document.SourceHash, report.RootElement.GetRawText());

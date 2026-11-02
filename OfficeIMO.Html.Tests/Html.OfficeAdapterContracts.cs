@@ -28,7 +28,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
-        Assert.Equal("Summary", narrative.CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Summary", narrative.Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public partial class HtmlOfficeAdapters {
 
         ExcelSheet table = Assert.Single(workbook.Sheets);
         Assert.Equal("Table 1", table.Name);
-        Assert.Equal("Cell", table.CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Cell", table.Cell(1, 1).GetValue<string>());
     }
 
     [Fact]

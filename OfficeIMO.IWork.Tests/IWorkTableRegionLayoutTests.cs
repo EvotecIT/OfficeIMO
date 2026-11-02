@@ -48,9 +48,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
-            Assert.Equal("center", reopened.Sheets[0].GetCellStyle(2, 2).VerticalAlignment);
-            Assert.Equal("bottom", reopened.Sheets[0].GetCellStyle(4, 1).VerticalAlignment);
-            Assert.Equal("top", reopened.Sheets[0].GetCellStyle(1, 2).VerticalAlignment);
+            Assert.Equal("center", reopened.Sheets[0].Cell(2, 2).GetStyle().VerticalAlignment);
+            Assert.Equal("bottom", reopened.Sheets[0].Cell(4, 1).GetStyle().VerticalAlignment);
+            Assert.Equal("top", reopened.Sheets[0].Cell(1, 2).GetStyle().VerticalAlignment);
         } else {
             using var result = source.ToPowerPointDocumentResult(policy); table = Assert.Single(result.Projection.Slides[0].Tables);
             result.Value.Save(saved); saved.Position = 0;

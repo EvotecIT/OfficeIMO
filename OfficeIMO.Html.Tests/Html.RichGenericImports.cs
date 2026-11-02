@@ -29,7 +29,7 @@ public class HtmlRichGenericImports {
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelCell richCell = Enumerable.Range(1, 8)
-            .Select(row => sheet.CellAt(row, 1))
+            .Select(row => sheet.Cell(row, 1))
             .First(cell => cell.GetRichText().Any(run => run.Text.Contains("bold", StringComparison.Ordinal)));
         IReadOnlyList<ExcelRichTextRun> runs = richCell.GetRichText();
 
@@ -62,7 +62,7 @@ public class HtmlRichGenericImports {
         using ExcelDocument workbook = excelResult.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         ExcelCell excelCell = Assert.Single(Enumerable.Range(1, 4)
-            .Select(row => sheet.CellAt(row, 1)), cell => cell.GetValue<string>() == "Screen target");
+            .Select(row => sheet.Cell(row, 1)), cell => cell.GetValue<string>() == "Screen target");
         Assert.True(Assert.Single(excelCell.GetRichText()).Bold);
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
@@ -89,7 +89,7 @@ public class HtmlRichGenericImports {
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        Assert.Contains(Enumerable.Range(1, 8).Select(row => sheet.CellAt(row, 1).GetValue<string>()),
+        Assert.Contains(Enumerable.Range(1, 8).Select(row => sheet.Cell(row, 1).GetValue<string>()),
             value => value == "Read the report now.");
         Assert.Contains(sheet.GetHyperlinks().Values,
             hyperlink => hyperlink.Target == "https://example.test/report");
@@ -127,7 +127,7 @@ public class HtmlRichGenericImports {
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        IReadOnlyList<ExcelRichTextRun> runs = sheet.CellAt(2, 1).GetRichText();
+        IReadOnlyList<ExcelRichTextRun> runs = sheet.Cell(2, 1).GetRichText();
         ExcelImage image = Assert.Single(sheet.Images);
 
         Assert.True(Assert.Single(runs, run => run.Text.Contains("Bold", StringComparison.Ordinal)).Bold);
@@ -299,8 +299,8 @@ public class HtmlRichGenericImports {
         Assert.Equal(2, workbook.Sheets.Count);
         ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
         ExcelSheet metrics = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Metrics");
-        Assert.Contains("Executive narrative", Enumerable.Range(1, 8).Select(row => narrative.CellAt(row, 1).GetValue<string>()));
-        Assert.Equal("Revenue", metrics.CellAt(2, 1).GetValue<string>());
+        Assert.Contains("Executive narrative", Enumerable.Range(1, 8).Select(row => narrative.Cell(row, 1).GetValue<string>()));
+        Assert.Equal("Revenue", metrics.Cell(2, 1).GetValue<string>());
         Assert.True(result.Succeeded);
     }
 
@@ -312,7 +312,7 @@ public class HtmlRichGenericImports {
         using ExcelDocument workbook = result.Value;
 
         Assert.Contains("• Parent\n  1. Child\n    • Grandchild",
-            Enumerable.Range(1, 8).Select(row => Assert.Single(workbook.Sheets).CellAt(row, 1).GetValue<string>()));
+            Enumerable.Range(1, 8).Select(row => Assert.Single(workbook.Sheets).Cell(row, 1).GetValue<string>()));
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class HtmlRichGenericImports {
             .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCell cell = Enumerable.Range(1, 4).Select(row => sheet.CellAt(row, 1))
+        ExcelCell cell = Enumerable.Range(1, 4).Select(row => sheet.Cell(row, 1))
             .First(candidate => candidate.GetValue<string>() == "A B");
 
         Assert.Equal("A B", string.Concat(cell.GetRichText().Select(run => run.Text)));

@@ -14,7 +14,7 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "OverlappingPrintAreas-" + layout + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "Target");
+        sheet.Cell(1, 1).SetValue("Target");
         sheet.SetInternalLink(2, 1, "A1", display: "Back to target");
         document.SetPrintArea(sheet, "A1:A2,A1:A3");
 
@@ -36,9 +36,9 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "UnionFormula-" + row + "-" + column + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "First");
-        sheet.Cell(3, 3, "Second");
-        sheet.CellFormula(row, column, "UNIQUE(A1:A1)");
+        sheet.Cell(1, 1).SetValue("First");
+        sheet.Cell(3, 3).SetValue("Second");
+        sheet.Cell(row, column).SetFormula("UNIQUE(A1:A1)");
         document.SetPrintArea(sheet, "A1:B2,C3:D4");
         Assert.Equal(canExport, document.InspectFeatures().Can(ExcelPreflightCapability.ExportPdfReport));
     }
@@ -50,9 +50,9 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "PrintAreaHeaderVariants-" + layout + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "FirstArea");
-        sheet.Cell(1, 3, "SecondArea");
-        sheet.Cell(1, 5, "ThirdArea");
+        sheet.Cell(1, 1).SetValue("FirstArea");
+        sheet.Cell(1, 3).SetValue("SecondArea");
+        sheet.Cell(1, 5).SetValue("ThirdArea");
         sheet.SetHeaderFooter(headerCenter: "OddHeader", footerCenter: "Page &P of &N");
         sheet.SetFirstPageHeaderFooter(headerCenter: "FirstHeader", footerCenter: "Page &P of &N");
         sheet.SetEvenPageHeaderFooter(headerCenter: "EvenHeader", footerCenter: "Page &P of &N");
@@ -78,11 +78,11 @@ public partial class Excel {
         byte[] image = CreateMinimalRgbPng();
         using (ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report, O'Brien" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 2, "FirstTitle");
-            sheet.Cell(1, 4, "SecondTitle");
-            sheet.Cell(2, 2, "FirstArea");
-            sheet.Cell(5, 4, "SecondArea");
-            sheet.Cell(10, 1, "ExcludedValue");
+            sheet.Cell(1, 2).SetValue("FirstTitle");
+            sheet.Cell(1, 4).SetValue("SecondTitle");
+            sheet.Cell(2, 2).SetValue("FirstArea");
+            sheet.Cell(5, 4).SetValue("SecondArea");
+            sheet.Cell(10, 1).SetValue("ExcludedValue");
             sheet.AddImage(2, 2, image, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -134,10 +134,10 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "WholePrintAreas-" + layout + "-" + rows + ".xlsx");
         using ExcelDocument document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Report" });
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Cell(1, 1, "ExcludedTop");
-        sheet.Cell(rows ? 2 : 1, rows ? 1 : 2, "FirstArea");
-        sheet.Cell(rows ? 4 : 1, rows ? 1 : 4, "SecondArea");
-        sheet.Cell(rows ? 3 : 1, rows ? 1 : 3, "ExcludedBetween");
+        sheet.Cell(1, 1).SetValue("ExcludedTop");
+        sheet.Cell(rows ? 2 : 1, rows ? 1 : 2).SetValue("FirstArea");
+        sheet.Cell(rows ? 4 : 1, rows ? 1 : 4).SetValue("SecondArea");
+        sheet.Cell(rows ? 3 : 1, rows ? 1 : 3).SetValue("ExcludedBetween");
         document.SetPrintArea(sheet, rows ? "2:2,4:4" : "B:B,D:D");
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout

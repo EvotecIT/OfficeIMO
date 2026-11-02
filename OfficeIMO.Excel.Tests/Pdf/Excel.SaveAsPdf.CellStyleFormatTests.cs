@@ -23,7 +23,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Styled" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1)
+            sheet.Cell(1, 1)
                 .SetValue("StyledCell")
                 .SetFontName("Consolas")
                 .SetBold()
@@ -31,9 +31,9 @@ public partial class Excel {
                 .SetUnderline()
                 .SetFontColor("112233")
                 .SetFillColor("DDEEFF");
-            sheet.CellAt(1, 2).SetValue("PlainCell");
+            sheet.Cell(1, 2).SetValue("PlainCell");
 
-            ExcelCellStyleInfo style = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
             Assert.True(style.Bold);
             Assert.True(style.Italic);
             Assert.True(style.Underline);
@@ -66,8 +66,8 @@ public partial class Excel {
     public void SaveAsPdf_ExcelWorkbook_ReportsAccountingUnderlineApproximationOncePerSheet() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Accounting");
-        sheet.CellAt(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
-        sheet.CellAt(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
+        sheet.Cell(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
+        sheet.Cell(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
 
         PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false,
@@ -88,8 +88,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("ArialCell").SetFontName("Arial");
-            sheet.CellAt(1, 2).SetValue("PlainCell");
+            sheet.Cell(1, 1).SetValue("ArialCell").SetFontName("Arial");
+            sheet.Cell(1, 2).SetValue("PlainCell");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -117,8 +117,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
-            sheet.CellAt(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
+            sheet.Cell(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
+            sheet.Cell(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -147,7 +147,7 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             document.Sheets[0]
-                .CellAt(1, 1)
+                .Cell(1, 1)
                 .SetValue("Unavailable font marker")
                 .SetFontName(unavailableFamily);
             document.Save();
@@ -173,7 +173,7 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             document.Sheets[0]
-                .CellAt(1, 1)
+                .Cell(1, 1)
                 .SetValue("Portable font marker")
                 .SetFontName("Arial");
             document.Save();
@@ -202,10 +202,10 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("AB");
+            sheet.Cell(1, 1).SetValue("AB");
             document.Save();
 
-            ExcelCellStyleInfo inheritedStyle = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo inheritedStyle = sheet.Cell(1, 1).GetStyle();
             Assert.False(inheritedStyle.IsFontFamilyExplicit);
             string sourceFamily = Assert.IsType<string>(inheritedStyle.FontName);
 
@@ -244,8 +244,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Fonts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellAt(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
-            sheet.CellAt(1, 2).SetValue("DefaultSerif");
+            sheet.Cell(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
+            sheet.Cell(1, 2).SetValue("DefaultSerif");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -280,10 +280,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Score");
-            sheet.Cell(2, 1, 0);
-            sheet.Cell(3, 1, 50);
-            sheet.Cell(4, 1, 100);
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(50);
+            sheet.Cell(4, 1).SetValue(100);
             sheet.AddConditionalColorScale("A2:A4", "FFFF0000", "FF00FF00");
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
@@ -331,10 +331,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Score");
-            sheet.Cell(2, 1, 0);
-            sheet.Cell(3, 1, 50);
-            sheet.Cell(4, 1, 100);
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(50);
+            sheet.Cell(4, 1).SetValue(100);
             sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
@@ -370,10 +370,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Delta");
-            sheet.Cell(2, 1, -100);
-            sheet.Cell(3, 1, 0);
-            sheet.Cell(4, 1, 100);
+            sheet.Cell(1, 1).SetValue("Delta");
+            sheet.Cell(2, 1).SetValue(-100);
+            sheet.Cell(3, 1).SetValue(0);
+            sheet.Cell(4, 1).SetValue(100);
             sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
             document.Save();
 
@@ -405,10 +405,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Conditional" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Score");
-            sheet.Cell(2, 1, 0);
-            sheet.Cell(3, 1, 50);
-            sheet.Cell(4, 1, 100);
+            sheet.Cell(1, 1).SetValue("Score");
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(50);
+            sheet.Cell(4, 1).SetValue(100);
             sheet.AddConditionalIconSet("A2:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
 
             ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A2:A4"));
@@ -453,15 +453,15 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "StyleLayout" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Label");
-            sheet.Cell(1, 2, "ZZ");
-            sheet.Cell(2, 1, "Reference");
-            sheet.Cell(2, 2, "LeftInColumn");
-            sheet.CellAlign(1, 2, ExcelHorizontalAlignment.Right);
-            sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Bottom);
-            sheet.CellBorder(1, 2, ExcelBorderStyle.Medium, "445566");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue("ZZ");
+            sheet.Cell(2, 1).SetValue("Reference");
+            sheet.Cell(2, 2).SetValue("LeftInColumn");
+            sheet.Cell(1, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
+            sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Medium, "445566");
 
-            ExcelCellStyleInfo style = sheet.CellAt(1, 2).GetStyle();
+            ExcelCellStyleInfo style = sheet.Cell(1, 2).GetStyle();
             Assert.Equal("right", style.HorizontalAlignment);
             Assert.Equal("bottom", style.VerticalAlignment);
             Assert.NotNull(style.Border);
@@ -500,16 +500,16 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "BorderStyles" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Dashed");
-            sheet.Cell(1, 2, "Dotted");
-            sheet.Cell(1, 3, "DashDot");
-            sheet.CellBorder(1, 1, ExcelBorderStyle.Dashed, "123456");
-            sheet.CellBorder(1, 2, ExcelBorderStyle.Dotted, "654321");
-            sheet.CellBorder(1, 3, ExcelBorderStyle.MediumDashDot, "445566");
+            sheet.Cell(1, 1).SetValue("Dashed");
+            sheet.Cell(1, 2).SetValue("Dotted");
+            sheet.Cell(1, 3).SetValue("DashDot");
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Dashed, "123456");
+            sheet.Cell(1, 2).SetBorder(ExcelBorderStyle.Dotted, "654321");
+            sheet.Cell(1, 3).SetBorder(ExcelBorderStyle.MediumDashDot, "445566");
 
-            Assert.Equal("dashed", sheet.CellAt(1, 1).GetStyle().Border!.Left!.Style);
-            Assert.Equal("dotted", sheet.CellAt(1, 2).GetStyle().Border!.Left!.Style);
-            Assert.Equal("mediumdashdot", sheet.CellAt(1, 3).GetStyle().Border!.Left!.Style);
+            Assert.Equal("dashed", sheet.Cell(1, 1).GetStyle().Border!.Left!.Style);
+            Assert.Equal("dotted", sheet.Cell(1, 2).GetStyle().Border!.Left!.Style);
+            Assert.Equal("mediumdashdot", sheet.Cell(1, 3).GetStyle().Border!.Left!.Style);
 
             document.Save();
 
@@ -542,14 +542,14 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "BorderStyles" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Double");
-            sheet.Cell(1, 2, "Diagonal");
-            sheet.CellBorder(1, 1, ExcelBorderStyle.Double, "123456");
-            sheet.CellDiagonalBorder(1, 2, ExcelBorderStyle.Double, "654321", diagonalUp: true, diagonalDown: true);
+            sheet.Cell(1, 1).SetValue("Double");
+            sheet.Cell(1, 2).SetValue("Diagonal");
+            sheet.Cell(1, 1).SetBorder(ExcelBorderStyle.Double, "123456");
+            sheet.Cell(1, 2).SetDiagonalBorder(ExcelBorderStyle.Double, "654321", diagonalUp: true, diagonalDown: true);
 
-            ExcelCellStyleInfo doubleStyle = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo doubleStyle = sheet.Cell(1, 1).GetStyle();
             Assert.Equal("double", doubleStyle.Border!.Top!.Style);
-            ExcelCellStyleInfo diagonalStyle = sheet.CellAt(1, 2).GetStyle();
+            ExcelCellStyleInfo diagonalStyle = sheet.Cell(1, 2).GetStyle();
             Assert.True(diagonalStyle.Border!.DiagonalUp);
             Assert.True(diagonalStyle.Border.DiagonalDown);
             Assert.Equal("double", diagonalStyle.Border.Diagonal!.Style);
@@ -584,28 +584,28 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formats" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Kind");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "Currency");
-            sheet.CellAt(2, 2).SetValue(1234.5).Currency(2, CultureInfo.GetCultureInfo("en-US"));
-            sheet.Cell(3, 1, "Percent");
-            sheet.CellAt(3, 2).SetValue(0.257).Percent(1);
-            sheet.Cell(4, 1, "Date");
-            sheet.CellAt(4, 2).SetValue(new DateTime(2026, 1, 15)).Date("yyyy-mm-dd");
-            sheet.Cell(5, 1, "Minutes");
-            sheet.CellAt(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
-            sheet.Cell(6, 1, "Negative");
-            sheet.CellAt(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
-            sheet.Cell(7, 1, "Zero");
-            sheet.CellAt(7, 2).SetValue(0).SetNumberFormat("#,##0;(#,##0);-");
+            sheet.Cell(1, 1).SetValue("Kind");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Currency");
+            sheet.Cell(2, 2).SetValue(1234.5).Currency(2, CultureInfo.GetCultureInfo("en-US"));
+            sheet.Cell(3, 1).SetValue("Percent");
+            sheet.Cell(3, 2).SetValue(0.257).Percent(1);
+            sheet.Cell(4, 1).SetValue("Date");
+            sheet.Cell(4, 2).SetValue(new DateTime(2026, 1, 15)).Date("yyyy-mm-dd");
+            sheet.Cell(5, 1).SetValue("Minutes");
+            sheet.Cell(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
+            sheet.Cell(6, 1).SetValue("Negative");
+            sheet.Cell(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
+            sheet.Cell(7, 1).SetValue("Zero");
+            sheet.Cell(7, 2).SetValue(0).SetNumberFormat("#,##0;(#,##0);-");
             // Wide enough that Excel would show each value rather than "####".
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
 
-            ExcelCellStyleInfo currencyStyle = sheet.CellAt(2, 2).GetStyle();
+            ExcelCellStyleInfo currencyStyle = sheet.Cell(2, 2).GetStyle();
             Assert.Equal("\"$\"#,##0.00", currencyStyle.NumberFormatCode);
-            ExcelCellStyleInfo percentStyle = sheet.CellAt(3, 2).GetStyle();
+            ExcelCellStyleInfo percentStyle = sheet.Cell(3, 2).GetStyle();
             Assert.Equal("0.0%", percentStyle.NumberFormatCode);
-            ExcelCellStyleInfo dateStyle = sheet.CellAt(4, 2).GetStyle();
+            ExcelCellStyleInfo dateStyle = sheet.Cell(4, 2).GetStyle();
             Assert.Equal("yyyy-mm-dd", dateStyle.NumberFormatCode);
             Assert.True(dateStyle.IsDateLike);
 
@@ -642,12 +642,12 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formats" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Kind");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "ManySections");
-            sheet.CellAt(2, 2).SetValue(1234).SetNumberFormat("#,##0" + extraSections);
-            sheet.Cell(3, 1, "QuotedSectionSeparator");
-            sheet.CellAt(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
+            sheet.Cell(1, 1).SetValue("Kind");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("ManySections");
+            sheet.Cell(2, 2).SetValue(1234).SetNumberFormat("#,##0" + extraSections);
+            sheet.Cell(3, 1).SetValue("QuotedSectionSeparator");
+            sheet.Cell(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
 
             document.Save();
@@ -676,14 +676,14 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formats" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Kind");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "Elapsed");
-            sheet.CellAt(2, 2).SetValue(1.5).SetNumberFormat("[h]:mm");
-            sheet.Cell(3, 1, "Units");
-            sheet.CellAt(3, 2).SetValue(12).SetNumberFormat("0 \"kg\"");
-            sheet.Cell(4, 1, "Elapsed units");
-            sheet.CellAt(4, 2).SetValue(1.5).SetNumberFormat("[h] \"hours\"");
+            sheet.Cell(1, 1).SetValue("Kind");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Elapsed");
+            sheet.Cell(2, 2).SetValue(1.5).SetNumberFormat("[h]:mm");
+            sheet.Cell(3, 1).SetValue("Units");
+            sheet.Cell(3, 2).SetValue(12).SetNumberFormat("0 \"kg\"");
+            sheet.Cell(4, 1).SetValue("Elapsed units");
+            sheet.Cell(4, 2).SetValue(1.5).SetNumberFormat("[h] \"hours\"");
 
             document.Save();
 

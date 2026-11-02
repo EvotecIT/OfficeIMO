@@ -25,8 +25,8 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = reopened.Sheets[0];
         Assert.Equal("1", sheet.GetFormulaText(1, 1));
-        Assert.Equal("Styled", sheet.CellAt(1, 1).GetValue<string>());
-        var style = sheet.GetCellStyle(1, 1);
+        Assert.Equal("Styled", sheet.Cell(1, 1).GetValue<string>());
+        var style = sheet.Cell(1, 1).GetStyle();
         Assert.True(style.Bold); Assert.True(style.Italic); Assert.True(style.Underline); Assert.True(style.Strikethrough);
         Assert.Equal(18, style.FontSize?.ToPoints()); Assert.Equal("Courier New", style.FontName);
     }
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("1", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal("Styled", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Styled", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = reopened.Sheets[0];
         Assert.Equal("1", sheet.GetFormulaText(1, 1));
-        Assert.Equal("Styled", sheet.CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Styled", sheet.Cell(1, 1).GetValue<string>());
         if (mixedTargets) Assert.Empty(sheet.GetHyperlinks());
         else Assert.Equal(first, Assert.Single(sheet.GetHyperlinks()).Value.Target);
     }
@@ -121,7 +121,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_CACHE_PARTIAL");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
         Assert.Equal("1", result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Null(result.Value.Sheets[0].CellAt(1, 1).GetValue().Value);
+        Assert.Null(result.Value.Sheets[0].Cell(1, 1).GetValue().Value);
     }
 
     [Theory]
@@ -143,7 +143,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("1", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(text, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        if (!mixedDirections) Assert.Equal("general", reopened.Sheets[0].GetCellStyle(1, 1).HorizontalAlignment);
+        Assert.Equal(text, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        if (!mixedDirections) Assert.Equal("general", reopened.Sheets[0].Cell(1, 1).GetStyle().HorizontalAlignment);
     }
 }

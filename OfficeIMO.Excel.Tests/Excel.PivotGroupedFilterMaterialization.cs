@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests
                 object? [, ] source = oracle.GetSheet("Source").ReadRange("A1:B6");
                 for (int row = 0; row < 6; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, source[row, column]);
+                        sheet.Cell(row + 1, column + 1).SetValue(source[row, column]);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
                     pivotOptions1.RowFields.Add("Product");
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests
                 object? [, ] source = oracle.GetSheet("Source").ReadRange("A1:B9");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
-                        numeric.CellValue(row + 1, column + 1, source[row, column]);
+                        numeric.Cell(row + 1, column + 1).SetValue(source[row, column]);
             }
 
             {
@@ -105,8 +105,8 @@ namespace OfficeIMO.Tests
             Assert.Equal(813d, numeric.GetPivotData("FilteredBuckets", "Metric").Value);
             Assert.Equal("#REF!", numeric.GetPivotData("FilteredBuckets", "Metric", new Dictionary<string, object?> { ["Quantity"] = "0-9" }).Value);
             var dates = document.AddSheet("Dates");
-            dates.CellValue(1, 1, "OrderDate");
-            dates.CellValue(1, 2, "Sales");
+            dates.Cell(1, 1).SetValue("OrderDate");
+            dates.Cell(1, 2).SetValue("Sales");
             var values = new[]
             {
                 new DateTime(2025, 1, 15),
@@ -117,8 +117,8 @@ namespace OfficeIMO.Tests
             };
             for (int index = 0; index < values.Length; index++)
             {
-                dates.CellValue(index + 2, 1, values[index]);
-                dates.CellValue(index + 2, 2, (index + 1) * 10d);
+                dates.Cell(index + 2, 1).SetValue(values[index]);
+                dates.Cell(index + 2, 2).SetValue((index + 1) * 10d);
             }
 
             {
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:C12");
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B6");
             using (var document = ExcelDocument.Load(sourcePath)) {
-                document.GetSheet("Source").CellValue(2, 1, "Broccoli");
+                document.GetSheet("Source").Cell(2, 1).SetValue("Broccoli");
                 var grouped = document.GetSheet("Grouped");
                 Assert.Equal("A4:C9", grouped.MaterializePivotTable("PivotManualGrouped").OutputRange);
                 var lookups = document.GetSheet("Lookups");

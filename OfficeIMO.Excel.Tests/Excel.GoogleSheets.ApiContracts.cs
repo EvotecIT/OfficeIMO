@@ -24,8 +24,8 @@ public partial class Excel {
         string path = Path.Combine(_directoryWithFiles, "GoogleSheetsReplacementOrdering.xlsx");
         try {
             using var document = ExcelDocument.Create(path);
-            document.AddSheet("Sheet1").CellValue(1, 1, "One");
-            document.AddSheet("Data").CellValue(1, 1, "Two");
+            document.AddSheet("Sheet1").Cell(1, 1).SetValue("One");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Two");
             GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
             var existingSheets = new Dictionary<int, string> {
                 [10] = "Sheet1",
@@ -53,8 +53,8 @@ public partial class Excel {
         try {
             using var document = ExcelDocument.Create(path);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 27, "AA");
-            sheet.CellValue(1001, 1, "Row");
+            sheet.Cell(1, 27).SetValue("AA");
+            sheet.Cell(1001, 1).SetValue("Row");
 
             GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
             GoogleSheetsAddSheetRequest addSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Data");
@@ -85,9 +85,9 @@ public partial class Excel {
         try {
             using var document = ExcelDocument.Create(path);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 10.5d);
-            sheet.CellValue(3, 1, 20.25d);
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(10.5d);
+            sheet.Cell(3, 1).SetValue(20.25d);
             sheet.AddTable("A1:A3", hasHeader: true, name: "Amounts", style: ExcelTableStyle.TableStyleMedium2);
 
             GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();

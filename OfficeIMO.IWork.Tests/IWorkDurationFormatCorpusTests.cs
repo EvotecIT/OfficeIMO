@@ -33,8 +33,8 @@ public sealed class IWorkDurationFormatCorpusTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         using var native = ExcelDocument.Load(nativePath);
-        var actual = reopened.Sheets[0].CellAt(5, 3);
-        var oracle = native.Sheets[0].CellAt(6, 3);
+        var actual = reopened.Sheets[0].Cell(5, 3);
+        var oracle = native.Sheets[0].Cell(6, 3);
         Assert.Equal(expected.GetProperty("native").GetProperty("valueDays").GetDouble(), actual.GetValue<double>());
         Assert.Equal(oracle.GetValue<double>(), actual.GetValue<double>());
         Assert.Equal(oracle.GetStyle().NumberFormatCode, actual.GetStyle().NumberFormatCode);

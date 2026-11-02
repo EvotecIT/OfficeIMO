@@ -58,13 +58,13 @@ public class HtmlMultiFormatReport {
         }
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(excelBytes));
         ExcelSheet usage = Assert.Single(reopened.Sheets, sheet => sheet.Name == "Service usage");
-        Assert.Equal(46.75D, Enumerable.Range(2, 4).Sum(row => usage.CellAt(row, 3).GetValue<double>()));
-        Assert.Equal(46.75D, usage.CellAt(6, 3).GetValue<double>());
-        Assert.Equal("00130", usage.CellAt(5, 2).GetValue<string>());
-        Assert.False(usage.CellAt(5, 4).GetValue<bool>());
+        Assert.Equal(46.75D, Enumerable.Range(2, 4).Sum(row => usage.Cell(row, 3).GetValue<double>()));
+        Assert.Equal(46.75D, usage.Cell(6, 3).GetValue<double>());
+        Assert.Equal("00130", usage.Cell(5, 2).GetValue<string>());
+        Assert.False(usage.Cell(5, 4).GetValue<bool>());
         Assert.Equal(new[] { "A2:A3", "A4:A5", "A6:B6", "A8:E8", "D6:E6" },
             usage.GetMergedRanges().Select(range => range.A1Range).OrderBy(range => range).ToArray());
-        Assert.Equal("Service usage", usage.CellAt(8, 1).GetValue<string>());
+        Assert.Equal("Service usage", usage.Cell(8, 1).GetValue<string>());
         ExcelSheet actions = Assert.Single(reopened.Sheets, sheet => sheet.Name == "Next actions");
         Assert.True(actions.TryGetCellValueSnapshot(2, 3, out ExcelNativeCellValueInfo? due));
         Assert.Equal(new DateTime(2026, 9, 8), due!.DateTimeValue);

@@ -74,7 +74,7 @@ public sealed class PdfImageOcrTests {
             using (preserved.Value) {
                 Assert.False(Assert.Single(preserved.Report.Entries).FirstRowUsedAsHeader);
                 Assert.Equal(expectedTable.Length, preserved.Report.Entries[0].RowCount);
-                Assert.Equal("Description", preserved.Value.Sheets[0].CellAt(2, 1).GetValue<string>());
+                Assert.Equal("Description", preserved.Value.Sheets[0].Cell(2, 1).GetValue<string>());
             }
             var limited = review.Ocr.Document.ConvertToExcelWithEvidence(new ExcelPdfImportOptions { UseFirstRowAsHeader = true, MaxRows = 1 });
             using (limited.Value) {
@@ -91,11 +91,11 @@ public sealed class PdfImageOcrTests {
             bytes.Position = 0;
             using var reopened = ExcelDocument.Load(bytes);
             var sheet = Assert.Single(reopened.Sheets);
-            Assert.Equal("Return credit", sheet.CellAt(3, 1).GetValue<string>());
-            Assert.Equal(3D, sheet.CellAt(3, 2).GetValue<double>());
-            Assert.Equal(-4.5D, sheet.CellAt(3, 3).GetValue<double>());
-            Assert.Equal(-13.5D, sheet.CellAt(3, 4).GetValue<double>());
-            Assert.Equal(119.88D, sheet.CellAt(2, 4).GetValue<double>());
+            Assert.Equal("Return credit", sheet.Cell(3, 1).GetValue<string>());
+            Assert.Equal(3D, sheet.Cell(3, 2).GetValue<double>());
+            Assert.Equal(-4.5D, sheet.Cell(3, 3).GetValue<double>());
+            Assert.Equal(-13.5D, sheet.Cell(3, 4).GetValue<double>());
+            Assert.Equal(119.88D, sheet.Cell(2, 4).GetValue<double>());
         }
         using (var word = (review.Ocr.Document.ConvertToWordWithEvidence()).Value) {
             using var bytes = new MemoryStream();

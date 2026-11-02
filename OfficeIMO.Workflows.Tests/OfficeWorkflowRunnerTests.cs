@@ -1101,7 +1101,7 @@ public sealed class OfficeWorkflowRunnerTests {
             case "xlsx-pdf": {
                 string path = System.IO.Path.Combine(root, "source.xlsx");
                 using ExcelDocument document = ExcelDocument.Create(path);
-                document.AddSheet("Data").Cell(1, 1, "OfficeIMO workflow Excel source");
+                document.AddSheet("Data").Cell(1, 1).SetValue("OfficeIMO workflow Excel source");
                 document.Save();
                 return path;
             }

@@ -98,22 +98,22 @@ namespace OfficeIMO.Tests {
             ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisLabels");
 
-            sheet.CellValue(1, 1, "Chart Axis Label Density");
+            sheet.Cell(1, 1).SetValue("Chart Axis Label Density");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
-            sheet.CellValue(2, 1, "Month");
-            sheet.CellValue(2, 2, "Actual");
-            sheet.CellValue(3, 1, "Jan");
-            sheet.CellValue(3, 2, 1200);
-            sheet.CellValue(4, 1, "Feb");
-            sheet.CellValue(4, 2, 1800);
-            sheet.CellValue(5, 1, "Mar");
-            sheet.CellValue(5, 2, 1600);
-            sheet.CellValue(6, 1, "Apr");
-            sheet.CellValue(6, 2, 2000);
+            sheet.Cell(2, 1).SetValue("Month");
+            sheet.Cell(2, 2).SetValue("Actual");
+            sheet.Cell(3, 1).SetValue("Jan");
+            sheet.Cell(3, 2).SetValue(1200);
+            sheet.Cell(4, 1).SetValue("Feb");
+            sheet.Cell(4, 2).SetValue(1800);
+            sheet.Cell(5, 1).SetValue("Mar");
+            sheet.Cell(5, 2).SetValue(1600);
+            sheet.Cell(6, 1).SetValue("Apr");
+            sheet.Cell(6, 2).SetValue(2000);
             sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
             sheet.Range("A3:B6").SetFillColor("F8FAFC");
 
@@ -132,8 +132,8 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 10; row++) {
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 
@@ -145,20 +145,20 @@ namespace OfficeIMO.Tests {
             ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartLabelBoxes");
 
-            sheet.CellValue(1, 1, "Data Label Box Fidelity");
+            sheet.Cell(1, 1).SetValue("Data Label Box Fidelity");
             sheet.Range("A1:H1").Merge();
             sheet.Range("A1:H1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
 
-            sheet.CellValue(2, 1, "Month");
-            sheet.CellValue(2, 2, "Actual");
-            sheet.CellValue(3, 1, "Jan");
-            sheet.CellValue(3, 2, 120);
-            sheet.CellValue(4, 1, "Feb");
-            sheet.CellValue(4, 2, 180);
-            sheet.CellValue(5, 1, "Mar");
-            sheet.CellValue(5, 2, 160);
+            sheet.Cell(2, 1).SetValue("Month");
+            sheet.Cell(2, 2).SetValue("Actual");
+            sheet.Cell(3, 1).SetValue("Jan");
+            sheet.Cell(3, 2).SetValue(120);
+            sheet.Cell(4, 1).SetValue("Feb");
+            sheet.Cell(4, 2).SetValue(180);
+            sheet.Cell(5, 1).SetValue("Mar");
+            sheet.Cell(5, 2).SetValue(160);
             sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
             sheet.Range("A3:B5").SetFillColor("F8FAFC");
 
@@ -183,8 +183,8 @@ namespace OfficeIMO.Tests {
             for (int row = 2; row <= 10; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 

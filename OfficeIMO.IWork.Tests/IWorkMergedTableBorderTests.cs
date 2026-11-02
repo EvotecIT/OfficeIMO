@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
             result.Value.Save(saved); saved.Position = 0;
-            using var reopened = ExcelDocument.Load(saved); var borders = reopened.Sheets[0].GetCellStyle(1, 1).Border!;
+            using var reopened = ExcelDocument.Load(saved); var borders = reopened.Sheets[0].Cell(1, 1).GetStyle().Border!;
             Assert.Equal(columns == 2 ? "medium" : "thin", borders.Right!.Style);
             Assert.Equal(rows == 3 ? "medium" : "thin", borders.Bottom!.Style);
         } else {
@@ -143,7 +143,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
-        var borders = reopened.Sheets[0].GetCellStyle(1, 1).Border!;
+        var borders = reopened.Sheets[0].Cell(1, 1).GetStyle().Border!;
         if (horizontalEdge) {
             Assert.True(borders.Bottom?.Style is null or "none");
             Assert.Equal("medium", borders.Left!.Style);

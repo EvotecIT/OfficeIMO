@@ -21,9 +21,9 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Widths" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ARef");
-            sheet.Cell(1, 2, "WideColumn");
-            sheet.Cell(1, 3, "Tail");
+            sheet.Cell(1, 1).SetValue("ARef");
+            sheet.Cell(1, 2).SetValue("WideColumn");
+            sheet.Cell(1, 3).SetValue("Tail");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(32));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
@@ -68,9 +68,9 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Heights" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "TopRow");
-            sheet.Cell(2, 1, "TallRow");
-            sheet.Cell(3, 1, "AfterTall");
+            sheet.Cell(1, 1).SetValue("TopRow");
+            sheet.Cell(2, 1).SetValue("TallRow");
+            sheet.Cell(3, 1).SetValue("AfterTall");
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
 
             ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
@@ -111,11 +111,11 @@ public partial class Excel {
         byte[] uniformBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dimensions" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "A1");
-            sheet.Cell(1, 2, "B1");
-            sheet.Cell(1, 3, "C1");
-            sheet.Cell(2, 1, "A2");
-            sheet.Cell(3, 1, "A3");
+            sheet.Cell(1, 1).SetValue("A1");
+            sheet.Cell(1, 2).SetValue("B1");
+            sheet.Cell(1, 3).SetValue("C1");
+            sheet.Cell(2, 1).SetValue("A2");
+            sheet.Cell(3, 1).SetValue("A3");
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(32));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             document.Save();
@@ -163,10 +163,10 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "VisibleOnly" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "VisibleHeader");
-            sheet.Cell(1, 2, "HiddenColumnValue");
-            sheet.Cell(2, 1, "HiddenRowValue");
-            sheet.Cell(3, 1, "VisibleTail");
+            sheet.Cell(1, 1).SetValue("VisibleHeader");
+            sheet.Cell(1, 2).SetValue("HiddenColumnValue");
+            sheet.Cell(2, 1).SetValue("HiddenRowValue");
+            sheet.Cell(3, 1).SetValue("VisibleTail");
             sheet.SetColumnHidden(2, true);
             sheet.SetRowHidden(2, true);
 
@@ -204,12 +204,12 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Merged" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "MergedTitle");
-            sheet.Cell(1, 3, "TailCell");
-            sheet.Cell(2, 1, "ColumnA");
-            sheet.Cell(2, 2, "ColumnB");
-            sheet.Cell(2, 3, "ColumnC");
-            sheet.MergeRange("A1:B1");
+            sheet.Cell(1, 1).SetValue("MergedTitle");
+            sheet.Cell(1, 3).SetValue("TailCell");
+            sheet.Cell(2, 1).SetValue("ColumnA");
+            sheet.Cell(2, 2).SetValue("ColumnB");
+            sheet.Cell(2, 3).SetValue("ColumnC");
+            sheet.Range("A1:B1").Merge();
 
             ExcelMergedRangeInfo mergedRange = Assert.Single(sheet.GetMergedRanges());
             Assert.Equal("A1:B1", mergedRange.A1Range);

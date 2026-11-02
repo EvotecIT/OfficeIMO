@@ -29,15 +29,15 @@ internal static partial class FixtureCorpus {
         using (var excel = ExcelDocument.Create()) {
             for (int page = 1; page <= 2; page++) {
                 var sheet = excel.AddSheet("Review " + page);
-                sheet.CellValue(1, 1, "SERVICE REVIEW " + page);
-                sheet.CellValue(2, 1, "Availability"); sheet.CellValue(2, 2, 99.95D);
-                sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);
+                sheet.Cell(1, 1).SetValue("SERVICE REVIEW " + page);
+                sheet.Cell(2, 1).SetValue("Availability"); sheet.Cell(2, 2).SetValue(99.95D);
+                sheet.Cell(3, 1).SetValue("Completed"); sheet.Cell(3, 2).SetValue(9);
                 // The pinned Open Sans font has an 8px maximum digit advance at 11pt.
                 // Stored widths include padding: retain the 196px + 108px authored canvas.
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(196D / 8D)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 8D));
                 for (int row = 1; row <= 3; row++) {
                     sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-                    for (int column = 1; column <= 2; column++) sheet.CellFontName(row, column, family);
+                    for (int column = 1; column <= 2; column++) sheet.Cell(row, column).SetFontName(family);
                 }
             }
             // Column units also use workbook font zero, independently of painted cell

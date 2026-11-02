@@ -22,12 +22,12 @@ namespace OfficeIMO.Examples.Excel
             using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var s = doc.Sheets[0];
-                s.CellValue(1, 1, "Name");
-                s.CellValue(1, 2, "Value");
-                s.CellValue(2, 1, "Alpha");
-                s.CellValue(2, 2, 10);
-                s.CellValue(3, 1, "Beta");
-                s.CellValue(3, 2, 20);
+                s.Cell(1, 1).SetValue("Name");
+                s.Cell(1, 2).SetValue("Value");
+                s.Cell(2, 1).SetValue("Alpha");
+                s.Cell(2, 2).SetValue(10);
+                s.Cell(3, 1).SetValue("Beta");
+                s.Cell(3, 2).SetValue(20);
                 doc.Save();
                 if (openExcel) doc.OpenInApplication();
             }

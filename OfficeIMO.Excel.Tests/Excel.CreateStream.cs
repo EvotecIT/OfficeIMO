@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
         public void Create_ToMemoryStream_ExplicitPersistenceDoesNotWriteUntilSave() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory)) {
-                document.AddSheet("Explicit").CellValue(1, 1, "Pending");
+                document.AddSheet("Explicit").Cell(1, 1).SetValue("Pending");
             }
 
             Assert.Equal(0, memory.Length);
 
             using (var document = ExcelDocument.Create(memory)) {
-                document.AddSheet("Explicit").CellValue(1, 1, "Saved");
+                document.AddSheet("Explicit").Cell(1, 1).SetValue("Saved");
                 document.Save();
             }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddSheet("StreamData");
-                sheet.CellValue(1, 1, "Hello Stream");
+                sheet.Cell(1, 1).SetValue("Hello Stream");
             }
 
             Assert.True(memory.Length > 0);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
                        PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
                    })) {
-                document.AddSheet("Associated").CellValue(1, 1, "Persisted");
+                document.AddSheet("Associated").Cell(1, 1).SetValue("Persisted");
                 copy = document.ToBytes();
                 Assert.Equal(0, associated.Length);
             }
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             await using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
                              PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
                          })) {
-                document.AddSheet("Associated").CellValue(1, 1, "Persisted async");
+                document.AddSheet("Associated").Cell(1, 1).SetValue("Persisted async");
                 await document.SaveAsync(copy);
                 Assert.Equal(0, associated.Length);
             }
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Load(input)) {
                 var sheet = document.GetSheet("StreamData");
-                sheet.CellValue(2, 1, "Edited");
+                sheet.Cell(2, 1).SetValue("Edited");
                 document.Save(output);
             }
 
@@ -318,8 +318,8 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddSheet("Links");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "OfficeIMO");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("OfficeIMO");
                 sheet.SetHyperlink(2, 1, "https://github.com/evotecit/OfficeIMO", display: "OfficeIMO", style: false);
             }
 
@@ -467,7 +467,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddSheet("StreamData");
-                sheet.CellValue(1, 1, "Hello Stream");
+                sheet.Cell(1, 1).SetValue("Hello Stream");
                 sheet.AutoFitColumns();
             }
 
@@ -505,7 +505,7 @@ namespace OfficeIMO.Tests {
         public void SaveOnDispose_PasswordLoadedWorkbook_PersistsEditsMadeAfterExplicitSave(bool useStream) {
             string path = Path.Combine(_directoryWithFiles, "EncryptedSaveOnDispose" + useStream + ".xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                document.AddSheet("Data").CellValue(1, 1, "first");
+                document.AddSheet("Data").Cell(1, 1).SetValue("first");
                 document.Save(new ExcelSaveOptions { Password = "pw" });
             }
 
@@ -518,9 +518,9 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = useStream ? ExcelDocument.Load(memory, options) : ExcelDocument.Load(path, options)) {
-                document.Sheets[0].CellValue(2, 1, "saved");
+                document.Sheets[0].Cell(2, 1).SetValue("saved");
                 document.Save();
-                document.Sheets[0].CellValue(3, 1, "after save");
+                document.Sheets[0].Cell(3, 1).SetValue("after save");
             }
 
             byte[] output = useStream ? memory.ToArray() : File.ReadAllBytes(path);
@@ -537,7 +537,7 @@ namespace OfficeIMO.Tests {
         public void Create_FromTemplate_WithoutDestinationExtensionUsesRequestedDocumentType(bool useStream) {
             using var template = new MemoryStream();
             using (var source = ExcelDocument.Create(template, new ExcelCreateOptions { DocumentType = ExcelDocumentType.Template })) {
-                source.AddSheet("Data").CellValue(1, 1, "template");
+                source.AddSheet("Data").Cell(1, 1).SetValue("template");
                 source.Save();
             }
 

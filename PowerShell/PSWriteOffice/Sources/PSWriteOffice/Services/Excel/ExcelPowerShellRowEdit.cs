@@ -17,7 +17,7 @@ public sealed class ExcelPowerShellCellEdit
 
     internal ExcelPowerShellCellEdit(ExcelCell cell, object? value, CultureInfo culture)
     {
-        _cell = cell ?? throw new ArgumentNullException(nameof(cell));
+        _cell = cell;
         _value = value is DBNull ? null : value;
         _culture = culture ?? CultureInfo.InvariantCulture;
     }
@@ -84,7 +84,7 @@ public sealed class ExcelPowerShellRowEdit
             _headerMap.Add(header, index);
 
             var value = index < values.Count ? values[index] : null;
-            cells[index] = new ExcelPowerShellCellEdit(sheet.CellAt(rowIndex, firstColumn + index), value, culture);
+            cells[index] = new ExcelPowerShellCellEdit(sheet.Cell(rowIndex, firstColumn + index), value, culture);
         }
 
         _cells = cells;

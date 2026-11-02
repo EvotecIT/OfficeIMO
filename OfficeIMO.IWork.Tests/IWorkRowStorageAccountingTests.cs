@@ -100,6 +100,6 @@ public sealed partial class IWorkBoundaryTests {
         partial.Value.Save(saved);
         saved.Position = 0;
         using OfficeIMO.Excel.ExcelDocument reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 }

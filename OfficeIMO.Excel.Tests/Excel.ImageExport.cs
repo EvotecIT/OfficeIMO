@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("Deadline");
-            sheet.CellValue(1, 1, "Deadline");
+            sheet.Cell(1, 1).SetValue("Deadline");
             var options = new ExcelImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
 
             Assert.Throws<OfficeImageExportTimeoutException>(() =>
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using ExcelDocument document = ExcelDocument.Create(stream);
             ExcelSheet sheet = document.AddSheet("SheetDeadline");
-            sheet.CellValue(1, 1, "Deadline");
+            sheet.Cell(1, 1).SetValue("Deadline");
             var options = new ExcelImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
 
             Assert.Throws<OfficeImageExportTimeoutException>(() =>
@@ -42,12 +42,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "North");
-            sheet.CellValue(2, 2, 42);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("North");
+            sheet.Cell(2, 2).SetValue(42);
             sheet.Range("A1:B1").SetFillColor("D9EAF7").SetBold();
-            sheet.CellAt(2, 2).SetBorder(ExcelBorderStyle.Thin, "111827");
+            sheet.Cell(2, 2).SetBorder(ExcelBorderStyle.Thin, "111827");
 
             ExcelRange range = sheet.Range("A1:B2");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -70,8 +70,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Value");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
             sheet.Range("A1:B1").SetFillColor("D9EAF7").SetBold();
 
             byte[] png = sheet.Range("A1:B1").ToImage(
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Friendly Excel image export");
+            sheet.Cell(1, 1).SetValue("Friendly Excel image export");
 
             byte[] png = sheet.Range("A1:A1")
                 .ToImage(new ExcelImageExportOptions { ShowGridlines = false });
@@ -107,9 +107,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet visible = document.AddSheet("Visible");
-            visible.CellValue(1, 1, "Visible");
+            visible.Cell(1, 1).SetValue("Visible");
             ExcelSheet hidden = document.AddSheet("Hidden");
-            hidden.CellValue(1, 1, "Hidden");
+            hidden.Cell(1, 1).SetValue("Hidden");
             hidden.SetHidden(true);
 
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-hidden-sheets-" + Guid.NewGuid().ToString("N"));
@@ -140,8 +140,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Fonts");
-            sheet.CellValue(1, 1, "Font fallback");
-            sheet.CellAt(1, 1).SetFontName("OfficeIMO Missing Cell Font");
+            sheet.Cell(1, 1).SetValue("Font fallback");
+            sheet.Cell(1, 1).SetFontName("OfficeIMO Missing Cell Font");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
@@ -160,8 +160,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ScopedFont");
-            sheet.CellValue(1, 1, "Scoped font");
-            sheet.CellAt(1, 1).SetFontName("OfficeIMO Scoped Cell Font");
+            sheet.Cell(1, 1).SetValue("Scoped font");
+            sheet.Cell(1, 1).SetFontName("OfficeIMO Scoped Cell Font");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             var options = new ExcelImageExportOptions { ShowGridlines = false };
             options.Fonts.Add("OfficeIMO Scoped Cell Font", File.ReadAllBytes(fontPath));
@@ -177,8 +177,8 @@ namespace OfficeIMO.Tests {
         public void WorkbookDirectStreamingRejectsPredictableCountBeforeConsumerSideEffects() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            document.AddSheet("One").CellValue(1, 1, "One");
-            document.AddSheet("Two").CellValue(1, 1, "Two");
+            document.AddSheet("One").Cell(1, 1).SetValue("One");
+            document.AddSheet("Two").Cell(1, 1).SetValue("Two");
             var options = new ExcelImageExportOptions {
                 MaximumOutputCount = 1
             };
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
         public void WorkbookDirectStreamingHonorsPreCanceledTokenBeforeSheetPreflight() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            document.AddSheet("One").CellValue(1, 1, "One");
+            document.AddSheet("One").Cell(1, 1).SetValue("One");
             var options = new ExcelImageExportOptions {
                 SheetNames = new[] { "Missing" }
             };
@@ -222,11 +222,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Formats");
-            sheet.Cell(1, 1, 5, numberFormat: "0 \"days\"");
-            sheet.Cell(1, 2, 2, numberFormat: "0\\h");
-            sheet.Cell(1, 3, -3, numberFormat: "0 \"up\";0 \"down\";\"flat\"");
-            sheet.Cell(1, 4, 0, numberFormat: "0 \"up\";0 \"down\";\"flat\"");
-            sheet.Cell(1, 5, -4, numberFormat: "#,##0;(#,##0)");
+            sheet.Cell(1, 1).SetValue(5).SetNumberFormat("0 \"days\"");
+            sheet.Cell(1, 2).SetValue(2).SetNumberFormat("0\\h");
+            sheet.Cell(1, 3).SetValue(-3).SetNumberFormat("0 \"up\";0 \"down\";\"flat\"");
+            sheet.Cell(1, 4).SetValue(0).SetNumberFormat("0 \"up\";0 \"down\";\"flat\"");
+            sheet.Cell(1, 5).SetValue(-4).SetNumberFormat("#,##0;(#,##0)");
 
             ExcelRange range = sheet.Range("A1:E1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -260,10 +260,10 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
             sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
-            sheet.CellValue(1, 1, 0.1234);
-            sheet.CellValue(1, 2, -1234);
-            sheet.CellValue(1, 3, new DateTime(2026, 6, 24).ToOADate());
-            sheet.CellValue(1, 4, 1.5);
+            sheet.Cell(1, 1).SetValue(0.1234);
+            sheet.Cell(1, 2).SetValue(-1234);
+            sheet.Cell(1, 3).SetValue(new DateTime(2026, 6, 24).ToOADate());
+            sheet.Cell(1, 4).SetValue(1.5);
             ApplyBuiltInNumberFormatId(document, sheet, "A1", 10U);
             ApplyBuiltInNumberFormatId(document, sheet, "B1", 37U);
             ApplyBuiltInNumberFormatId(document, sheet, "C1", 14U);
@@ -349,9 +349,9 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(16));
-            sheet.CellValue(1, 1, "Label");
-            sheet.CellValue(1, 2, 42);
-            sheet.Cell(1, 3, new DateTime(2026, 6, 24).ToOADate(), numberFormat: "m/d/yyyy");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue(42);
+            sheet.Cell(1, 3).SetValue(new DateTime(2026, 6, 24).ToOADate()).SetNumberFormat("m/d/yyyy");
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -373,8 +373,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Wrap");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(54)));
-            sheet.CellValue(1, 1, "Alpha\nBeta\nGamma");
-            sheet.WrapCells(1,1,1);
+            sheet.Cell(1, 1).SetValue("Alpha\nBeta\nGamma");
+            sheet.Range(1, 1, 1, 1).SetWrapText();
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult svgResult = range.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false });
@@ -399,7 +399,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Clip");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
-            sheet.CellValue(1, 1, "Visible prefix SECRET-SUFFIX-MUST-NOT-LEAK");
+            sheet.Cell(1, 1).SetValue("Visible prefix SECRET-SUFFIX-MUST-NOT-LEAK");
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -423,8 +423,8 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.CellValue(1, 1, "Plain text spills");
-            sheet.CellValue(1, 3, "Stop");
+            sheet.Cell(1, 1).SetValue("Plain text spills");
+            sheet.Cell(1, 3).SetValue("Stop");
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -453,9 +453,9 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(6));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.CellValue(1, 2, "Right aligned text spills left");
-            sheet.CellValue(1, 3, "Stop");
-            sheet.CellAlign(1, 2, ExcelHorizontalAlignment.Right);
+            sheet.Cell(1, 2).SetValue("Right aligned text spills left");
+            sheet.Cell(1, 3).SetValue("Stop");
+            sheet.Cell(1, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -483,7 +483,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
-            sheet.CellValue(1, 1, "Plain text stops before image overlay");
+            sheet.Cell(1, 1).SetValue("Plain text stops before image overlay");
             sheet.AddImage(1, 2, CreateSolidOpaquePng(24, 18, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -516,13 +516,13 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.CellValue(1, 1, "Plain text stops before chart overlay");
-            sheet.CellValue(3, 1, "Label");
-            sheet.CellValue(3, 2, "Value");
-            sheet.CellValue(4, 1, "North");
-            sheet.CellValue(4, 2, 12);
-            sheet.CellValue(5, 1, "South");
-            sheet.CellValue(5, 2, 18);
+            sheet.Cell(1, 1).SetValue("Plain text stops before chart overlay");
+            sheet.Cell(3, 1).SetValue("Label");
+            sheet.Cell(3, 2).SetValue("Value");
+            sheet.Cell(4, 1).SetValue("North");
+            sheet.Cell(4, 2).SetValue(12);
+            sheet.Cell(5, 1).SetValue("South");
+            sheet.Cell(5, 2).SetValue(18);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A3:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 2, Width = OfficeLength.Pixels(140), Height = OfficeLength.Pixels(70), Title = "Overlay" });
 
             ExcelRange range = sheet.Range("A1:C2");
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(10));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
-            sheet.CellValue(1, 1, "Text hidden by image should not spill");
+            sheet.Cell(1, 1).SetValue("Text hidden by image should not spill");
             sheet.AddImage(1, 1, CreateSolidOpaquePng(48, 18, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(48),
@@ -577,7 +577,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("AnchorOverlay");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
+            sheet.Cell(1, 1).SetValue("Covered anchor text should not show fragments");
             sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(120),
@@ -605,7 +605,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("TransparentOverlay");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.CellValue(1, 1, "Visible through transparency");
+            sheet.Cell(1, 1).SetValue("Visible through transparency");
             sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.Transparent), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(120),
@@ -632,7 +632,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.CellValue(1, 1, 123456789);
+            sheet.Cell(1, 1).SetValue(123456789);
 
             ExcelRange range = sheet.Range("A1:B1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -656,13 +656,13 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Indent");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
-            sheet.CellValue(1, 1, "Indented");
+            sheet.Cell(1, 1).SetValue("Indented");
             ApplyCellTextIndentStyle(document, sheet, "A1", 3U);
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo visualSnapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
             ExcelWorkbookInfo inspectionSnapshot = document.Inspect();
-            ExcelCellStyleInfo directStyle = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo directStyle = sheet.Cell(1, 1).GetStyle();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
 
@@ -683,7 +683,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Theme");
-            sheet.CellValue(1, 1, "Theme");
+            sheet.Cell(1, 1).SetValue("Theme");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             ApplyThemeBackedCellStyle(document, sheet);
@@ -691,7 +691,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo visualSnapshot = range.CreateVisualSnapshot();
             ExcelWorkbookInfo inspectionSnapshot = document.Inspect();
-            ExcelCellStyleInfo directStyle = sheet.CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo directStyle = sheet.Cell(1, 1).GetStyle();
             string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -736,9 +736,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Conditional");
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 1, row);
-                sheet.CellValue(row, 2, row);
-                sheet.CellValue(row, 3, row);
+                sheet.Cell(row, 1).SetValue(row);
+                sheet.Cell(row, 2).SetValue(row);
+                sheet.Cell(row, 3).SetValue(row);
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
@@ -792,9 +792,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("DataBarThresholds");
-                sheet.CellValue(1, 1, 0);
-                sheet.CellValue(2, 1, 50);
-                sheet.CellValue(3, 1, 100);
+                sheet.Cell(1, 1).SetValue(0);
+                sheet.Cell(2, 1).SetValue(50);
+                sheet.Cell(3, 1).SetValue(100);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
                 sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
                 document.Save();
@@ -827,7 +827,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("PartialDataBar");
             for (int row = 1; row <= 10; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
             }
 
             sheet.AddConditionalDataBar("A1:A10", OfficeColor.Blue);
@@ -845,7 +845,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("PartialColorScale");
             for (int row = 1; row <= 10; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
             }
 
             sheet.AddConditionalColorScale("A1:A10", OfficeColor.Red, OfficeColor.Lime);
@@ -859,8 +859,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportOmitsConditionalRulesBeyondReferenceLimit() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("OversizedConditional");
-            sheet.CellValue(1, 1, 0D);
-            sheet.CellValue(100_001, 1, 1000D);
+            sheet.Cell(1, 1).SetValue(0D);
+            sheet.Cell(100_001, 1).SetValue(1000D);
             sheet.AddConditionalColorScale("A1:A100001", OfficeColor.Red, OfficeColor.Lime);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
@@ -878,7 +878,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportBoundsAggregateConditionalRuleReferences() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("AggregateConditional");
-            sheet.CellValue(1, 1, 0D);
+            sheet.Cell(1, 1).SetValue(0D);
             sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Red, OfficeColor.Lime);
             sheet.AddConditionalColorScale("A1:A60000", OfficeColor.Blue, OfficeColor.White);
 
@@ -897,7 +897,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportBoundsConditionalRuleCount() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("RuleCount");
-            sheet.CellValue(1, 1, 0D);
+            sheet.Cell(1, 1).SetValue(0D);
             var conditional = new ConditionalFormatting {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
             };
@@ -1016,7 +1016,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportBoundsConditionalRuleCellWork() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("RuleCellWork");
-            sheet.CellValue(1, 1, 0D);
+            sheet.Cell(1, 1).SetValue(0D);
             var conditional = new ConditionalFormatting {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" }
             };
@@ -1120,9 +1120,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("StoppedColorScale");
-            sheet.CellValue(1, 1, 0);
-            sheet.CellValue(2, 1, 5);
-            sheet.CellValue(3, 1, 10);
+            sheet.Cell(1, 1).SetValue(0);
+            sheet.Cell(2, 1).SetValue(5);
+            sheet.Cell(3, 1).SetValue(10);
             sheet.AddConditionalFormulaRule("A1:A3", "A1=0", stopIfTrue: true);
             sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Lime);
 
@@ -1137,7 +1137,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportAppliesConditionalStrike() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("ConditionalStrike");
-            sheet.CellValue(1, 1, 1);
+            sheet.Cell(1, 1).SetValue(1);
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Range = "A1",
                 Type = "CellIs",
@@ -1159,9 +1159,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("ThreeColor");
-                sheet.CellValue(1, 1, 0);
-                sheet.CellValue(2, 1, 50);
-                sheet.CellValue(3, 1, 100);
+                sheet.Cell(1, 1).SetValue(0);
+                sheet.Cell(2, 1).SetValue(50);
+                sheet.Cell(3, 1).SetValue(100);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
                 sheet.AddConditionalColorScale("A1:A3", OfficeColor.Red, OfficeColor.Green);
                 document.Save();
@@ -1198,7 +1198,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("PercentileColor");
                 int[] values = { 0, 10, 15, 20, 100 };
                 for (int row = 1; row <= values.Length; row++) {
-                    sheet.CellValue(row, 1, values[row - 1]);
+                    sheet.Cell(row, 1).SetValue(values[row - 1]);
                 }
 
                 sheet.AddConditionalColorScale("A1:A5", OfficeColor.Red, OfficeColor.Green);
@@ -1232,7 +1232,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("MalformedColor");
                 for (int row = 1; row <= 4; row++) {
-                    sheet.CellValue(row, 1, row);
+                    sheet.Cell(row, 1).SetValue(row);
                 }
 
                 sheet.AddConditionalColorScale("A1:A4", OfficeColor.Red, OfficeColor.Green);
@@ -1266,9 +1266,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("IconOnly");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(3, 1, 3);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(3, 1).SetValue(3);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
@@ -1298,9 +1298,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("IconThresholds");
-                sheet.CellValue(1, 1, 0);
-                sheet.CellValue(2, 1, 50);
-                sheet.CellValue(3, 1, 100);
+                sheet.Cell(1, 1).SetValue(0);
+                sheet.Cell(2, 1).SetValue(50);
+                sheet.Cell(3, 1).SetValue(100);
                 sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                 document.Save();
             }
@@ -1335,10 +1335,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("IconPercentiles");
-                sheet.CellValue(1, 1, 1);
-                sheet.CellValue(2, 1, 2);
-                sheet.CellValue(3, 1, 3);
-                sheet.CellValue(4, 1, 100);
+                sheet.Cell(1, 1).SetValue(1);
+                sheet.Cell(2, 1).SetValue(2);
+                sheet.Cell(3, 1).SetValue(3);
+                sheet.Cell(4, 1).SetValue(100);
                 sheet.AddConditionalIconSet("A1:A4", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
                 document.Save();
             }
@@ -1372,9 +1372,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                     ExcelSheet sheet = document.AddSheet("IconPercentiles");
-                    sheet.CellValue(1, 1, 1);
-                    sheet.CellValue(2, 1, 2);
-                    sheet.CellValue(3, 1, 3);
+                    sheet.Cell(1, 1).SetValue(1);
+                    sheet.Cell(2, 1).SetValue(2);
+                    sheet.Cell(3, 1).SetValue(3);
                     sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1,
                         showValue: true, reverseIconOrder: false);
                     document.Save();
@@ -1404,7 +1404,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("DataBarOnly");
-                sheet.CellValue(1, 1, 42);
+                sheet.Cell(1, 1).SetValue(42);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.AddConditionalDataBar("A1:A1", OfficeColor.Blue);
@@ -1436,8 +1436,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("DataBarPriority");
-            sheet.CellValue(1, 1, 20);
-            sheet.CellValue(2, 1, 10);
+            sheet.Cell(1, 1).SetValue(20);
+            sheet.Cell(2, 1).SetValue(10);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalDataBar("A1:A2", OfficeColor.Blue);
             sheet.AddConditionalDataBar("A1:A1", OfficeColor.Red);
@@ -1458,8 +1458,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Formatted");
             for (int row = 1; row <= 3; row++) {
                 double value = row / 10D;
-                sheet.CellValue(row, 1, value);
-                sheet.CellValue(row, 2, value);
+                sheet.Cell(row, 1).SetValue(value);
+                sheet.Cell(row, 2).SetValue(value);
                 ApplyBuiltInNumberFormatId(document, sheet, "A" + row.ToString(CultureInfo.InvariantCulture), 10U);
                 ApplyBuiltInNumberFormatId(document, sheet, "B" + row.ToString(CultureInfo.InvariantCulture), 10U);
             }
@@ -1480,11 +1480,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Absolute");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 0);
-            sheet.CellValue(3, 1, 0);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(0);
+            sheet.Cell(3, 1).SetValue(0);
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 2, "row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue("row " + row.ToString(CultureInfo.InvariantCulture));
             }
 
             sheet.AddConditionalFormulaRule("B1:B3", "=$A$1>0", stopIfTrue: false, fillColor: "C6EFCE");
@@ -1499,8 +1499,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("StopOnly");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(1, 2, 10);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(10);
             sheet.AddConditionalFormulaRule("B1:B1", "=$A$1>0", stopIfTrue: true, fillColor: null);
             sheet.AddConditionalFormulaRule("B1:B1", "=B1>0", stopIfTrue: false, fillColor: "FCE4D6");
 
@@ -1514,9 +1514,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("StopVisuals");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(3, 1, 3);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(3, 1).SetValue(3);
             sheet.AddConditionalFormulaRule("A2:A2", "=A2>0", stopIfTrue: true, fillColor: null);
             sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
             sheet.AddConditionalIconSet("A1:A3", ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
@@ -1535,7 +1535,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FiveIcons");
             for (int row = 1; row <= 5; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
 
@@ -1569,7 +1569,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FlagIcons");
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             }
 
@@ -1600,12 +1600,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Rules");
-            sheet.CellValue(1, 1, 5);
-            sheet.CellValue(2, 1, 20);
-            sheet.CellValue(3, 1, 30);
-            sheet.CellValue(1, 2, -5);
-            sheet.CellValue(2, 2, 0);
-            sheet.CellValue(3, 2, 5);
+            sheet.Cell(1, 1).SetValue(5);
+            sheet.Cell(2, 1).SetValue(20);
+            sheet.Cell(3, 1).SetValue(30);
+            sheet.Cell(1, 2).SetValue(-5);
+            sheet.Cell(2, 2).SetValue(0);
+            sheet.Cell(3, 2).SetValue(5);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
@@ -1657,9 +1657,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FontRules");
-            sheet.CellValue(1, 1, 5);
-            sheet.CellValue(2, 1, 20);
-            sheet.CellValue(3, 1, 30);
+            sheet.Cell(1, 1).SetValue(5);
+            sheet.Cell(2, 1).SetValue(20);
+            sheet.Cell(3, 1).SetValue(30);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
@@ -1711,8 +1711,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("BorderRules");
-            sheet.CellValue(1, 1, 5);
-            sheet.CellValue(2, 1, 20);
+            sheet.Cell(1, 1).SetValue(5);
+            sheet.Cell(2, 1).SetValue(20);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
@@ -1761,7 +1761,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FalseFontRules");
-            sheet.CellValue(1, 1, 20);
+            sheet.Cell(1, 1).SetValue(20);
             sheet.AddConditionalRule("A1:A1", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
             var bold = new X.Bold();
@@ -1791,7 +1791,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("UnderlineNone");
-            sheet.CellValue(1, 1, 20);
+            sheet.Cell(1, 1).SetValue(20);
             sheet.AddConditionalRule("A1:A1", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
             uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
@@ -1810,10 +1810,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Unsupported");
-            sheet.CellValue(1, 1, "Hot");
-            sheet.CellValue(2, 1, "Warm");
-            sheet.CellValue(1, 2, 2);
-            sheet.CellValue(2, 2, 4);
+            sheet.Cell(1, 1).SetValue("Hot");
+            sheet.Cell(2, 1).SetValue("Warm");
+            sheet.Cell(1, 2).SetValue(2);
+            sheet.Cell(2, 2).SetValue(4);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.AddConditionalRule("A1:A2", ExcelConditionalFormattingOperator.Equal, "\"Hot\"", fillColor: "FEE2E2");
@@ -1847,10 +1847,10 @@ namespace OfficeIMO.Tests {
             string[] beginsValues = { "Ops North", "Dev North", "Ops South", "ops west" };
             string[] endsValues = { "North Ops", "Ops North", "West ops", "Ops" };
             for (int row = 1; row <= containsValues.Length; row++) {
-                sheet.CellValue(row, 1, containsValues[row - 1]);
-                sheet.CellValue(row, 2, containsValues[row - 1]);
-                sheet.CellValue(row, 3, beginsValues[row - 1]);
-                sheet.CellValue(row, 4, endsValues[row - 1]);
+                sheet.Cell(row, 1).SetValue(containsValues[row - 1]);
+                sheet.Cell(row, 2).SetValue(containsValues[row - 1]);
+                sheet.Cell(row, 3).SetValue(beginsValues[row - 1]);
+                sheet.Cell(row, 4).SetValue(endsValues[row - 1]);
             }
 
             for (int column = 1; column <= 4; column++) {
@@ -1928,9 +1928,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Averages");
             int[] values = { 1, 2, 3, 4, 5 };
             for (int row = 1; row <= values.Length; row++) {
-                sheet.CellValue(row, 1, values[row - 1]);
-                sheet.CellValue(row, 2, values[row - 1]);
-                sheet.CellValue(row, 3, values[row - 1]);
+                sheet.Cell(row, 1).SetValue(values[row - 1]);
+                sheet.Cell(row, 2).SetValue(values[row - 1]);
+                sheet.Cell(row, 3).SetValue(values[row - 1]);
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
@@ -1982,9 +1982,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("StoppedAverage");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(3, 1, 100);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(3, 1).SetValue(100);
             sheet.AddConditionalFormulaRule("A3:A3", "=A3>0", stopIfTrue: true, fillColor: "FCE4D6");
             sheet.Range("A1:A3").ConditionalFormatting.AboveAverage("C6EFCE");
 
@@ -2002,8 +2002,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Distinct");
             string[] values = { "Alpha", "Beta", "alpha", string.Empty, "Gamma", "Beta" };
             for (int row = 1; row <= values.Length; row++) {
-                sheet.CellValue(row, 1, values[row - 1]);
-                sheet.CellValue(row, 2, values[row - 1]);
+                sheet.Cell(row, 1).SetValue(values[row - 1]);
+                sheet.Cell(row, 2).SetValue(values[row - 1]);
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
@@ -2062,9 +2062,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("PartialDistinct");
-            sheet.CellValue(1, 1, "Alpha");
-            sheet.CellValue(2, 1, "Alpha");
-            sheet.CellValue(3, 1, "Beta");
+            sheet.Cell(1, 1).SetValue("Alpha");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(3, 1).SetValue("Beta");
             sheet.Range("A1:A3").ConditionalFormatting.DuplicateValues("FCE4D6");
 
             ExcelRangeVisualInfo duplicateSnapshot = sheet.Range("A1:A1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -2079,9 +2079,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("RawDistinct");
-            sheet.Cell(1, 1, 1, numberFormat: "0.00");
-            sheet.Cell(2, 1, 1, numberFormat: "0");
-            sheet.Cell(3, 1, 2, numberFormat: "0.00");
+            sheet.Cell(1, 1).SetValue(1).SetNumberFormat("0.00");
+            sheet.Cell(2, 1).SetValue(1).SetNumberFormat("0");
+            sheet.Cell(3, 1).SetValue(2).SetNumberFormat("0.00");
             sheet.Range("A1:A3").ConditionalFormatting.DuplicateValues("FCE4D6");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -2103,10 +2103,10 @@ namespace OfficeIMO.Tests {
             int[] topPercentValues = { 1, 5, 3, 5, 2 };
             int[] bottomPercentValues = { 8, 1, 3, 1, 9 };
             for (int row = 1; row <= 5; row++) {
-                sheet.CellValue(row, 1, topValues[row - 1]);
-                sheet.CellValue(row, 2, bottomValues[row - 1]);
-                sheet.CellValue(row, 3, topPercentValues[row - 1]);
-                sheet.CellValue(row, 4, bottomPercentValues[row - 1]);
+                sheet.Cell(row, 1).SetValue(topValues[row - 1]);
+                sheet.Cell(row, 2).SetValue(bottomValues[row - 1]);
+                sheet.Cell(row, 3).SetValue(topPercentValues[row - 1]);
+                sheet.Cell(row, 4).SetValue(bottomPercentValues[row - 1]);
             }
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
@@ -2174,7 +2174,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("PartialTop");
             for (int row = 1; row <= 10; row++) {
-                sheet.CellValue(row, 1, row);
+                sheet.Cell(row, 1).SetValue(row);
             }
 
             sheet.Range("A1:A10").ConditionalFormatting.Top(1, "C6EFCE");
@@ -2191,10 +2191,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Summary");
-            sheet.CellValue(1, 1, "Metric");
-            sheet.CellValue(1, 2, "Score");
-            sheet.CellValue(2, 1, "Quality");
-            sheet.CellValue(2, 2, 98);
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(1, 2).SetValue("Score");
+            sheet.Cell(2, 1).SetValue("Quality");
+            sheet.Cell(2, 2).SetValue(98);
 
             byte[] png = sheet.ToImage();
             string svg = System.Text.Encoding.UTF8.GetString(sheet.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes);
@@ -2211,8 +2211,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Images");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 1, "Logo");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("Logo");
             byte[] badge = CreateSolidPng(12, 10, OfficeColor.FromRgb(220, 38, 38));
             sheet.AddImage(2, 2, badge, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
@@ -2316,7 +2316,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
-            sheet.CellValue(1, 2, "Visible");
+            sheet.Cell(1, 2).SetValue("Visible");
             byte[] banner = CreateSolidPng(96, 24, OfficeColor.FromRgb(220, 38, 38));
             sheet.AddImage(1, 1, banner, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
@@ -2347,7 +2347,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Normalize");
-            sheet.CellValue(1, 1, "Normalized");
+            sheet.Cell(1, 1).SetValue("Normalized");
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 Range = "'Normalize'!$A$1",
@@ -2367,7 +2367,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
-            sheet.CellValue(1, 1, "Merged title");
+            sheet.Cell(1, 1).SetValue("Merged title");
             sheet.Range("A1:C1").Merge();
 
             ExcelRangeVisualInfo snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -2383,7 +2383,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MergedLimit");
-            sheet.CellValue(1, 1, "Bounded");
+            sheet.Cell(1, 1).SetValue("Bounded");
             sheet.Range("A1:XFD1048576").Merge();
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot();
@@ -2399,8 +2399,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MergeBudget");
-            sheet.CellValue(1, 1, "Outside origin");
-            sheet.CellValue(1, 3, "Visible origin");
+            sheet.Cell(1, 1).SetValue("Outside origin");
+            sheet.Cell(1, 3).SetValue("Visible origin");
             sheet.Range("A1:B50").Merge();
             sheet.Range("C1:C2").Merge();
 
@@ -2426,7 +2426,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-                sheet.CellValue(1, 1, "Two-cell");
+                sheet.Cell(1, 1).SetValue("Two-cell");
                 document.Save();
             }
 
@@ -2457,7 +2457,7 @@ namespace OfficeIMO.Tests {
             byte[] banner = CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("AnchorOverflow");
-                sheet.CellValue(1, 1, "Anchor");
+                sheet.Cell(1, 1).SetValue("Anchor");
                 document.Save();
             }
 
@@ -2644,7 +2644,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Jpeg");
-            sheet.CellValue(1, 1, "Photo");
+            sheet.Cell(1, 1).SetValue("Photo");
             sheet.AddImage(1, 2, CreateMinimalJpegHeader(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/jpeg",
                 Width = OfficeIMO.OfficeLength.Pixels(16),
@@ -2672,7 +2672,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Bitmap");
-            sheet.CellValue(1, 1, "Bitmap");
+            sheet.Cell(1, 1).SetValue("Bitmap");
             OfficeColor color = OfficeColor.FromRgb(18, 52, 86);
             sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/bmp",
@@ -2705,7 +2705,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("TopDownBitmap");
-            sheet.CellValue(1, 1, "Top-down bitmap");
+            sheet.Cell(1, 1).SetValue("Top-down bitmap");
             OfficeColor color = OfficeColor.FromRgb(24, 96, 144);
             sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }, topDown: true), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/bmp",
@@ -2734,7 +2734,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("BitmapAlpha");
-            sheet.CellValue(1, 1, "Bitmap alpha");
+            sheet.Cell(1, 1).SetValue("Bitmap alpha");
             byte[] bmp = CreateBmp32(2, 2, new[] {
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
@@ -2770,7 +2770,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Gif");
-            sheet.CellValue(1, 1, "GIF");
+            sheet.Cell(1, 1).SetValue("GIF");
             sheet.AddImage(1, 2, CreateSinglePixelGif(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/gif",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -2802,7 +2802,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("WorksheetBitmap");
-            sheet.CellValue(1, 1, "Used cell");
+            sheet.Cell(1, 1).SetValue("Used cell");
             OfficeColor color = OfficeColor.FromRgb(18, 52, 86);
             sheet.AddImage(10, 5, CreateBmp24(2, 2, new[] { color, color, color, color }), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/bmp",
@@ -2825,7 +2825,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("WorksheetPng");
-            sheet.CellValue(1, 1, "Used cell");
+            sheet.Cell(1, 1).SetValue("Used cell");
             sheet.AddImage(10, 5, CreateTruncatedPngHeader(4, 3), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -2845,7 +2845,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("UnknownImage");
-            sheet.CellValue(1, 1, "Image");
+            sheet.Cell(1, 1).SetValue("Image");
             sheet.AddImage(1, 2, new byte[] { 1, 2, 3, 4, 5, 6 }, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/bmp",
                 Width = OfficeIMO.OfficeLength.Pixels(16),
@@ -2882,7 +2882,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("CallerCodec");
-            sheet.CellValue(1, 1, "Used cell");
+            sheet.Cell(1, 1).SetValue("Used cell");
             sheet.AddImage(10, 5, new byte[] { 1, 2, 3, 4 }, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/tiff",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -2916,14 +2916,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Charts");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Revenue");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Revenue");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(120), Title = "Revenue Trend" });
 
             ExcelRange range = sheet.Range("A1:G8");
@@ -2950,14 +2950,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartStyle");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Revenue");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Revenue");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(160), Title = "Revenue Trend" });
             chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("F2F2F2"), lineColor: OfficeColor.Parse("404040"), lineWidth: OfficeLength.Points(1));
             chart.SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("00B0F0"), lineWidth: OfficeLength.Points(1D));
@@ -3041,14 +3041,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAreaLines");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Revenue");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Revenue");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(160), Title = "Area Lines" });
             chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("F2F2F2"), lineColor: OfficeColor.Parse("404040"), lineWidth: OfficeLength.Points(3D));
             chart.SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("00B0F0"), lineWidth: OfficeLength.Points(2D));
@@ -3094,14 +3094,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartTitle");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Title Color" });
             chart.SetTitleTextStyle(color: OfficeColor.Parse("BE123C"));
 
@@ -3136,14 +3136,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartTitleTypography");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Title Typography" });
             chart.SetTitleTextStyle(fontSize: OfficeLength.Points(16D), bold: false, italic: true, color: OfficeColor.Parse("BE123C"), fontName: "Aptos Display");
 
@@ -3171,14 +3171,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartTitleStyle");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Title Style" });
             chart.SetTitleTextStyle(color: OfficeColor.Parse("BE123C"));
             AddFirstChartTitleTextEffect(document);
@@ -3196,18 +3196,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartSeries");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(1, 3, "Forecast");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(2, 3, 80);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(3, 3, 110);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
-            sheet.CellValue(4, 3, 130);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(1, 3).SetValue("Forecast");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(2, 3).SetValue(80);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(3, 3).SetValue(110);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
+            sheet.Cell(4, 3).SetValue(130);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(170), Title = "Series Colors" });
             chart.SetSeriesFillColor(0, OfficeColor.Parse("22C55E"));
             chart.SetSeriesFillColor(1, OfficeColor.Parse("F97316"));
@@ -3254,14 +3254,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartPoints");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Point Colors" });
             chart.SetSeriesFillColor(0, OfficeColor.Parse("22C55E"));
             chart.SetSeriesPointFillColor(0, 1, OfficeColor.Parse("A855F7"));
@@ -3297,14 +3297,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartMarkers");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Fill" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, fillColor: OfficeColor.Parse("F97316"));
@@ -3341,14 +3341,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoMarkers");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Markers" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             GetFirstChartPart(document).ChartSpace.Descendants<C.LineChartSeries>().First().RemoveAllChildren<C.Marker>();
@@ -3368,14 +3368,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoSeriesLine");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Series Line" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             SetFirstChartSeriesNoLine(document);
@@ -3391,14 +3391,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("SeriesOrder");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Series Order" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             SetFirstChartSeriesIndex(document, 1U);
@@ -3415,8 +3415,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FormulaThresholds");
             for (int row = 1; row <= 3; row++) {
-                sheet.CellValue(row, 1, row * 10);
-                sheet.CellValue(row, 2, row * 10);
+                sheet.Cell(row, 1).SetValue(row * 10);
+                sheet.Cell(row, 2).SetValue(row * 10);
             }
 
             sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
@@ -3436,12 +3436,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("AbsoluteChart");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Actual");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 120);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 180);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Actual");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(120);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(180);
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 6, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(160), Title = "Absolute Chart" });
                 document.Save();
             }
@@ -3465,10 +3465,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("BoundedDrawingRange");
-                sheet.CellValue(1, 1, "Category");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "Item");
-                sheet.CellValue(2, 2, 1);
+                sheet.Cell(1, 1).SetValue("Category");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Item");
+                sheet.Cell(2, 2).SetValue(1);
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3, Width = OfficeLength.Pixels(240), Height = OfficeLength.Pixels(140) });
                 document.Save();
             }
@@ -3489,14 +3489,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("RadarStandard");
-            sheet.CellValue(1, 1, "Metric");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Quality");
-            sheet.CellValue(2, 2, 7);
-            sheet.CellValue(3, 1, "Speed");
-            sheet.CellValue(3, 2, 5);
-            sheet.CellValue(4, 1, "Cost");
-            sheet.CellValue(4, 2, 8);
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Quality");
+            sheet.Cell(2, 2).SetValue(7);
+            sheet.Cell(3, 1).SetValue("Speed");
+            sheet.Cell(3, 2).SetValue(5);
+            sheet.Cell(4, 1).SetValue("Cost");
+            sheet.Cell(4, 2).SetValue(8);
             sheet.AddChart(OfficeChartType.Radar, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Radar" });
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:H9").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -3513,7 +3513,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("TransparentChart");
             for (int row = 1; row <= 10; row++) {
                 for (int column = 1; column <= 8; column++) {
-                    sheet.CellValue(row, column, row + column);
+                    sheet.Cell(row, column).SetValue(row + column);
                 }
             }
 
@@ -3542,14 +3542,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MarkerSize");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Size" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(12), fillColor: OfficeColor.Parse("F97316"));
@@ -3584,14 +3584,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MarkerShape");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Shape" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(12), fillColor: OfficeColor.Parse("F97316"));
@@ -3627,14 +3627,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MarkerX");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker X" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.X, size: OfficeLength.Points(14), lineColor: OfficeColor.Parse("7C3AED"), lineWidth: OfficeLength.Points(2D));
@@ -3672,22 +3672,22 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MarkerSymbols");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Dash");
-            sheet.CellValue(1, 3, "Dot");
-            sheet.CellValue(1, 4, "Star");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(2, 3, 140);
-            sheet.CellValue(2, 4, 110);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(3, 3, 160);
-            sheet.CellValue(3, 4, 170);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
-            sheet.CellValue(4, 3, 130);
-            sheet.CellValue(4, 4, 150);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Dash");
+            sheet.Cell(1, 3).SetValue("Dot");
+            sheet.Cell(1, 4).SetValue("Star");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(2, 3).SetValue(140);
+            sheet.Cell(2, 4).SetValue(110);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(3, 3).SetValue(160);
+            sheet.Cell(3, 4).SetValue(170);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
+            sheet.Cell(4, 3).SetValue(130);
+            sheet.Cell(4, 4).SetValue(150);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(310), Height = OfficeLength.Pixels(185), Title = "Marker Symbols" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("CBD5E1"));
             chart.SetSeriesLineColor(1, OfficeColor.Parse("CBD5E1"));
@@ -3756,14 +3756,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MarkerOutline");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Marker Outline" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"));
             chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(16), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12"), lineWidth: OfficeLength.Points(3D));
@@ -3800,14 +3800,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("SeriesLineWidth");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Series Width" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"), width: OfficeLength.Points(4D));
 
@@ -3843,14 +3843,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("SeriesLineDash");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Series Dash" });
             chart.SetSeriesLineColor(0, OfficeColor.Parse("2563EB"), width: OfficeLength.Points(4D));
             SetFirstChartSeriesDash(document, A.PresetLineDashValues.Dash);
@@ -3889,14 +3889,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartGridlines");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Gridlines" });
             chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("DC2626"));
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("A855F7"));
@@ -3965,14 +3965,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MinorGridlines");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Minor Gridlines" });
             chart.SetValueAxisGridlines(showMajor: false, showMinor: true, lineColor: OfficeColor.Parse("14B8A6"), lineWidth: OfficeLength.Points(1.5D));
 
@@ -4011,14 +4011,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("GridlineWidth");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Gridline Width" });
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("A855F7"), lineWidth: OfficeLength.Points(2D));
 
@@ -4056,14 +4056,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("GridlineDash");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Gridline Dash" });
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("A855F7"), lineWidth: OfficeLength.Points(2D));
             SetFirstChartValueGridlineDash(document, A.PresetLineDashValues.Dash);
@@ -4103,14 +4103,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoGridlines");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Gridlines" });
             chart.SetValueAxisGridlines(showMajor: false);
 
@@ -4131,14 +4131,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("AxisColor");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Axis Color" });
             chart.SetCategoryAxisLine(lineColor: OfficeColor.Parse("DC2626"));
             chart.SetValueAxisLine(lineColor: OfficeColor.Parse("2563EB"));
@@ -4200,14 +4200,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoAxisLines");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "No Axis Lines" });
             chart.SetCategoryAxisLine(noLine: true);
             chart.SetValueAxisLine(noLine: true);
@@ -4228,14 +4228,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("AxisWidth");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Axis Width" });
             chart.SetValueAxisLine(lineColor: OfficeColor.Parse("DC2626"), lineWidth: OfficeLength.Points(2D));
 
@@ -4272,14 +4272,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("AxisDash");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(250), Height = OfficeLength.Pixels(165), Title = "Axis Dash" });
             chart.SetValueAxisLine(lineColor: OfficeColor.Parse("DC2626"), lineWidth: OfficeLength.Points(2D));
             SetFirstChartValueAxisDash(document, A.PresetLineDashValues.Dot);
@@ -4318,14 +4318,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Trendline");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Revenue");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Revenue");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.Line, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Trendline" });
             chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, displayEquation: true, displayRSquared: true, lineColor: OfficeColor.Parse("FF0000"), lineWidth: OfficeLength.Points(1));
 
@@ -4353,9 +4353,9 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Images-" + Guid.NewGuid().ToString("N"));
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet first = document.AddSheet("First");
-            first.CellValue(1, 1, "One");
+            first.Cell(1, 1).SetValue("One");
             ExcelSheet second = document.AddSheet("Second");
-            second.CellValue(1, 1, "Two");
+            second.Cell(1, 1).SetValue("Two");
 
             IReadOnlyList<OfficeImageExportResult> results = document.ExportImages(OfficeImageExportFormat.Png);
             OfficeIMO.OfficeConversionReport saved = document.SaveAsImages(folder);
@@ -4374,9 +4374,9 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Fluent-Images-" + Guid.NewGuid().ToString("N"));
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet first = document.AddSheet("First");
-            first.CellValue(1, 1, "One");
+            first.Cell(1, 1).SetValue("One");
             ExcelSheet second = document.AddSheet("Second");
-            second.CellValue(1, 1, "Two");
+            second.Cell(1, 1).SetValue("Two");
 
             OfficeIMO.OfficeConversionReport result = document.SaveAsImages(folder,
                 new ExcelImageExportOptions {
@@ -4399,9 +4399,9 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Missing-Sheet-" + Guid.NewGuid().ToString("N"));
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet first = document.AddSheet("First");
-            first.CellValue(1, 1, "One");
+            first.Cell(1, 1).SetValue("One");
             ExcelSheet second = document.AddSheet("Second");
-            second.CellValue(1, 1, "Two");
+            second.Cell(1, 1).SetValue("Two");
 
             var options = new ExcelImageExportOptions { SheetNames = new[] { "Second", "Missing" } };
             ArgumentException exportException = Assert.Throws<ArgumentException>(() => document.ExportImages(OfficeImageExportFormat.Png, options));
@@ -4417,16 +4417,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Align");
-            sheet.CellValue(1, 1, "Top");
-            sheet.CellValue(1, 2, "Mid");
-            sheet.CellValue(1, 3, "Bot");
+            sheet.Cell(1, 1).SetValue("Top");
+            sheet.Cell(1, 2).SetValue("Mid");
+            sheet.Cell(1, 3).SetValue("Bot");
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Top);
-            sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Center);
-            sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Bottom);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
+            sheet.Cell(1, 2).SetVerticalAlignment(ExcelVerticalAlignment.Center);
+            sheet.Cell(1, 3).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4446,15 +4446,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("DefaultAlign");
-            sheet.CellValue(1, 1, "Top");
-            sheet.CellValue(1, 2, "Default");
-            sheet.CellValue(1, 3, "Bottom");
+            sheet.Cell(1, 1).SetValue("Top");
+            sheet.Cell(1, 2).SetValue("Default");
+            sheet.Cell(1, 3).SetValue("Bottom");
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Top);
-            sheet.CellVerticalAlign(1, 3, ExcelVerticalAlignment.Bottom);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
+            sheet.Cell(1, 3).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4474,10 +4474,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Wrap");
-            sheet.CellValue(1, 1, "Alpha Beta Gamma Delta");
+            sheet.Cell(1, 1).SetValue("Alpha Beta Gamma Delta");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(54)));
-            sheet.WrapCells(1,1,1);
+            sheet.Range(1, 1, 1, 1).SetWrapText();
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4498,7 +4498,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Clip");
-            sheet.CellValue(1, 1, "This text is intentionally much too long for the rendered cell");
+            sheet.Cell(1, 1).SetValue("This text is intentionally much too long for the rendered cell");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
 
             OfficeImageExportResult png = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
@@ -4513,10 +4513,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("FontSize");
-            sheet.CellValue(1, 1, "Small");
-            sheet.CellValue(2, 1, "Large");
-            sheet.CellAt(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
-            sheet.CellAt(2, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
+            sheet.Cell(1, 1).SetValue("Small");
+            sheet.Cell(2, 1).SetValue("Large");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
+            sheet.Cell(2, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
@@ -4544,9 +4544,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Shrink");
-            sheet.CellValue(1, 1, "Shrink To Fit");
+            sheet.Cell(1, 1).SetValue("Shrink To Fit");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(7));
-            sheet.CellAt(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetShrinkToFit();
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetShrinkToFit();
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4570,10 +4570,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Rotate");
-            sheet.CellValue(1, 1, "Rotated Header");
+            sheet.Cell(1, 1).SetValue("Rotated Header");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(9));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(86)));
-            sheet.CellAt(1, 1)
+            sheet.Cell(1, 1)
                 .SetTextRotation(90)
                 .SetFontColor("010203")
                 .SetBold()
@@ -4608,11 +4608,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ClipRotate");
-            sheet.CellValue(1, 1, "Rotated Header");
+            sheet.Cell(1, 1).SetValue("Rotated Header");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(52)));
-            sheet.CellAt(1, 1).SetTextRotation(45);
+            sheet.Cell(1, 1).SetTextRotation(45);
 
             ExcelRange range = sheet.Range("A1:B1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -4629,10 +4629,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Stacked");
-            sheet.CellValue(1, 1, "Stacked");
+            sheet.Cell(1, 1).SetValue("Stacked");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
-            sheet.CellAt(1, 1)
+            sheet.Cell(1, 1)
                 .SetTextRotation(255)
                 .SetFontColor("010203")
                 .SetBold();

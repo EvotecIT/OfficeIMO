@@ -21,8 +21,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Metric");
-            sheet.Cell(2, 1, "HeaderFooterBody");
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(2, 1).SetValue("HeaderFooterBody");
             sheet.SetHeaderFooter(
                 headerLeft: "Left Header",
                 headerCenter: "Dashboard Header",
@@ -64,7 +64,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "HeaderFooterFieldBody");
+            sheet.Cell(1, 1).SetValue("HeaderFooterFieldBody");
             sheet.SetHeaderFooter(
                 headerLeft: "Printed &D &T Dir &Z File &F",
                 footerRight: "Page &P of &N");
@@ -97,7 +97,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "DynamicHeaderFooterBody");
+            sheet.Cell(1, 1).SetValue("DynamicHeaderFooterBody");
             sheet.SetHeaderFooter(headerCenter: "Source &F");
             document.Save();
 
@@ -124,7 +124,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Formatting" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "HeaderFooterFormattingBody");
+            sheet.Cell(1, 1).SetValue("HeaderFooterFormattingBody");
             sheet.SetHeaderFooter(
                 headerCenter: "&\"Arial,Bold\"&18&KFF0000Styled Header",
                 footerCenter: "&\"Times New Roman,Italic\"&10&K0000FFStyled Footer");
@@ -163,7 +163,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "FontAliases" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "HeaderFooterFontAliasBody");
+            sheet.Cell(1, 1).SetValue("HeaderFooterFontAliasBody");
             sheet.SetHeaderFooter(
                 headerCenter: "&\"Aptos,Bold\"Alias Header",
                 footerCenter: "&\"Consolas,Italic\"Alias Footer");
@@ -204,7 +204,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "NamedFont" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "NamedHeaderFooterBody");
+            sheet.Cell(1, 1).SetValue("NamedHeaderFooterBody");
             sheet.SetHeaderFooter(
                 headerCenter: "&\"Studio Serif,Bold\"Named Header",
                 footerCenter: "&\"Studio Serif,Italic\"Named Footer");
@@ -240,7 +240,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "EscapedFontToken" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "EscapedHeaderFooterBody");
+            sheet.Cell(1, 1).SetValue("EscapedHeaderFooterBody");
             sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
             document.Save();
 
@@ -272,7 +272,7 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "MixedFormatting" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "MixedFormattingBody");
+            sheet.Cell(1, 1).SetValue("MixedFormattingBody");
             sheet.SetHeaderFooter(
                 headerLeft: "&KFF0000Red Left",
                 headerCenter: "Plain Center",
@@ -301,11 +301,11 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Ledger" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Entry");
-            sheet.Cell(1, 2, "Amount");
+            sheet.Cell(1, 1).SetValue("Entry");
+            sheet.Cell(1, 2).SetValue("Amount");
             for (int row = 2; row <= 90; row++) {
-                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row * 10);
+                sheet.Cell(row, 1).SetValue("Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row * 10);
             }
 
             sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
@@ -349,9 +349,9 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Ledger" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Entry");
+            sheet.Cell(1, 1).SetValue("Entry");
             for (int row = 2; row <= 90; row++) {
-                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Ledger row " + row.ToString(CultureInfo.InvariantCulture));
             }
 
             sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
@@ -389,8 +389,8 @@ public partial class Excel {
         byte[] disabledBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Metric");
-            sheet.Cell(2, 1, "HeaderFooterImageBody");
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(2, 1).SetValue("HeaderFooterImageBody");
             sheet.SetHeaderFooter(headerCenter: "Logo Header");
             sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", width: OfficeLength.Points(24), height: OfficeLength.Points(16));
 
@@ -443,9 +443,9 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Ledger" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Entry");
+            sheet.Cell(1, 1).SetValue("Entry");
             for (int row = 2; row <= 90; row++) {
-                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Ledger row " + row.ToString(CultureInfo.InvariantCulture));
             }
 
             sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
@@ -499,8 +499,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Dashboard" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Metric");
-            sheet.Cell(2, 1, "BodyOnly");
+            sheet.Cell(1, 1).SetValue("Metric");
+            sheet.Cell(2, 1).SetValue("BodyOnly");
             sheet.SetHeaderFooter(headerCenter: "DoNotExportHeader &F", footerCenter: "DoNotExportFooter");
             document.Save();
 

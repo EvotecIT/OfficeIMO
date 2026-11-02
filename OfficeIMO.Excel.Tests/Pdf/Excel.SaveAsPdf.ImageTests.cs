@@ -22,7 +22,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfOversizedDrawingAnchor.xlsx");
         using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Drawings" })) {
             ExcelSheet sheet = source.Sheets[0];
-            sheet.CellValue(2, 2, "Visible cell");
+            sheet.Cell(2, 2).SetValue("Visible cell");
             source.SetPrintArea(sheet, "B2");
             source.Save();
         }
@@ -64,7 +64,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
             sheet.AddImage(2, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -112,7 +112,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
             sheet.AddImage(2, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -141,8 +141,8 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "VisibleMarker");
-            sheet.Cell(2, 1, "HiddenImageMarker");
+            sheet.Cell(1, 1).SetValue("VisibleMarker");
+            sheet.Cell(2, 1).SetValue("HiddenImageMarker");
             sheet.AddImage(2, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -189,7 +189,7 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
             sheet.AddImage(2, 1, invalidPngBytes, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -219,7 +219,7 @@ public partial class Excel {
         PdfCore.PdfDocumentConversionResult result;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "ImageMarker");
+            sheet.Cell(1, 1).SetValue("ImageMarker");
             sheet.AddImage(2, 1, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/jpeg",
                 Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -253,11 +253,11 @@ public partial class Excel {
             nativeFont.FontName!.Val = "Calibri";
             nativeFont.FontSize!.Val = 11D;
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Label");
-            sheet.Cell(1, 2, "Visual");
-            sheet.Cell(2, 1, "BeforeRow");
-            sheet.Cell(3, 1, "AnchorRow");
-            sheet.Cell(4, 1, "AfterRow");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue("Visual");
+            sheet.Cell(2, 1).SetValue("BeforeRow");
+            sheet.Cell(3, 1).SetValue("AnchorRow");
+            sheet.Cell(4, 1).SetValue("AfterRow");
             sheet.AddImage(3, 2, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(72),
@@ -301,11 +301,11 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Label");
-            sheet.Cell(1, 2, "Visual");
-            sheet.Cell(2, 1, "BeforeImageRow");
-            sheet.Cell(3, 1, "AnchoredImageRow");
-            sheet.Cell(4, 1, "AfterImageRow");
+            sheet.Cell(1, 1).SetValue("Label");
+            sheet.Cell(1, 2).SetValue("Visual");
+            sheet.Cell(2, 1).SetValue("BeforeImageRow");
+            sheet.Cell(3, 1).SetValue("AnchoredImageRow");
+            sheet.Cell(4, 1).SetValue("AfterImageRow");
             sheet.AddImage(3, 2, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(72),
@@ -341,7 +341,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             for (int row = 1; row <= 45; row++) {
-                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Row " + row.ToString(CultureInfo.InvariantCulture));
             }
             sheet.AddImage(42, 2, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
@@ -372,7 +372,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             for (int row = 1; row <= 45; row++) {
-                sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
+                sheet.Cell(row, 1).SetValue("Row " + row.ToString(CultureInfo.InvariantCulture));
             }
             sheet.AddImage(55, 2, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",

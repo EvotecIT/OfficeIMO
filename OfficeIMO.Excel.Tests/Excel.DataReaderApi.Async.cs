@@ -14,11 +14,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Alpha");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Alpha");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Beta");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Beta");
                 document.Save();
             }
 
@@ -50,12 +50,12 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Alpha");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Alpha");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
+                second.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 512; row++) {
-                    second.CellValue(row, 1, row == 2 ? "CancelHere" : "Value" + row);
+                    second.Cell(row, 1).SetValue(row == 2 ? "CancelHere" : "Value" + row);
                 }
                 document.Save();
             }
@@ -88,11 +88,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Alpha");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Alpha");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Beta");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Beta");
                 document.Save();
             }
 
@@ -114,8 +114,8 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create()) {
             ExcelSheet sheet = document.AddSheet("Data");
             for (int column = 1; column <= 256; column++) {
-                sheet.CellValue(1, column, "Column" + column);
-                sheet.CellValue(2, column, column);
+                sheet.Cell(1, column).SetValue("Column" + column);
+                sheet.Cell(2, column).SetValue(column);
             }
             workbook = document.ToBytes(format);
         }
@@ -146,8 +146,8 @@ public partial class Excel {
         byte[] workbook;
         using (ExcelDocument document = ExcelDocument.Create()) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, "Alpha");
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Alpha");
             workbook = document.ToBytes(format);
         }
 

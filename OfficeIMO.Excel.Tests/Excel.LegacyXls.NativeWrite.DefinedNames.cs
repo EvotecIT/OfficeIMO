@@ -16,18 +16,18 @@ namespace OfficeIMO.Tests {
                     ExcelSheet north = document.AddSheet("North");
                     ExcelSheet south = document.AddSheet("South");
 
-                    north.CellValue(1, 1, 99d);
-                    north.CellValue(1, 2, 10d);
-                    south.CellValue(1, 2, 20d);
+                    north.Cell(1, 1).SetValue(99d);
+                    north.Cell(1, 2).SetValue(10d);
+                    south.Cell(1, 2).SetValue(20d);
 
                     document.SetNamedRange("LocalRate", "'North'!A1", save: false);
                     document.SetNamedRange("LocalRate", "B1", north, save: false);
                     document.SetNamedRange("LocalRate", "B1", south, save: false);
 
-                    north.CellValue(2, 1, 11d);
-                    north.CellFormula(2, 1, "LocalRate+1");
-                    south.CellValue(2, 1, 21d);
-                    south.CellFormula(2, 1, "LocalRate+1");
+                    north.Cell(2, 1).SetValue(11d);
+                    north.Cell(2, 1).SetFormula("LocalRate+1");
+                    south.Cell(2, 1).SetValue(21d);
+                    south.Cell(2, 1).SetFormula("LocalRate+1");
 
                     document.Save(xlsOutputPath);
                 }
@@ -59,9 +59,9 @@ namespace OfficeIMO.Tests {
                     && token.OperandKind == "DefinedName"
                     && token.OperandText == "NameIndex:3");
 
-                Assert.Equal("'North'!$A$1", result.Document.GetNamedRange("LocalRate"));
-                Assert.Equal("$B$1", result.Document.GetNamedRange("LocalRate", result.Document.Sheets[0]));
-                Assert.Equal("$B$1", result.Document.GetNamedRange("LocalRate", result.Document.Sheets[1]));
+                Assert.Equal("'North'!$A$1", result.Document.GetNamedRangeText("LocalRate"));
+                Assert.Equal("$B$1", result.Document.GetNamedRangeText("LocalRate", result.Document.Sheets[0]));
+                Assert.Equal("$B$1", result.Document.GetNamedRangeText("LocalRate", result.Document.Sheets[1]));
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet data = document.AddSheet("Data");
-                    data.CellValue(1, 1, 41d);
+                    data.Cell(1, 1).SetValue(41d);
 
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                 LegacyXlsDefinedName definedName = Assert.Single(result.Workbook.DefinedNames, name => name.Name == "FormulaAnswer");
                 Assert.Null(definedName.LocalSheetIndex);
                 Assert.Equal("'Data'!$A$1+1", definedName.Reference);
-                Assert.Equal("'Data'!$A$1+1", result.Document.GetNamedRange("FormulaAnswer"));
+                Assert.Equal("'Data'!$A$1+1", result.Document.GetNamedRangeText("FormulaAnswer"));
             } finally {
                 TryDelete(openXmlPath);
                 TryDelete(xlsOutputPath);
@@ -109,9 +109,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet data = document.AddSheet("Data");
-                    data.CellValue(1, 1, 41d);
-                    data.CellValue(2, 1, 43d);
-                    data.CellFormula(2, 1, "AdjustedAnswer+1");
+                    data.Cell(1, 1).SetValue(41d);
+                    data.Cell(2, 1).SetValue(43d);
+                    data.Cell(2, 1).SetFormula("AdjustedAnswer+1");
 
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains(result.Workbook.DefinedNames, name => name.Name == "BaseAnswer" && name.Reference == "'Data'!$A$1");
                 Assert.Contains(result.Workbook.DefinedNames, name => name.Name == "AdjustedAnswer" && name.Reference == "BaseAnswer+1");
-                Assert.Equal("BaseAnswer+1", result.Document.GetNamedRange("AdjustedAnswer"));
+                Assert.Equal("BaseAnswer+1", result.Document.GetNamedRangeText("AdjustedAnswer"));
 
                 LegacyXlsCell formulaCell = Assert.Single(result.Workbook.Worksheets[0].Cells, cell => cell.Row == 2 && cell.Column == 1);
                 Assert.True(formulaCell.IsFormula);
@@ -166,12 +166,12 @@ namespace OfficeIMO.Tests {
                     ExcelSheet first = document.AddSheet("Region 1");
                     ExcelSheet second = document.AddSheet("Region 2");
 
-                    first.CellValue(1, 1, 10d);
-                    first.CellValue(2, 1, 20d);
-                    second.CellValue(1, 1, 30d);
-                    second.CellValue(2, 1, 40d);
-                    summary.CellValue(1, 1, 100d);
-                    summary.CellFormula(1, 1, "RegionTotal");
+                    first.Cell(1, 1).SetValue(10d);
+                    first.Cell(2, 1).SetValue(20d);
+                    second.Cell(1, 1).SetValue(30d);
+                    second.Cell(2, 1).SetValue(40d);
+                    summary.Cell(1, 1).SetValue(100d);
+                    summary.Cell(1, 1).SetFormula("RegionTotal");
 
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsDefinedName definedName = Assert.Single(result.Workbook.DefinedNames, name => name.Name == "RegionTotal");
                 Assert.Equal("SUM('Region 1:Region 2'!$A$1:$A$2)", definedName.Reference);
-                Assert.Equal("SUM('Region 1:Region 2'!$A$1:$A$2)", result.Document.GetNamedRange("RegionTotal"));
+                Assert.Equal("SUM('Region 1:Region 2'!$A$1:$A$2)", result.Document.GetNamedRangeText("RegionTotal"));
 
                 LegacyXlsWorksheet summarySheet = result.Workbook.Worksheets[0];
                 LegacyXlsCell formulaCell = Assert.Single(summarySheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Names");
-                    sheet.CellValue(1, 1, "External workbook");
+                    sheet.Cell(1, 1).SetValue("External workbook");
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
                         Name = "ExternalWorkbookCell",
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsDefinedName definedName = Assert.Single(result.Workbook.DefinedNames, name => name.Name == "ExternalWorkbookCell");
                 Assert.Equal("'[Budget.xls]Data'!$A$1", definedName.Reference);
-                Assert.Equal("'[Budget.xls]Data'!$A$1", result.Document.GetNamedRange("ExternalWorkbookCell"));
+                Assert.Equal("'[Budget.xls]Data'!$A$1", result.Document.GetNamedRangeText("ExternalWorkbookCell"));
                 Assert.Contains(result.Workbook.FormulaTokenRecords, token =>
                     token.Context == "DefinedName"
                     && token.CellReference == "ExternalWorkbookCell"
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Names");
-                    sheet.CellValue(1, 1, "External name");
+                    sheet.Cell(1, 1).SetValue("External name");
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
                         Name = "ExternalNameFormula",
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsDefinedName definedName = Assert.Single(result.Workbook.DefinedNames, name => name.Name == "ExternalNameFormula");
                 Assert.Equal("'Budget.xls'!SalesTotal", definedName.Reference);
-                Assert.Equal("'Budget.xls'!SalesTotal", result.Document.GetNamedRange("ExternalNameFormula"));
+                Assert.Equal("'Budget.xls'!SalesTotal", result.Document.GetNamedRangeText("ExternalNameFormula"));
                 Assert.Contains(result.Workbook.FormulaTokenRecords, token =>
                     token.Context == "DefinedName"
                     && token.CellReference == "ExternalNameFormula"
@@ -297,8 +297,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ExternalNames");
-                    sheet.CellValue(1, 1, 0.25d);
-                    sheet.CellFormula(1, 1, "'[Budget.xls]Feb'!TaxRate");
+                    sheet.Cell(1, 1).SetValue(0.25d);
+                    sheet.Cell(1, 1).SetFormula("'[Budget.xls]Feb'!TaxRate");
 
                     document.Save(xlsOutputPath);
                 }
@@ -335,7 +335,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Names");
-                    sheet.CellValue(1, 1, "Scoped external name");
+                    sheet.Cell(1, 1).SetValue("Scoped external name");
                     document.WorkbookRoot.DefinedNames ??= new DefinedNames();
                     document.WorkbookRoot.DefinedNames.Append(new DefinedName {
                         Name = "ScopedExternalNameFormula",
@@ -361,7 +361,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsDefinedName definedName = Assert.Single(result.Workbook.DefinedNames, name => name.Name == "ScopedExternalNameFormula");
                 Assert.Equal("'[Budget.xls]Feb'!SalesTotal", definedName.Reference);
-                Assert.Equal("'[Budget.xls]Feb'!SalesTotal", result.Document.GetNamedRange("ScopedExternalNameFormula"));
+                Assert.Equal("'[Budget.xls]Feb'!SalesTotal", result.Document.GetNamedRangeText("ScopedExternalNameFormula"));
                 Assert.Contains(result.Workbook.FormulaTokenRecords, token =>
                     token.Context == "DefinedName"
                     && token.CellReference == "ScopedExternalNameFormula"
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedDefinedNameFormulaPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("defined-name formula payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized defined-name formula");
+                sheet.Cell(1, 1).SetValue("Oversized defined-name formula");
                 string longLiteral = "\"" + new string('A', 255) + "\"";
                 string formula = string.Join("&", Enumerable.Repeat(longLiteral, 260));
 

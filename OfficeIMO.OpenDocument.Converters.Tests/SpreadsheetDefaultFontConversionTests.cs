@@ -15,7 +15,7 @@ public sealed class SpreadsheetDefaultFontConversionTests {
     [InlineData("14pt", 14D)]
     public void RelativeDefaultFontSizesUseTheOpenDocumentCascade(string lexical, double expectedPoints) {
         using var original = ExcelDocument.Create();
-        original.AddSheet("Default font").CellValue(1, 1, "Visible cell");
+        original.AddSheet("Default font").Cell(1, 1).SetValue("Visible cell");
         OdsDocument source = original.ToOpenDocument();
         source.Styles.GetOrCreateDefault(OdfStyleFamily.TableCell).FontSize = OdfLength.Parse(lexical);
         using var serialized = new MemoryStream();
@@ -34,8 +34,8 @@ public sealed class SpreadsheetDefaultFontConversionTests {
     public void WorkbookColumnFontSurvivesSavedOdsRoundTripIndependentlyOfCellFonts() {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Metrics");
-        sheet.CellValue(1, 1, "Visible cell");
-        sheet.CellFontName(1, 1, "Cell Face");
+        sheet.Cell(1, 1).SetValue("Visible cell");
+        sheet.Cell(1, 1).SetFontName("Cell Face");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
         Font font = workbook.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<Font>().First();
         font.FontName = new FontName { Val = "Column Face" };

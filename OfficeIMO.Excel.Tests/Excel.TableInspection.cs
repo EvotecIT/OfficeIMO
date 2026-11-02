@@ -15,8 +15,8 @@ public sealed class ExcelWorksheetTableInspectionTests {
         workbook.AddSheet("Plain");
         workbook.RemoveWorksheet("Orders");
         var replacement = workbook.AddSheet("Orders");
-        replacement.CellValue(1, 1, "Item");
-        replacement.CellValue(2, 1, "Beta");
+        replacement.Cell(1, 1).SetValue("Item");
+        replacement.Cell(2, 1).SetValue("Beta");
         replacement.AddTable("A1:A2", true, "ReplacementItems", ExcelTableStyle.TableStyleMedium9);
         Assert.Throws<System.InvalidOperationException>(() => original.GetTables());
         Assert.Equal("ReplacementItems", Assert.Single(replacement.GetTables()).Name);
@@ -28,8 +28,8 @@ public sealed class ExcelWorksheetTableInspectionTests {
         try {
             using var workbook = ExcelDocument.Create();
             var sheet = workbook.AddSheet("Orders");
-            sheet.CellValue(1, 1, "Item");
-            sheet.CellValue(2, 1, "Alpha");
+            sheet.Cell(1, 1).SetValue("Item");
+            sheet.Cell(2, 1).SetValue("Alpha");
             sheet.AddTable("A1:A2", true, "OrderItems", ExcelTableStyle.TableStyleMedium9);
             workbook.Save(path);
             Assert.Equal("OrderItems", Assert.Single(sheet.GetTables()).Name);
@@ -80,14 +80,14 @@ public sealed class ExcelWorksheetTableInspectionTests {
         var stock = source.AddSheet("Stock");
         var plain = source.AddSheet("Plain");
         foreach (var sheet in new[] { orders, stock }) {
-            sheet.CellValue(1, 1, "Item");
-            sheet.CellValue(1, 2, "Count");
-            sheet.CellValue(2, 1, "Alpha");
-            sheet.CellValue(2, 2, 2);
+            sheet.Cell(1, 1).SetValue("Item");
+            sheet.Cell(1, 2).SetValue("Count");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(2, 2).SetValue(2);
         }
         orders.AddTable("A1:B2", true, "OrderItems", ExcelTableStyle.TableStyleMedium9);
         stock.AddTable("A1:B2", true, "StockItems", ExcelTableStyle.TableStyleMedium2);
-        plain.CellValue(1, 1, "Not a named table");
+        plain.Cell(1, 1).SetValue("Not a named table");
         using var bytes = new MemoryStream();
         source.Save(bytes);
         using var opened = reopen ? ExcelDocument.Load(new MemoryStream(bytes.ToArray()),

@@ -29,11 +29,11 @@ internal static class NativeNumbersBorderSmoke {
         int edges = 0;
         foreach (var cell in expected.RootElement.GetProperty("cells").EnumerateArray()) {
             int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();
-            Require((sheet.CellAt(row, column).GetValue<string>() ?? string.Empty)
+            Require((sheet.Cell(row, column).GetValue<string>() ?? string.Empty)
                 == (cell.GetProperty("value").GetString() ?? string.Empty), "Bordered cell value changed.");
             var sourceBorders = table.GetBorders(row, column);
-            var output = sheet.GetCellStyle(row, column).Border ?? throw new InvalidDataException("Saved border missing.");
-            var nativeBorders = native.Sheets.Single().GetCellStyle(row, column).Border ?? throw new InvalidDataException("Native border missing.");
+            var output = sheet.Cell(row, column).GetStyle().Border ?? throw new InvalidDataException("Saved border missing.");
+            var nativeBorders = native.Sheets.Single().Cell(row, column).GetStyle().Border ?? throw new InvalidDataException("Native border missing.");
             foreach (var edge in cell.GetProperty("edges").EnumerateObject()) {
                 var side = edge.Name switch { "left" => sourceBorders.Left, "right" => sourceBorders.Right,
                     "top" => sourceBorders.Top, "bottom" => sourceBorders.Bottom, _ => null };

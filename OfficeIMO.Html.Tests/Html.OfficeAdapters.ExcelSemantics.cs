@@ -10,8 +10,8 @@ public class HtmlOfficeAdaptersExcelSemantics {
     public void ExcelHtml_HeaderModeMakesHeaderIntentExplicit() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Data");
-        sheet.CellValue(1, 1, "Not a header");
-        sheet.CellValue(2, 1, "Second row");
+        sheet.Cell(1, 1).SetValue("Not a header");
+        sheet.Cell(2, 1).SetValue("Second row");
 
         string defaultHtml = workbook.ToHtml();
         string dataOnlyHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -28,8 +28,8 @@ public class HtmlOfficeAdaptersExcelSemantics {
         DateTime expected = new(2026, 7, 11, 14, 15, 16, DateTimeKind.Unspecified);
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Dates");
-        sheet.CellValue(1, 1, "When");
-        sheet.CellValue(2, 1, expected);
+        sheet.Cell(1, 1).SetValue("When");
+        sheet.Cell(2, 1).SetValue(expected);
 
         string html = workbook.ToHtml();
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
@@ -40,7 +40,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.DateTime, snapshot!.Kind);
         Assert.Equal(expected, snapshot.DateTimeValue);
-        Assert.True(importedSheet.GetCellStyle(2, 1).IsDateLike);
+        Assert.True(importedSheet.Cell(2, 1).GetStyle().IsDateLike);
         Assert.Empty(result.Report.Diagnostics);
     }
 
@@ -72,7 +72,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? first));
         Assert.Equal("First", first!.Text);
-        Assert.Equal("Second", sheet.CellAt(1, 2).GetValue<string>());
+        Assert.Equal("Second", sheet.Cell(1, 2).GetValue<string>());
         Assert.Equal(2, result.Cells);
         Assert.Empty(sheet.GetMergedRanges());
         Assert.Contains(result.Report.Diagnostics,

@@ -12,12 +12,12 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Filters");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Number");
-                sheet.CellValue(1, 3, "Flag");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Number");
+                sheet.Cell(1, 3).SetValue("Flag");
                 for (int row = 2; row <= 21; row++) {
-                    sheet.CellValue(row, 1, "Row" + row);
-                    sheet.CellValue(row, 2, row);
+                    sheet.Cell(row, 1).SetValue("Row" + row);
+                    sheet.Cell(row, 2).SetValue(row);
                 }
                 sheet.Range("A1:C21").CreateTable("Audit", hasHeader: true, ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 document.Save(stream);
@@ -54,10 +54,10 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Links");
                 for (int row = 1; row <= 3; row++) {
-                    sheet.CellValue(row, 1, "Two\nlines");
-                    sheet.CellAt(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetNumberFormat("0.0000 \"units\"");
-                    sheet.CellAlign(row, 1, ExcelHorizontalAlignment.Center);
-                    sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
+                    sheet.Cell(row, 1).SetValue("Two\nlines");
+                    sheet.Cell(row, 1).SetBold(true).SetItalic(true).SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetNumberFormat("0.0000 \"units\"");
+                    sheet.Cell(row, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                    sheet.Cell(row, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
                 }
                 WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
                 Stylesheet styles = workbook.WorkbookStylesPart!.Stylesheet!;
@@ -109,14 +109,14 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Styles");
-                for (int row = 1; row <= 20; row++) sheet.CellValue(row, 1, row);
-                sheet.CellBold(1, 1);
+                for (int row = 1; row <= 20; row++) sheet.Cell(row, 1).SetValue(row);
+                sheet.Cell(1, 1).SetBold();
                 WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
                 Func<int> styleSaves = TrackPartSaves(document, workbook.WorkbookStylesPart!);
                 Func<int> worksheetSaves = TrackPartSaves(document, workbook.WorksheetParts.Single());
                 sheet.Batch(target => {
                     for (int row = 1; row <= 20; row++) {
-                        target.CellGradientBackground(row, 1, "#FF0000", "#0000FF");
+                        target.Cell(row, 1).SetGradientFill("#FF0000", "#0000FF");
                         target.DefineNamedStyle("Row" + row, row, 1);
                         target.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                             Range = "A" + row, Type = "Expression", Formulas = new[] { "TRUE" },
@@ -149,17 +149,17 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Layout");
-                sheet.CellValue(1, 1, "Header");
-                for (int row = 2; row <= 21; row++) sheet.CellValue(row, 1, "Value" + row);
+                sheet.Cell(1, 1).SetValue("Header");
+                for (int row = 2; row <= 21; row++) sheet.Cell(row, 1).SetValue("Value" + row);
                 Func<int> worksheetSaves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
                 void Edit(ExcelSheet target) {
                     target.AutoFilterAdd("A1:C21");
                     for (int row = 2; row <= 21; row++) {
-                        target.MergeRange($"A{row}:B{row}");
+                        target.Range($"A{row}:B{row}").Merge();
                         target.AutoFilterByHeaderEquals("Header", new[] { "Value" + row });
                     }
-                    target.UnmergeRange("A21:B21");
-                    target.MergeRange("A21:B21");
+                    target.Range("A21:B21").Unmerge();
+                    target.Range("A21:B21").Merge();
                     if (failCallback) throw new InvalidOperationException("Callback failure after edits");
                 }
                 if (failCallback) Assert.Throws<InvalidOperationException>(() => sheet.Batch(Edit));

@@ -40,8 +40,8 @@ static void CreateExcelArtifacts(string outputDirectory, ICollection<Interoperab
     string source = Path.Combine(outputDirectory, "officeimo-excel-source.xlsx");
     using (ExcelDocument document = ExcelDocument.Create(source)) {
         ExcelSheet sheet = document.AddSheet("Compatibility");
-        sheet.CellValue(1, 1, "OfficeIMO Excel modern-to-binary interoperability artifact");
-        sheet.CellValue(2, 1, 42);
+        sheet.Cell(1, 1).SetValue("OfficeIMO Excel modern-to-binary interoperability artifact");
+        sheet.Cell(2, 1).SetValue(42);
         document.Save();
     }
     foreach ((string formatId, string extension) in new[] {

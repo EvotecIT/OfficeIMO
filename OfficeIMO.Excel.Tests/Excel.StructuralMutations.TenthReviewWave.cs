@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_EnforcesAffectedCellBudgetAndReportsAppliedCount() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellValue(2, 1, 10);
-            sheet.CellValue(3, 1, 20);
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(3, 1).SetValue(20);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 sheet.PlanInsertRows(
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet columns = document.AddSheet("Columns");
             columns.AddSparklines("A1:B1", "D1");
-            columns.InsertColumns(1);
+            columns.InsertColumnsTransactional(1);
             Assert.Equal("E1", Assert.Single(columns.WorksheetPart.Worksheet
                 .Descendants<X14.Sparkline>()).ReferenceSequence!.Text);
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
 
             ExcelSheet moved = document.AddSheet("Moved");
             moved.AddSparklines("A1:B1", "D1");
-            moved.MoveRange("D1", "E1");
+            moved.Range("D1").MoveTo("E1");
             Assert.Equal("E1", Assert.Single(moved.WorksheetPart.Worksheet
                 .Descendants<X14.Sparkline>()).ReferenceSequence!.Text);
         }
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet columns = document.AddSheet("Columns");
             SortState columnSort = AddQueryTableRefreshSortState(document, columns, "A1:C10");
-            columns.InsertColumns(1);
+            columns.InsertColumnsTransactional(1);
             Assert.Equal("B1:D10", columnSort.Reference!.Value);
             Assert.Equal("B1:B10", Assert.Single(columnSort.Elements<SortCondition>()).Reference!.Value);
 
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
 
             ExcelSheet moved = document.AddSheet("Moved");
             SortState movedSort = AddQueryTableRefreshSortState(document, moved, "A1:C1");
-            moved.MoveRange("A1:C1", "B2");
+            moved.Range("A1:C1").MoveTo("B2");
             Assert.Equal("B2:D2", movedSort.Reference!.Value);
         }
 

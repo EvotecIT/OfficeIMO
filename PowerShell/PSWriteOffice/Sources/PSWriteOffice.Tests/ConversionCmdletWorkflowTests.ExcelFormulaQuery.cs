@@ -8,12 +8,12 @@ public sealed partial class ConversionCmdletWorkflowTests {
     public void FormulaQueryReturnsNativeRecordsWithConjunctiveFiltersAndMixedSheetSelectors() {
         using var document = ExcelDocument.Create();
         var summary = document.AddSheet("Summary");
-        summary.CellFormula(1, 1, "SUM(1,2)");
-        summary.CellFormula(2, 1, "NOW()");
-        summary.CellFormula(3, 1, "'[External.xlsx]Data'!A1");
-        summary.CellFormula(4, 1, "NOW()+'[External.xlsx]Data'!A1");
-        document.AddSheet("Other").CellFormula(1, 1, "TODAY()");
-        document.AddSheet("2").CellFormula(1, 1, "COUNT(1,2)");
+        summary.Cell(1, 1).SetFormula("SUM(1,2)");
+        summary.Cell(2, 1).SetFormula("NOW()");
+        summary.Cell(3, 1).SetFormula("'[External.xlsx]Data'!A1");
+        summary.Cell(4, 1).SetFormula("NOW()+'[External.xlsx]Data'!A1");
+        document.AddSheet("Other").Cell(1, 1).SetFormula("TODAY()");
+        document.AddSheet("2").Cell(1, 1).SetFormula("COUNT(1,2)");
         using var runspace = OpenRunspace();
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
         shell.AddCommand("Get-OfficeExcelFormula").AddParameter("Document", document);
@@ -36,7 +36,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
         Assert.Equal(6, selected.Count);
         Assert.Equal(3, selected.Select(item => Assert.IsType<ExcelFormulaInfo>(item.BaseObject).SheetName).Distinct().Count());
-        summary.CellFormula(5, 1, "2+2");
+        summary.Cell(5, 1).SetFormula("2+2");
         Assert.Equal(7, document.AnalyzeFormulas().FormulaCount);
         string scopedRoot = Directory.CreateTempSubdirectory("officeimo-formula-scope-").FullName;
         try {
@@ -63,7 +63,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         string literal = Path.Combine(root, "audit[1].xlsx"), wildcardMatch = Path.Combine(root, "audit1.xlsx");
         try {
             foreach (var item in new[] { (Path: literal, Formula: "NOW()"), (Path: wildcardMatch, Formula: "SUM(1,2)") }) {
-                using var document = ExcelDocument.Create(); document.AddSheet("Data").CellFormula(1, 1, item.Formula); document.Save(item.Path);
+                using var document = ExcelDocument.Create(); document.AddSheet("Data").Cell(1, 1).SetFormula(item.Formula); document.Save(item.Path);
             }
             byte[] original = File.ReadAllBytes(literal);
             string elsewhere = Path.Combine(root, "elsewhere"); Directory.CreateDirectory(elsewhere);

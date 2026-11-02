@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     ("East", 60d),
@@ -70,8 +70,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 ExcelPivotFilter filter = kind switch
@@ -114,14 +114,14 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
-                source.CellValue(2, 1, "E*st");
-                source.CellValue(2, 2, 20d);
-                source.CellValue(3, 1, "East");
-                source.CellValue(3, 2, 40d);
-                source.CellValue(4, 1, "North");
-                source.CellValue(4, 2, 30d);
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
+                source.Cell(2, 1).SetValue("E*st");
+                source.Cell(2, 2).SetValue(20d);
+                source.Cell(3, 1).SetValue("East");
+                source.Cell(3, 2).SetValue(40d);
+                source.Cell(4, 1).SetValue("North");
+                source.Cell(4, 2).SetValue(30d);
                 {
                     var pivotOptions2 = new ExcelPivotTableOptions();
                     pivotOptions2.RowFields.Add("Region");
@@ -201,8 +201,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     ("East", 25d),
@@ -215,8 +215,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 var builder = new ExcelPivotTableOptions();
@@ -261,35 +261,35 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Item");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Item");
+                source.Cell(1, 2).SetValue("Sales");
                 if (kind == "boolean")
                 {
-                    source.CellValue(2, 1, true);
-                    source.CellValue(3, 1, false);
-                    source.CellValue(4, 1, true);
+                    source.Cell(2, 1).SetValue(true);
+                    source.Cell(3, 1).SetValue(false);
+                    source.Cell(4, 1).SetValue(true);
                 }
                 else if (kind == "blank")
                 {
-                    source.CellValue(2, 1, "East");
-                    source.CellValue(4, 1, "West");
+                    source.Cell(2, 1).SetValue("East");
+                    source.Cell(4, 1).SetValue("West");
                 }
                 else if (kind == "error")
                 {
-                    source.CellError(2, 1, "#DIV/0!");
-                    source.CellValue(3, 1, "North");
-                    source.CellValue(4, 1, "East");
+                    source.Cell(2, 1).SetError("#DIV/0!");
+                    source.Cell(3, 1).SetValue("North");
+                    source.Cell(4, 1).SetValue("East");
                 }
                 else
                 {
-                    source.CellValue(2, 1, "E*st");
-                    source.CellValue(3, 1, "North");
-                    source.CellValue(4, 1, "East");
+                    source.Cell(2, 1).SetValue("E*st");
+                    source.Cell(3, 1).SetValue("North");
+                    source.Cell(4, 1).SetValue("East");
                 }
 
-                source.CellValue(2, 2, 20d);
-                source.CellValue(3, 2, 30d);
-                source.CellValue(4, 2, 40d);
+                source.Cell(2, 2).SetValue(20d);
+                source.Cell(3, 2).SetValue(30d);
+                source.Cell(4, 2).SetValue(40d);
                 {
                     var pivotOptions3 = new ExcelPivotTableOptions();
                     pivotOptions3.RowFields.Add("Item");
@@ -320,21 +320,21 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Item");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Item");
+                source.Cell(1, 2).SetValue("Sales");
                 if (kind == "date")
                 {
-                    source.CellValue(2, 1, new DateTime(2025, 1, 1));
-                    source.CellValue(3, 1, new DateTime(2026, 1, 1));
+                    source.Cell(2, 1).SetValue(new DateTime(2025, 1, 1));
+                    source.Cell(3, 1).SetValue(new DateTime(2026, 1, 1));
                 }
                 else
                 {
-                    source.CellValue(2, 1, 1000d);
-                    source.CellValue(3, 1, 2000d);
+                    source.Cell(2, 1).SetValue(1000d);
+                    source.Cell(3, 1).SetValue(2000d);
                 }
 
-                source.CellValue(2, 2, 20d);
-                source.CellValue(3, 2, 30d);
+                source.Cell(2, 2).SetValue(20d);
+                source.Cell(3, 2).SetValue(30d);
                 var builder = new ExcelPivotTableOptions();
                 builder.RowFields.Add("Item");
                 builder.DataFields.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, displayName: "Metric"));
@@ -370,8 +370,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     ("East", 60d),
@@ -382,8 +382,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 ExcelPivotFilter filter = comparison switch
@@ -427,7 +427,7 @@ namespace OfficeIMO.Tests
             AssertPivotLookupOracleValue(155d, expectedLookups[0, 0]);
             AssertPivotLookupOracleValue(55d, expectedLookups[5, 0]);
             using (var document = ExcelDocument.Load(input)) {
-                document.GetSheet("Source").CellValue(7, 2, 55d);
+                document.GetSheet("Source").Cell(7, 2).SetValue(55d);
                 var grouped = document.GetSheet("Grouped");
                 Assert.Equal("A4:B8", grouped.MaterializePivotTable("CombinedPivot").OutputRange);
                 Assert.Equal(155d, grouped.GetPivotData("CombinedPivot", "Metric").Value);
