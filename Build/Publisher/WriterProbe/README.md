@@ -818,6 +818,20 @@ OfficeIMO read/render success establishes only the managed result. Evidence for
 these bounded cases does not qualify arbitrary Publisher features or a public
 creation/save contract.
 
+The `currentRepairAttribution` record binds an alternate loading wrapper to
+ordinary `.20112` publication opens and recalibrates strict catalog rejection.
+A structural count control changes `FDGG.cspSaved` from 17 to 18. Publisher
+retains 18 through native save/reopen with no selected diagnostic or consent
+request; both native inventories and both 100 dpi PDF comparisons still match
+the independent decorated-table control. This is retained malformed structure,
+not successful repair or proof that the generated writer output is repair-free.
+
+Bounded REA/Ghidra analyses use exact native code windows in synthetic offline
+PE envelopes. Their headers and missing external mappings are explicit; one
+object-reader window omits cold branches and reports truncated control flow.
+These observations guide further controls without qualifying an accepted
+recovery path. Public native creation remains gated.
+
 `observations.laterLoadRecovery` extends the capture to the object parser return,
 object loader return and three decoded suppression/retry boundaries. The native
 Text control records 35 successful parser and loader results on each open. The

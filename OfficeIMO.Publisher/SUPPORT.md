@@ -50,6 +50,15 @@ renders through fallback. Neither is a repair-positive control. The
 `repairControlBoundaries` record separates these outcomes from a strict catalog
 kind rejection and from the validity of the exact generated specimen.
 
+The `currentRepairAttribution` record qualifies an alternate wrapper's ordinary
+load-interval attribution on Publisher `.20112` and a current-build strict
+rejection control. A malformed drawing-wide saved-shape count, changed from 17
+to 18, survives native save/reopen unchanged despite matching cell/grid/style
+inventories and native PDF exports. No selected diagnostic or consent request
+occurs. This is another retained-data boundary, not successful structural repair.
+Bounded code-window analysis retains explicit missing external/cold-path context;
+repair-positive recovery and public native creation acceptance remain open.
+
 The opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
 separately qualifies source-free closed specimens. Its two-image page profile
 retains distinct embedded PNGs and their page bindings through native resave;

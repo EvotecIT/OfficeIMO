@@ -34458,5 +34458,229 @@
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false
+  },
+  "currentRepairAttribution": {
+    "sourceBaseCommit": "8600c85f7098c77a77fcd25da330beb69500f61a",
+    "scope": "Current-build selected load/recovery attribution and structural-count retention boundary; no repair-positive acceptance.",
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "observer": {
+      "hooks": 12,
+      "method": "Passive Frida17.19.0 callbacks; exact executable hash and hook-prefix guards, owned native/worker handles, per-open pre/post gates and paired call tokens. No native calls or arguments/results changed.",
+      "sourceReplay": "48 current native scripts copied; only worker capture gates differ. Original/replay SHA256 fingerprints checked before every run.",
+      "correlation": "All selected original GK/consent events retain strict per-load correlation/reset checks. Additional paths retain complete paired call events and explicit attribution; their absence is selected-path evidence only."
+    },
+    "runtimeAttribution": {
+      "ordinaryWrapper": "RVA47DEC executes after validation inside load93544/storage94B64, from returnRVA9502F. Four calls observed across baseline and count-control original/writable/resaved opens.",
+      "storageReader": "RVA94B64 called from returnRVA93885 inside every observed load.",
+      "strictControl": "Catalog kind0x7FF reaches severity4, strict rejection and native protection error before alternate47DEC. No consent/message requested; source unchanged and all owned processes closed.",
+      "otherAlternates": "No alternate-c/d/a entry observed in these bounded controls; no accepted recovery or generic-message event."
+    },
+    "controls": [
+      {
+        "run": "baseline-current",
+        "candidateSha256": "fdc0b1461ef08592c81586d992dae4fb5021916dbb9473d65e385dcdf7eb84c9",
+        "coverage": "selected-paths-only",
+        "controllerExitCode": 0,
+        "attributedCalls": [
+          {
+            "hook": "storage-reader",
+            "ordinal": 0,
+            "tid": 103844,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x93885"
+            }
+          },
+          {
+            "hook": "alternate-b-wrapper",
+            "ordinal": 0,
+            "tid": 103844,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x9502f"
+            }
+          }
+        ],
+        "diagnosticSeverities": [],
+        "genericMessageIds": [],
+        "otherAlternateEntries": 0,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true
+      },
+      {
+        "run": "count-plus-one-current",
+        "candidateSha256": "6848a194d0c665f3c346e56288c2f7cea3de25a17177bab68d31b2238d9ae214",
+        "coverage": "selected-paths-only",
+        "controllerExitCode": 0,
+        "attributedCalls": [
+          {
+            "hook": "storage-reader",
+            "ordinal": 0,
+            "tid": 43104,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x93885"
+            }
+          },
+          {
+            "hook": "alternate-b-wrapper",
+            "ordinal": 0,
+            "tid": 43104,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x9502f"
+            }
+          },
+          {
+            "hook": "storage-reader",
+            "ordinal": 1,
+            "tid": 43104,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x93885"
+            }
+          },
+          {
+            "hook": "alternate-b-wrapper",
+            "ordinal": 1,
+            "tid": 43104,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x9502f"
+            }
+          },
+          {
+            "hook": "storage-reader",
+            "ordinal": 2,
+            "tid": 43104,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x93885"
+            }
+          },
+          {
+            "hook": "alternate-b-wrapper",
+            "ordinal": 2,
+            "tid": 43104,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x9502f"
+            }
+          }
+        ],
+        "diagnosticSeverities": [],
+        "genericMessageIds": [],
+        "otherAlternateEntries": 0,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true
+      },
+      {
+        "run": "strict-catalog-current",
+        "candidateSha256": "cc27181cfa15650c7aca5e779f0269ac340597a3d78679e2b26e79a2f0fe88ff",
+        "coverage": "diagnostic-rejection-observed",
+        "controllerExitCode": 1,
+        "attributedCalls": [
+          {
+            "hook": "storage-reader",
+            "ordinal": 0,
+            "tid": 92464,
+            "load": 1,
+            "caller": {
+              "module": "MSPUB.EXE",
+              "rva": "0x93885"
+            }
+          }
+        ],
+        "diagnosticSeverities": [
+          4
+        ],
+        "genericMessageIds": [],
+        "otherAlternateEntries": 0,
+        "sourceUnchanged": true,
+        "recordedProcessesClosed": true
+      }
+    ],
+    "structuralCountControl": {
+      "sourceFixture": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TableDecoration/native-tabledecoration.pub",
+      "sourceSha256": "fdc0b1461ef08592c81586d992dae4fb5021916dbb9473d65e385dcdf7eb84c9",
+      "candidateSha256": "6848a194d0c665f3c346e56288c2f7cea3de25a17177bab68d31b2238d9ae214",
+      "stream": "Escher/EscherStm",
+      "streamOffset": 24,
+      "field": "FDGG.cspSaved",
+      "original": 17,
+      "changed": 18,
+      "nativeResaved": 18,
+      "otherLogicalStreamsUnchanged": true,
+      "logicalChangedBytes": 1,
+      "storageNote": "Isolated comparison-tool writing also zeros stream-tail slack; exact file differences retained privately. No other logical stream changes.",
+      "nativeOperations": "Full open/inventory/export, writable open/SaveAs, reopen/inventory/export complete.",
+      "inventoryMatches": 2,
+      "nativePdfPairsAt100Dpi": 2,
+      "changedPixels": 0,
+      "diagnosticSeverities": [],
+      "consentOrMessageRequests": 0,
+      "conclusion": "The malformed structural count survives resave unchanged. Content parity and zero selected diagnostics are not structural validity or repair-positive proof."
+    },
+    "staticAnalysis": {
+      "provider": "REA6.5.0/Ghidra12.1.4/JDK21.0.12.1",
+      "entrySha256": "526105418604cc6e5a202a6275b700814e27450bfaffd45e7510530ba669de8d",
+      "method": "Exact immutable .20112 code windows in synthetic offline-only PE32+ DLL envelopes at their original virtual addresses; payload hashes and native unwind boundaries retained. Never execute the envelopes.",
+      "admission": "Windows provider rejects raw x64; supported native PE envelope admits bounded code analysis without repeating whole-EXE import.",
+      "alternateC": {
+        "startRva": "0x344a48",
+        "endRvaExclusive": "0x344ed7",
+        "bytes": 1167,
+        "bodyMatchesNativeUnwindRegion": true,
+        "evidenceId": "ev_1537875585c860da43dc00694e906185b6eb4407649a14b7c991ebd29d06b23d",
+        "analysisInputSha256": "e4d6f9cd2843d1c1e45b9dee3a98a6e62e7f949ce7cb1446f97bdc1400ec3cb3",
+        "bundleSha256": "2449b7f11d5c9da12bd9bfaf50d35faf4d45a53b12513416fa8e591e4b923c31",
+        "unresolvedCalls": 28,
+        "interpretation": "Contained instructions retain the known context+1A88 gate around80040043; external callee/field semantics remain unresolved. Guard dispatch is not the logical indirect callee."
+      },
+      "objectReader": {
+        "startRva": "0x905f8",
+        "evidenceId": "ev_c1a37198e0287201399dc507c002b7b68a27ebe653300841eda7630620a8e22c",
+        "analysisInputSha256": "4f58e85471eb2a4998062bc87463d013e7973e4155b1b0190954430a87b61d55",
+        "bundleSha256": "2975269b16ab68acecccb322116ffaec0d395b2c10b0ff04420b55f43b37c862",
+        "unresolvedCalls": 4,
+        "status": "Partial: cold/error branches leave the copied code window and pseudocode reports bad instruction/truncated control flow. This result does not qualify recovery behavior."
+      },
+      "limits": "Synthetic headers omit original imports, relocations, unwind metadata and external code/data. Function facets available does not establish whole-image or cold-path completeness. No current whole-EXE decompilation claim.",
+      "closed": "REA target closed; provider reports no active target/analysis run."
+    },
+    "proofArtifacts": {
+      "native-proof.json": "c4620d8d6ddfb9bbd6c970f79612c5c7ebcd1a77b53046e64ed4738cfa2e1409",
+      "count-control.json": "ba2a047cacbfb9177ca7b89f06561afee16f6e563c5e72b8a0d4c3af917f658f",
+      "hook-proposal.json": "e5f5907470cfb3ffd62005b7e43ea7562cdbdacb5795642f0e0fbbc61b06776f",
+      "replay-identity-current.json": "fd230a1b224829821423540a2db9e0cb8586a12ab7cef1722cab5128d9fb35ee",
+      "analysis-pe-provenance.json": "f3bf0b15c940389352e48f557b1e515007dc7d004ba1347a8ec9f5fb124ea78f",
+      "object-reader-pe-provenance.json": "4b5c1897d56379a123dd1f677f229bf7f999743de9c3d01aed84e4c9b3c78dbe",
+      "rea-alternate-c-bundle.json": "2449b7f11d5c9da12bd9bfaf50d35faf4d45a53b12513416fa8e591e4b923c31",
+      "rea-object-reader-bundle.json": "2975269b16ab68acecccb322116ffaec0d395b2c10b0ff04420b55f43b37c862"
+    },
+    "repairPositiveControls": 0,
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false,
+    "limits": [
+      "No successfully recovered structural control or accepted recovery path.",
+      "No universal repair-free predicate from absent selected diagnostics/messages.",
+      "Cancelled repair-request-control.pub trust/recovery flow is untouched; no trust/security consent automated.",
+      "Other producer/generation, companion and silent-normalization paths remain unqualified."
+    ]
   }
 }
