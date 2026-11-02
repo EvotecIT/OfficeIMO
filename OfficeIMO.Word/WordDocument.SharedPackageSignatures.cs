@@ -14,7 +14,7 @@ public partial class WordDocument {
     public static OfficePackageSignatureValidationReport ValidateSignatures(
         string filePath,
         IOfficeSecurityProvider securityProvider,
-        OfficePackageSignatureValidationOptions? options = null) =>
+        OfficePackageSignatureValidationOptions? options) =>
         OfficePackageSignatureService.Validate(filePath, securityProvider, options);
 
     /// <summary>Creates and validates an OPC signature through the shared cross-host engine.</summary>
@@ -22,7 +22,7 @@ public partial class WordDocument {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 signingCertificate,
-        OfficePackageSigningOptions? options = null) =>
+        OfficePackageSigningOptions? options) =>
         OfficePackageSignatureService.Sign(filePath, securityProvider, signingCertificate, options);
 
     /// <summary>Attempts shared OPC signature creation without throwing for an ordinary signing failure.</summary>
@@ -30,6 +30,6 @@ public partial class WordDocument {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 signingCertificate,
-        OfficePackageSigningOptions? options = null) =>
+        OfficePackageSigningOptions? options) =>
         OfficePackageSignatureService.TrySign(filePath, securityProvider, signingCertificate, options);
 }

@@ -210,7 +210,7 @@ public sealed class OfficePackageSignatureIntegrationTests {
     }
 
     private static OfficePackageSigningResult Sign(string path, string extension, X509Certificate2 certificate) => extension switch {
-        "docx" => WordDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate),
+        "docx" => WordDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate, new OfficePackageSigningOptions()),
         "xlsx" => ExcelDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate),
         "pptx" => PowerPointDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate),
         "vsdx" => VisioDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate),
