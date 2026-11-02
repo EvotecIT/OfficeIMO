@@ -498,11 +498,19 @@ internal static partial class HtmlPdfRenderedConverter {
     // Mirrors the family resolution in AddText: web-font planning first, then the first named
     // family that covers each planned run.
     private static bool IsCoveredByOwnFamily(HtmlRenderText run, RegisteredWebFonts webFonts) {
+        // Emoji sequences, private-use glyphs and colour glyphs take replacement and omission
+        // routes that paint substitutes through run fallbacks; keep their selection.
+        foreach (char character in run.Text) {
+            if (char.IsSurrogate(character) || character is '‍' or '︎' or '️'
+                || System.Globalization.CharUnicodeInfo.GetUnicodeCategory(character) == System.Globalization.UnicodeCategory.PrivateUse) return false;
+        }
         OfficeFontStyle style = (run.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
             | (run.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
         foreach (OfficeFontFallbackRun planned in webFonts.Faces.PlanFallbackRuns(run.Text, run.Font.FamilyName, style)) {
             if (webFonts.AllowInstalledFontFaces && !webFonts.Slots.ContainsKey(planned.FamilyName)
                 && NeedsNumericSystemFace(run.FontDescriptor)) return false;
+            if (webFonts.Faces.TryResolveFaceForText(planned.Text, planned.FamilyRequest, style, out OfficeFontFace? face)
+                && face?.Program is OfficeTrueTypeFont program && program.ContainsUnpaintableColorGlyph(planned.Text)) return false;
             bool covered = false;
             foreach (string familyName in EnumerateBoundedSystemFamilies(planned.FamilyRequest)) {
                 string request = OfficeFontFamilyParser.Quote(familyName);
