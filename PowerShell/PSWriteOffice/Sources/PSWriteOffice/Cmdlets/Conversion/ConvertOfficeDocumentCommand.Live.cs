@@ -9,15 +9,16 @@ using PSWriteOffice.Services;
 namespace PSWriteOffice.Cmdlets.Conversion;
 
 public sealed partial class ConvertOfficeDocumentCommand {
-    /// <summary>Caller-owned live document. Conversion captures current edits without saving or closing its source.</summary>
+    /// <summary>Caller-owned live document. Conversion captures current edits without saving or closing its source. Piped FileInfo objects and path strings convert as files.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
     [ValidateNotNull]
     public object Document { get; set; } = null!;
 
     private async Task ConvertLiveDocumentAsync() {
         if (NoClobber && AutoRename) throw new PSArgumentException("NoClobber and AutoRename cannot be combined.");
+        if (SkipUpToDate) throw new PSArgumentException("SkipUpToDate applies to file inputs, not live documents.");
         var source = OfficeLiveDocumentSource.Create(Document);
-        var target = OfficeFormatSelection.Parse(To)!;
+        var target = OfficeFormatSelection.Parse(To ?? System.IO.Path.GetExtension(OutputPath))!;
         bool outputText = AsString.IsPresent || OutputPath == null;
         if (outputText && !IsTextExtension(target.Extension)) throw new PSArgumentException("A binary target requires OutputPath.");
         if (AsString && OutputPath != null) throw new PSArgumentException("AsString and OutputPath cannot be combined.");

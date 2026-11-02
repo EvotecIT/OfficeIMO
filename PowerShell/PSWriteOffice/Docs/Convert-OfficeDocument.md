@@ -41,7 +41,7 @@ Convert-OfficeDocument [-Text] <string> -To <string> -From <string> [-OutputPath
 
 ### Document
 ```powershell
-Convert-OfficeDocument [-Document] <Object> -To <string> [-OutputPath <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-Document] <Object> [-To <string>] [-OutputPath <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -168,7 +168,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Caller-owned live document. Conversion captures current edits without saving or closing its source.
+Caller-owned live document. Conversion captures current edits without saving or closing its source. Piped FileInfo objects and path strings convert as files.
 
 ```yaml
 Type: Object
@@ -456,7 +456,7 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Input files or folders, with FileSystem provider wildcard expansion.
+Input files or folders, with FileSystem provider wildcard expansion. Piped paths with OutputPath bind through Document.
 
 ```yaml
 Type: String[]
@@ -604,7 +604,7 @@ Skip a file whose existing output has a strictly newer UTC modification time.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Document
 Aliases: None
 Possible values:
 
@@ -664,7 +664,7 @@ Accept wildcard characters: False
 ```
 
 ### -To
-Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.
+Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.
 
 ```yaml
 Type: String

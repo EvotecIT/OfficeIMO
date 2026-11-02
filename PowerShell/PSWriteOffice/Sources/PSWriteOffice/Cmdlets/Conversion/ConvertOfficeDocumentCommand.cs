@@ -31,9 +31,9 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     private readonly List<string> _inputs = new();
 
-    /// <summary>Input files or folders, with FileSystem provider wildcard expansion.</summary>
+    /// <summary>Input files or folders, with FileSystem provider wildcard expansion. Piped paths with OutputPath bind through Document.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "PathFile")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "PathFile")]
     [SupportsWildcards]
     [ValidateNotNullOrEmpty]
     public string[] Path { get; set; } = Array.Empty<string>();
@@ -57,13 +57,13 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "LiteralPath")]
     public string? OutputDirectory { get; set; }
 
-    /// <summary>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</summary>
+    /// <summary>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</summary>
     [Parameter(Mandatory = true, ParameterSetName = "Path")]
     [Parameter(Mandatory = true, ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
     [Parameter(Mandatory = true, ParameterSetName = "Text")]
-    [Parameter(Mandatory = true, ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Document")]
     [ArgumentCompleter(typeof(OfficeFormatCompleter))]
     public string? To { get; set; }
 
@@ -145,6 +145,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
+    [Parameter(ParameterSetName = "Document")]
     public SwitchParameter SkipUpToDate { get; set; }
 
     /// <summary>Choose a unique destination name when the requested output exists.</summary>
@@ -201,8 +202,11 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
         if (ParameterSetName == "Job") return;
         if (ParameterSetName == "Text") { await ConvertTextAsync(); return; }
         if (ParameterSetName == "Document") {
-            if (OfficePath.GetPipelineLiteralPaths(Document) is { } paths)
-                foreach (string path in paths) AddInput(path, literal: true);
+            if (To == null && OutputPath == null) throw new PSArgumentException("Specify To, or an OutputPath whose extension selects the target format.");
+            // Piped path strings land here when OutputPath is present; they keep Path's wildcard semantics.
+            if (OfficeArgumentValue.Unwrap(Document) is string path) AddInput(path, literal: false);
+            else if (OfficePath.GetPipelineLiteralPaths(Document) is { } paths)
+                foreach (string literalPath in paths) AddInput(literalPath, literal: true);
             else await ConvertLiveDocumentAsync();
             return;
         }
@@ -225,6 +229,7 @@ public sealed partial class ConvertOfficeDocumentCommand : AsyncPSCmdlet {
     protected override async Task EndProcessingAsync() {
         if (ParameterSetName == "Text" || ParameterSetName == "Document" && _inputs.Count == 0) return;
         if (NoClobber && AutoRename) throw new PSArgumentException("NoClobber and AutoRename cannot be combined.");
+        if (AsString && OutputPath != null) throw new PSArgumentException("AsString and OutputPath cannot be combined.");
         if (IsSingleFile) await ConvertFileAsync();
         else if (AsString) await ConvertFilesToTextAsync();
         else await ConvertBatchAsync();
