@@ -1,0 +1,19 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.Markdown.Pdf\\OfficeIMO.Markdown.Pdf.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.OneNote.Html\\OfficeIMO.OneNote.Html.csproj",
+      "OfficeIMO.OneNote.Markdown\\OfficeIMO.OneNote.Markdown.csproj",
+      "OfficeIMO.OneNote.Pdf\\OfficeIMO.OneNote.Pdf.csproj",
+      "OfficeIMO.OneNote.Tests\\OfficeIMO.OneNote.Tests.csproj",
+      "OfficeIMO.OneNote\\OfficeIMO.OneNote.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj"
+    ]
+  }
+}

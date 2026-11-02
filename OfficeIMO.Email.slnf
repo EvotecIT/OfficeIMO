@@ -1,0 +1,26 @@
+{
+  "solution": {
+    "path": "OfficeIMO.slnx",
+    "projects": [
+      "OfficeIMO.Core\\OfficeIMO.Core.csproj",
+      "OfficeIMO.Email.Html\\OfficeIMO.Email.Html.csproj",
+      "OfficeIMO.Email.Image\\OfficeIMO.Email.Image.csproj",
+      "OfficeIMO.Email.Tests\\OfficeIMO.Email.Tests.csproj",
+      "OfficeIMO.Email\\OfficeIMO.Email.csproj",
+      "OfficeIMO.Html.AngleSharp\\OfficeIMO.Html.AngleSharp.csproj",
+      "OfficeIMO.Html.Core\\OfficeIMO.Html.Core.csproj",
+      "OfficeIMO.Html.Rtf\\OfficeIMO.Html.Rtf.csproj",
+      "OfficeIMO.Html\\OfficeIMO.Html.csproj",
+      "OfficeIMO.Markdown.Html\\OfficeIMO.Markdown.Html.csproj",
+      "OfficeIMO.Markdown\\OfficeIMO.Markdown.csproj",
+      "OfficeIMO.Mhtml\\OfficeIMO.Mhtml.csproj",
+      "OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj",
+      "OfficeIMO.Reader.Core\\OfficeIMO.Reader.Core.csproj",
+      "OfficeIMO.Reader.Email\\OfficeIMO.Reader.Email.csproj",
+      "OfficeIMO.Reader.Html\\OfficeIMO.Reader.Html.csproj",
+      "OfficeIMO.Reader.Rtf\\OfficeIMO.Reader.Rtf.csproj",
+      "OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj",
+      "OfficeIMO.Security\\OfficeIMO.Security.csproj"
+    ]
+  }
+}

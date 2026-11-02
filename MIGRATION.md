@@ -3726,7 +3726,9 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 </details>
 <!-- officeimo-api-map:end -->
 
-Search redaction accepts unencrypted object-stream and cross-reference-stream PDFs, including hybrid, linearized, incremental and `/Extends` inputs, when the complete winning xref map agrees with the reader. It follows empty newest hybrid sections and writes classic output, including empty searches. Free or missing reference targets are written as null. Disagreeing graphs, retained historical matches and compressed encryption remain refused.
+Handle `PdfRedactionMatchKind.BookmarkTitle` when switching on match kinds; its `Text` is omitted. Matching bookmark titles are cleared in full, and `CleanupScope.None` does not preserve them. Post-save search verification budget exhaustion now throws `PdfMutationBlockedException` with `FullRewrite.ProofFailed.RedactionResidue` instead of `InvalidDataException`.
+
+Search redaction output for accepted object-stream and cross-reference-stream PDFs is always classic. If your code inspects saved structure, expect no object-stream or cross-reference-stream objects, no `/Prev` trailer entry, and null in place of references to free or missing objects.
 
 
 ## Excel cells inherit row and column styles

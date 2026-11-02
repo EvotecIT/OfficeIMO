@@ -2650,8 +2650,10 @@ public partial class PdfUnderstandingPipelineTests {
             logical.Paragraphs.Select(static paragraph => paragraph.Text));
     }
 
-    [Fact]
-    public void AdvancedSegmentation_SeparatesLinesTooShortToHaveWrappedAndJoinsWrappedOnes() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdvancedSegmentation_SeparatesLinesTooShortToHaveWrappedAndJoinsWrappedOnes(bool unrelatedContentAbove) {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         // Both blocks use a loose 20.4pt pitch; the short lines sit far enough down to be their own component.
@@ -2662,24 +2664,26 @@ public partial class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Sales", "F1", 12D, 72D, 599.6D, 25D),
             new PdfTextSpan("North", "F1", 12D, 72D, 579.2D, 28D),
             new PdfTextSpan("100", "F1", 12D, 72D, 558.8D, 18D)
-        });
+        }.Concat(unrelatedContentAbove ? new[] { new PdfTextSpan("Aside", "F1", 12D, 300D, 665D, 30D) } : Array.Empty<PdfTextSpan>()).ToArray());
 
         PdfDocumentReadResult logical = Read(pdf, options);
 
         Assert.Equal(
             new[] { "Wrapped body text fills the measure and carries on onto the next line", "Region", "Sales", "North", "100" },
-            logical.Paragraphs.Select(static paragraph => paragraph.Text));
+            logical.Paragraphs.Select(static paragraph => paragraph.Text).Where(static text => text != "Aside"));
     }
 
-    [Fact]
-    public void AdvancedSegmentation_KeepsNarrowWrappedColumnBesideOtherContentTogether() {
+    [Theory]
+    [InlineData(633D)]
+    [InlineData(600D)]
+    public void AdvancedSegmentation_KeepsNarrowWrappedColumnBesideOtherContentTogether(double rightColumnBaseline) {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Full width introduction above the narrow columns", "F1", 12D, 72D, 700D, 400D),
             new PdfTextSpan("Narrow left", "F1", 12D, 72D, 640D, 62D),
             new PdfTextSpan("wrapped text", "F1", 12D, 72D, 626D, 66D),
-            new PdfTextSpan("Separate right column", "F1", 12D, 300D, 633D, 120D)
+            new PdfTextSpan("Separate right column", "F1", 12D, 300D, rightColumnBaseline, 120D)
         });
 
         PdfDocumentReadResult logical = Read(pdf, options);

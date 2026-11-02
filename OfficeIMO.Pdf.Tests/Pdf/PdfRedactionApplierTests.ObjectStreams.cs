@@ -8,6 +8,35 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfRedactionApplierTests {
+    [Fact]
+    public void SearchReportsUnreadableRetainedObjectStreamAsResidue() {
+        PdfDocument source = PdfDocument.Load(BuildCompressedRedactionFixture("DamagedRetainedContainer"));
+
+        PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("absent"));
+
+        Assert.False(plan.IsReviewable);
+        Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-unplanned-residue");
+    }
+
+    [Theory]
+    [InlineData("UndecodableStream")]
+    [InlineData("UndecodableUnusedFontFile")]
+    [InlineData("UndecodableImage")]
+    [InlineData("OversizedImage")]
+    [InlineData("OversizedFaxImage")]
+    [InlineData("UndecodableJbig2Image")]
+    public void SearchRefusesStreamItCannotDecode(string variant) {
+        PdfLoadOptions? options = variant is "OversizedImage" or "OversizedFaxImage"
+            ? new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 16384 } }
+            : null;
+        PdfDocument source = PdfDocument.Load(BuildCompressedRedactionFixture(variant), options);
+
+        PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("absent"));
+
+        Assert.False(plan.IsReviewable);
+        Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-undecodable-stream");
+    }
+
     public static IEnumerable<object[]> CompressedRedactionCases() {
         foreach (PdfRedactionTextSelection selection in new[] { PdfRedactionTextSelection.MatchedGlyphs, PdfRedactionTextSelection.LogicalBlocks })
             foreach (string variant in new[] { "TextChoice", "EscapedTypes", "HarmlessNames", "EscapedTypesDuplicate", "CompactStreamDelimiter", "XrefOnly", "NoMatch", "NamesOnly", "DuplicateContainer", "ExcludedPage", "UnindexedSecret", "ByteRange", "Sig", "SigFlags", "DocMDP", "UR3", "XFA", "AA", "NamesJavaScript", "OpenAction", "Name", "Extends", "WinningRevision", "TruncatedClassicTable", "MalformedHistoryTrailer", "MissingCompressedPredecessor", "WordHybrid", "WordReferenceCollision", "ReferenceMissing", "ReferenceFree", "ReferenceNull", "ReferenceLive", "ReferenceNoMatch", "RetainedContainer", "ReferenceGenerationMismatch" })
@@ -114,6 +143,14 @@ public partial class PdfRedactionApplierTests {
             if (variant == "ReferenceNull") objects[710] = "null";
             if (variant is "ReferenceLive" or "ReferenceGenerationMismatch") objects[710] = "<< /Value (kept live value) >>";
         }
+        if (variant is "UndecodableStream" or "UndecodableUnusedFontFile") objects[700] = "<< /Filter /FlateDecode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "UndecodableImage") objects[700] = "<< /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /UnknownDecode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "OversizedFaxImage") objects[700] = "<< /Subtype /Image /Width 2048 /Height 256 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /CCITTFaxDecode /DecodeParms << /Columns 2048 /Rows 256 /K -1 >> /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "UndecodableJbig2Image") objects[700] = "<< /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 1 /Filter /JBIG2Decode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant == "OversizedImage") objects[700] = "<< /Subtype /Image /Width 65536 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length 65536 >>\nstream\n" + new string('X', 65536) + "\nendstream";
+        // A FontFile key outside a font's descriptor does not make the stream a font program.
+        if (variant == "UndecodableUnusedFontFile") objects[701] = "<< /FontFile2 700 0 R >>";
+        if (variant == "DamagedRetainedContainer") objects[700] = "<< /Type /ObjStm /N 1 /First 999 /Filter /ASCIIHexDecode /Length 1 >>\nstream\n>\nendstream";
         int container = objects.Keys.Max() + 1, xref = container + 1;
         if (variant == "RetainedContainer") objects[1] = objects[1].Replace("/Type /Catalog", "/Type /Catalog /PrivateData " + container + " 0 R");
         int[] packed = variant is "XrefOnly" or "TruncatedClassicTable" or "MalformedHistoryTrailer" ? Array.Empty<int>() : objects.Keys.Where(number => !objects[number].Contains("\nstream\n", StringComparison.Ordinal)).ToArray();
