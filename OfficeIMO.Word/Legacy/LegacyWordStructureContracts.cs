@@ -78,9 +78,16 @@ public sealed class LegacyWordHeaderFooterContent {
 
 /// <summary>A source-ordered section with recovered page geometry and running stories.</summary>
 public sealed class LegacyWordSectionContent {
-    internal LegacyWordSectionContent(LegacyWordSection source) {
+    internal LegacyWordSectionContent(LegacyWordSection source,
+        Dictionary<LegacyWordHeaderFooter, LegacyWordHeaderFooterContent> sharedStories) {
         Blocks = Array.AsReadOnly(source.Blocks.Select(LegacyWordBlockContent.From).ToArray());
-        HeadersAndFooters = source.HeadersAndFooters.ConvertAll(story => new LegacyWordHeaderFooterContent(story)).AsReadOnly();
+        HeadersAndFooters = source.HeadersAndFooters.ConvertAll(story => {
+            if (!sharedStories.TryGetValue(story, out LegacyWordHeaderFooterContent? content)) {
+                content = new LegacyWordHeaderFooterContent(story);
+                sharedStories.Add(story, content);
+            }
+            return content;
+        }).AsReadOnly();
         PageWidthPoints = source.WidthPoints; PageHeightPoints = source.HeightPoints;
         MarginLeftPoints = source.LeftPoints; MarginRightPoints = source.RightPoints;
         MarginTopPoints = source.TopPoints; MarginBottomPoints = source.BottomPoints;

@@ -10,6 +10,31 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VmlShapeTypeRejectsExcessiveInheritedStyleAttributes(bool hasInstanceFill) {
+        using WordDocument document = WordDocument.Create();
+        var definition = new V.Shapetype();
+        definition.SetAttribute(new OpenXmlAttribute("id", "", "_x0000_t202"));
+        var inheritedFill = new V.Fill { Color = "#FFFF00" };
+        for (int index = 0; index <= 256; index++) {
+            inheritedFill.SetAttribute(new OpenXmlAttribute("extra" + index, "", "1"));
+        }
+        definition.Append(inheritedFill);
+
+        var shape = new V.Shape(new V.TextBox(new TextBoxContent(new Paragraph(new Run(new Text("Bounded frame")))))) {
+            Id = "BoundedFrame", Type = "#_x0000_t202",
+            Style = "position:absolute;left:72pt;top:72pt;width:360pt;height:120pt"
+        };
+        if (hasInstanceFill) shape.Append(new V.Fill { Opacity = "0.5" });
+        var picture = new Picture(definition, shape);
+        document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(new Paragraph(new Run(picture))));
+        document.AddParagraph("Body");
+
+        Assert.Throws<NotSupportedException>(() => document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+    }
+
+    [Theory]
     [InlineData("default", true, true, 0.75D)]
     [InlineData("unfilled", true, false, 0.75D)]
     [InlineData("unstroked", false, true, 0D)]

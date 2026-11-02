@@ -150,6 +150,27 @@ public sealed class StudioNativeEngineTests : IDisposable {
     }
 
     [Fact]
+    public async Task Form_pages_import_through_the_workspace_as_one_undoable_change() {
+        string source = CreateFormPdf();
+        using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, default);
+        Assert.True(workspace.CanMutatePages);
+        Assert.True(workspace.CanImportPages);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(source, null, default);
+        var facts = await document.GetInfoAsync(default);
+        Assert.True(facts.CanMutatePages && facts.CanImportPages && facts.CanExtractPages);
+        await document.ImportPagesAsync(new StudioNativeImportRequest(
+            [new StudioNativeImportSource(source), new StudioNativeImportSource(source)], 1), default);
+        Assert.Equal(3, (await document.GetInfoAsync(default)).Pages.Count);
+        await document.ReorderPagesAsync([3, 1, 2], default);
+        string output = Path.Combine(_root, "imported-forms.pdf");
+        await document.SaveCopyAsync(output, default);
+        Assert.Equal(12, PdfDocument.Load(output).Inspect().FormFields.Count);
+        await document.UndoAsync(default);
+        await document.UndoAsync(default);
+        Assert.Single((await document.GetInfoAsync(default)).Pages);
+    }
+
+    [Fact]
     public async Task Pages_from_other_PDFs_are_inserted_as_one_undoable_change() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreatePagesOfWidths(300, 310), null, default);
         string first = CreatePagesOfWidthsAt("first.pdf", 400, 410, 420);
@@ -496,6 +517,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         using StudioNativeDocument reopened = await StudioNativeDocument.OpenAsync(signed, null, default);
         var facts = await reopened.GetInfoAsync(default);
         Assert.False(facts.CanMutatePages);
+        Assert.False(facts.CanImportPages);
         Assert.True(facts.CanRotatePages);
         await reopened.RotatePagesAsync([1], 90, default);
         Assert.Equal(90, (await reopened.GetInfoAsync(default)).Pages[0].Rotation);
@@ -730,6 +752,32 @@ public sealed class StudioNativeEngineTests : IDisposable {
         Assert.Empty((await document.SearchAsync("quarterly", default)).Hits);
     }
 
+    [Fact]
+    public async Task SearchableOcrWaitsForNativeRecognizerAfterCancellation() {
+        string image = await CreateScanImageAsync("pending-recognizer", 300, 400);
+        string scan = Path.Combine(_root, "pending-recognizer.pdf");
+        await PdfScanComposer.ComposeAsync([new PdfScanPage(image, [])], scan, default);
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(scan, null, default);
+        using var entered = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource();
+
+        Task<StudioNativeSearchableResult> operation = document.MakeSearchableAsync((_, _, _) => {
+            entered.Set();
+            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new TimeoutException("Recognizer release was not signaled.");
+            return [];
+        }, cancellation.Token);
+        try {
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(10)), "Native recognizer did not start.");
+            cancellation.Cancel();
+            await Task.Delay(150);
+            Assert.False(operation.IsCompleted);
+        } finally {
+            release.Set();
+        }
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => operation);
+    }
+
     [Theory]
     [InlineData(90)]
     [InlineData(180)]
@@ -860,6 +908,22 @@ public sealed class StudioNativeEngineTests : IDisposable {
         var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => PdfConversion.ConvertAsync(broken, Path.Combine(_root, "broken.pdf"), default));
         Assert.Contains("broken.docx", failure.Message);
         Assert.False(File.Exists(Path.Combine(_root, "broken.pdf")));
+    }
+
+    [Fact]
+    public async Task PdfConversionRetainsTheOpenDocumentsReadLimits() {
+        byte[] pdf = OfficeIMO.Pdf.PdfDocument.Create(compose => compose.Page(page =>
+            page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Budgeted conversion")))))).ToBytes();
+        string output = Path.Combine(_root, "budgeted.docx");
+        var options = new OfficeIMO.Pdf.PdfLoadOptions {
+            Limits = new OfficeIMO.Pdf.PdfReadLimits { MaxInputBytes = 32 }
+        };
+
+        InvalidOperationException failure = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            PdfConversion.ConvertPdfAsync(pdf, options, "word", output, default));
+
+        Assert.Contains("32", failure.Message, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
     }
 
     [Fact]

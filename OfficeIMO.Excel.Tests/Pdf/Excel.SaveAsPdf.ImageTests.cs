@@ -7,12 +7,54 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using A = DocumentFormat.OpenXml.Drawing;
+using X = DocumentFormat.OpenXml.Spreadsheet;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+
+    [Fact]
+    public void SaveAsPdf_Rejects_Drawing_Anchors_Beyond_The_Resolver_Span() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfOversizedDrawingAnchor.xlsx");
+        using (ExcelDocument source = ExcelDocument.Create(workbookPath, "Drawings")) {
+            ExcelSheet sheet = source.Sheets[0];
+            sheet.CellValue(2, 2, "Visible cell");
+            source.SetPrintArea(sheet, "B2");
+            source.Save();
+        }
+        using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(workbookPath, true)) {
+            WorksheetPart worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            DrawingsPart drawings = worksheet.AddNewPart<DrawingsPart>();
+            worksheet.Worksheet!.Append(new X.Drawing { Id = worksheet.GetIdOfPart(drawings) });
+            drawings.WorksheetDrawing = new Xdr.WorksheetDrawing(new Xdr.TwoCellAnchor(
+                new Xdr.FromMarker(new Xdr.ColumnId("1"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1"), new Xdr.RowOffset("0")),
+                new Xdr.ToMarker(new Xdr.ColumnId("3"), new Xdr.ColumnOffset("0"), new Xdr.RowId("1048575"), new Xdr.RowOffset("0")),
+                new Xdr.Shape(
+                    new Xdr.NonVisualShapeProperties(
+                        new Xdr.NonVisualDrawingProperties { Id = 2U, Name = "Oversized drawing" },
+                        new Xdr.NonVisualShapeDrawingProperties()),
+                    new Xdr.ShapeProperties(new A.PresetGeometry { Preset = A.ShapeTypeValues.RoundRectangle }),
+                    new Xdr.TextBody(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Oversized drawing"))))),
+                new Xdr.ClientData()));
+            drawings.WorksheetDrawing.Save();
+            worksheet.Worksheet.Save();
+        }
+
+        using var document = ExcelDocument.Load(workbookPath, new ExcelLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
+        var result = document.ToPdfDocumentResult(new ExcelToPdfOptions {
+            WorksheetLayout = ExcelPdfWorksheetLayoutMode.WorksheetCanvas,
+            UseWorksheetImages = true,
+            MaxRowsPerSheet = 1
+        });
+        Assert.Contains(result.Warnings, warning => warning.Code == "WorksheetDrawingObject"
+            && warning.Message.Contains("anchor exceeds the supported span", StringComparison.Ordinal));
+        using var pdf = PdfPigDocument.Open(result.ToBytes());
+        Assert.Contains("Visible cell", pdf.GetPage(1).Text);
+    }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Exports_Worksheet_Images() {

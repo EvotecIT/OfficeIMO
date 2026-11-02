@@ -97,9 +97,13 @@ internal static partial class HtmlPdfRenderedConverter {
             if (OfficeImageReader.TryIdentify(bytes, extension, _decodeOptions.CancellationToken, out OfficeImageInfo identified))
                 format = identified.Format;
             if (format == OfficeImageFormat.Png || format == OfficeImageFormat.Jpeg) {
-                if (format == OfficeImageFormat.Png && OfficeRasterContainerInspector.TryInspectForDecode(
-                    bytes, _decodeOptions, out var container, out _, out _, out _) && container != null &&
-                    (container.IsAnimated || container.Count > 1)) {
+                if (!OfficeRasterContainerInspector.TryInspectForDecode(
+                        bytes, _decodeOptions, out var container, out _, out _, out _) ||
+                    container == null || container.Format != format) {
+                    pdfBytes = System.Array.Empty<byte>();
+                    return false;
+                }
+                if (format == OfficeImageFormat.Png && (container.IsAnimated || container.Count > 1)) {
                     _conversionReport.Add(new PdfCore.PdfConversionWarning(
                         "OfficeIMO.Html.Pdf", HtmlPdfDiagnosticCodes.ImageStaticFrameSelected, "html-image-resource",
                         "The default static PNG image was retained; APNG animation and additional frames were discarded.",

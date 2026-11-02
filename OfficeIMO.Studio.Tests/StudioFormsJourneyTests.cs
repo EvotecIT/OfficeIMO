@@ -11,6 +11,38 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioFormsJourneyTests {
     [Fact]
+    public async Task DuplicatePdfFieldNamesDoNotCrashFormsModeOrBindAnAmbiguousWidget() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "duplicate-fields.pdf");
+            File.WriteAllText(source, StudioFormWidgetFixture.DuplicateFieldNames(), System.Text.Encoding.ASCII);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+            Assert.Equal(2, model.FormFields.Count);
+
+            model.SetViewportSize(600, 800);
+            model.ShowFormsModeCommand.Execute(null);
+            var page = model.SelectedPage!;
+            var window = new Window { Width = 760, Height = 500,
+                Content = new OfficeIMO.Studio.Features.Reader.PdfPageView { DataContext = page } };
+            try {
+                window.Show();
+                await page.EnsureRenderedAsync();
+                Assert.NotNull(page.Scene?.Interactions);
+                Assert.Empty(page.InlineFormWidgets);
+                Capture(window, "forms-duplicate-names");
+                model.FormFields[0].TextValue = "Changed";
+                Assert.False(model.CanApplyFormDrafts);
+                await model.ApplyFormDraftsCommand.ExecuteAsync(null);
+                Assert.NotNull(model.ErrorMessage);
+            } finally { window.Close(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task SharedTextFieldWidgetsUseOneDraftOnThePage() {
         string pdf = StudioFormWidgetFixture.SharedTextWidgets();
         using var session = TestAppBuilder.StartSession();

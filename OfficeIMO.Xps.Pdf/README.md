@@ -28,6 +28,12 @@ stream contents. Stage and reopen output before publishing it when the destinati
 must survive a failed operation. [OfficeIMO.Workflows](../OfficeIMO.Workflows/README.md)
 provides that publication contract for `.xps` and `.oxps` through `xps-pdf`.
 
+PDF composition applies cumulative `MaximumSvgCharacters` (32 Mi characters)
+and `MaximumPathCommands` (200,000) limits across all page occurrences before
+retaining each projected drawing. Repeated references to one XPS page count each
+time it appears. Set these on `XpsToPdfOptions` when a host needs a different
+conversion allowance; they are separate from the PDF output byte limit.
+
 Page dimensions convert from XPS's 96 units per inch to PDF's 72 points per inch.
 The bridge preserves the fixed page canvas instead of reflowing it. Embedded
 text remains positioned vector outlines. A separate invisible text layer preserves

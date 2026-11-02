@@ -1,5 +1,6 @@
 using System.Globalization;
 using OfficeIMO.Internal;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Studio.Infrastructure;
 using OfficeIMO.Invoicing;
 using OfficeIMO.Invoicing.Pdf;
@@ -46,9 +47,13 @@ public sealed partial class InvoiceWorkbenchViewModel {
     private async Task<PdfOptions?> LoadFontOptionsAsync(string fontPath, CancellationToken token) {
         if (fontPath.Length == 0) return null;
         const long limit = 16 * 1024 * 1024;
-        byte[] font = _storage is null
-            ? await File.ReadAllBytesAsync(fontPath, token).ConfigureAwait(true)
-            : (await _storage.ReadSnapshotAsync(fontPath, token, limit).ConfigureAwait(true)).Bytes;
+        byte[] font;
+        if (_storage is null) {
+            using var input = new FileStream(fontPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+            font = await OfficeStreamReader.ReadAllBytesAsync(input, token, limit).ConfigureAwait(true);
+        } else {
+            font = (await _storage.ReadSnapshotAsync(fontPath, token, limit).ConfigureAwait(true)).Bytes;
+        }
         if (font.Length is <= 0 or > (int)limit) throw new ArgumentException(T("FontLimit", "The embedded font must contain between one byte and 16 MiB."));
         return new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, font, "Invoice font")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, font, "Invoice font");

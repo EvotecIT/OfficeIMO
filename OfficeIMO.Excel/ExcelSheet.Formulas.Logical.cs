@@ -38,36 +38,47 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateErrorFallbackValue(string args, Func<string, bool> shouldUseFallback, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args);
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count != 2) {
                 return false;
             }
 
             if (!TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue candidate)
-                || candidate.IsUnresolvedFormula
-                || !candidate.HasValue) {
+                || candidate.IsUnresolvedFormula) {
                 // Only a successfully evaluated typed error activates the fallback.
                 return false;
             }
 
             if (!candidate.IsError || !shouldUseFallback(candidate.ErrorCode ?? "#VALUE!")) {
-                result = candidate;
+                result = candidate.AsScalarValue();
                 return true;
             }
 
-            return TryResolveFormulaArgument(tokens[1], out result)
-                && !result.IsUnresolvedFormula
-                && result.HasValue;
+            if (!TryResolveFormulaBranchArgument(tokens[1], out result)) return false;
+            result = result.AsScalarValue();
+            return true;
+        }
+
+        // Numeric operands coerce blank references; selected branches preserve
+        // their types until their consumer applies its own conversion.
+        private bool TryResolveFormulaValueArgument(string token, out FormulaArgumentValue result) {
+            if (!TryResolveFormulaBranchArgument(token, out result)) return false;
+            result = NormalizeLookupResult(result);
+            return true;
+        }
+
+        private bool TryResolveFormulaBranchArgument(string token, out FormulaArgumentValue result) {
+            if (string.IsNullOrWhiteSpace(token)) { result = new FormulaArgumentValue(0d, "0"); return true; }
+            return TryResolveFormulaArgument(token, out result) && !result.IsUnresolvedFormula;
         }
 
         private bool TryEvaluateIfValue(string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args);
-            if (tokens.Count != 3
-                || !TryEvaluateCondition(tokens[0], out bool condition)
-                || !TryResolveFormulaArgument(tokens[condition ? 1 : 2], out result)
-                || result.IsUnresolvedFormula
-                || !result.HasValue) {
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
+            if (tokens.Count < 2 || tokens.Count > 3 || !TryEvaluateCondition(tokens[0], out bool condition, out FormulaArgumentValue error)) return false;
+            if (error.IsError) { result = error; return true; }
+            if (!condition && tokens.Count == 2) { result = FormulaArgumentValue.Boolean(false); return true; }
+            if (!TryResolveFormulaBranchArgument(tokens[condition ? 1 : 2], out result)) {
                 return false;
             }
 
@@ -76,23 +87,22 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateIfsValue(string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args);
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count < 2 || tokens.Count % 2 != 0) {
                 return false;
             }
 
             for (int index = 0; index < tokens.Count; index += 2) {
-                if (!TryEvaluateCondition(tokens[index], out bool condition)) {
+                if (!TryEvaluateCondition(tokens[index], out bool condition, out FormulaArgumentValue error)) {
                     return false;
                 }
+                if (error.IsError) { result = error; return true; }
 
                 if (!condition) {
                     continue;
                 }
 
-                return TryResolveFormulaArgument(tokens[index + 1], out result)
-                    && !result.IsUnresolvedFormula
-                    && result.HasValue;
+                return TryResolveFormulaBranchArgument(tokens[index + 1], out result);
             }
 
             return false;
@@ -100,59 +110,53 @@ namespace OfficeIMO.Excel {
 
         private bool TryEvaluateSwitchValue(string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args);
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
             if (tokens.Count < 3) {
                 return false;
             }
 
-            if (!TryResolveFormulaArgument(tokens[0], out FormulaArgumentValue expression)
-                || expression.IsUnresolvedFormula
-                || !expression.HasValue) {
+            if (!TryResolveFormulaValueArgument(tokens[0], out FormulaArgumentValue expression)) {
                 return false;
             }
 
             int pairEnd = tokens.Count;
+            if (expression.IsError) { result = expression; return true; }
             bool hasDefault = tokens.Count % 2 == 0;
             if (hasDefault) {
                 pairEnd--;
             }
 
             for (int index = 1; index < pairEnd; index += 2) {
-                if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue candidate)
-                    || candidate.IsUnresolvedFormula
-                    || !candidate.HasValue) {
+                if (!TryResolveFormulaValueArgument(tokens[index], out FormulaArgumentValue candidate)) {
                     return false;
                 }
 
+                if (candidate.IsError) { result = candidate; return true; }
                 if (!FormulaValuesEqual(expression, candidate)) {
                     continue;
                 }
 
-                return TryResolveFormulaArgument(tokens[index + 1], out result)
-                    && !result.IsUnresolvedFormula
-                    && result.HasValue;
+                return TryResolveFormulaBranchArgument(tokens[index + 1], out result);
             }
 
             return hasDefault
-                && TryResolveFormulaArgument(tokens[tokens.Count - 1], out result)
-                && !result.IsUnresolvedFormula
-                && result.HasValue;
+                && TryResolveFormulaBranchArgument(tokens[tokens.Count - 1], out result);
         }
 
         private bool TryEvaluateChooseValue(string args, out FormulaArgumentValue result) {
             result = default;
-            var tokens = SplitFormulaArguments(args);
-            if (tokens.Count < 2 || !TryGetWholeNumberArgument(tokens[0], out int index)) {
+            var tokens = SplitFormulaArguments(args, preserveEmpty: true);
+            if (tokens.Count < 2 || !TryGetLookupIntegerArgument(tokens[0], out int index, out FormulaArgumentValue error)) {
                 return false;
             }
+            if (error.IsError) { result = error; return true; }
 
             if (index < 1 || index >= tokens.Count) {
                 return false;
             }
 
-            return TryResolveFormulaArgument(tokens[index], out result)
-                && !result.IsUnresolvedFormula
-                && result.HasValue;
+            if (tokens[index].Length == 0) { result = new FormulaArgumentValue(0d, "0"); return true; }
+            return TryResolveFormulaArgument(tokens[index], out result) && !result.IsUnresolvedFormula;
         }
 
         private bool TryEvaluateInfoFunction(string function, string args, out FormulaArgumentValue result) {
@@ -285,7 +289,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryEvaluateFormulaOrNumeric(string token, out double result) {
-            if (TryResolveFormulaArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
+            if (TryResolveFormulaValueArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
                 result = value.Number.Value;
                 return true;
             }

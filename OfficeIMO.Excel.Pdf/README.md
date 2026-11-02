@@ -60,6 +60,8 @@ using var stream = File.Create("statement.pdf");
 workbook.SaveAsPdf(stream);
 ```
 
+PDF export admits at most 1,000,000 dense worksheet positions across its selected ranges by default, including empty positions inside sparse used ranges. Set `ExcelToPdfOptions.MaxMaterializedWorksheetCells` for a trusted workbook when the host has enough memory for a larger export. The converter rejects a range before reading it if the aggregate limit would be exceeded.
+
 ### Surface mapping warnings
 
 ```csharp

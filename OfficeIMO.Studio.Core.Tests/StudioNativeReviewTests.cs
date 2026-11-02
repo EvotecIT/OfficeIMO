@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
+using OfficeIMO.Security;
 using OfficeIMO.Studio.Native;
 
 namespace OfficeIMO.Studio.Core.Tests;
@@ -130,6 +131,25 @@ public sealed class StudioNativeReviewTests : IDisposable {
     }
 
     [Fact]
+    public async Task Signature_heading_uses_the_certificate_subject_instead_of_the_Pdf_name() {
+        string source = CreateTextPdf("spoof-source.pdf", "Contract");
+        using RSA key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=Actual Signer", key, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, true));
+        using X509Certificate2 certificate = request.CreateSelfSigned(DateTimeOffset.Now.AddDays(-1), DateTimeOffset.Now.AddDays(1));
+        using var signer = new PdfCmsExternalSigner(OfficeSecurityProvider.Default, certificate);
+        byte[] signed = PdfDocument.Load(source).Security.SignExternal(signer,
+            new PdfExternalSignatureOptions { Name = "Impersonated Name", ReservedSignatureContentsBytes = 8192 }).Pdf;
+        string path = Path.Combine(_root, "spoofed-name.pdf");
+        File.WriteAllBytes(path, signed);
+
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
+        StudioNativeSignature signature = Assert.Single((await document.CheckAsync(new StudioNativeCheckRequest(Signatures: true), default)).Signatures!.Signatures);
+        Assert.Equal("Actual Signer", signature.Signer);
+        Assert.NotEqual("Impersonated Name", signature.Signer);
+    }
+
+    [Fact]
     public async Task Standards_and_health_are_reported_without_changing_the_document() {
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("check.pdf", "One", "Two"), null, default);
 
@@ -204,6 +224,20 @@ public sealed class StudioNativeReviewTests : IDisposable {
         Assert.True((await document.GetInfoAsync(default)).IsEncrypted);
         await document.UndoAsync(default);
         Assert.Contains("Alex", await PageTextAsync(document, 1));
+    }
+
+    [Fact]
+    public async Task Whole_block_redaction_removes_the_text_around_a_match_only_when_asked() {
+        using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(CreateTextPdf("blocks.pdf", "Account 4111 1111 belongs to Alex"), null, default);
+        var find = new StudioNativeRedactionFind("4111 1111", WholeBlocks: true);
+
+        Assert.Single((await document.RedactAsync(new StudioNativeRedactionRequest(Find: find), default)).Marks!);
+        StudioNativeRedactionVerification verification = (await document.RedactAsync(new StudioNativeRedactionRequest(
+            Apply: new StudioNativeRedactionApply(Find: find, Include: [0], RemovedText: "4111 1111",
+                Revision: (await document.GetInfoAsync(default)).Revision)), default)).Verification!;
+
+        Assert.True(verification.Verified);
+        Assert.DoesNotContain("Alex", await PageTextAsync(document, 1));
     }
 
     [Fact]

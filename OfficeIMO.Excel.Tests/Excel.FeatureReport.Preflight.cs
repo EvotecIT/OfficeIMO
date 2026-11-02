@@ -453,13 +453,9 @@ namespace OfficeIMO.Tests {
                 report.EnsureCan(ExcelPreflightCapability.CalculateFormulas)).Message);
         }
 
-        [Theory]
-        [InlineData("UNIQUE(B1:B1)")]
-        [InlineData("SUM(UNIQUE(B1:B1))")]
-        [InlineData("SUM(_xlfn.UNIQUE(B1:B1))")]
-        [InlineData("SUM(_xlfn._xlws.UNIQUE(B1:B1))")]
-        [InlineData("SUM(SORT(B1:B1))+LEN(\"UNIQUE(\")")]
-        public void FeatureReport_Preflight_BlocksUnsupportedFormulasEvenWhenDependenciesOnlyMissCaches(string formula) {
+        [Fact]
+        public void FeatureReport_Preflight_BlocksUnsupportedFormulasEvenWhenDependenciesOnlyMissCaches() {
+            const string formula = "UNIQUE(B1:B1)";
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedFormulaChain.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -482,6 +478,25 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Formula calculation blockers", diagnostics);
                 Assert.Contains("Array function", diagnostics);
             }
+        }
+
+        [Theory]
+        [InlineData("SUM(UNIQUE(B1:B1))", "3")]
+        [InlineData("SUM(_xlfn.UNIQUE(B1:B1))", "3")]
+        [InlineData("SUM(_xlfn._xlws.UNIQUE(B1:B1))", "3")]
+        [InlineData("SUM(SORT(B1:B1))+LEN(\"UNIQUE(\")", "10")]
+        public void FeatureReport_Preflight_AllowsNestedArrayResultsBeforeDependencyCachesExist(string formula, string expected) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Calc");
+            sheet.CellValue(1, 1, 2d);
+            sheet.CellFormula(1, 2, "A1+1");
+            sheet.CellFormula(1, 3, formula);
+            var report = document.InspectFeatures();
+            Assert.False(report.Can(ExcelPreflightCapability.UseCachedFormulaValues));
+            Assert.True(report.Can(ExcelPreflightCapability.CalculateFormulas));
+            Assert.Empty(report.GetCapabilityDiagnostics(ExcelPreflightCapability.CalculateFormulas));
+            Assert.Equal(2, document.Calculate());
+            AssertFormulaCache(sheet, 1, 3, expected);
         }
 
         [Theory]

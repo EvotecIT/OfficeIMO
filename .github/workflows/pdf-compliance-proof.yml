@@ -3,6 +3,7 @@ name: PDF Compliance Proof
 on:
   pull_request:
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - 'OfficeIMO.Pdf.Tests/**'
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.SharedSource/**'
@@ -123,9 +124,6 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: |
-    8.0.426
-    10.0.114
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
   VERAPDF_VERSION: 1.30.2
@@ -135,8 +133,17 @@ env:
   MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.26.0/Mustang-CLI-2.26.0.jar
   MUSTANG_CLI_SHA256: 42d7868cb68264874a7b8cab4c3587b03b23ccc7cd72373da917f66758bb9736
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   pdf-compliance-proof:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: Generate proof bundle
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -147,7 +154,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
 
       - name: Install .NET WebAssembly workload
         run: dotnet workload install wasm-tools --skip-manifest-update
@@ -492,3 +500,22 @@ jobs:
             ${{ env.PROOF_PATH }}/standards/*.json
             ${{ env.PROOF_PATH }}/standards/*.txt
             ${{ env.PROOF_PATH }}/optimizer/**
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, pdf-compliance-proof]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

@@ -25,6 +25,7 @@ internal abstract class PdfListBlock : IPdfBlock {
         Style = style?.Clone();
         RichItems = richItems.AsReadOnly();
         Items = CreateTextSnapshot(richItems);
+        HasCustomMarkers = false;
     }
 
     protected PdfListBlock(
@@ -37,9 +38,11 @@ internal abstract class PdfListBlock : IPdfBlock {
         Guard.LeftCenterRightAlign(align, nameof(align), validationName);
 
         var richItems = new System.Collections.Generic.List<PdfListItem>();
+        bool hasCustomMarkers = false;
         foreach (PdfListItem? item in items) {
             if (item != null) {
                 richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker));
+                hasCustomMarkers |= item.Marker != null;
             }
         }
 
@@ -48,11 +51,14 @@ internal abstract class PdfListBlock : IPdfBlock {
         Style = style?.Clone();
         RichItems = richItems.AsReadOnly();
         Items = CreateTextSnapshot(richItems);
+        HasCustomMarkers = hasCustomMarkers;
     }
 
     public System.Collections.Generic.IReadOnlyList<string> Items { get; }
 
     public System.Collections.Generic.IReadOnlyList<PdfListItem> RichItems { get; }
+
+    internal bool HasCustomMarkers { get; }
 
     public PdfAlign Align { get; }
 

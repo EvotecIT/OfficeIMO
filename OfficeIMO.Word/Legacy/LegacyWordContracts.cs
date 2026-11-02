@@ -208,6 +208,7 @@ public sealed class LegacyWordResourceReference {
 /// <summary>Provides a source-oriented snapshot alongside the projected DOCX model.</summary>
 public sealed class LegacyWordContent {
     internal LegacyWordContent(LegacyWordModel source) {
+        var sharedStories = new Dictionary<LegacyWordHeaderFooter, LegacyWordHeaderFooterContent>();
         Paragraphs = source.Paragraphs.ConvertAll(static paragraph => new LegacyWordParagraphContent(paragraph)).AsReadOnly();
         Styles = source.Styles.ConvertAll(static style => new LegacyWordStyleContent(style)).AsReadOnly();
         Notes = source.Notes.ConvertAll(static note => new LegacyWordNoteContent(note)).AsReadOnly();
@@ -215,9 +216,9 @@ public sealed class LegacyWordContent {
         if (source.Sections.Count == 0) {
             var section = new LegacyWordSection();
             section.Blocks.AddRange(source.Paragraphs);
-            Sections = Array.AsReadOnly(new[] { new LegacyWordSectionContent(section) });
+            Sections = Array.AsReadOnly(new[] { new LegacyWordSectionContent(section, sharedStories) });
         } else {
-            Sections = source.Sections.ConvertAll(section => new LegacyWordSectionContent(section)).AsReadOnly();
+            Sections = source.Sections.ConvertAll(section => new LegacyWordSectionContent(section, sharedStories)).AsReadOnly();
         }
     }
     /// <summary>Gets body paragraphs outside tables. Table and running-story paragraphs are available through <see cref="Sections"/>.</summary>

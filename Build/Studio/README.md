@@ -2,21 +2,11 @@
 
 PowerForge owns Studio publishing, signing, checksums, portable archives, the generated Windows MSI, Debian package, and macOS application bundle. Repository-local files contain only OfficeIMO product identity and target choices.
 
-The checked-in `packages.lock.json` files cover Studio's complete project-reference graph and all supported runtime identifiers. Release restores run in locked mode so package or runtime-asset changes must be reviewed and committed before signing.
+Studio restores package versions from the project files without checked-in package locks. Normal development and release builds use the same restore policy, so SDK servicing updates do not require a lock refresh across the referenced libraries. NuGetAudit remains enabled; dependency updates are reviewed through the normal pull-request checks.
 
-Windows releases use `packages.lock.json`; Unix releases use `packages.nonwindows.lock.json`.
-Ordinary development restores use temporary locks under `obj` on both platforms.
-The SDK baseline in `global.json` and CI is part of the release restore contract:
-single-file publishing adds SDK-provided analyzer packages. Refresh both platform
-lock sets when that baseline or the publish dependency graph changes. CI checks
-the six-runtime, single-file restore graph on Windows and Ubuntu.
+`global.json` selects the latest installed stable .NET 10 feature band, with a `10.0.100` floor. CI reads that policy through `actions/setup-dotnet`; website jobs pass `10.0.x` to the shared PowerForge workflow. Release checksums and signatures apply to the resulting artifacts. Rebuilding on a different SDK can produce different bytes.
 
-Release restores disable SDK offline library packs so platform locks refer to the
-configured package feed. Distribution SDKs can ship rebuilt analyzer packages
-under the same version with different hashes. Use a fresh package directory when
-refreshing release locks if the local cache contains those rebuilt packages.
-
-Avalonia and CommunityToolkit.Mvvm are the only explicitly trusted build-code providers. PowerForge still verifies their exact archives through the committed lock before allowing the XAML compiler and MVVM source generator to execute; Avalonia's separate telemetry build package is excluded from Studio.
+CI checks the configured six-runtime, self-contained, single-file restore graph on Windows and Ubuntu. Avalonia's separate telemetry build package is excluded from Studio.
 
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate

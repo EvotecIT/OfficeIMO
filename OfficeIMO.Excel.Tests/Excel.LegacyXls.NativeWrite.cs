@@ -2331,7 +2331,7 @@ namespace OfficeIMO.Tests {
                 AssertNumericFormula(worksheet, 74, 5d, "SUM(OFFSET(A1,0,0,2,1))");
                 AssertNumericFormula(worksheet, 75, 8d, "A1^A2");
                 AssertNumericFormula(worksheet, 76, 25d, "(A1+A2)^2");
-                AssertNumericFormula(worksheet, 77, 10d, "IF(A1>2,10,)");
+                AssertNumericFormula(worksheet, 77, 0d, "IF(A1>2,10,)");
                 AssertNumericFormula(worksheet, 78, 2d, "COUNT(A1,,A2)");
             } finally {
                 TryDelete(openXmlPath);
@@ -3768,6 +3768,49 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal((byte)0x10, tokens[tokens.Length - 1]);
             Assert.Contains((byte)0x0f, tokens);
+        }
+
+        [Fact]
+        public void LegacyXls_FormulaEncoder_HandlesNestedReferenceUnions() {
+            string formula = "(A1)";
+            for (int index = 0; index < 32; index++) formula = "(" + formula + ",B1)";
+
+            Assert.True(LegacyXlsFormulaEncoder.TryEncode(formula, out byte[] tokens, out string? reason), reason);
+            Assert.NotEmpty(tokens);
+        }
+
+        [Fact]
+        public void LegacyXls_FormulaEncoder_RejectsExcessiveSyntacticNestingAtEveryEntry() {
+            string formula = new string('(', 65) + "A1" + new string(')', 65);
+            Assert.False(LegacyXlsFormulaEncoder.TryEncode(formula, out _, out string? formulaReason));
+            Assert.Contains("nesting", formulaReason, StringComparison.OrdinalIgnoreCase);
+            Assert.False(LegacyXlsFormulaEncoder.TryEncodeListSource(formula, LegacyXlsFormulaNameIndex.Empty,
+                formulaSheetIndex: -1, out _, out string? listReason));
+            Assert.Contains("nesting", listReason, StringComparison.OrdinalIgnoreCase);
+            Assert.False(LegacyXlsFormulaEncoder.TryEncodeFormulaRecord(formula, LegacyXlsFormulaNameIndex.Empty,
+                formulaSheetIndex: -1, out _, out _, out string? recordReason));
+            Assert.Contains("nesting", recordReason, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Theory]
+        [InlineData("B:C,D:E")]
+        [InlineData("1:1 2:2")]
+        public void LegacyXls_FormulaEncoder_RetainsWholeRowAndColumnReferenceTerms(string formula) {
+            Assert.True(LegacyXlsFormulaEncoder.TryEncode(formula, out byte[] tokens, out string? reason), reason);
+            Assert.NotEmpty(tokens);
+        }
+
+        [Fact]
+        public void LegacyXls_FormulaEncoder_RejectsFlatOperatorAndOversizedTextInputs() {
+            foreach (string formula in new[] {
+                string.Join(",", Enumerable.Repeat("A1", 514)),
+                string.Join("+", Enumerable.Repeat("1", 514))
+            }) {
+                Assert.False(LegacyXlsFormulaEncoder.TryEncode(formula, out _, out string? reason));
+                Assert.Contains("operators", reason, StringComparison.OrdinalIgnoreCase);
+            }
+            Assert.False(LegacyXlsFormulaEncoder.TryEncode(new string('A', 131_073), out _, out string? lengthReason));
+            Assert.Contains("characters", lengthReason, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

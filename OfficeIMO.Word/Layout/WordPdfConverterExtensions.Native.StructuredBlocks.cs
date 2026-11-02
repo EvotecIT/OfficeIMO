@@ -42,13 +42,14 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(GetNativeStructuredBlockElements(document, sdtBlock, skipCanvasOnlyVmlParagraphs));
+            int rejectedJoinUntil = -1;
             for (int i = 0; i < elements.Count; i++) {
                 WordElement element = elements[i];
                 if (element is WordFootNote) {
                     continue;
                 }
 
-                if (TryRenderNativeJoinedParagraphs(pdf, elements, ref i, getMarker,
+                if (TryRenderNativeJoinedParagraphs(pdf, elements, ref i, ref rejectedJoinUntil, getMarker,
                     footnoteNumbersById, options, nativeDefaults, nativeFontMap)) continue;
 
                 RenderNativeElement(

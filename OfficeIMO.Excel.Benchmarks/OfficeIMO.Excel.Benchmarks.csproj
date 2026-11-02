@@ -18,7 +18,7 @@
     <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
     <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
     <PackageReference Include="ExcelReader.Arrow" Version="$(ExcelReaderBenchmarkVersion)" />
-    <PackageReference Include="EPPlus" Version="8.7.0" />
+    <PackageReference Include="EPPlus" Version="8.7.2" />
     <PackageReference Include="LargeXlsx" Version="2.0.2" />
     <PackageReference Include="MiniExcel" Version="1.46.0" />
     <PackageReference Include="SpreadCheetah" Version="1.28.0" />

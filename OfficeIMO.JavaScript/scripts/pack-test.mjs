@@ -4,6 +4,7 @@ import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
+const compilerVersion = JSON.parse(await readFile(join(root, "node_modules/typescript/package.json"), "utf8")).version;
 if (!process.argv[2]) throw new Error("Pass a task-owned evidence directory to npm run test:pack -- <directory>.");
 const output = resolve(process.argv[2]), consumer = join(output, "consumer");
 await mkdir(consumer, { recursive: true });
@@ -50,6 +51,6 @@ await copyFile(join(consumer, "packed-wide-report.pdf"), join(output, "packed-wi
 await copyFile(join(consumer, "packed-rich-report.pdf"), join(output, "packed-rich-report.pdf"));
 for (const name of ["packed-grouped.xlsx", "packed-grouped.pdf", "packed-semantic-report.pdf", "packed-semantic-report.pdf.json"])
   await copyFile(join(consumer, name), join(output, name));
-await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 8, strictTypeScript: "5.9.3", archive: manifest[0].filename,
+await writeFile(join(output, "consumer-report.json"), JSON.stringify({ passed: true, subpaths: 8, strictTypeScript: compilerVersion, archive: manifest[0].filename,
   integrations: ["datatables", "canopyx"], pdfReport: ["png", "drawing", "tagged", "tagged-wide-grouped"], nodeWritableStreams: ["csv", "xlsx", "pdf"], shippedFiles: manifest[0].files.length, runtimeDependencies: 0 }, null, 2) + "\n");
 console.log("Strict types, archive contents, isolated npm install and all runtime subpaths passed.");

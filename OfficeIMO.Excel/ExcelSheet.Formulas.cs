@@ -19,6 +19,7 @@ namespace OfficeIMO.Excel {
 
         internal sealed class FormulaEvaluationGuardState {
             internal bool DependencyGuardBlocked { get; set; }
+            internal HashSet<string> ActiveDefinedNames { get; } = new(StringComparer.OrdinalIgnoreCase);
         }
 
         internal sealed class FormulaEvaluationDepthFrame {
@@ -89,7 +90,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Evaluates supported formulas on this sheet and writes cached results.
         /// </summary>
-        public int RecalculateSupportedFormulas() => RecalculateSupportedFormulas(new FormulaCalculationContext());
+        public int RecalculateSupportedFormulas() {
+            using var context = new FormulaCalculationContext();
+            return RecalculateSupportedFormulas(context);
+        }
 
         internal int RecalculateSupportedFormulas(FormulaCalculationContext context) {
             MaterializePendingDirectCellValues();
@@ -100,6 +104,7 @@ namespace OfficeIMO.Excel {
                 long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
 
                 var previousCache = _formulaEvaluationCache;
+                var previousCalculationContext = _formulaCalculationContext;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
                 var previousDepthFrames = _formulaEvaluationDepthFrames;
@@ -107,6 +112,7 @@ namespace OfficeIMO.Excel {
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
                 _formulaEvaluationCache = context.Cache;
+                _formulaCalculationContext = context;
                 _formulaEvaluationDepthCache = context.DepthCache;
                 _formulaEvaluationStack = context.Stack;
                 _formulaEvaluationDepthFrames = context.DepthFrames;
@@ -157,6 +163,7 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
+                    _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;
@@ -216,9 +223,11 @@ namespace OfficeIMO.Excel {
                     || _formulaEvaluationDepthCache == null
                     || _formulaEvaluationStack == null
                     || _formulaEvaluationDepthFrames == null) {
-                    return cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                    bool supported = cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
                         ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
                         : TryEvaluateFormulaValue(formula, out result);
+                    if (supported) result = NormalizeLookupResult(result);
+                    return supported;
                 }
 
                 string cacheKey = GetFormulaEvaluationCacheKey(reference);
@@ -263,6 +272,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    // A blank reference remains blank inside an expression. A formula
+                    // cell stores its value, so dependants see the displayed numeric zero.
+                    result = NormalizeLookupResult(result);
                     if (depthFrame.UsedUnevaluatedFormulaCache)
                         result = result.WithUnevaluatedFormulaCache();
 
@@ -360,6 +372,8 @@ namespace OfficeIMO.Excel {
                 bool packageRequestsRecalculation = calculation?.FullCalculationOnLoad?.Value == true
                     || calculation?.ForceFullCalculation?.Value == true
                     || WorksheetRoot.GetFirstChild<SheetCalculationProperties>()?.FullCalculationOnLoad?.Value == true;
+                using var context = new FormulaCalculationContext();
+                var previousCalculationContext = _formulaCalculationContext;
                 var previousCache = _formulaEvaluationCache;
                 var previousDepthCache = _formulaEvaluationDepthCache;
                 var previousStack = _formulaEvaluationStack;
@@ -367,7 +381,8 @@ namespace OfficeIMO.Excel {
                 var previousGuardState = _formulaEvaluationGuardState;
                 var previousSharedDefinitions = _formulaEvaluationSharedDefinitions;
                 var previousSharedDefinitionsBySheet = _formulaEvaluationSharedDefinitionsBySheet;
-                _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
+                _formulaEvaluationCache = context.Cache;
+                _formulaCalculationContext = context;
                 _formulaEvaluationDepthCache = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationStack = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 _formulaEvaluationDepthFrames = new Stack<FormulaEvaluationDepthFrame>();
@@ -411,6 +426,7 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     _formulaEvaluationCache = previousCache;
+                    _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
                     _formulaEvaluationStack = previousStack;
                     _formulaEvaluationDepthFrames = previousDepthFrames;
@@ -584,7 +600,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void SetLegacyArrayFormula(string a1Range, string formula) {
+        internal void SetLegacyArrayFormula(string a1Range, string formula, System.Threading.CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula);
             int r2;
@@ -601,6 +617,7 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 for (int row = r1; row <= r2; row++) {
                     for (int column = c1; column <= c2; column++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         var member = GetCell(row, column);
                         ClearCellValueMetadata(member);
                         if (row != r1 || column != c1) member.CellFormula = null;
@@ -688,6 +705,7 @@ namespace OfficeIMO.Excel {
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") return TryEvaluateScalarMathValue(function, args, out result);
                     if (function is "GCD" or "LCM") return TryEvaluateIntegerAggregateValue(function, args, out result);
                     if (function == "PROB") return TryEvaluateProbabilityValue(args, out result);
+                    if (function == "SUMPRODUCT") return TryEvaluateSumProductValue(args, out result);
                     if (function is "IPMT" or "PPMT") return TryEvaluatePaymentSplitValue(function, args, out result);
                     if (function is "RATE" or "IRR" or "XIRR" or "XNPV") return TryEvaluateCashFlowValue(function, args, out result);
                     if (function == "RANDBETWEEN") return TryEvaluateRandomBetweenValue(args, out result);
@@ -969,7 +987,8 @@ namespace OfficeIMO.Excel {
 
 
                     bool numericReferencesOnly = function is "SUM" or "AVERAGE" or "MIN" or "MAX" or "COUNT" or "PRODUCT" or "MEDIAN" or "SUMSQ";
-                    var numbers = values.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
+                    var numericValues = numericReferencesOnly ? values : values.Select(NormalizeLookupResult);
+                    var numbers = numericValues.Where(v => v.Number.HasValue && (!numericReferencesOnly || v.IsNumericAggregateValue))
                         .Select(v => v.Number!.Value).ToList();
                     if (function == "COUNT") {
                         result = numbers.Count;

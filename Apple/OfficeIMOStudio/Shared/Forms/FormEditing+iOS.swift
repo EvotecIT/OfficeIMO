@@ -8,6 +8,7 @@ import UIKit
 final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDelegate, UITextViewDelegate {
     private let session: DocumentSession
     private unowned let scrollView: PageScrollView
+    private var keyboardFrame: CGRect?
     private let tap = UITapGestureRecognizer()
     /// The field being typed in: its page, field and widget, and the control over it.
     private var editing: (page: Int, field: FormField, widget: FormField.Widget, control: UIView)?
@@ -20,7 +21,8 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         tap.require(toFail: scrollView.doubleTap)
         tap.delegate = self
         scrollView.addGestureRecognizer(tap)
-        NotificationCenter.default.addObserver(self, selector: #selector(keyboardShown), name: UIResponder.keyboardDidShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardShown(_:)), name: UIResponder.keyboardDidShowNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardHidden), name: UIResponder.keyboardDidHideNotification, object: nil)
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -89,7 +91,7 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
     private func beginTyping(page: Int, field: FormField, widget: FormField.Widget) {
         guard editing?.field.name != field.name else { return }
         let control: UIView
-        if field.multiline {
+        if field.multiline && !field.password {
             let view = UITextView()
             view.text = field.text
             view.delegate = self
@@ -100,6 +102,7 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
             let text = UITextField()
             text.text = field.text
             text.delegate = self
+            // UIKit has no secure UITextView. Password wins over the PDF's multiline flag.
             text.isSecureTextEntry = field.password
             text.returnKeyType = .done
             text.clearButtonMode = .whileEditing
@@ -119,6 +122,8 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         editing = (page, field, widget, control)
         layout()
         control.becomeFirstResponder()
+        // Moving between fields keeps the keyboard up, so no new notification follows.
+        liftAboveKeyboard()
     }
 
     /// Tells the keyboard and AutoFill what the field asks for.
@@ -169,10 +174,28 @@ final class FormController: NSObject, UIGestureRecognizerDelegate, UITextFieldDe
         if commit, text != current.field.text { session.setField(current.field, values: [text]) }
     }
 
-    @objc private func keyboardShown() {
-        // The keyboard may cover the field; the page scrolls it back into view.
-        guard let editing else { return }
-        session.reveal(page: editing.page, rect: editing.widget.bounds.cgRect.insetBy(dx: 0, dy: -24))
+    @objc private func keyboardShown(_ notification: Notification) {
+        keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        liftAboveKeyboard()
+    }
+
+    @objc private func keyboardHidden() {
+        keyboardFrame = nil
+        scrollView.keyboardInset = 0
+    }
+
+    /// The keyboard may cover the field. Room under the pages lets a field near the end scroll above it. The keyboard
+    /// reports screen coordinates, and only a docked one reaches the bottom of the view; a floating one needs no room.
+    private func liftAboveKeyboard() {
+        guard let editing, let window = scrollView.window, let keyboardFrame else { return }
+        let keyboard = window.screen.coordinateSpace.convert(keyboardFrame, to: window)
+        let view = window.convert(scrollView.bounds, from: scrollView)
+        scrollView.keyboardInset = keyboard.intersects(view) && keyboard.maxY >= view.maxY ? view.maxY - keyboard.minY : 0
+        let field = window.convert(editing.control.bounds, from: editing.control)
+        if field.intersects(keyboard) {
+            let offset = CGPoint(x: scrollView.contentOffset.x, y: scrollView.contentOffset.y + field.maxY + 24 - keyboard.minY)
+            scrollView.setContentOffset(offset, animated: true)
+        }
     }
 
     // MARK: Choices

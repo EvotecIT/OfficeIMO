@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Text;
 
 namespace OfficeIMO.Drawing;
@@ -13,6 +14,7 @@ public static partial class OfficeTextLayoutEngine {
     internal const int MaximumLayoutTextCharacters = 100_000;
     internal const int MaximumLayoutLines = 4_096;
     internal const int MaximumLayoutTextRuns = 4_096;
+    private const long MaximumWrapMeasurementCharacters = 20_000_000;
     private const int MaximumExhaustiveEllipsisElements = 256;
 
     /// <summary>
@@ -65,6 +67,17 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
+        long measuredCharacters = 0;
+        double BoundedMeasure(string? candidate, double size) {
+            int length = candidate?.Length ?? 0;
+            if (length > MaximumWrapMeasurementCharacters - measuredCharacters) {
+                throw new InvalidDataException("Text wrapping exceeds the measurement work limit.");
+            }
+
+            measuredCharacters += length;
+            return measure(candidate, size);
+        }
+
         string expanded = ExpandTabs(bounded);
         string value = LimitLayoutText(expanded, out bool expandedTruncated);
         clipped = inputTruncated || expandedTruncated;
@@ -91,7 +104,7 @@ public static partial class OfficeTextLayoutEngine {
                 double currentWidth = Math.Max(0D, width - currentOffset);
                 if (token.IsWhitespace) {
                     if (current.Length == 0) {
-                        if (Measure(token.Text, fontSize, measure) <= currentWidth) {
+                        if (Measure(token.Text, fontSize, BoundedMeasure) <= currentWidth) {
                             current = token.Text;
                         }
 
@@ -99,14 +112,14 @@ public static partial class OfficeTextLayoutEngine {
                     }
 
                     string whitespaceCandidate = current + token.Text;
-                    if (Measure(whitespaceCandidate, fontSize, measure) <= currentWidth) {
+                    if (Measure(whitespaceCandidate, fontSize, BoundedMeasure) <= currentWidth) {
                         current = whitespaceCandidate;
                     }
 
                     continue;
                 }
 
-                if (Measure(token.Text, fontSize, measure) > currentWidth) {
+                if (Measure(token.Text, fontSize, BoundedMeasure) > currentWidth) {
                     string emitted = TrimTrailingSoftWrapWhitespace(current);
                     if (emitted.Length > 0) {
                         if (output.Count >= MaximumLayoutLines) {
@@ -114,12 +127,12 @@ public static partial class OfficeTextLayoutEngine {
                             return output;
                         }
 
-                        output.Add(CreateMeasuredLine(emitted, fontSize, measure, currentOffset));
+                        output.Add(CreateMeasuredLine(emitted, fontSize, BoundedMeasure, currentOffset));
                         firstVisualLine = false;
                     }
 
                     current = string.Empty;
-                    foreach (OfficeTextLine part in BreakWord(token.Text, fontSize, width, measure, indent, firstVisualLine)) {
+                    foreach (OfficeTextLine part in BreakWord(token.Text, fontSize, width, BoundedMeasure, indent, firstVisualLine)) {
                         if (output.Count >= MaximumLayoutLines) {
                             clipped = true;
                             return output;
@@ -133,7 +146,7 @@ public static partial class OfficeTextLayoutEngine {
                 }
 
                 string candidate = current + token.Text;
-                if (current.Length > 0 && Measure(candidate, fontSize, measure) > currentWidth) {
+                if (current.Length > 0 && Measure(candidate, fontSize, BoundedMeasure) > currentWidth) {
                     string emitted = TrimTrailingSoftWrapWhitespace(current);
                     if (emitted.Length > 0) {
                         if (output.Count >= MaximumLayoutLines) {
@@ -141,7 +154,7 @@ public static partial class OfficeTextLayoutEngine {
                             return output;
                         }
 
-                        output.Add(CreateMeasuredLine(emitted, fontSize, measure, currentOffset));
+                        output.Add(CreateMeasuredLine(emitted, fontSize, BoundedMeasure, currentOffset));
                         firstVisualLine = false;
                     }
 
@@ -159,7 +172,7 @@ public static partial class OfficeTextLayoutEngine {
                         return output;
                     }
 
-                    output.Add(CreateMeasuredLine(emitted, fontSize, measure, ResolveLineOffset(indent, firstVisualLine)));
+                    output.Add(CreateMeasuredLine(emitted, fontSize, BoundedMeasure, ResolveLineOffset(indent, firstVisualLine)));
                 }
             }
         }

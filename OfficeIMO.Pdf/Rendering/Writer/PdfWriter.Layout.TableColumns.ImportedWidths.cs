@@ -73,6 +73,7 @@ internal static partial class PdfWriter {
         // whole when finding a table minimum. Generic technical-token wrapping
         // remains independent of this imported-grid policy.
         int[] hyphens = GetValidHyphenationBreakpoints(text, options);
+        var hyphenPoints = new System.Collections.Generic.HashSet<int>(hyphens);
         int[] points = GetValidSoftLineBreakpoints(text, options)
             .Concat(hyphens)
             .Concat(OfficeIMO.Drawing.OfficeTextLineBreaks.GetBreakPositions(text)
@@ -80,12 +81,24 @@ internal static partial class PdfWriter {
             .Distinct().OrderBy(point => point).Concat(new[] { text.Length }).ToArray();
         double minimum = 0D;
         int start = 0;
+        int firstSegment = 0;
+        int firstSegmentStart = 0;
         foreach (int end in points) {
-            int segmentStart = 0;
+            // Retain the first segment that can overlap this chunk. Advancing it
+            // across chunks keeps many breakpoints and many runs linear.
+            while (firstSegment < segments.Count) {
+                RichSeg skipped = segments[firstSegment];
+                int skippedEnd = firstSegmentStart + skipped.Text.Length;
+                if (skippedEnd > start || skipped.Text.Length == 0 && firstSegmentStart >= start) break;
+                firstSegmentStart = skippedEnd;
+                firstSegment++;
+            }
+            int segmentStart = firstSegmentStart;
             double width = 0D;
             bool hasTextSpacer = false;
             RichSeg? lastSegment = null;
-            foreach (RichSeg segment in segments) {
+            for (int segmentIndex = firstSegment; segmentIndex < segments.Count && segmentStart < end; segmentIndex++) {
+                RichSeg segment = segments[segmentIndex];
                 int left = Math.Max(start, segmentStart);
                 int right = Math.Min(end, segmentStart + segment.Text.Length);
                 if (right > left) {
@@ -100,7 +113,7 @@ internal static partial class PdfWriter {
                 }
                 segmentStart += segment.Text.Length;
             }
-            if (end < text.Length && Array.IndexOf(hyphens, end) >= 0 && lastSegment != null)
+            if (end < text.Length && hyphenPoints.Contains(end) && lastSegment != null)
                 width += MeasureRichText("-", lastSegment.Font, lastSegment.NamedFont,
                     lastSegment.FontSize, lastSegment.Baseline, options, lastSegment.FeatureSettings, lastSegment.HorizontalTextScaling, lastSegment.CharacterSpacing);
             // Only the chunk containing the marker spacer occupies the hanging

@@ -1,3 +1,4 @@
+using System;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -115,6 +116,23 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(6, 5));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(23, 17));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(26, 17));
+    }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_BoundsRepeatedNestedTextPlanning() {
+        var drawing = new OfficeDrawing(8D, 8D);
+        OfficeShape shape = OfficeShape.Rectangle(8D, 8D);
+        shape.FillColor = OfficeColor.Blue;
+        drawing.AddShape(shape, 0D, 0D);
+        for (int depth = 0; depth < 20; depth++) {
+            var outer = new OfficeDrawing(8D, 8D);
+            outer.AddEffectDrawing(drawing, OfficeTransform.Scale(.99D, .99D));
+            drawing = outer;
+        }
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            OfficeDrawingRasterRenderer.Render(drawing));
+        Assert.Contains("Effect text planning", exception.Message);
     }
 
     [Theory]

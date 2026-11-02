@@ -50,7 +50,7 @@ internal static partial class PdfTaggedPageOrganizer {
         if (!catalog.Items.TryGetValue("StructTreeRoot", out var rootValue) || PdfObjectLookup.Resolve(objects, rootValue) is not PdfDictionary root) return;
         var projected = new Dictionary<int, int>(); var visited = new HashSet<int>();
         var ids = new Dictionary<string, PdfStringObj>(StringComparer.Ordinal);
-        string idPrefix = UniqueStructureIdPrefix(objects, "copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":");
+        string idPrefix = UniqueStructureIdPrefix(objects, "copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":", token);
         PdfObject? Project(PdfObject value, int? inheritedPage, PdfObject parent, int depth) {
             token.ThrowIfCancellationRequested();
             if (depth > 256) throw new InvalidOperationException("Page copying exceeded the structure nesting limit.");
@@ -139,17 +139,46 @@ internal static partial class PdfTaggedPageOrganizer {
         int copiedPage, CancellationToken token) {
         if (!catalog.Items.TryGetValue("AcroForm", out var value) || PdfObjectLookup.Resolve(objects, value) is not PdfDictionary form ||
             !form.Items.TryGetValue("Fields", out var fieldsValue) || PdfObjectLookup.Resolve(objects, fieldsValue) is not PdfArray fields) return;
-        var names = new HashSet<string>(fields.Items.Select(item => (PdfObjectLookup.Resolve(objects, item) as PdfDictionary)?.Get<PdfStringObj>("T")?.Value ?? string.Empty), StringComparer.Ordinal);
+        var names = new HashSet<string>(fields.Items.Select(item => (PdfObjectLookup.Resolve(objects, item) is PdfDictionary root ? ReadFieldName(root) : null) ?? string.Empty), StringComparer.Ordinal);
+        string? ReadFieldName(PdfDictionary definition) =>
+            definition.Items.TryGetValue("T", out var name) ? (PdfObjectLookup.Resolve(objects, name) as PdfStringObj)?.Value : null;
+        // An unnamed nonterminal adds nothing to the qualified name, so its named descendants carry the copy suffix.
+        void RenameCopiedField(PdfReference field, HashSet<int> visited) {
+            token.ThrowIfCancellationRequested();
+            if (!visited.Add(field.ObjectNumber) || PdfObjectLookup.Resolve(objects, field) is not PdfDictionary definition)
+                throw new InvalidOperationException("Copying a cyclic form field hierarchy is not supported.");
+            if (ReadFieldName(definition) is { Length: > 0 } name) {
+                string copiedName = name + "_copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                while (!names.Add(copiedName)) copiedName += "_";
+                definition.Items["T"] = new PdfStringObj(copiedName, true);
+                return;
+            }
+            PdfReference[] children = definition.Items.TryGetValue("Kids", out var kids) && PdfObjectLookup.Resolve(objects, kids) is PdfArray array
+                ? array.Items.OfType<PdfReference>().ToArray() : Array.Empty<PdfReference>();
+            if (children.Length == 0) throw new InvalidOperationException("Copying an unnamed form field is not supported.");
+            foreach (PdfReference child in children) RenameCopiedField(child, visited);
+        }
+
         foreach (var original in fields.Items.ToArray()) {
             if (original is not PdfReference root || !copies.TryGetValue(root.ObjectNumber, out int number)) continue;
             var reference = new PdfReference(number, 0);
             if (!Retain(reference, new HashSet<int>())) continue;
-            var dictionary = (PdfDictionary)objects[number].Value;
-            if (dictionary.Get<PdfStringObj>("T") is not PdfStringObj name) throw new InvalidOperationException("Copying an unnamed form field is not supported.");
-            string copiedName = name.Value + "_copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            while (!names.Add(copiedName)) copiedName += "_";
-            dictionary.Items["T"] = new PdfStringObj(copiedName, true);
+            RenameCopiedField(reference, new HashSet<int>());
             fields.Items.Add(reference);
+            if (form.Items.TryGetValue("CO", out var order) && PdfObjectLookup.Resolve(objects, order) is PdfArray calculations) {
+                var retained = new HashSet<int>();
+                Collect(reference);
+                foreach (var item in calculations.Items.ToArray())
+                    if (item is PdfReference calculation && copies.TryGetValue(calculation.ObjectNumber, out int mapped) && retained.Contains(mapped))
+                        calculations.Items.Add(new PdfReference(mapped, objects[mapped].Generation));
+                void Collect(PdfObject item) {
+                    token.ThrowIfCancellationRequested();
+                    if (item is not PdfReference field || !retained.Add(field.ObjectNumber) ||
+                        PdfObjectLookup.Resolve(objects, field) is not PdfDictionary definition) return;
+                    if (definition.Items.TryGetValue("Kids", out var kids) && PdfObjectLookup.Resolve(objects, kids) is PdfArray children)
+                        foreach (var child in children.Items) Collect(child);
+                }
+            }
         }
         bool Retain(PdfObject item, HashSet<int> visited) {
             token.ThrowIfCancellationRequested();
@@ -157,6 +186,7 @@ internal static partial class PdfTaggedPageOrganizer {
                 throw new InvalidOperationException("Copying requires an unambiguous AcroForm field tree.");
             if (dictionary.Items.ContainsKey("AA")) throw new InvalidOperationException("Copying form fields with automatic actions requires an explicit field-name policy.");
             if (dictionary.Get<PdfName>("Subtype")?.Name == "Widget" && dictionary.Get<PdfReference>("P")?.ObjectNumber != copiedPage) return false;
+            if (dictionary.Items.ContainsKey("A")) throw new InvalidOperationException("Copying form fields with actions requires an explicit field-name policy.");
             if (dictionary.Items.TryGetValue("Kids", out var kidsValue) && PdfObjectLookup.Resolve(objects, kidsValue) is PdfArray kids) {
                 kids.Items.RemoveAll(child => !Retain(child, visited)); return kids.Items.Count > 0;
             }

@@ -4,10 +4,11 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool HasVisibleNativeHeaderFooterFieldResult(W.FieldChar separator, WordParagraph paragraph) =>
-            TryGetVisibleNativeHeaderFooterFieldResult(separator, paragraph, out _);
+        private const int MaxNativeHeaderFooterFieldScanElements = 65_536;
+        private const int MaxNativeHeaderFooterFieldDepth = 256;
 
-        private static bool TryGetVisibleNativeHeaderFooterFieldResult(W.FieldChar separator, WordParagraph paragraph, out W.Run? resultRun) {
+        private static bool TryGetVisibleNativeHeaderFooterFieldResult(W.FieldChar separator, WordParagraph paragraph,
+            ref int scannedElements, out W.Run? resultRun) {
             resultRun = null;
             OpenXmlElement story = GetNativeHeaderFooterFieldStory(separator);
             int depth = 1;
@@ -15,8 +16,11 @@ namespace OfficeIMO.Word.Pdf {
             W.Run? endingRun = null;
             for (OpenXmlElement? element = NextNativeHeaderFooterFieldElement(separator, story); element != null;
                  element = NextNativeHeaderFooterFieldElement(element, story)) {
+                if (++scannedElements > MaxNativeHeaderFooterFieldScanElements)
+                    throw new System.IO.InvalidDataException("Header or footer field results exceed the supported scan limit.");
                 if (element is W.FieldChar marker) {
-                    if (marker.FieldCharType?.Value == W.FieldCharValues.Begin) depth++;
+                    if (marker.FieldCharType?.Value == W.FieldCharValues.Begin && ++depth > MaxNativeHeaderFooterFieldDepth)
+                        throw new System.IO.InvalidDataException("Header or footer fields exceed the supported nesting limit.");
                     else if (marker.FieldCharType?.Value == W.FieldCharValues.End && --depth == 0) {
                         endingRun = marker.Ancestors<W.Run>().FirstOrDefault();
                         break;
@@ -47,10 +51,14 @@ namespace OfficeIMO.Word.Pdf {
             OpenXmlElement story = GetNativeHeaderFooterFieldStory(begin);
             var code = new StringBuilder();
             int depth = 1;
+            int scannedElements = 0;
             for (OpenXmlElement? element = NextNativeHeaderFooterFieldElement(begin, story); element != null && !ReferenceEquals(element, paragraph);
                  element = NextNativeHeaderFooterFieldElement(element, story)) {
+                if (++scannedElements > MaxNativeHeaderFooterFieldScanElements)
+                    throw new System.IO.InvalidDataException("Header or footer field instructions exceed the supported scan limit.");
                 if (element is W.FieldChar marker) {
-                    if (marker.FieldCharType?.Value == W.FieldCharValues.Begin) depth++;
+                    if (marker.FieldCharType?.Value == W.FieldCharValues.Begin && ++depth > MaxNativeHeaderFooterFieldDepth)
+                        throw new System.IO.InvalidDataException("Header or footer fields exceed the supported nesting limit.");
                     else if (marker.FieldCharType?.Value == W.FieldCharValues.End && --depth == 0) break;
                     else if (depth == 1 && marker.FieldCharType?.Value == W.FieldCharValues.Separate) break;
                 } else if (depth == 1 && element is W.FieldCode instruction) code.Append(instruction.Text);

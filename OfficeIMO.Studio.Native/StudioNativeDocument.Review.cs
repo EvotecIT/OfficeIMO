@@ -40,7 +40,8 @@ internal sealed partial class StudioNativeDocument {
                 : crypto.MathematicalSignatureStatus == PdfCryptographicValidationStatus.Valid && crypto.MessageDigestStatus == PdfCryptographicValidationStatus.Valid
                     ? (crypto.CertificateChainStatus == PdfCryptographicValidationStatus.Valid ? "valid" : "intact")
                 : "unknown";
-            return new StudioNativeSignature(result.Signature.SignerName ?? Subject(crypto?.SignerSubject), result.Signature.FieldName,
+            // PDF /Name is authored metadata, not the identity from the CMS certificate.
+            return new StudioNativeSignature(Subject(crypto?.SignerSubject), result.Signature.FieldName,
                 (crypto?.SigningTime)?.ToString("o", CultureInfo.InvariantCulture) ?? result.Signature.SigningTimeRaw,
                 result.Signature.Reason, result.Signature.Location, status, result.ByteRangeCoversEndOfFile,
                 crypto is null ? null : Status(crypto.CertificateChainStatus), crypto is null ? null : Status(crypto.TimestampStatus),
@@ -204,11 +205,13 @@ internal sealed partial class StudioNativeDocument {
         } finally { _gate.Release(); }
     }
 
-    // Matches the found text's own glyphs, as Preview's redaction does, rather than the whole block it sits in.
+    // Matches the found text's own glyphs, as Preview's redaction does, unless the user chose whole blocks because the
+    // glyphs can't be removed without touching their neighbours.
     private Task<IReadOnlyList<PdfRedactionCandidate>> FindRedactionsAsync(StudioNativeRedactionFind find, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(find.Text)) throw new ArgumentException("Enter the text to find.", nameof(find));
         IReadOnlyCollection<int>? pages = find.Pages is { Count: > 0 } chosen ? RequirePages(chosen) : null;
-        return _workspace.SearchRedactionMarksAsync(find.Text, find.Regex, find.MatchCase, pages, cancellationToken, PdfRedactionTextSelection.MatchedGlyphs);
+        return _workspace.SearchRedactionMarksAsync(find.Text, find.Regex, find.MatchCase, pages, cancellationToken,
+            find.WholeBlocks ? PdfRedactionTextSelection.LogicalBlocks : PdfRedactionTextSelection.MatchedGlyphs);
     }
 }
 
@@ -232,7 +235,7 @@ internal sealed record StudioNativeCheckResult(int AbiVersion, long Revision, St
 /// <summary>A health copy at <c>path</c>; <c>profile</c> chooses an optimization: balanced (default), smallest, web or archival.</summary>
 internal sealed record StudioNativeHealthCopy(string? Path, string? Profile = null);
 
-internal sealed record StudioNativeRedactionFind(string? Text, bool Regex = false, bool MatchCase = false, IReadOnlyList<int>? Pages = null);
+internal sealed record StudioNativeRedactionFind(string? Text, bool Regex = false, bool MatchCase = false, IReadOnlyList<int>? Pages = null, bool WholeBlocks = false);
 
 /// <summary>An area to redact, in points of the page as displayed; <c>preview</c> is the text a search found there.</summary>
 internal sealed record StudioNativeRedactionMark(int Page, StudioNativeRectangle? Bounds, string? Preview = null);

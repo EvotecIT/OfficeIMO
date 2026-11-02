@@ -38,7 +38,7 @@ internal static class DjVuReaderAdapter {
         var links = new List<OfficeDocumentLink>();
         metadata.Add(new OfficeDocumentMetadataEntry { Id = "djvu-page-count", Category = "reader.container", Name = "PageCount",
             Value = document.Pages.Count.ToString(CultureInfo.InvariantCulture), ValueType = "count" });
-        long assetBytes = 0, chunkCharacters = 0;
+        long assetBytes = 0, chunkCharacters = 0, blockCharacters = 0;
         foreach (var page in DjVuPageSelection.Select(document, options.PageNumbers, options.ReadOptions.MaxPages, token)) {
             token.ThrowIfCancellationRequested();
             int pageOrder = pages.Count + 1;
@@ -60,6 +60,10 @@ internal static class DjVuReaderAdapter {
             foreach (var zone in WordZones(text.Zones)) {
                 token.ThrowIfCancellationRequested();
                 Check(blocks.Count + 1L, limits?.MaxBlocks, nameof(ReaderResourceLimits.MaxBlocks));
+                // Sibling zones may overlap. Bound their retained strings before copying,
+                // independently of the compact native text layer and chunk projections.
+                Check(blockCharacters + zone.CharacterLength, options.ReadOptions.MaxTextCharacters, nameof(DjVuReadOptions.MaxTextCharacters));
+                blockCharacters += zone.CharacterLength;
                 var display = page.GetDisplayBounds(zone.Bounds);
                 var block = new OfficeDocumentBlock { Id = "djvu-page-" + page.Number + "-word-" + pageBlocks.Count, Kind = "word",
                     Text = text.Text.Substring(zone.CharacterOffset, zone.CharacterLength),
@@ -69,6 +73,8 @@ internal static class DjVuReaderAdapter {
             }
             if (pageBlocks.Count == 0 && text.Text.Length != 0) {
                 Check(blocks.Count + 1L, limits?.MaxBlocks, nameof(ReaderResourceLimits.MaxBlocks));
+                Check(blockCharacters + text.Text.Length, options.ReadOptions.MaxTextCharacters, nameof(DjVuReadOptions.MaxTextCharacters));
+                blockCharacters += text.Text.Length;
                 var block = new OfficeDocumentBlock { Id = "djvu-page-" + page.Number + "-text", Kind = "paragraph", Text = text.Text, Location = location };
                 blocks.Add(block); pageBlocks.Add(block);
             }

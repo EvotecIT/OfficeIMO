@@ -19,6 +19,7 @@ internal static partial class PdfFormFiller {
         HashSet<string> remaining,
         HashSet<int> visited,
         ref int nextObjectNumber,
+        int maximumVisibleTextCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (fieldObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
@@ -39,7 +40,7 @@ internal static partial class PdfFormFiller {
         string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out PdfFormFieldValue? value)) {
-            SetFieldValue(objects, field, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, value, options, ref nextObjectNumber, cancellationToken);
+            SetFieldValue(objects, field, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, value, options, ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken);
             remaining.Remove(fullName);
         }
 
@@ -49,11 +50,11 @@ internal static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, fieldValues, options, remaining, visited, ref nextObjectNumber, cancellationToken);
+            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, fieldValues, options, remaining, visited, ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken);
         }
     }
 
-    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string fieldName, string? fieldType, int fieldFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, PdfArray? choiceOptions, PdfFormFieldValue value, PdfFormFillerOptions? options, ref int nextObjectNumber, CancellationToken cancellationToken = default) {
+    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string fieldName, string? fieldType, int fieldFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, PdfArray? choiceOptions, PdfFormFieldValue value, PdfFormFillerOptions? options, ref int nextObjectNumber, int maximumVisibleTextCharacters, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
@@ -80,7 +81,8 @@ internal static partial class PdfFormFiller {
                 PdfObject? selectedValue = ResolveObject(objects, field.Items.TryGetValue("V", out PdfObject? v) ? v : null);
                 PdfArray? indices = ResolveObject(objects, field.Items.TryGetValue("I", out PdfObject? i) ? i : null) as PdfArray;
                 int top = field.Get<PdfNumber>("TI") is PdfNumber number && number.Value >= 0 && number.Value <= int.MaxValue ? (int)number.Value : 0;
-                return ReadChoiceAppearanceData(objects, choiceOptions, selectedValue, indices, top, fieldFlags, cancellationToken);
+                return ReadChoiceAppearanceData(objects, choiceOptions, selectedValue, indices, top, fieldFlags,
+                    maximumVisibleTextCharacters, cancellationToken);
             }
             bool isMultiSelectChoice = (fieldFlags & MultiSelectChoiceFlag) != 0;
             if (values.Count > 1 && !isMultiSelectChoice) {
@@ -94,7 +96,7 @@ internal static partial class PdfFormFiller {
             if (values.Count == 1 && values[0].Length == 0 && !selectsExplicitEmptyOption) {
                 field.Items["V"] = isMultiSelectChoice ? new PdfArray() : new PdfStringObj(string.Empty, useTextStringEncoding: true);
                 field.Items.Remove("I");
-                SetTextWidgetAppearances(objects, field, string.Empty, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, isMultiSelectChoice, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
+                SetTextWidgetAppearances(objects, field, string.Empty, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, isMultiSelectChoice, options, new HashSet<int>(), ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
                 return;
             }
 
@@ -111,18 +113,18 @@ internal static partial class PdfFormFiller {
             SetChoiceSelectionIndices(field, fieldFlags, choiceValues);
             if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
-                SetTextWidgetAppearances(objects, field, string.Join("\n", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, true, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
+                SetTextWidgetAppearances(objects, field, string.Join("\n", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, true, options, new HashSet<int>(), ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
                 return;
             }
 
             ChoiceFillValue choiceValue = choiceValues[0];
             field.Items["V"] = new PdfStringObj(choiceValue.ExportValue, useTextStringEncoding: true);
-            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
+            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken: cancellationToken, choiceAppearance: ReadFilledChoiceAppearance());
             return;
         }
 
         field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
-        SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, cancellationToken: cancellationToken);
+        SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber, maximumVisibleTextCharacters, cancellationToken: cancellationToken);
     }
 
     private static void SetChoiceSelectionIndices(PdfDictionary field, int fieldFlags, IReadOnlyList<ChoiceFillValue> values) {

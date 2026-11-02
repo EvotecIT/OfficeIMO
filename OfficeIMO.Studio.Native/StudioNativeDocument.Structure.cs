@@ -351,7 +351,7 @@ internal sealed partial class StudioNativeDocument {
         bool allowed = format == "text" ? _workspace.ViewInfo.CanExtractText : _workspace.ViewInfo.CanExtractContent;
         if (!allowed) throw new NotSupportedException("This document doesn't allow its content to be copied.");
         if (PdfConversion.PdfTargets.ContainsKey(format)) {
-            PdfConversionResult result = await PdfConversion.ConvertPdfAsync(_workspace.CopyBytes(), _workspace.ReadOptions?.Password, format,
+            PdfConversionResult result = await PdfConversion.ConvertPdfAsync(_workspace.CopyBytes(), _workspace.ReadOptions, format,
                 Path.GetFullPath(export.Path), cancellationToken).ConfigureAwait(false);
             string? notes = result.Notes.Count == 0 ? null : string.Join("\n", result.Notes.Select(static note => note.Message).Distinct(StringComparer.Ordinal));
             return ([export.Path], notes);

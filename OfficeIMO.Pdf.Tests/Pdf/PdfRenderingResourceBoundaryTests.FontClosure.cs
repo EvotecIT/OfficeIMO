@@ -70,6 +70,62 @@ public sealed partial class PdfRenderingResourceBoundaryTests {
         Assert.Null(PdfType1FontConverter.TryReadBuiltinEncoding(data));
     }
 
+    [Fact]
+    public void OversizedType1EncodingNameIsRejectedBeforeTextDecoding() {
+        byte[] data = Type1(new byte[] { 14 },
+            "/Encoding 256 array dup 65 /" + new string('Z', 4096) + " put def");
+
+        Assert.Null(PdfType1FontConverter.TryReadBuiltinEncoding(data));
+    }
+
+    [Fact]
+    public void RepeatedUnknownType1EncodingNameUsesTheFallbackConsistently() {
+        byte[] data = Type1(new byte[] { 14 },
+            "/Encoding 256 array dup 65 /" + new string('Z', 4095) + " put def");
+        PdfFontResource resource = ResourceResolver.CreateFontResource("F", Type1Resource(data),
+            new Dictionary<int, PdfIndirectObject>());
+        byte[] repeated = Enumerable.Repeat((byte)65, 20_000).ToArray();
+
+        Assert.Equal(new string('A', repeated.Length), ResourceResolver.CreateBudgetedDecoder(resource)(repeated, repeated.Length));
+        Assert.Equal(PdfTextDecodingSource.WinAnsiFallback,
+            ResourceResolver.GetDecodingEvidence(resource, repeated, null).Source);
+        Assert.Throws<PdfUnsupportedTextMappingException>(() =>
+            ResourceResolver.CreateBudgetedDecoder(resource, preferToUnicode: true, useWinAnsiFallback: false)(repeated, repeated.Length));
+    }
+
+    [Fact]
+    public void RepeatedType1TextRunsShareMappingsAcrossDifferencesAndPolicies() {
+        byte[] data = Type1(new byte[] { 14 },
+            "/Encoding 256 array dup 65 /" + new string('Z', 4095) + " put def");
+        PdfDictionary font = Type1Resource(data);
+        var differences = new PdfDictionary();
+        differences.Items["Differences"] = new PdfArray { Items = { new PdfNumber(66), new PdfName("B") } };
+        font.Items["Encoding"] = differences;
+        var baseFonts = new PdfDictionary(); baseFonts.Items["F"] = font;
+        var aliasFonts = new PdfDictionary(); aliasFonts.Items["Alias"] = font;
+        var baseResources = new PdfDictionary(); baseResources.Items["Font"] = baseFonts;
+        var aliasResources = new PdfDictionary(); aliasResources.Items["Font"] = aliasFonts;
+        var graph = new Dictionary<int, PdfIndirectObject>();
+        var cache = new PdfFontResourceCache();
+        PdfFontResource resource = cache.GetOrCreate(baseResources, graph).Fonts["F"];
+        Func<byte[], int, string> defaultDecoder = ResourceResolver.CreateBudgetedDecoder(resource);
+        byte[] run = { 65, 66 };
+
+        for (int index = 0; index < 32; index++) {
+            PdfFontResource alias = cache.GetOrCreate(aliasResources, graph).Fonts["Alias"];
+            Assert.Same(resource.BuiltinEncodingSource, alias.BuiltinEncodingSource);
+            Func<byte[], int, string> strictDecoder = ResourceResolver.CreateBudgetedDecoder(alias,
+                preferToUnicode: true, useWinAnsiFallback: false);
+            Assert.Equal("AB", defaultDecoder(run, 2));
+            Assert.Equal(PdfTextDecodingSource.WinAnsiFallback,
+                ResourceResolver.GetDecodingEvidence(alias, run, null).Source);
+            Assert.Equal(PdfTextDecodingSource.Unmappable,
+                ResourceResolver.GetDecodingEvidence(alias, run, null,
+                    preferToUnicode: true, useWinAnsiFallback: false).Source);
+            Assert.Throws<PdfUnsupportedTextMappingException>(() => strictDecoder(run, 2));
+        }
+    }
+
     [Theory]
     [InlineData(".notdef")]
     [InlineData("missingglyph")]

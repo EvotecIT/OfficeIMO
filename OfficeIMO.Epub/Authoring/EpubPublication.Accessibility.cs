@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Epub;
 
 public sealed partial class EpubPublication {
@@ -46,8 +48,10 @@ public sealed partial class EpubPublication {
 
     private void ReplaceAccessibilityValues(XElement metadata, string property, string[] values) {
         XElement root = metadata.Document!.Root!;
+        IReadOnlyDictionary<string, string> prefixes = EpubVocabulary.ReadPrefixes((string?)root.Attribute("prefix") ?? string.Empty);
         XElement[] existing = metadata.Elements(Opf + "meta").Where(element => element.Attribute("refines") == null &&
-            EpubVocabulary.Expand(root, (string?)element.Attribute("property") ?? string.Empty) == SchemaVocabulary + property).ToArray();
+            EpubVocabulary.Matches(prefixes, (string?)element.Attribute("property") ?? string.Empty,
+                SchemaVocabulary, property)).ToArray();
         foreach (XElement removed in existing.Skip(values.Length)) {
             string? id = (string?)removed.Attribute("id");
             if (id != null && root.Descendants().Attributes("refines").Any(attribute => ReferencesPackageId(attribute.Value, id)))
@@ -60,16 +64,26 @@ public sealed partial class EpubPublication {
         }
     }
 
-    private EpubPreflightCheck CheckAccessibilityDiscovery() {
+    private EpubPreflightCheck CheckAccessibilityDiscovery(IReadOnlyDictionary<string, string> prefixes,
+        CancellationToken cancellationToken) {
         if (PackageVersion != "3.0") return new EpubPreflightCheck("accessibility-discovery", EpubPreflightStatus.NotChecked,
             new[] { new EpubDiagnostic { Code = "EPUB_PREFLIGHT_ACCESSIBILITY_VERSION", Severity = EpubDiagnosticSeverity.Info,
                 Message = "This discovery check inspects EPUB 3 property metadata. Review EPUB 2 accessibility metadata independently.", Path = PackagePath } });
         var findings = new List<EpubDiagnostic>();
+        var presentProperties = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement element in RequireSection("metadata").Elements(Opf + "meta")) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (element.Attribute("refines") != null || string.IsNullOrWhiteSpace(element.Value)) continue;
+            string token = (string?)element.Attribute("property") ?? string.Empty;
+            int colon = token.IndexOf(':');
+            if (colon < 0 || !prefixes.TryGetValue(token.Substring(0, colon), out string? vocabulary)
+                || vocabulary != SchemaVocabulary) continue;
+            string name = token.Substring(colon + 1);
+            if (AccessibilityProperties.Contains(name, StringComparer.Ordinal)) presentProperties.Add(name);
+        }
         for (int index = 0; index < AccessibilityProperties.Length; index++) {
             string property = AccessibilityProperties[index];
-            bool present = RequireSection("metadata").Elements(Opf + "meta").Any(element => element.Attribute("refines") == null &&
-                EpubVocabulary.Expand(Root, (string?)element.Attribute("property") ?? string.Empty) == SchemaVocabulary + property &&
-                !string.IsNullOrWhiteSpace(element.Value));
+            bool present = presentProperties.Contains(property);
             if (!present) Add(findings, "EPUB_PREFLIGHT_ACCESSIBILITY_METADATA_MISSING",
                 property == "accessModeSufficient" || property == "accessibilitySummary" ? EpubDiagnosticSeverity.Warning : EpubDiagnosticSeverity.Error,
                 "Supply reviewed schema:" + property + " discovery metadata. Do not infer accessibility or absence of hazards from a successful save.", PackagePath);

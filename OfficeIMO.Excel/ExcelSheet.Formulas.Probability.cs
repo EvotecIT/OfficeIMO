@@ -9,9 +9,9 @@ namespace OfficeIMO.Excel {
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             if (!TryResolveFormulaRange(tokens[0], out List<FormulaArgumentValue> outcomes, ref remainingCellBudget)
                 || !TryResolveFormulaRange(tokens[1], out List<FormulaArgumentValue> probabilities, ref remainingCellBudget)) return false;
-            if (!TryResolveFormulaArgument(tokens[2], out FormulaArgumentValue lower) || lower.IsUnresolvedFormula) return false;
+            if (!TryResolveFormulaValueArgument(tokens[2], out FormulaArgumentValue lower)) return false;
             FormulaArgumentValue upper = lower;
-            if (tokens.Count == 4 && (!TryResolveFormulaArgument(tokens[3], out upper) || upper.IsUnresolvedFormula)) return false;
+            if (tokens.Count == 4 && !TryResolveFormulaValueArgument(tokens[3], out upper)) return false;
             if ((!lower.IsError && !IsFiniteFormulaNumber(lower)) || (!upper.IsError && !IsFiniteFormulaNumber(upper))) return false;
             if (outcomes.Concat(probabilities).Any(value => value.IsUnresolvedFormula
                 || (!value.IsError && (!value.IsNumericAggregateValue || !IsFiniteFormulaNumber(value))))) return false;

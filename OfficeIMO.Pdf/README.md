@@ -145,6 +145,8 @@ The page-context overload supplies visible and physical page numbers, section-re
 
 A kept block or indivisible fragment can advance to a later first/even/default running-story frame that has room for it. Each actual frame is measured through normal page and column transitions; future factories are not evaluated eagerly. Static frame cycles end with the normal fitting error. Searching arbitrary page-context factories requires a finite `MaxGeneratedPages` budget, and cancellation and page limits continue to apply.
 
+A single flow spacer is limited to 1,000 page or column traversal steps and cannot exceed 1,000 configured page heights. Larger spacing fails with `InvalidDataException`. Set `MaxGeneratedPages` when the total output page count also needs a limit.
+
 Running stories are marked as pagination artifacts. Their fonts, images, drawing resources and links use the document's normal PDF resource owners. A later `Text` or `Zones` call replaces rich content for that variant.
 
 ## Page-associated footnotes
@@ -1919,6 +1921,22 @@ relationships. Repeated inputs receive separate structure identities. Plain page
 stay plain: adding them does not create accessibility tags. A primary document
 that declares PDF/UA rejects untagged additions. Validate the saved result against
 the intended profile and review its reading and navigation behavior.
+
+`Pages.Insert`, `Pages.Append`, and `Pages.Prepend` keep ordinary AcroForm fields
+live, including when the same source is imported repeatedly. Existing names stay
+unchanged; incoming collisions receive deterministic suffixes such as
+`Shared_source2` and `Shared_source2_2`. Hierarchical fields keep their real parent
+dictionaries; a colliding namespace is renamed once, so siblings remain together
+(for example, `Parent_source2.First` and `Parent_source2.Second`).
+Extraction and page organization retain surviving widgets and prune removed pages
+from field trees and calculation order. Form appearances, default resources and
+`NeedAppearances` are retained.
+
+General `Merge` keeps its historical `Forms = KeepPrimary` default, which removes
+incoming fields and widgets. Choose `Forms = PdfMergeStructureMode.Combine` to
+retain fields from every source. Tagged-form page import, XFA page rewrites, and
+renaming colliding fields with actions are refused. Signatures, DocMDP and usage
+rights retain their rewrite restrictions.
 
 When combining tagged forms, choose `Forms = PdfMergeStructureMode.Combine` and
 `FormFieldCollisions = PdfMergeCollisionMode.RenameIncoming` in `PdfMergePolicy`.

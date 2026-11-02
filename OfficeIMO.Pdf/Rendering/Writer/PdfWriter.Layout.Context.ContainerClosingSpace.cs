@@ -37,19 +37,27 @@ internal static partial class PdfWriter {
             return padding;
         }
 
-        private double GetClosingColumnGroupPadding(List<ColItem> items, int itemIndex) {
-            double padding = 0D;
-            double trailingSpacing = 0D;
-            for (int next = itemIndex + 1; next < items.Count; next++) {
-                if (items[next] is ColGroupEnd end) {
-                    double closing = GetUnreservedClosingPadding(end.Group.Style);
-                    if (closing > 0D) { padding += closing + trailingSpacing; trailingSpacing = 0D; }
-                    trailingSpacing += end.Group.Style?.SpacingAfter ?? 0D;
-                }
-                else if (items[next] is not ColBookmark) return padding;
-            }
+        private double[] BuildClosingColumnGroupPaddings(List<ColItem> items) {
+            var paddings = new double[items.Count + 1];
             double outerClosing = GetClosingContainerPadding();
-            return padding + outerClosing + (outerClosing > 0D ? trailingSpacing : 0D);
+            paddings[items.Count] = outerClosing;
+            bool absorbsTrailingSpacing = outerClosing > 0D;
+            for (int index = items.Count - 1; index >= 0; index--) {
+                if ((index & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+                if (items[index] is ColBookmark) {
+                    paddings[index] = paddings[index + 1];
+                } else if (items[index] is ColGroupEnd end) {
+                    double closing = GetUnreservedClosingPadding(end.Group.Style);
+                    double spacing = end.Group.Style?.SpacingAfter ?? 0D;
+                    paddings[index] = closing + paddings[index + 1] +
+                        (absorbsTrailingSpacing ? spacing : 0D);
+                    absorbsTrailingSpacing |= closing > 0D;
+                } else {
+                    paddings[index] = 0D;
+                    absorbsTrailingSpacing = false;
+                }
+            }
+            return paddings;
         }
 
         private double GetClosingTextPadding(double spacingAfter) {

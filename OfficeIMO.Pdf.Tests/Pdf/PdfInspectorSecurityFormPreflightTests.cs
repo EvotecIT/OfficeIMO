@@ -68,7 +68,7 @@ public partial class PdfInspectorTests {
         Assert.Empty(report.ReadBlockers);
         Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.Signatures, "Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF contains AcroForm fields; this writer requires explicit field and widget preservation.");
     }
 
     [Fact]
@@ -111,8 +111,8 @@ public partial class PdfInspectorTests {
         Assert.Equal("/Helv 11 Tf 0 g", report.DocumentInfo.FormFields[0].DefaultAppearance);
         Assert.Equal(new[] { "Name" }, report.DocumentInfo.FormFieldNames);
         Assert.Empty(report.ReadBlockers);
-        Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+        Assert.Contains("PDF contains AcroForm fields; this writer requires explicit field and widget preservation.", report.Diagnostics);
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF contains AcroForm fields; this writer requires explicit field and widget preservation.");
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public partial class PdfInspectorTests {
         Assert.Single(report.DocumentInfo.FormFields);
         Assert.Single(report.DocumentInfo.FormWidgets);
         Assert.Empty(report.ReadBlockers);
-        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.");
+        AssertRewriteBlocker(report, PdfRewriteBlockerKind.Forms, "PDF contains AcroForm fields; this writer requires explicit field and widget preservation.");
     }
 
     [Fact]

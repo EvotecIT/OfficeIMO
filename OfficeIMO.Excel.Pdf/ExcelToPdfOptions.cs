@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
+        private long _maxMaterializedWorksheetCells = 1_000_000;
         private PdfCore.PdfOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
         private long? _fontlessRenderingProfileFontConfigurationState;
@@ -228,6 +229,16 @@ namespace OfficeIMO.Excel.Pdf {
 
                 _maxRowsPerSheet = value;
             }
+        }
+
+        /// <summary>
+        /// Maximum dense worksheet positions retained across all export ranges, including empty cells.
+        /// Defaults to 1,000,000. Raise this only for trusted workbooks with sufficient memory.
+        /// </summary>
+        public long MaxMaterializedWorksheetCells {
+            get => _maxMaterializedWorksheetCells;
+            set => _maxMaterializedWorksheetCells = value > 0
+                ? value : throw new ArgumentOutOfRangeException(nameof(value));
         }
 
         /// <summary>

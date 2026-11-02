@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
@@ -124,6 +125,38 @@ public sealed class ExcelSpreadsheetXmlTests {
         Assert.Equal("Read only", imported.Sheets[0].CellAt(1, 1).GetValue<string>());
     }
 
+    [Fact]
+    public void Xml_export_preserves_source_part_limit_for_unused_shared_strings() {
+        using var source = ExcelDocument.Create();
+        source.AddWorksheet("Data").CellValue(1, 1, "safe");
+        using var package = new MemoryStream();
+        byte[] sourceBytes = source.ToBytes();
+        package.Write(sourceBytes, 0, sourceBytes.Length);
+        package.Position = 0;
+        using (var archive = new ZipArchive(package, ZipArchiveMode.Update, leaveOpen: true)) {
+            ZipArchiveEntry original = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/sharedStrings.xml"));
+            original.Delete();
+            using var text = new StreamWriter(archive.CreateEntry("xl/sharedStrings.xml").Open(), new UTF8Encoding(false));
+            text.Write("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"2\" uniqueCount=\"2\"><si><t>safe</t></si><si><t>");
+            text.Write(new string('A', 12_000));
+            text.Write("</t></si></sst>");
+        }
+        using var document = ExcelDocument.Load(new MemoryStream(package.ToArray()), new ExcelLoadOptions {
+            AccessMode = DocumentAccessMode.ReadOnly,
+            OpenSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = 4096 }
+        });
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml());
+        Assert.Contains("expanded XML", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Xml_export_checks_structure_before_materializing_package_parts() {
+        using var document = ExcelDocument.Create();
+        document.AddWorksheet("Data").CellValue(1, 1, "safe");
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxXmlElements = 2 }));
+        Assert.Contains("MaxXmlElements", error.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false, "1900-01-01T06:00:00", 1.25)]
     [InlineData(false, "1900-03-01T06:00:00", 61.25)]
@@ -176,6 +209,20 @@ public sealed class ExcelSpreadsheetXmlTests {
         Assert.Throws<OperationCanceledException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { CancellationToken = new CancellationToken(true) }));
         Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml(new() { MaxOutputBytes = 16 }));
         Assert.Throws<XmlException>(() => ExcelDocument.ImportSpreadsheetXml(Encoding.UTF8.GetBytes("<!DOCTYPE Workbook [<!ENTITY x SYSTEM 'file:///does-not-exist'>]><Workbook xmlns='" + Ss + "'>&x;</Workbook>")));
+    }
+
+    [Fact]
+    public void Defined_name_limit_and_case_insensitive_scope_uniqueness_apply_during_import() {
+        byte[] source = Workbook("<Names><NamedRange ss:Name='Rate' ss:RefersTo='=1'/></Names>" +
+            "<Worksheet ss:Name='Data'><Names><NamedRange ss:Name='Rate' ss:RefersTo='=2'/></Names></Worksheet>");
+        using var document = ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 2 }).Value;
+        Assert.Equal(2, document.OpenXmlDocument.WorkbookPart!.Workbook.DefinedNames!.ChildElements.Count);
+        Assert.Throws<InvalidDataException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 1 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 0 }));
+
+        byte[] duplicate = Workbook("<Names><NamedRange ss:Name='Rate' ss:RefersTo='=1'/>" +
+            "<NamedRange ss:Name='rate' ss:RefersTo='=2'/></Names><Worksheet ss:Name='Data'/>");
+        Assert.Throws<InvalidDataException>(() => ExcelDocument.ImportSpreadsheetXml(duplicate));
     }
 
     [Theory]
