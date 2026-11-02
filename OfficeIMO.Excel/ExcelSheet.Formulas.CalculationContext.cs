@@ -8,6 +8,8 @@ namespace OfficeIMO.Excel {
             internal HashSet<string> Stack { get; } = new(StringComparer.OrdinalIgnoreCase);
             internal Stack<FormulaEvaluationDepthFrame> DepthFrames { get; } = new();
             internal FormulaEvaluationGuardState GuardState { get; } = new();
+            internal Dictionary<string, ExcelSheet> ReferenceSheets { get; } = new(StringComparer.OrdinalIgnoreCase);
+            internal Dictionary<string, Dictionary<string, string>> CacheKeys { get; } = new(StringComparer.Ordinal);
             private SharedStringCache? _sharedStrings;
             private long _sharedStringMutationVersion;
             private FormulaDefinedNameResolutionCatalog? _definedNames;
