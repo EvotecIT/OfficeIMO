@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 using static OfficeIMO.Publisher.WriterProbe.NativePublicationGraph;
 
@@ -33,17 +34,9 @@ internal static partial class CandidateOfficeArt {
                 });
             }
             foreach (PublisherTableBorderSegment border in table.BorderSegments) {
-                OfficeBorderSide side = border.Side;
-                double scaled = Math.Round(side.Width * 12700);
-                if (side.Color.A != 255 || side.Width <= 0 || scaled > int.MaxValue || side.Width != scaled / 12700
-                    || side.DashStyle != OfficeStrokeDashStyle.Solid || side.LineKind != OfficeBorderLineKind.Single || side.DoubleLineSeparation != 0)
-                    throw new NotSupportedException("The table utility codec requires opaque solid single borders with exact positive signed-EMU widths.");
-                Add(new[] { ((ushort)0x2001, border.FirstRow == border.LastRow ? 1U : 2U), ((ushort)0x6802, item.Id),
-                    ((ushort)0x2004, (uint)border.FirstRow), ((ushort)0x2005, (uint)border.FirstColumn),
-                    ((ushort)0x2006, (uint)border.LastRow), ((ushort)0x2007, (uint)border.LastColumn) }, new[] {
-                    ((ushort)0x0181, Color(side.Color)), ((ushort)0x0183, uint.MaxValue), ((ushort)0x01BF, 0x001F001CU),
-                    ((ushort)0x01CB, (uint)scaled), ((ushort)0x01FF, 0x00080000U)
-                });
+                if (shapes.Count >= 1024) throw new NotSupportedException("The table utility specimen is bounded to one SPID cluster.");
+                shapes.Add(PublisherTableBorderEncoding.Write(item.Id, root + (uint)shapes.Count, border)
+                    ?? throw new NotSupportedException("The table utility codec requires opaque solid single borders with exact positive signed-EMU widths."));
             }
         }
         uint last = root + (uint)shapes.Count - 1;

@@ -13,28 +13,31 @@ internal sealed partial class PublisherNativeWriter {
     private readonly Dictionary<int, (uint Original, uint Replacement)> _patches = new();
     private byte[]? _quillBytes;
     private readonly OfficeLegacyImportLimits _sourceLimits;
+    private readonly PublisherReadOptions _sourceOptions;
     private readonly long _maximumBytes;
 
     private PublisherNativeWriter(PublisherPublicationState current, PublisherImportedResidue imported,
-        OfficeLegacyImportLimits sourceLimits, long maximumBytes, CancellationToken token) {
+        PublisherReadOptions sourceOptions, long maximumBytes, CancellationToken token) {
         _current = current; _baseline = imported.Baseline!; _imported = imported; _token = token;
-        _sourceLimits = sourceLimits; _maximumBytes = maximumBytes;
+        _sourceOptions = sourceOptions; _sourceLimits = sourceOptions.Limits; _maximumBytes = maximumBytes;
         _artwork = imported.Artwork.Shapes.ToDictionary(shape => shape.Id);
     }
 
     internal static PublisherNativePreparation Prepare(PublisherPublicationState current, PublisherImportedResidue? imported,
-        OfficeLegacyImportLimits sourceLimits, long maximumBytes, CancellationToken token) {
+        PublisherReadOptions sourceOptions, long maximumBytes, CancellationToken token) {
         if (maximumBytes < 1 || maximumBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
         token.ThrowIfCancellationRequested();
         if (imported?.NativeSource == null || imported.Baseline == null)
             return new PublisherNativePreparation(null, new[] { Finding("PUB_NATIVE_SOURCE_REQUIRED",
                 "Native preparation requires an imported source and its semantic baseline. Source-free authoring is not a native writer.", OfficeConversionLossKind.Failure, "Contents") });
+        OfficeLegacyImportLimits sourceLimits = sourceOptions.Limits;
         current = NormalizeEmptyStories(current, imported.Baseline, sourceLimits.MaxTextCharacters, token, out var normalizations);
-        var writer = new PublisherNativeWriter(current, imported, sourceLimits, maximumBytes, token);
+        var writer = new PublisherNativeWriter(current, imported, sourceOptions, maximumBytes, token);
         writer.Compare();
+        if (writer._diagnostics.Count == 0) writer.PlanTableBorderRecords();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
-        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0 && writer._objectOrders.Count == 0 && writer._frameWraps.Count == 0 && writer._tableTrackEdits.Count == 0) {
+        if (writer._patches.Count == 0 && writer._quillBytes == null && writer._shapeProperties.Count == 0 && writer._frameAlignments.Count == 0 && writer._imageStore == null && writer._masterAssignments.Count == 0 && writer._storyHyphenation.Count == 0 && writer._objectOrders.Count == 0 && writer._frameWraps.Count == 0 && writer._tableTrackEdits.Count == 0 && writer._tableBorderRecords?.IsEmpty != false) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
@@ -45,7 +48,7 @@ internal sealed partial class PublisherNativeWriter {
             return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         }
         var streams = new Dictionary<string, byte[]>();
-        byte[] bytes = writer._patches.Count == 0 && writer._shapeProperties.Count == 0 && writer._imageStore == null ? Array.Empty<byte>() : (byte[])source.EscherBytes.Clone();
+        byte[] bytes = writer._patches.Count == 0 && writer._shapeProperties.Count == 0 && writer._imageStore == null && writer._tableBorderRecords?.IsEmpty != false ? Array.Empty<byte>() : (byte[])source.EscherBytes.Clone();
         var data = new PublisherBinaryData(bytes, "Escher/EscherStm");
         foreach (var patch in writer._patches) {
             token.ThrowIfCancellationRequested();
@@ -112,6 +115,9 @@ internal sealed partial class PublisherNativeWriter {
             OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
         if (writer._hasTableFillProperties) diagnostics.Add(Finding("PUB_NATIVE_TABLE_FILL_UNQUALIFIED",
             "Existing cell utility visibility or a local solid-color property changed. Filled use-bits retain unrelated boolean uses; color insertion rewrites enclosing OfficeArt lengths while preserving unrelated records and drawing instances. Native repair-free acceptance and broader producer/style behavior remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/tables"));
+        if (writer._tableBorderRecords?.IsEmpty == false) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED",
+            "Existing utility edges were removed or new solid shared ranges appended. Native SPID allocation history is retained while active shape counts and enclosing lengths change. Reloaded border order follows native records; broader producer/layout and repair-free fidelity remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Escher/tables"));
         if (writer._hasTableBounds) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED",
             "A direct table frame moved or its fixed tracks were proportionally resized. Cell ownership, complete stories and unrelated native records are retained. Native reflow, editing, resave/reopen and repair-free opening remain unassessed.",

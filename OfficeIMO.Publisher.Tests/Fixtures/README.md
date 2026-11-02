@@ -38,6 +38,12 @@ of the same story, a solid rectangle and an embedded synthetic picture. BlankPag
 has two empty physical pages; TextBlank has a text page followed by an empty page.
 They distinguish blank document pages from utility and master definitions.
 
+TableBorderTopology, TableBordersCleared and TableBorderTopologyTextFill isolate
+shared-edge addition/replacement, all-edge removal and composition with cell
+text/fill edits. TableBorderDefaultFill retains the automatic white cell fill
+activated by native border authoring. Each control retains its producer metadata,
+native PDF and provenance hashes in its `NativeComparison` directory.
+
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
 qualifies physical-page ownership in template-free native writer specimens.

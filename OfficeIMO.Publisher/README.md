@@ -602,15 +602,19 @@ Native source saving supports solid recoloring, clearing and activation through
 qualified existing cell utility records, preserving latent colors when hidden.
 A missing local color field can be inserted; visibility requires an unambiguous
 local owning field. Existing shared-border color/width edits use qualified local
-scalars. Unsupported paint, utility-record insertion/removal and widths without an exact
-signed-EMU representation. Native source insertion/removal of shared edges, gradients,
-cell-specific padding and broader native appearances remain separate profiles.
+scalars. Shared edges can also be added, cleared and replaced within one existing
+utility drawing and its current SPID allocation cluster. New ranges use native cell
+edges; reopened segmentation and record order can differ while retaining shared
+grid coverage. Missing utility drawings, new clusters, inconsistent allocation
+metadata, unsupported paint and widths without an exact signed-EMU representation
+refuse saving. Fill utility allocation, gradients, cell-specific padding and broader
+native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
 
 Fill visibility changes compose with supported cell-paragraph growth. Native
 source saving refuses ambiguous visibility ownership and unsupported complex or
-BLIP-role boolean fields, including under `Allow`. See the [qualified fill
-visibility profile](SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
+BLIP-role boolean fields, including under `Allow`. See the [qualified fill and
+shared-border profiles](SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
 
 ```csharp
 var styledTable = publication.Pages[0].Tables.First();

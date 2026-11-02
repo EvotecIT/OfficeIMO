@@ -37,9 +37,9 @@ internal sealed partial class PublisherNativeWriter {
     }
 
     private bool PrepareStructuredStreams(Dictionary<string, byte[]> streams, byte[] patchedEscher) {
-        var context = new PublisherParseContext(new PublisherReadOptions { Limits = _sourceLimits }, _token);
-        if (_shapeProperties.Count > 0 || _imageStore != null) {
-            byte[]? artwork = PublisherEscherSourceWriter.Rewrite(patchedEscher, _shapeProperties, _imageStore, context, _maximumBytes);
+        var context = new PublisherParseContext(_sourceOptions, _token);
+        if (_shapeProperties.Count > 0 || _imageStore != null || _tableBorderRecords?.IsEmpty == false) {
+            byte[]? artwork = PublisherEscherSourceWriter.Rewrite(patchedEscher, _shapeProperties, _imageStore, context, _maximumBytes, _tableBorderRecords);
             if (artwork == null) { Reject("Escher/EscherStm", "Source edits have ambiguous or unsupported local OfficeArt records."); return false; }
             streams["Escher/EscherStm"] = artwork;
         }

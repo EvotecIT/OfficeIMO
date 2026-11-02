@@ -43,7 +43,7 @@ public sealed class PublisherTableBorderAuthoringTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
-    public void Native_border_record_add_remove_and_range_changes_refuse_output_even_with_allow(int operation) {
+    public void Native_border_record_add_remove_and_range_changes_save_and_preserve_unrelated_storage(int operation) {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TableDecoration/native-tabledecoration.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
         uint id = document.Pages[0].Tables[0].Id;
@@ -55,8 +55,11 @@ public sealed class PublisherTableBorderAuthoringTests {
         else if (operation == 1) document.SetTableBorderStyle(id, 0, 0, 1, 0, null);
         else document.SetTableBorderStyle(id, 0, 0, 0, 2, black);
         Assert.Equal(operation == 0 ? 7 : operation == 1 ? 5 : 6, document.Pages[0].Tables[0].BorderSegments.Count);
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        byte[] saved = document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        PublisherNativeWritingTests.AssertPreservedStorage(source, saved, "Escher/EscherStm");
+        PublisherTable reopened = PublisherDocument.Load(saved).Pages[0].Tables[0];
+        Assert.Equal(PublisherTableBorderTopologyTests.Coverage(document.Pages[0].Tables[0]), PublisherTableBorderTopologyTests.Coverage(reopened));
+        Assert.Equal(saved, PublisherDocument.Load(saved).ToPubBytes());
     }
 
     [Fact]

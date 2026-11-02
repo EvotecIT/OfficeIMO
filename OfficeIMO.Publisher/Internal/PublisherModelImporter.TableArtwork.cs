@@ -5,7 +5,7 @@ namespace OfficeIMO.Publisher.Internal;
 internal static partial class PublisherModelImporter {
     /// <summary>Maps solid utility fills and shared grid edges without treating utility shapes as publication objects.</summary>
     private static void ImportTableArtwork(uint id, PublisherSourceTable grid, IEnumerable<PublisherTableArtwork> records,
-        IReadOnlyList<OfficeColor?> palette, PublisherParseContext context,
+        IReadOnlyList<OfficeColor?> palette, PublisherEscherData artwork, PublisherParseContext context,
         out OfficeColor?[] fills, out PublisherTableBorderSegment[] borders) {
         var colors = new OfficeColor?[grid.Cells.Count];
         var lines = new List<PublisherTableBorderSegment>();
@@ -49,7 +49,18 @@ internal static partial class PublisherModelImporter {
             if (record.Shape.Type != 1 || record.Shape.Hidden || record.Shape.Transform.RotationDegrees.GetValueOrDefault() != 0
                 || style.ShadowEnabled == true) return false;
             if (style.FillEnabled == false) return true;
-            if (style.FillType.GetValueOrDefault() != 0 || style.FillOpacity.GetValueOrDefault(1) != 1 || !style.FillColor.HasValue) return false;
+            if (style.FillType.GetValueOrDefault() != 0 || style.FillOpacity.GetValueOrDefault(1) != 1) return false;
+            if (record.Value(0x2001) == 0 && artwork.HasTableCellDefault
+                && record.Shape.NativeBinding?.Properties.Any(property => property.Id == 0x0181) != true) {
+                if (!artwork.TableCellDefaultColor.HasValue) return false;
+                // The native table-cell default uses automatic white, distinct
+                // from the document drawing's theme accent inherited by Core.
+                if (artwork.TableCellDefaultColor == uint.MaxValue) { color = OfficeColor.White; return true; }
+                if (!new OfficeIMO.Drawing.Binary.OfficeArtColorReference(artwork.TableCellDefaultColor.Value)
+                    .TryResolve(index => index < palette.Count ? palette[index] : null, out OfficeColor tableColor)) return false;
+                color = tableColor; return true;
+            }
+            if (!style.FillColor.HasValue) return false;
             if (!style.FillColor.Value.TryResolve(index => index < palette.Count ? palette[index] : null, out OfficeColor resolved)) return false;
             color = resolved; return true;
         }

@@ -653,8 +653,8 @@ grid-boundary endpoints. Utility shapes remain outside publication object
 identity. Existing Core colors, border-side values and drawing primitives own
 the projected paint. Public cell-text growth preserves complete Escher bytes;
 native initial/resaved PDFs match an independent text-edited decorated control.
-Native/managed pixel parity and decorated template-free encoding remain
-unqualified. The comparison worker retains explicit unknown
+Native/managed pixel parity remains unqualified; decorated template-free encoding
+is qualified separately below. The comparison worker retains explicit unknown
 fill/border observations, including unavailable diagonal observations, and its
 extended inventory also completes on the 96-cell control.
 
@@ -663,11 +663,11 @@ recoloring and shared-border color/width edits through the public canonical mode
 The complete saved Escher stream matches the independent control in both
 directions. Native initial/resaved inventories retain all cell text, spans, tracks,
 fills and edges; four PDF page pairs match at 100 dpi. The writer guards existing
-local scalar slots and refuses utility-record insertion or
-removal, ambiguous ownership and widths without an exact signed-EMU encoding.
+local scalar slots and refuses ambiguous ownership and widths without an exact
+signed-EMU encoding. Shared-edge record insertion/removal is qualified separately below.
 Restoring original styles before saving returns the exact original PUB bytes.
-This does not qualify native source utility insertion/removal, native cell
-editing after opening these outputs or repair-free acceptance.
+This scalar profile does not qualify native cell editing after opening these
+outputs or repair-free acceptance.
 
 The `table-decorated` and `table-decorated-edited` specimens add source-free solid
 cell fills and shared borders from public authoring snapshots. `tableDecorationCreation`
@@ -679,7 +679,7 @@ input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
 The earlier blank, borderless-table and merged-table bytes remain unchanged.
-Decorated merges, source utility insertion/removal, broader native visibility definitions,
+Decorated merges, fill utility allocation, new drawing/cluster creation, broader native visibility definitions,
 larger/composed utility drawings, native cell editing and repair-free acceptance
 remain open; public native creation remains gated.
 
@@ -693,8 +693,25 @@ independent, generated and native-resaved input: ten cell/grid inventories and
 ten native PDF pairs match controls at 100 dpi. The unsupported complex-peer
 regression is fixed and confirmed; post-fix output bytes match every native-
 validated input. Non-solid/transparent paint, ambiguous/unsupported boolean
-roles, missing local visibility ownership, utility insertion/removal, broader
+roles, missing local visibility ownership, fill utility allocation/removal, broader
 native producers and repair-free acceptance remain outside this profile.
+
+The `tableBorderTopology` record qualifies adding, clearing and replacing shared
+edges within an existing direct utility drawing and current SPID cluster. New
+ranges use cell edges to match native joins. Counts exclude background shapes,
+while IDs, allocation cursors and used slots retain their history after deletion.
+Re-addition uses fresh IDs. Unsupported or conflicting ownership, invalid counts
+or cursors, missing drawings and required new clusters refuse output. Planning
+reuses source-bound artwork without decoding unrelated images again and retains
+the original read options for structural rewriting.
+
+Four native controls cover topology, clear-all, text/fill composition and automatic
+white cell defaults. Seven public source workflows include generated/native-resaved
+input and deletion/reload/re-add: fourteen native cell/grid inventories and fourteen
+PDF pairs match the controls at 100 dpi. The shared border encoder retains both
+decorated creation specimens' exact previous bytes. Native cell editing, broader
+paint/producer profiles, merged/composed decoration and repair-free acceptance
+remain unqualified; public native creation remains gated.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

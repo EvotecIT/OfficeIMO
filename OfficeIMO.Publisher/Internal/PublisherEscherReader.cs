@@ -35,15 +35,16 @@ internal sealed class PublisherEscherReader {
         return _result;
     }
     private void Visit(PublisherEscherRecord record, PublisherGroupSpace? space, int depth,
-        IReadOnlyList<PublisherEscherRecord>? cachedChildren = null) {
+        IReadOnlyList<PublisherEscherRecord>? cachedChildren = null, uint? drawingInstance = null) {
         _context.CheckDepth(depth);
+        if (record.Kind == 0xF002) drawingInstance = record.Offset >= 12 ? _data.U32(record.Offset - 12) : null;
         if (record.Kind == 0xF001) { _result.ImageStores.Add(record); return; }
-        if (record.Kind == 0xF004) { ReadShape(record, space); return; }
+        if (record.Kind == 0xF004) { ReadShape(record, space, drawingInstance); return; }
         if ((record.Initial & 15) != 15) return;
         PublisherGroupSpace? childSpace = space;
         foreach (PublisherEscherRecord child in cachedChildren ?? Records(record.Offset, record.End)) {
             if (record.Kind == 0xF003 && child.Kind == 0xF004) {
-                PublisherEscherShape? shape = ReadShape(child, childSpace);
+                PublisherEscherShape? shape = ReadShape(child, childSpace, drawingInstance);
                 if (shape != null && shape.IsGroup) {
                     childSpace = new PublisherGroupSpace(shape);
                     if (!shape.Bounds.HasValue && (shape.Transform.RotationDegrees.GetValueOrDefault() != 0
@@ -51,16 +52,17 @@ internal sealed class PublisherEscherReader {
                         _context.Add("PUB_GROUP_TRANSFORM_UNRESOLVED", "A transformed group has no resolved anchor. Its inherited transform remains unavailable.",
                             OfficeConversionLossKind.Omission, ShapeLocation(shape.Id));
                 }
-            } else Visit(child, childSpace, depth + 1);
+            } else Visit(child, childSpace, depth + 1, drawingInstance: drawingInstance);
         }
     }
-    private PublisherEscherShape? ReadShape(PublisherEscherRecord record, PublisherGroupSpace? space) {
+    private PublisherEscherShape? ReadShape(PublisherEscherRecord record, PublisherGroupSpace? space, uint? drawingInstance) {
         IReadOnlyList<PublisherEscherRecord> children = Records(record.Offset, record.End);
         PublisherEscherRecord? fsp = Single(children, 0xF00A), client = Single(children, 0xF011);
         if (fsp == null) throw new InvalidDataException("Publisher shape has no OfficeArt shape descriptor.");
         _data.Range(fsp.Offset, 8, fsp.End);
         uint flags = _data.U32(fsp.Offset + 4);
-        IReadOnlyList<OfficeArtProperty> properties = ReadProperties(children);
+        IReadOnlyList<OfficeArtProperty> localProperties = ReadProperties(children);
+        IReadOnlyList<OfficeArtProperty> properties = localProperties;
         if (_defaultProperties.Count != 0) {
             // Like client-property pairs, inherited property applications are
             // native record work. Charge before copying the expanded table.
@@ -98,6 +100,12 @@ internal sealed class PublisherEscherReader {
         }
         if (id == 0 && anchor != null) {
             Dictionary<ushort, uint> values = ClientValues(anchor);
+            if (drawingInstance == 2 && values.Count == 0 && shape.Type == 1 && !shape.IsGroup) {
+                OfficeArtProperty[] colors = localProperties.Where(property => property.PropertyId == 0x0181).ToArray();
+                _result.TableCellDefaultColor = !_result.HasTableCellDefault && colors.Length == 1 && !colors[0].IsComplex && !colors[0].IsBlipId
+                    ? colors[0].Value : null;
+                _result.HasTableCellDefault = true;
+            }
             if (values.TryGetValue(0x6802, out uint tableId)) {
                 if (_result.TableArtwork.Count >= _context.Options.Limits.MaxItems)
                     throw new InvalidDataException("Publisher table artwork limit exceeded.");
@@ -267,6 +275,8 @@ internal sealed class PublisherEscherRecord {
 }
 
 internal sealed class PublisherEscherData {
+    internal bool HasTableCellDefault { get; set; }
+    internal uint? TableCellDefaultColor { get; set; }
     internal List<PublisherTableArtwork> TableArtwork { get; } = new();
     internal List<PublisherEscherShape> Shapes { get; } = new();
     internal Dictionary<int, PublisherImage> Images { get; } = new();

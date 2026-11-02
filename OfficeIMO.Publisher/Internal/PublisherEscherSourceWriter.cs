@@ -12,17 +12,21 @@ internal sealed class PublisherEscherSourceWriter {
     private readonly List<PublisherNativeStreamEdit> _edits = new();
     private int _seen;
     private bool _imageStoreSeen;
+    private readonly PublisherEscherShapeEdits? _shapes;
+    private int _removedSeen, _appendedSeen;
 
     private PublisherEscherSourceWriter(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>> changes,
-        PublisherNativeStreamEdit? imageStore, PublisherParseContext context) {
+        PublisherNativeStreamEdit? imageStore, PublisherParseContext context, PublisherEscherShapeEdits? shapes) {
         _data = new(source, "Escher/EscherStm"); _context = context;
         _reader = new(_data, null, context); _changes = changes; _imageStore = imageStore;
+        _shapes = shapes;
     }
 
     internal static byte[]? Rewrite(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>> changes,
-        PublisherNativeStreamEdit? imageStore, PublisherParseContext context, long maximumBytes) {
-        var writer = new PublisherEscherSourceWriter(source, changes, imageStore, context);
+        PublisherNativeStreamEdit? imageStore, PublisherParseContext context, long maximumBytes, PublisherEscherShapeEdits? shapes = null) {
+        var writer = new PublisherEscherSourceWriter(source, changes, imageStore, context, shapes);
         if (!writer.Visit(0, source.Length, 0, out _) || writer._seen != changes.Count || imageStore != null && !writer._imageStoreSeen) return null;
+        if (shapes != null && (writer._removedSeen != shapes.Removed.Count || writer._appendedSeen != shapes.Appended.Count)) return null;
         return PublisherNativeStreamEdit.Apply(source, writer._edits, maximumBytes, context.Token);
     }
 
@@ -36,12 +40,21 @@ internal sealed class PublisherEscherSourceWriter {
                 _imageStoreSeen = true; _edits.Add(_imageStore); replaced = true;
                 delta = _imageStore.Bytes.Length - _imageStore.Length;
             } else if (record.Kind == 0xF004) {
-                if (_changes.TryGetValue(record.Offset, out var changes)) {
+                if (_shapes?.Removed.Contains(record.Offset) == true) {
+                    if (_changes.ContainsKey(record.Offset)) return false;
+                    _removedSeen++; replaced = true;
+                    _edits.Add(new(record.Offset - 8, record.Length + 8, Array.Empty<byte>()));
+                    delta = -record.Length - 8;
+                }
+                else if (_changes.TryGetValue(record.Offset, out var changes)) {
                     _seen++;
                     if (!Shape(record, changes, out delta)) return false;
                 }
             } else if ((record.Initial & 15) == 15 && record.Kind != 0xF001) {
                 if (!Visit(record.Offset, record.End, depth + 1, out delta)) return false;
+            }
+            if (record.Kind == 0xF003 && _shapes != null && _shapes.Appended.TryGetValue(record.Offset, out byte[]? appended)) {
+                _appendedSeen++; _edits.Add(new(record.End, 0, appended)); delta = checked(delta + appended.Length);
             }
             if (delta != 0 && !replaced) _edits.Add(new(record.Offset - 4, 4, BitConverter.GetBytes(checked((uint)(record.Length + delta)))));
             growth = checked(growth + delta);

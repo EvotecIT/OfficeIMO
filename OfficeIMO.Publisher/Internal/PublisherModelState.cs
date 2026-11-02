@@ -32,7 +32,7 @@ internal sealed partial class PublisherModelState {
     internal PublisherQuillStyleCatalog SourceStyleCatalog => _imported?.Styles ?? PublisherQuillStyleCatalog.Empty;
 
     internal PublisherNativePreparation PrepareNativeBytes(long maximumBytes, CancellationToken token) =>
-        PublisherNativeWriter.Prepare(_publication, _imported, _decoded.Options.Limits, maximumBytes, token);
+        PublisherNativeWriter.Prepare(_publication, _imported, _decoded.Options, maximumBytes, token);
 
     internal PublisherDocument Project(CancellationToken token) {
         token.ThrowIfCancellationRequested();
