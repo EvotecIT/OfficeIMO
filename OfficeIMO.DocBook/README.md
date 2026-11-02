@@ -51,6 +51,8 @@ The [fixture corpus](../OfficeIMO.DocBook.Tests/Fixtures/README.md) includes ind
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
+`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; parsing text or loading a stream leaves the document detached.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 
@@ -67,5 +69,3 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.DocBook` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
-
-`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; loading bytes or a stream leaves the document detached.
