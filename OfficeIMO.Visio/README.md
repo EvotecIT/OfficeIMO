@@ -498,7 +498,7 @@ relayout keeps containers and generated adornments fixed unless the caller opts 
 `InspectSignatures()` detects Open XML signature-origin relationships and XML signature parts. Saving a
 loaded signed diagram is blocked by default because rebuilding the package would invalidate that evidence. Set
 `SignatureMutationPolicy = VisioSignatureMutationPolicy.RemoveInvalidatedSignatures` only when removing the stale
-signature carrier is the intended result. `SignPackageSignature(...)` and `ValidatePackageSignatures(...)` create
+signature carrier is the intended result. `SignPackage(...)` and `ValidateSignatures(...)` create
 and cryptographically validate OPC signatures through an explicitly supplied `IOfficeSecurityProvider`.
 
 ## Examples

@@ -1,0 +1,15 @@
+{
+  "package": "OfficeIMO.Epub",
+  "changes": [
+    {
+      "old": "EpubDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature",
+      "kind": "method",
+      "action": "rename",
+      "new": "EpubDocument.ValidateSignatures / SignPackage / TrySignPackage",
+      "replacement": "Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations.",
+      "category": "naming",
+      "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
+      "applied": true
+    }
+  ]
+}

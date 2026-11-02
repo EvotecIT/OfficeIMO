@@ -1,6 +1,17 @@
 {
   "package": "OfficeIMO.Visio",
-  "changes": [],
+  "changes": [
+    {
+      "old": "VisioDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature",
+      "kind": "method",
+      "action": "rename",
+      "new": "VisioDocument.ValidateSignatures / SignPackage / TrySignPackage",
+      "replacement": "Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations.",
+      "category": "naming",
+      "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
+      "applied": true
+    }
+  ],
   "extraChanges": [
     {
       "old": "VisioPageImageExportBuilder; VisioDocumentImageExportBuilder; VisioDocumentImageBatchExportBuilder; VisioImageExportFluentExtensions",

@@ -1520,7 +1520,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>364 changes</summary>
+<summary>365 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1836,6 +1836,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Word.WordFieldFormat.Mergeformat` | Renamed | `OfficeIMO.Word.WordFieldFormat.MergeFormat` | Enum members use PascalCase; PowerShell scripts are unaffected because PowerShell compares enum names case-insensitively. |
 | Naming | `OfficeIMO.Word.WordFieldFormat.Roman` | Renamed | `OfficeIMO.Word.WordFieldFormat.UpperRoman` | PowerShell compares enum names case-insensitively |
 | Naming | `OfficeIMO.Word.WordFieldFormat.roman` | Renamed | `OfficeIMO.Word.WordFieldFormat.LowerRoman` | PowerShell compares enum names case-insensitively |
+| Naming | `WordDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `WordDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
 | Options | `OfficeIMO.Word.Legacy.LegacyWordImportOptions` | Kept | `OfficeIMO.Word.Legacy.LegacyWordImportOptions` | Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule. |
 | Options | `OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions` | Merged | `OfficeIMO.Word.WordLoadOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.Word.Pdf.WordToPdfOptions` | Renamed | `OfficeIMO.Word.Pdf.WordPdfExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
@@ -2384,7 +2385,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>573 changes</summary>
+<summary>574 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2949,6 +2950,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Units | `OfficeIMO.PowerPoint.PowerPointUnits.ToInches(long emus)` | Internal | &mdash; | OfficeLength factories and ToPoints/ToInches/ToEmus conversions |
 | Units | `OfficeIMO.PowerPoint.PowerPointUnits.ToPoints(long emus)` | Internal | &mdash; | OfficeLength factories and ToPoints/ToInches/ToEmus conversions |
 | Naming | `OfficeIMO.PowerPoint.PowerPointPresentation` | Renamed | `OfficeIMO.PowerPoint.PowerPointDocument` | The document type follows WordDocument, ExcelDocument and PdfDocument. Document-specific conversion, image export and mutation types use Document in their names as well. |
+| Naming | `PowerPointDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `PowerPointDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
 | Options | `OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions` | Merged | `OfficeIMO.PowerPoint.PowerPointLoadOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions` | Renamed | `OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.PowerPoint.PowerPointPresentationConversionOptions` | Merged | `OfficeIMO.OfficeConversionOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
@@ -3444,6 +3446,28 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.DocBook
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Lifecycle | `DocBookDocument.Write / WriteAsync(Stream)` | Changed | `DocBookDocument.Save / SaveAsync(Stream)` | Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation. |
+
+</details>
+
+#### OfficeIMO.Epub
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `EpubDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `EpubDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
+
+</details>
+
 #### OfficeIMO.Excel.Html
 
 <details>
@@ -3478,6 +3502,28 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
 | Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
 | Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
+
+</details>
+
+#### OfficeIMO.OpenDocument
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OdfDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `OdfDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
+
+</details>
+
+#### OfficeIMO.Opml
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Lifecycle | `OpmlDocument.Write / WriteAsync(Stream)` | Changed | `OpmlDocument.Save / SaveAsync(Stream)` | Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation. |
 
 </details>
 
@@ -3545,6 +3591,28 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Lifecycle | `RtfDocument.Read(string, RtfReadOptions?, CancellationToken)` | Merged | `RtfDocument.ParseResult(string, RtfReadOptions?, CancellationToken)` | Use Parse for the model or ParseResult for the model, lossless syntax and diagnostics. |
+
+</details>
+
+#### OfficeIMO.Visio
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `VisioDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `VisioDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
+
+</details>
+
+#### OfficeIMO.Xps
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Lifecycle | `XpsDocument.Save(CancellationToken)` | Changed | `XpsDocument.ToBytes(CancellationToken)` | Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation. |
 
 </details>
 <!-- officeimo-api-map:end -->
