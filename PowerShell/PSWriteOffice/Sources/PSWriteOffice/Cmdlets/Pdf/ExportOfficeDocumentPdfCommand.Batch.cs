@@ -5,6 +5,7 @@ using System.Management.Automation;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Workflows;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -72,7 +73,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand {
             Recursive = !NoRecurse.IsPresent, Extensions = SourceExtensions, RetryFailed = RetryFailed.IsPresent,
             ConflictPolicy = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, true),
             ConversionOptions = new OfficeConversionOptions {
-                SourcePassword = Password,
+                SourcePassword = Password.ToPlainText(),
                 Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
                 Markdown = MarkdownOptions, Html = HtmlOptions, PlainText = TextOptions,
                 RegisteredSettings = new OfficeWorkflowRouteSettings { Rtf = RtfOptions },

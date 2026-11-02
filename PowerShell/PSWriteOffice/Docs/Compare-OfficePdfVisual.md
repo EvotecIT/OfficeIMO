@@ -11,7 +11,7 @@ Compares rendered PDF pages and returns pixel-level review artifacts.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Compare-OfficePdfVisual [-ReferencePath] <string> [-DifferencePath] <string> [-PageRange <string>] [-Options <PdfVisualComparisonOptions>] [-ReferenceReadOptions <PdfLoadOptions>] [-DifferenceReadOptions <PdfLoadOptions>] [-ReferencePassword <string>] [-IgnoreReferencePermissionRestrictions] [-DifferencePassword <string>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
+Compare-OfficePdfVisual [-ReferencePath] <string> [-DifferencePath] <string> [-PageRange <string>] [-Options <PdfVisualComparisonOptions>] [-ReferenceReadOptions <PdfLoadOptions>] [-DifferenceReadOptions <PdfLoadOptions>] [-ReferencePassword <securestring>] [-IgnoreReferencePermissionRestrictions] [-DifferencePassword <securestring>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +33,7 @@ Returns per-page difference ratios, images, and diagnostics.
 Password used to authenticate the actual PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -145,7 +145,7 @@ Accept wildcard characters: False
 Password used to authenticate the expected PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

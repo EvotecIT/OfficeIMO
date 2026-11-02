@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -136,7 +135,7 @@ public sealed class SplitOfficeDocumentCommand : AsyncPSCmdlet {
                 load = ((PdfLoadOptions)new OfficeOptionsTransformationAttribute(typeof(PdfLoadOptions)).ApplyTo(engine, load, table)).Clone();
             else throw new PSArgumentException("Options requires PDF load options or a property hashtable.");
         }
-        if (Password != null) load = load.Clone(null, new NetworkCredential(string.Empty, Password).Password);
+        if (Password != null) load = load.Clone(null, Password.ToPlainText());
         _load = load;
         return Task.CompletedTask;
     }

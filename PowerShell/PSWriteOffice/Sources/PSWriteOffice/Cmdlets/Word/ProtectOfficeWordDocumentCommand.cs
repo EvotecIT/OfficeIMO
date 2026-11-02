@@ -1,6 +1,8 @@
 using System;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
@@ -25,7 +27,8 @@ public sealed class ProtectOfficeWordDocumentCommand : PSCmdlet
 
     /// <summary>Password to apply.</summary>
     [Parameter(Mandatory = true, Position = 0)]
-    public string Password { get; set; } = string.Empty;
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Protection type (defaults to ReadOnly).</summary>
     [Parameter]
@@ -44,7 +47,7 @@ public sealed class ProtectOfficeWordDocumentCommand : PSCmdlet
             throw new InvalidOperationException("Word document was not provided.");
         }
 
-        document.Settings.ProtectionPassword = Password;
+        document.Settings.ProtectionPassword = Password.ToPlainText()!;
         document.Settings.SetProtectionType(ProtectionType);
 
         if (PassThru.IsPresent)

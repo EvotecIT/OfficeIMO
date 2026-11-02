@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Threading.Tasks;
 using OfficeIMO.Excel;
@@ -85,7 +84,7 @@ public sealed class OpenOfficeExcelCommand : AsyncPSCmdlet {
         if (Content == null && (SaveOptions != null || MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss)) || PassThru || Show))
             throw new PSArgumentException("SaveOptions, AllowLoss, PassThru and Show require a local content block; use Save-OfficeExcel for a live workbook.");
 
-        string? password = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+        string? password = Password.ToPlainText();
         if (ParameterSetName == "Uri") {
             ExcelDocument remote = await ExcelDocumentService.LoadDocumentAsync(Uri, ReadOnly.IsPresent,
                 AllowHttp.IsPresent, password, CancelToken).ConfigureAwait(false);

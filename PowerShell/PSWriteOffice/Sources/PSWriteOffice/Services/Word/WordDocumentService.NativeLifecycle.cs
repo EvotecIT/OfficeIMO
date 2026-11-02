@@ -1,7 +1,7 @@
 using System;
-using System.Net;
 using System.Security;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Services.Word;
 
@@ -15,7 +15,7 @@ public static partial class WordDocumentService {
     /// <summary>Creates native save policy while retaining loaded encryption when Password was omitted.</summary>
     internal static WordSaveOptions NativeSaveOptions(bool allowLoss, SecureString? password, bool passwordBound) {
         var options = new WordSaveOptions { AllowLoss = allowLoss };
-        if (passwordBound) options.Password = password == null ? null : new NetworkCredential(string.Empty, password).Password;
+        if (passwordBound) options.Password = password.ToPlainText();
         return options;
     }
 }

@@ -72,6 +72,20 @@ public sealed class FoundationBindingTests {
         Assert.Empty(warnings);
     }
     [Fact]
+    public void EveryCmdletPasswordParameterBindsThroughThePasswordTransformation() {
+        // PasswordVariable, LegacyPasswordHash and similar references end differently and are not passwords.
+        var inconsistent = typeof(OfficePasswordTransformationAttribute).Assembly.GetTypes()
+            .Where(type => typeof(Cmdlet).IsAssignableFrom(type) && !type.IsAbstract)
+            .SelectMany(type => type.GetProperties().Select(property => (type, property)))
+            .Where(item => item.property.Name.EndsWith("Password", StringComparison.Ordinal) &&
+                item.property.IsDefined(typeof(ParameterAttribute), true))
+            .Where(item => !item.property.IsDefined(typeof(OfficePasswordTransformationAttribute), true) ||
+                (item.property.PropertyType != typeof(SecureString) && item.property.PropertyType != typeof(SecureString[])))
+            .Select(item => item.type.Name + "." + item.property.Name)
+            .ToArray();
+        Assert.Empty(inconsistent);
+    }
+    [Fact]
     public void SheetSelectorDistinguishesNameFromPosition() {
         Assert.Equal("1", OfficeSheetSelector.From("1").Name);
         Assert.Equal(1, OfficeSheetSelector.From(1).Position);

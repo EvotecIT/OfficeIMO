@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -82,7 +84,8 @@ public sealed class AddOfficePdfPageOverlayCommand : PSWriteOffice.Cmdlets.Offic
 
     /// <summary>Password used to authenticate the target PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After target authentication, explicitly ignore owner-imposed target restrictions.</summary>
     [Parameter]
@@ -90,7 +93,8 @@ public sealed class AddOfficePdfPageOverlayCommand : PSWriteOffice.Cmdlets.Offic
 
     /// <summary>Password used to authenticate the imported source PDF.</summary>
     [Parameter]
-    public string? SourcePassword { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? SourcePassword { get; set; }
 
     /// <summary>After source authentication, explicitly ignore owner-imposed source restrictions.</summary>
     [Parameter]

@@ -84,7 +84,7 @@ public sealed class OpenOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
 
     private void RunOpened(string input) {
         var options = PdfCommandUtilities.CreateReadOptions(LoadOptions,
-            Password == null ? null : new NetworkCredential(string.Empty, Password).Password,
+            Password,
             IgnorePermissionRestrictions.IsPresent);
         RunDocument(OutputPath ?? input, isNew: false, force: false,
             path => PdfDocument.Load(path!, options),

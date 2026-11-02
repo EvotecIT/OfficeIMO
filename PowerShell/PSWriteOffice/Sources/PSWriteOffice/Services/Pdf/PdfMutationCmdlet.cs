@@ -98,7 +98,7 @@ public abstract class PdfMutationCmdlet : OfficeInputCmdlet {
             if (ShouldProcess(output, Operation)) work.Add((input, output));
         }
         var readOptions = PdfCommandUtilities.CreateReadOptions(LoadOptions,
-            Password == null ? null : new NetworkCredential(string.Empty, Password).Password,
+            Password,
             IgnorePermissionRestrictions.IsPresent);
         bool passThru = PassThru.IsPresent;
         var saveOptions = new PdfSaveOptions {

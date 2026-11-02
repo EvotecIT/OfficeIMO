@@ -11,7 +11,7 @@ Gets PDF diagnostics, stream statistics, feature markers, and read/rewrite block
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePdfDiagnostic [-Path] <string> [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfDiagnostic [-Path] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -50,7 +50,7 @@ Accept wildcard characters: False
 Password used to analyze a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

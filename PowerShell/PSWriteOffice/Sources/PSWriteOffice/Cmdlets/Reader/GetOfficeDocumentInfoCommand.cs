@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Threading.Tasks;
 using OfficeIMO;
@@ -66,7 +65,7 @@ public sealed class GetOfficeDocumentInfoCommand : OfficeInputCmdlet {
         if (MaximumContainerEntries.HasValue) _options.Detection.MaxContainerEntries = MaximumContainerEntries.Value;
         if (NoContainerInspection) _options.Detection.InspectContainers = false;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Password)))
-            _options.Reader.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+            _options.Reader.OpenPassword = Password.ToPlainText();
         return Task.CompletedTask;
     }
 

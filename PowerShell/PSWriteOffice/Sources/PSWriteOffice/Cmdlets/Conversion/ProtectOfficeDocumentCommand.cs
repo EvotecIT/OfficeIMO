@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
@@ -117,7 +116,7 @@ public sealed class ProtectOfficeDocumentCommand : PSCmdlet {
         if (OutputPath != null && count != 1) throw new PSArgumentException("OutputPath requires exactly one input document.");
         foreach (var restriction in Restriction)
             if (!Enum.IsDefined(typeof(OfficeProtectionRestriction), restriction)) throw new PSArgumentException("Invalid Restriction value.");
-        string? password = Plaintext(Password), restrictionPassword = Plaintext(RestrictionPassword);
+        string? password = Password.ToPlainText(), restrictionPassword = RestrictionPassword.ToPlainText();
         if (Password != null && string.IsNullOrWhiteSpace(password)) throw new PSArgumentException("Password cannot be empty or whitespace.");
         if (RestrictionPassword != null && string.IsNullOrWhiteSpace(restrictionPassword)) throw new PSArgumentException("RestrictionPassword cannot be empty or whitespace.");
         if (Encrypt.IsPresent && password == null) throw new PSArgumentException("Encrypt requires a non-empty Password.");
@@ -207,8 +206,6 @@ public sealed class ProtectOfficeDocumentCommand : PSCmdlet {
             if (failure == null && disposalErrors.Count > 0) throw new AggregateException(disposalErrors);
         }
     }
-
-    private static string? Plaintext(SecureString? value) => value == null ? null : new NetworkCredential(string.Empty, value).Password;
 
     private sealed class ProtectionPlan {
         internal ProtectionPlan(object document, OfficeProtectionRestriction[] restrictions, OfficeProtectionOptionBinding options, string? output) {

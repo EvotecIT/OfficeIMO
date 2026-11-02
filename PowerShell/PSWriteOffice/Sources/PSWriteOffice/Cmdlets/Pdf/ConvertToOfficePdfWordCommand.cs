@@ -2,7 +2,9 @@ using OfficeIMO.Pdf.Word;
 using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Word.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
 
@@ -34,7 +36,8 @@ public sealed class ConvertToOfficePdfWordCommand : PSCmdlet
 
     /// <summary>Password used to authenticate an encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
     [Parameter]

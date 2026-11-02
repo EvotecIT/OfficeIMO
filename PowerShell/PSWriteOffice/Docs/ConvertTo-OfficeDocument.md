@@ -11,17 +11,17 @@ Converts a file or file batch through the canonical OfficeIMO workflow runner.
 ## SYNTAX
 ### File (Default)
 ```powershell
-ConvertTo-OfficeDocument [-InputPath] <Object[]> [-OutputPath] <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument [-InputPath] <Object[]> [-OutputPath] <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <securestring>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Files
 ```powershell
-ConvertTo-OfficeDocument [-InputPath] <Object[]> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument [-InputPath] <Object[]> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <securestring>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Directory
 ```powershell
-ConvertTo-OfficeDocument -InputDirectory <string> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <string>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-SourceExtension <string[]>] [-NoRecurse] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeDocument -InputDirectory <string> -OutputDirectory <string> -TargetExtension <string> [-ConversionRouteId <string>] [-ConflictPolicy <string>] [-OutputProfile <string>] [-ConversionOptions <OfficeConversionOptions>] [-Password <securestring>] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumFiles <int>] [-MaximumConcurrency <int>] [-SourceExtension <string[]>] [-NoRecurse] [-CheckpointDirectory <string>] [-RetryFailed] [-ItemResults] [-AllowEmpty] [-SummaryVariable <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -309,7 +309,7 @@ Accept wildcard characters: False
 Runtime-only password for encrypted Office or PDF source files.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: File, Files, Directory
 Aliases: None
 Possible values:

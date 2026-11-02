@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using System.Threading.Tasks;
 using PSWriteOffice.Services;
 using OfficeIMO.Workflows;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
@@ -74,7 +76,8 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
 
     /// <summary>Runtime-only password for encrypted Office or PDF source files.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Maximum bytes read from one source.</summary>
     [Parameter]
@@ -148,7 +151,7 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
     /// <inheritdoc />
     protected override async Task EndProcessingAsync() {
         var options = ConversionOptions?.Clone() ?? new OfficeConversionOptions { WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } };
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) options.SourcePassword = Password;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) options.SourcePassword = Password.ToPlainText();
         OfficeWorkflowCommandUtilities.RegisterConversions();
         var conflict = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, ignoreCase: true);
         var profile = (OfficeConversionProfile)Enum.Parse(typeof(OfficeConversionProfile), OutputProfile, ignoreCase: true);

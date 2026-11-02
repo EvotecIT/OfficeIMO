@@ -11,7 +11,7 @@ Fills and optionally flattens simple AcroForm fields in an existing PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePdfForm -Path <string> -OutputPath <string> [-Password <string>] [-IgnorePermissionRestrictions] [-Field <hashtable>] [-Flatten] [-KeepNeedAppearances] [-Incremental] [-AppearanceFontPath <string>] [-AppearanceFontFamilyName <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfForm -Path <string> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Field <hashtable>] [-Flatten] [-KeepNeedAppearances] [-Incremental] [-AppearanceFontPath <string>] [-AppearanceFontFamilyName <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -181,7 +181,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

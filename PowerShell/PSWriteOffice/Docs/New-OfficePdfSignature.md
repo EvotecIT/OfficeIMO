@@ -11,7 +11,7 @@ Prepares an existing PDF for external digital signing by appending a signature f
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePdfSignature [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-FieldName <string>] [-Filter <string>] [-SubFilter <PdfExternalSignatureSubFilter>] [-Name <string>] [-Reason <string>] [-Location <string>] [-ContactInfo <string>] [-ReservedBytes <int>] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficePdfSignature [-Path] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-FieldName <string>] [-Filter <string>] [-SubFilter <PdfExternalSignatureSubFilter>] [-Name <string>] [-Reason <string>] [-Location <string>] [-ContactInfo <string>] [-ReservedBytes <int>] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -162,7 +162,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

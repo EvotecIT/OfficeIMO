@@ -1,6 +1,5 @@
 using System.IO;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using OfficeIMO.Word;
 using PSWriteOffice.Foundation;
@@ -51,7 +50,7 @@ public sealed class OpenOfficeWordCommand : OfficeLifecycleCmdlet<WordDocument> 
         foreach (string input in OfficePath.ResolveInput(SessionState, literal ? LiteralPath : Path, literal)) {
             RunDocument(input, isNew: false, force: false,
                 path => WordDocumentService.LoadDocument(path!, ReadOnly.IsPresent, autoSave: false,
-                    Password == null ? null : new NetworkCredential(string.Empty, Password).Password),
+                    Password.ToPlainText()),
                 (document, path, allowLoss) => {
                     document.Save(path, WordDocumentService.NativeSaveOptions(allowLoss, null, passwordBound: false));
                     return null;

@@ -1,5 +1,7 @@
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -27,7 +29,8 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 
     /// <summary>Password used to authenticate the original PDF.</summary>
     [Parameter]
-    public string? ReferencePassword { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? ReferencePassword { get; set; }
 
     /// <summary>After authentication, explicitly ignore restrictions on the original PDF.</summary>
     [Parameter]
@@ -35,7 +38,8 @@ public sealed class TestOfficePdfRewriteCommand : PSCmdlet
 
     /// <summary>Password used to authenticate the rewritten PDF.</summary>
     [Parameter]
-    public string? DifferencePassword { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? DifferencePassword { get; set; }
 
     /// <summary>After authentication, explicitly ignore restrictions on the rewritten PDF.</summary>
     [Parameter]

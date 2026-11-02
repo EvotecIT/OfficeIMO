@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -92,7 +91,7 @@ public sealed class SearchOfficeDocumentCommand : OfficeInputCmdlet {
             Reader == null ? (MaximumStoreItems == 0 ? int.MaxValue : MaximumStoreItems) : null);
         var readOptions = Reader?.DefaultOptions ?? configuration.ReaderOptions;
         readOptions.ComputeHashes = false;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) readOptions.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) readOptions.OpenPassword = Password.ToPlainText();
         var reader = Reader ?? ReaderCommandUtilities.CreateReader(configuration.HandlerOptions, ThrottleLimit);
         int fileCeiling = MyInvocation.BoundParameters.ContainsKey(nameof(MaximumFiles)) ? MaximumFiles : Math.Max(1, readOptions.FolderOptions?.MaxFiles ?? MaximumFiles);
         long? byteCeiling = readOptions.FolderOptions?.MaxTotalBytes;

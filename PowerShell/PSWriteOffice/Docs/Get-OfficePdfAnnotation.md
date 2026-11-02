@@ -11,7 +11,7 @@ Gets page annotations and action evidence from a PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePdfAnnotation [-Path] <string> [-Subtype <string>] [-PageNumber <Int32>] [-WithAction] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfAnnotation [-Path] <string> [-Subtype <string>] [-PageNumber <Int32>] [-WithAction] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -63,7 +63,7 @@ Accept wildcard characters: False
 Password used to inspect a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO;
@@ -19,6 +20,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 using PSWriteOffice.Services.Pdf;
@@ -80,7 +82,8 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
 
     /// <summary>Password used to open an encrypted Word, Excel, or PowerPoint source file.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Word-specific PDF options.</summary>
     [Parameter]
@@ -218,7 +221,7 @@ public sealed partial class ExportOfficeDocumentPdfCommand : AsyncPSCmdlet {
             case FileInfo file:
                 PSWriteOffice.Services.OfficeWorkflowCommandUtilities.RegisterConversions();
                 var options = new OfficeConversionOptions {
-                    SourcePassword = Password, MaximumInputBytes = MaximumInputBytes,
+                    SourcePassword = Password.ToPlainText(), MaximumInputBytes = MaximumInputBytes,
                     FileConflictPolicy = OfficePublicationPolicy.Replace,
                     Word = WordOptions, Excel = ExcelOptions, PowerPoint = PowerPointOptions,
                     Markdown = PrepareMarkdownOptions(file.FullName), Html = HtmlOptions, PlainText = TextOptions,

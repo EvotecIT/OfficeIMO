@@ -11,7 +11,7 @@ Draws arbitrary visual canvas content on existing PDF pages.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Add-OfficePdfCanvas [-Content] <scriptblock> -Path <string> -OutputPath <string> [-PageRange <string>] [-BehindContent] [-Opacity <double>] [-ConfigureRendering <scriptblock>] [-Password <string>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfCanvas [-Content] <scriptblock> -Path <string> -OutputPath <string> [-PageRange <string>] [-BehindContent] [-Opacity <double>] [-ConfigureRendering <scriptblock>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -166,7 +166,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted input PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

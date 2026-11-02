@@ -11,7 +11,7 @@ Updates a single indirect PDF annotation.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePdfAnnotation [-Path] <string> [-OutputPath] <string> -ObjectNumber <int> [-Password <string>] [-IgnorePermissionRestrictions] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <string>] [-RemoveAction] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfAnnotation [-Path] <string> [-OutputPath] <string> -ObjectNumber <int> [-Password <securestring>] [-IgnorePermissionRestrictions] [-Contents <string>] [-Title <string>] [-Name <string>] [-Flags <Int32>] [-Color <string>] [-RemoveAction] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -175,7 +175,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

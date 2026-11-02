@@ -376,6 +376,28 @@ public sealed partial class MergeDocumentWorkflowTests {
         files.AssertSourcesUnchanged(before);
     }
 
+    [Fact]
+    public void PlainTextPerSourcePasswordsBindWithNullForAnUnencryptedInput() {
+        using var files = new MergeFiles();
+        string encrypted = files.PathFor("encrypted.docx");
+        using (var document = WordDocument.Create()) {
+            document.AddParagraph("FIRST");
+            document.Save(encrypted, new WordSaveOptions { Password = "one" });
+        }
+        string plain = files.Word("plain.docx", "SECOND");
+        string output = files.PathFor("merged.docx");
+        using var runspace = OpenRunspace();
+        Set(runspace, ("inputs", new[] { encrypted, plain }), ("output", output));
+        using var shell = PowerShell.Create();
+        shell.Runspace = runspace;
+        shell.AddScript("Merge-OfficeDocument -LiteralPath $inputs -OutputPath $output -Password 'one', $null -ErrorAction Stop");
+        shell.Invoke();
+        Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+        Assert.Contains("plain-text password", Assert.Single(shell.Streams.Warning).Message);
+        using var saved = WordDocument.Load(output, new WordLoadOptions { Password = "one" });
+        InOrder(string.Join("\n", saved.Paragraphs.Select(p => p.Text)), "FIRST", "SECOND");
+    }
+
     private static Runspace OpenRunspace() {
         var state = InitialSessionState.CreateDefault();
         state.ImportPSModule(new[] { typeof(MergeOfficeDocumentCommand).Assembly.Location });
