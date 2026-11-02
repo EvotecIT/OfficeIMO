@@ -15,6 +15,11 @@ namespace OfficeIMO.Word {
         private static readonly Lazy<byte[]> DefaultTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.Template));
         private static readonly Lazy<byte[]> DefaultMacroDocumentPackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.MacroEnabledDocument));
         private static readonly Lazy<byte[]> DefaultMacroTemplatePackage = new(() => CreateDefaultPackageBytes(WordprocessingDocumentType.MacroEnabledTemplate));
+        // Packages with the default creation theme already applied. Valid only while no runtime style registrations exist.
+        private static readonly Lazy<byte[]> DefaultThemedDocumentPackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.Document));
+        private static readonly Lazy<byte[]> DefaultThemedTemplatePackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.Template));
+        private static readonly Lazy<byte[]> DefaultThemedMacroDocumentPackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.MacroEnabledDocument));
+        private static readonly Lazy<byte[]> DefaultThemedMacroTemplatePackage = new(() => CreateDefaultThemedPackageBytes(WordprocessingDocumentType.MacroEnabledTemplate));
 
         private static string GetUniqueFilePath(string filePath) {
             if (File.Exists(filePath)) {
@@ -165,7 +170,16 @@ namespace OfficeIMO.Word {
         }
 
         private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme) {
-            byte[] templateBytes = GetDefaultPackageBytes(documentType);
+            // The default theme projection is deterministic, so reuse a package that already carries it instead of
+            // parsing, cloning and reserializing the style catalog and theme part for every new document.
+            bool themeApplied = ReferenceEquals(theme, OfficeTheme.Default) && !WordParagraphStyle.HasRuntimeStyleRegistrations;
+            return CreateInternal(filePath, stream, documentType, persistenceMode, theme,
+                themeApplied ? GetDefaultThemedPackageBytes(documentType) : GetDefaultPackageBytes(documentType),
+                themeApplied, applyStyleRegistrations: true);
+        }
+
+        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme,
+            byte[] templateBytes, bool themeApplied, bool applyStyleRegistrations) {
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
             packageStream.Position = 0;
@@ -194,10 +208,11 @@ namespace OfficeIMO.Word {
                 _tableNormalizationRequired = false
             };
             word.InitializeSdtIdState();
-            ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
+            if (applyStyleRegistrations && !themeApplied) ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
             InitializeNewDocumentFacade(word);
             try {
-                if (theme != null) word.ApplyCreationTheme(theme);
+                if (themeApplied) word._creationTheme = theme;
+                else if (theme != null) word.ApplyCreationTheme(theme);
                 return word;
             } catch {
                 word.Dispose();
@@ -212,6 +227,26 @@ namespace OfficeIMO.Word {
             WordprocessingDocumentType.MacroEnabledTemplate => DefaultMacroTemplatePackage.Value,
             _ => throw new ArgumentOutOfRangeException(nameof(documentType), documentType, "Unsupported Word document type.")
         };
+
+        private static byte[] GetDefaultThemedPackageBytes(WordprocessingDocumentType documentType) => documentType switch {
+            WordprocessingDocumentType.Document => DefaultThemedDocumentPackage.Value,
+            WordprocessingDocumentType.Template => DefaultThemedTemplatePackage.Value,
+            WordprocessingDocumentType.MacroEnabledDocument => DefaultThemedMacroDocumentPackage.Value,
+            WordprocessingDocumentType.MacroEnabledTemplate => DefaultThemedMacroTemplatePackage.Value,
+            _ => throw new ArgumentOutOfRangeException(nameof(documentType), documentType, "Unsupported Word document type.")
+        };
+
+        private static byte[] CreateDefaultThemedPackageBytes(WordprocessingDocumentType documentType) {
+            using WordDocument document = CreateInternal(filePath: null, stream: null, documentType, DocumentPersistenceMode.Explicit,
+                OfficeTheme.Default, GetDefaultPackageBytes(documentType), themeApplied: false, applyStyleRegistrations: false);
+            using var packageStream = new MemoryStream();
+            using (document._wordprocessingDocument.Clone(packageStream, true)) {
+            }
+
+            packageStream.Position = 0;
+            WordPackageCompatibility.NormalizeOpenOfficeRelationships(packageStream);
+            return packageStream.ToArray();
+        }
 
         private static byte[] CreateDefaultPackageBytes(WordprocessingDocumentType documentType) {
             using WordDocument document = CreateUncached(
