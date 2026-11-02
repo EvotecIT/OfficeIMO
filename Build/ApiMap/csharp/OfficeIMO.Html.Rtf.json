@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Html.Rtf",
+  "changes": [
+    {
+      "old": "OfficeIMO.Html.Rtf.HtmlToRtfOptions.CreateUntrustedHtmlProfile()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Html.Rtf.HtmlToRtfOptions.UntrustedDefaults",
+      "category": "limits",
+      "reason": "Profiles for untrusted input use one discoverable name across formats.",
+      "applied": true
+    }
+  ]
+}

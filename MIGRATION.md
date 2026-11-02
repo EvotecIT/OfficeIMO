@@ -1520,7 +1520,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>364 changes</summary>
+<summary>366 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2011,7 +2011,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Excel
 
 <details>
-<summary>322 changes</summary>
+<summary>324 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -2388,7 +2388,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.PowerPoint
 
 <details>
-<summary>573 changes</summary>
+<summary>574 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3379,11 +3379,6 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
-#### OfficeIMO.Core
-
-<details>
-<summary>60 changes</summary>
-
 #### OfficeIMO.Access
 
 <details>
@@ -3418,8 +3413,14 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.Core
+
+<details>
+<summary>70 changes</summary>
+
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.OfficeImageExportPolicy.RequireNoLoss` | Renamed | `OfficeIMO.OfficeImageExportPolicy.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 | Visibility | `OfficeIMO.ContentSafety.OfficeContentSafetyInputGuard` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntryReader` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntryWriter` | Internal | &mdash; | Use the documented document, options and result APIs. |
@@ -3480,6 +3481,15 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Security.OfficeVbaSignatureService` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Security.OfficeXmlPackageSignatureService` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Security.XmlDigitalSignatureAlgorithms` | Internal | &mdash; | Use the documented document, options and result APIs. |
+| contract | `OfficeIMO.IOfficeConversionReport` | Merged | `OfficeIMO.OfficeConversionReport` | Format reports derive from OfficeConversionReport. Use Diagnostics, HasLoss and ThrowIfLoss() on any report; typed findings moved to NativeDiagnostics where the report had its own Diagnostics list. |
+| contract | `OfficeIMO.IOfficeConversionReport.FidelityDiagnostics` | Renamed | `OfficeIMO.OfficeConversionReport.Diagnostics` | Diagnostics returns OfficeDiagnostic entries (Code, Severity, Message, Location, Format, LossKind). |
+| contract | `OfficeIMO.IOfficeConversionReport.RequireNoLoss() / format report RequireNoLoss()` | Renamed | `OfficeIMO.OfficeConversionReport.ThrowIfLoss()` | ThrowIfLoss() throws OfficeConversionException or a derived format exception (HtmlConversionException, RtfConversionLossException, OdfConversionLossException, BibliographyConversionLossException) that carries the report. |
+| contract | `OfficeIMO.OfficeConversionException (sealed, IOfficeConversionReport Report)` | Changed | `OfficeIMO.OfficeConversionException (OfficeConversionReport Report)` | Format exceptions derive from it and expose their typed report. |
+| contract | `OfficeIMO.OfficeConversionFidelityDiagnostic` | Merged | `OfficeIMO.OfficeDiagnostic` | Source is now Format; Severity is explicit. |
+| contract | `OfficeIMO.OfficeConversionResult<TValue, TReport> / OfficeIMO.IOfficeConversionResult<TValue, TReport>` | Merged | `OfficeIMO.OfficeConversionResult<T>` | Format results derive from OfficeConversionResult&lt;T&gt; and narrow Report to their typed report. Use Value, Report, HasLoss and ThrowIfLoss(). |
+| contract | `OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireNoLoss() (returned Value)` | Changed | `OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() then Value` | var result = Convert(...); result.ThrowIfLoss(); var value = result.Value; |
+| contract | `OfficeIMO.OfficeConversionResult<TValue, TReport>.RequireValue() / Succeeded` | Removed | &mdash; | Use Value. Format results with a real failed state (CHM, RTF, HTML) keep their own Succeeded and RequireValue. |
+| contract | `OfficeIMO.OfficeOutputResult<TReport>.RequireNoLoss() (returned the result)` | Renamed | `OfficeIMO.OfficeOutputResult<TReport>.ThrowIfLoss()` | ThrowIfLoss() returns void. |
 
 </details>
 
@@ -3505,6 +3515,19 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Options | `OfficeIMO.CSV.CsvDataReaderOptions` | Merged | `OfficeIMO.CSV.CsvReaderOptions` | Combine Schema, InferSchema and ParallelProcessing with parsing settings in CsvReaderOptions for OpenReader. Load and Parse keep CsvLoadOptions. Rename SchemaSampleSize to SchemaSampleRows. |
 | Options | `OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize` | Renamed | `OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows` | Keep the sample-row count; only the property and containing options type change. CSV decimal inference is unchanged; use an explicit Schema to select other column types. |
 | Options | `OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize` | Renamed | `OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows` | Keep the sample-row count. CsvDataTableOptions retains its separate TableName and table-schema projection contract. |
+
+</details>
+
+#### OfficeIMO.Email
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Email PST store options FailOnDataLoss` | Renamed | `FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
+| Naming | `OfficeIMO.Email.EmailStoreMboxExportFidelityPolicy.RequireNoLoss` | Renamed | `OfficeIMO.Email.EmailStoreMboxExportFidelityPolicy.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
+| contract | `OfficeIMO.Email conversion and store report Diagnostics` | Renamed | `NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
 
 </details>
 
@@ -3547,42 +3570,14 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Html
 
 <details>
-<summary>3 changes</summary>
+<summary>11 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Conversion | `HTML p elements: margin-top 0; margin-bottom 1em` | Changed | `HTML p elements: margin-top 1em; margin-bottom 1em` | HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout. |
 | Conversion | `OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets` | Changed | `OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices` | Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. `New-OfficePowerPointHtmlOptions` defaults its shared document theme to Modern. |
+| Naming | `OfficeIMO.Html.HtmlRenderFidelityPolicy.RequireNoLoss` | Renamed | `OfficeIMO.Html.HtmlRenderFidelityPolicy.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 | Options | `HtmlRenderOptions batch image selection` | Changed | `HtmlRenderOptions.PageSelection (PdfPageSelection)` | Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts. |
-
-</details>
-
-#### OfficeIMO.Pdf.Excel
-
-<details>
-<summary>1 change</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| Package | `OfficeIMO.Excel.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.Excel` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
-
-</details>
-
-#### OfficeIMO.Pdf.PowerPoint
-
-<details>
-<summary>1 change</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| Package | `OfficeIMO.PowerPoint.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.PowerPoint` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
-
-</details>
-
-#### OfficeIMO.Pdf.Word
-
-<details>
-<summary>1 change</summary>
 | contract | `OfficeIMO.Html.HtmlConversionException : InvalidOperationException` | Changed | `OfficeIMO.Html.HtmlConversionException : OfficeConversionException` | Report carries the HTML diagnostics. |
 | contract | `OfficeIMO.Html.HtmlConversionReport.Diagnostics / HtmlRenderDocument.Diagnostics` | Renamed | `NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
 | contract | `OfficeIMO.Html.HtmlRenderResult.RequireNoLoss() / HtmlRenderDocument.RequireNoLoss() (returned this)` | Renamed | `ThrowIfLoss()` | ThrowIfLoss() returns void. |
@@ -3636,6 +3631,35 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.OpenDocument.OdfDocument.Metadata` | Renamed | `OfficeIMO.OpenDocument.OdfDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
 | contract | `OfficeIMO.OpenDocument.OdfConversionLossException : InvalidOperationException` | Changed | `OfficeIMO.OpenDocument.OdfConversionLossException : OfficeConversionException` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 
+</details>
+
+#### OfficeIMO.Pdf.Excel
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Package | `OfficeIMO.Excel.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.Excel` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
+
+</details>
+
+#### OfficeIMO.Pdf.PowerPoint
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Package | `OfficeIMO.PowerPoint.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.PowerPoint` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
+
+</details>
+
+#### OfficeIMO.Pdf.Word
+
+<details>
+<summary>1 change</summary>
+
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Package | `OfficeIMO.Word.Pdf reverse reconstruction` | Moved | `OfficeIMO.Pdf.Word` | The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult&lt;T&gt; forms replace the old result pairs. |
@@ -3654,35 +3678,6 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
-#### OfficeIMO.Reader.Core
-
-<details>
-<summary>1 change</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| reading | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null)` | Changed | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null, CancellationToken cancellationToken = default)` | Search accepts cooperative cancellation for both literal and regular-expression matching. Existing source calls compile unchanged; binary consumers must recompile and method-group bindings must include the token or use a lambda. C# literal matching remains the default. |
-
-</details>
-<!-- officeimo-api-map:end -->
-
-Search redaction accepts unencrypted object-stream and cross-reference-stream PDFs, including hybrid, linearized, incremental and `/Extends` inputs, when the complete winning xref map agrees with the reader. It follows empty newest hybrid sections and writes classic output, including empty searches. Free or missing reference targets are written as null. Disagreeing graphs, retained historical matches and compressed encryption remain refused.
-
-
-## Chart and workbook defaults
-
-New workbooks use the default `OfficeTheme` font and palette: Aptos and the
-Modern accents. Chart typography, gridlines, line widths and bar spacing follow
-the shared theme. Regenerate worksheet and chart preview baselines; the default
-font can also change column widths in pixels. Loaded documents keep their styles.
-
-Line series created from `OfficeChartData` without a marker-visibility argument
-follow the theme: Modern shows markers only for fewer than three points, while
-Classic uses circles. Explicit visibility and point styling take precedence;
-data-only updates retain existing native marker formatting.
-
-Clearing PowerPoint axis-label text styling restores the theme's font, size and
-colour while retaining label rotation. It no longer leaves those text properties
 #### OfficeIMO.Project
 
 <details>
@@ -3705,15 +3700,15 @@ colour while retaining label rotation. It no longer leaves those text properties
 
 </details>
 
-unset.
+#### OfficeIMO.Reader.Core
 
-## PowerPoint composition defaults
+<details>
+<summary>1 change</summary>
 
-Automatic card composition fits up to eight cards per slide and honors
-`MaxColumns`. Set `PowerPointDeckContinuationOptions.CardsPerSlide = 6` to keep
-the previous continuation limit.
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| reading | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null)` | Changed | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null, CancellationToken cancellationToken = default)` | Search accepts cooperative cancellation for both literal and regular-expression matching. Existing source calls compile unchanged; binary consumers must recompile and method-group bindings must include the token or use a lambda. C# literal matching remains the default. |
 
-## HTML paragraph spacing
 </details>
 
 #### OfficeIMO.Reader.IWork
@@ -3766,6 +3761,35 @@ the previous continuation limit.
 | --- | --- | --- | --- | --- |
 | limits | `OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth` | Moved | `OfficeIMO.Xps.XpsReadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)` | new XpsReadOptions { Limits = { MaxPages = 100 } } |
 
+</details>
+<!-- officeimo-api-map:end -->
+
+Search redaction accepts unencrypted object-stream and cross-reference-stream PDFs, including hybrid, linearized, incremental and `/Extends` inputs, when the complete winning xref map agrees with the reader. It follows empty newest hybrid sections and writes classic output, including empty searches. Free or missing reference targets are written as null. Disagreeing graphs, retained historical matches and compressed encryption remain refused.
+
+
+## Chart and workbook defaults
+
+New workbooks use the default `OfficeTheme` font and palette: Aptos and the
+Modern accents. Chart typography, gridlines, line widths and bar spacing follow
+the shared theme. Regenerate worksheet and chart preview baselines; the default
+font can also change column widths in pixels. Loaded documents keep their styles.
+
+Line series created from `OfficeChartData` without a marker-visibility argument
+follow the theme: Modern shows markers only for fewer than three points, while
+Classic uses circles. Explicit visibility and point styling take precedence;
+data-only updates retain existing native marker formatting.
+
+Clearing PowerPoint axis-label text styling restores the theme's font, size and
+colour while retaining label rotation. It no longer leaves those text properties
+unset.
+
+## PowerPoint composition defaults
+
+Automatic card composition fits up to eight cards per slide and honors
+`MaxColumns`. Set `PowerPointDeckContinuationOptions.CardsPerSlide = 6` to keep
+the previous continuation limit.
+
+## HTML paragraph spacing
 
 The HTML engine gives `p` elements browser-default margins of `1em` above and
 below, with adjacent margin collapse. Explicit CSS overrides these defaults.
@@ -4194,7 +4218,7 @@ Regenerate visual baselines for Markdown to HTML, Markdown to Word, Word to HTML
 
 Raw HTML rendering retains the configured default font when installed-font fallback is permitted. Its selected face can change advances, baselines, wrapping and page counts compared with the earlier estimated layout. Register complete font bytes and set `AllowSystemFontFallback = false` for a fixed font selection across hosts.
 
-Visible raw text measured without a selected program reports `HtmlRenderFontMetricsEstimated`. `RequireNoLoss` rejects that approximation. Supply a covering face through `Fonts` or a policy-approved `@font-face`, or use `AllowDiagnosedLoss` and inspect the diagnostic. Explicit PDF default-font registrations retain their bytes for shared layout and painting; caller-supplied CSS faces keep ownership.
+Visible raw text measured without a selected program reports `HtmlRenderFontMetricsEstimated`. `ThrowIfLoss` rejects that approximation. Supply a covering face through `Fonts` or a policy-approved `@font-face`, or use `AllowDiagnosedLoss` and inspect the diagnostic. Explicit PDF default-font registrations retain their bytes for shared layout and painting; caller-supplied CSS faces keep ownership.
 
 ## Office conversion fonts and Word page images
 
@@ -4815,7 +4839,7 @@ Native `TextBkgnd` values `0` and `255` disable the text background. A zero-alph
 
 ## Visio preview diagnostics in PDF conversion
 
-Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `RequireNoLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
+Opt-in PNG and SVG preview assets now retain rendering diagnostics in the neutral model, Reader result and PDF conversion report. `ThrowIfLoss()` rejects reported omissions such as unsupported foreign objects replaced by placeholders. Inspect `Warnings` and their `LossKind` before accepting those fallbacks. Disabled shape text and connector labels do not generate font-substitution warnings.
 
 ## Visio connector endpoints
 
@@ -4939,7 +4963,7 @@ The asset properties, including `Script`, `Module`, `XlsxScript` and `PdfScript`
 
 ## DocBook, ADF and Data projection contracts
 
-ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `RequireNoLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
+ADF operations enforce resource limits through `AdfProcessingOptions`, inherited by `AdfConversionOptions` and `AdfValidationOptions`. The default graph limit is 100,000 nodes and marks. If an application intentionally processes documents above the defaults, pass explicit limits to parsing, validation, JSON writing and conversion. Validation reports unsafe graphs and graph-limit failures as invalid results; writing and conversion throw `InvalidDataException`. Structural validation also rejects empty required content and missing panel types. Inspect omission diagnostics when `ThrowIfLoss()` rejects metadata or semantic projections that previously lost properties silently. Default task IDs derive from bounded generated task-list content; supply `LocalIdFactory` when an integration needs its own stable identity policy.
 
 DocBook Reader Markdown escapes literal syntax. Applications comparing exact Markdown strings must allow escapes; plain chunk text retains its source text. CALS cells use newlines between distinct block paragraphs. Typed component body additions are placed before child sections and indexes; raw XML with the opposite order receives `DB024`.
 
@@ -5116,7 +5140,7 @@ Finite rectangular cross-table references now resolve unique native identities a
 
 ## iWork high-precision numeric recovery
 
-Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `RequireNoLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.
+Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `ThrowIfLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.
 
 ## Stored Excel numeric precision
 
@@ -5130,15 +5154,15 @@ Reconvert iWork tables to retain supported selected, region and alternating body
 
 ## iWork fraction reconstruction
 
-`IWorkNumberFormatKind.Fraction` and `IWorkFractionAccuracy` add denominator precision to the shared numeric model. `IWorkNumberFormat.DecimalPlaces == null` can now identify a fraction; inspect `Kind` before treating null as automatic decimal mode. The Excel adapter retains editable numeric values and applies mixed-fraction codes with explicit minus and zero sections. `IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED` reports rounding, normalization, and spacing differences; `RequireNoLoss()` rejects this approximation. Nondefault fraction negative styles, grouping, and other controls still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
+`IWorkNumberFormatKind.Fraction` and `IWorkFractionAccuracy` add denominator precision to the shared numeric model. `IWorkNumberFormat.DecimalPlaces == null` can now identify a fraction; inspect `Kind` before treating null as automatic decimal mode. The Excel adapter retains editable numeric values and applies mixed-fraction codes with explicit minus and zero sections. `IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED` reports rounding, normalization, and spacing differences; `ThrowIfLoss()` rejects this approximation. Nondefault fraction negative styles, grouping, and other controls still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
 
 ## iWork scientific reconstruction
 
-`IWorkNumberFormatKind.Scientific` is an additive enum member. Supported scientific selections retain typed values and formula caches and convert to editable XLSX with zero-to-thirty mantissa decimal places and an `E+00` exponent. Automatic precision reports `IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED`; `RequireNoLoss()` rejects that approximation. Nondefault scientific negative styles and grouping still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
+`IWorkNumberFormatKind.Scientific` is an additive enum member. Supported scientific selections retain typed values and formula caches and convert to editable XLSX with zero-to-thirty mantissa decimal places and an `E+00` exponent. Automatic precision reports `IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED`; `ThrowIfLoss()` rejects that approximation. Nondefault scientific negative styles and grouping still require the partial-reconstruction policy. DOCX and PPTX table conversion retains raw cached text and reports numeric-format omission.
 
 ## iWork currency reconstruction
 
-Supported currency selections retain editable numeric values and currency metadata instead of requiring partial reconstruction for the format alone. The Excel adapter displays the source identifier as a prefix and reports `IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED`; `RequireNoLoss()` rejects this display approximation. Inspect `IWorkTableCell.NumberFormat.CurrencyCode` and `UseAccountingStyle` when the source format matters. Currency symbols, locale placement, and accounting alignment are not reconstructed. Unsupported currency metadata still requires the partial-reconstruction policy.
+Supported currency selections retain editable numeric values and currency metadata instead of requiring partial reconstruction for the format alone. The Excel adapter displays the source identifier as a prefix and reports `IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED`; `ThrowIfLoss()` rejects this display approximation. Inspect `IWorkTableCell.NumberFormat.CurrencyCode` and `UseAccountingStyle` when the source format matters. Currency symbols, locale placement, and accounting alignment are not reconstructed. Unsupported currency metadata still requires the partial-reconstruction policy.
 
 ## Reader capability schema version 7
 
@@ -5253,7 +5277,7 @@ recovery scanning cannot establish publication completeness.
 
 CSL JSON parsing places all standard contributor roles in `BibliographyItem.Contributors`, all standard date roles in `Dates`, and all standard item types in `Type`. Applications reading recognized properties such as `director`, `container-author`, or `available-date` from item `NativeFields` should use the corresponding contributor role or `GetDate(BibliographyDateRole.Available)`. Incorrectly shaped and unknown properties remain native fields, and unchanged preserve-mode writing retains the original source.
 
-Existing enum numeric values remain stable; the additional item types, contributor roles, and availability date are appended. Extend application switches that assumed the earlier enum set. When converting to a format with a smaller vocabulary, inspect the conversion report or enable `RequireNoLoss` to reject unsupported roles, dates, and types.
+Existing enum numeric values remain stable; the additional item types, contributor roles, and availability date are appended. Extend application switches that assumed the earlier enum set. When converting to a format with a smaller vocabulary, inspect the conversion report or enable `ThrowIfLoss` to reject unsupported roles, dates, and types.
 
 ## Bibliography and AsciiDoc path saves
 
@@ -5852,8 +5876,8 @@ Existing `OpenArrowStream` and `ReadArrowBatchesAsync` calls are unchanged and r
 
 ### Typed conversion fidelity reports
 
-`IOfficeConversionReport` now requires `FidelityDiagnostics`. Custom report implementations must
-return immutable `OfficeConversionFidelityDiagnostic` entries with an exact
+`OfficeConversionReport` now requires `Diagnostics`. Custom report implementations must
+return immutable `OfficeDiagnostic` entries with an exact
 `OfficeConversionLossKind`. Use `OfficeConversionFidelityDiagnostics.Flatten` when composing
 several stages so omissions, approximations, and failures are not collapsed into one Boolean.
 
@@ -6297,7 +6321,7 @@ applications that present or count diagnostics should include that additional ev
 PDF warnings now retain the existing `OfficeConversionLossKind` classification
 used by upstream converters. Read `PdfConversionWarning.LossKind` for fidelity
 impact and `Severity` for diagnostic severity. The existing `HasLoss`,
-`RequireNoLoss()`, and PDF-to-image acceptance policies now use that classification,
+`ThrowIfLoss()`, and PDF-to-image acceptance policies now use that classification,
 so an informational diagnostic describing an omission still counts as loss.
 The existing warning constructor keeps its severity-based defaults; the overload
 with `lossKind` preserves an upstream renderer's explicit classification.
@@ -6406,7 +6430,7 @@ retain `OfficeOutputResult<TReport>`; read `Report` for typed
 fidelity evidence, `OutputPath` for a file destination, and `Succeeded` through
 `IOfficeOutputResult` or `IOfficeResult`. Ordinary saves still throw on failure;
 `OfficeOutputResult<TReport>.FromFailure` supports application-owned failure
-boundaries. `RequireNoLoss()` first requires successful output. `PdfSaveResult`
+boundaries. `ThrowIfLoss()` first requires successful output. `PdfSaveResult`
 implements the same output-status interface and enforces the same guard.
 
 PDF stream saves leave the caller's stream open. They overwrite, truncate, and
@@ -6495,7 +6519,7 @@ same decorated container owner as `Element`. `PanelParagraph` adds one ordinary
 paragraph inside that container. Paragraph spacing and page-scoped defaults apply
 consistently. `KeepTogether` rejects content taller than a complete frame; set it
 to false to allow splitting. Vertical padding must leave room for content.
-`PdfSaveResult.RequireNoLoss()` also requires a successful save.
+`PdfSaveResult.ThrowIfLoss()` also requires a successful save.
 
 Use `FixedColumn` for points, `AutoColumn` for measured content with optional
 bounds, `RelativeColumn` for a weighted share of remaining width, and
@@ -6539,7 +6563,7 @@ Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `Of
 | Numbers | `OfficeIMO.Excel.IWork` | `IWorkSourceDocument.Open(...).ToExcelDocument[Result](...)` |
 | Keynote | `OfficeIMO.PowerPoint.IWork` | `IWorkSourceDocument.Open(...).ToPowerPointPresentation[Result](...)` |
 
-Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
+Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `ThrowIfLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
 
 Source-record accounting now uses `IWorkConversionReport.PreservedRecords`, `PreservedRecordCount`, and `IWorkReadOptions.PreserveSourceRecords` in place of the former `UnsupportedRecords`, `UnsupportedRecordCount`, and `PreserveUnsupportedRecords` names. The list includes consumed and auxiliary records; it does not count omitted content. Replace checks for `IWORK_UNPROJECTED_RECORDS` with `IWORK_RECORD_FIDELITY_UNASSESSED`, whose category is `OfficeConversionLossKind.Unassessed`. Strict no-loss policies still reject unassessed fidelity. Add this category to exhaustive diagnostic displays or policy switches.
 
@@ -6936,9 +6960,9 @@ Applications that intentionally import opaque package bytes can keep using the b
 
 Direct `OfficeImageExportResult` construction now applies the same complete-content check. A recognizable header is no longer enough: truncated, corrupt, undecodable, or dimension-mismatched bytes throw `ArgumentException`. Call `OfficeImageReader.TryValidateContent(...)` before construction when the application needs to handle invalid output without an exception.
 
-Word/RTF result conversions now validate and inventory images across the document body, section headers and footers, fields, revisions, notes, and comments. Images that the target format cannot emit remain in the conversion report instead of disappearing silently. Use `ToRtfDocumentResult(...)` or `ToWordDocumentResult(...)`, inspect `Report`, and call `RequireNoLoss()` when omitted image content must stop the workflow.
+Word/RTF result conversions now validate and inventory images across the document body, section headers and footers, fields, revisions, notes, and comments. Images that the target format cannot emit remain in the conversion report instead of disappearing silently. Use `ToRtfDocumentResult(...)` or `ToWordDocumentResult(...)`, inspect `Report`, and call `ThrowIfLoss()` when omitted image content must stop the workflow.
 
-Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Each conversion validates at most 256 image payloads, 128 MiB of aggregate encoded image data, and 100 million aggregate raster pixels; later images are omitted and reported once a ceiling is reached. Split larger trusted documents before conversion when every image must be retained. Inspect the returned `OdfConversionResult<T>.Report`, call `RequireNoLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
+Word-to-ODT and PowerPoint-to-ODP conversion now preserves only images that pass `OfficeImageReader.TryValidateContent(...)`. Valid payloads with misleading extensions are stored under the detected format; corrupt, truncated, unsupported, and general WebP payloads outside OfficeIMO's managed decoder subset are omitted and reported as unsupported. Each conversion validates at most 256 image payloads, 128 MiB of aggregate encoded image data, and 100 million aggregate raster pixels; later images are omitted and reported once a ceiling is reached. Split larger trusted documents before conversion when every image must be retained. Inspect the returned `OdfConversionResult<T>.Report`, call `ThrowIfLoss()`, or set the conversion option `LossPolicy` when image loss must fail the conversion.
 
 Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete image content. When the filename has a recognized image extension, it must agree with the detected format. These methods throw `ArgumentException` for corrupt, truncated, or mislabeled payloads instead of creating an OpenDocument package entry whose media type does not match its bytes.
 
@@ -7171,7 +7195,7 @@ row-mapping contracts use `OfficeIMO.Data`:
 | `OfficeIMO.Drawing.DocumentLoadOptions` | `OfficeIMO.DocumentLoadOptions` |
 | `OfficeIMO.Drawing.OfficePackageSecurityOptions` and related package contracts | Root `OfficeIMO` namespace |
 | `OfficeIMO.Drawing.OfficeFormatDescriptor`, compatibility models, and capability catalogs | Root `OfficeIMO` namespace |
-| `OfficeIMO.Drawing.IOfficeConversionReport` | `OfficeIMO.IOfficeConversionReport` |
+| `OfficeIMO.Drawing.OfficeConversionReport` | `OfficeIMO.OfficeConversionReport` |
 | `OfficeIMO.Drawing.ObjectFlattener`, `ObjectFlattenerOptions`, and `CollectionColumnMapping` | `OfficeIMO.Data` namespace |
 | `OfficeIMO.Drawing.HeaderCase`, `NullPolicy`, and `CollectionMode` | `OfficeIMO.Data` namespace |
 
@@ -7386,9 +7410,9 @@ implemented.
 | ODS to or from PDF | `OfficeIMO.OpenDocument.Ods.Pdf` | `pdf.ToOdsDocument()` |
 | ODP to or from PDF | `OfficeIMO.OpenDocument.Odp.Pdf` | `pdf.ToOdpPresentation()` |
 
-OpenDocument forward PDF results expose the typed OpenDocument projection report in `SourceConversionReports` and PDF-layout warnings in `Report`; `ConversionReports` presents both stages in order. Read OpenDocument mappings from `OdfConversionReport.Mappings` instead of looking for the removed synthetic `ODF_*` PDF warnings. Use `HasLoss` or `RequireNoLoss()` for the end-to-end fidelity gate. AsciiDoc, LaTeX, and semantic OneNote PDF routes use the same ordered source-stage and PDF-stage model.
+OpenDocument forward PDF results expose the typed OpenDocument projection report in `SourceConversionReports` and PDF-layout warnings in `Report`; `ConversionReports` presents both stages in order. Read OpenDocument mappings from `OdfConversionReport.Mappings` instead of looking for the removed synthetic `ODF_*` PDF warnings. Use `HasLoss` or `ThrowIfLoss()` for the end-to-end fidelity gate. AsciiDoc, LaTeX, and semantic OneNote PDF routes use the same ordered source-stage and PDF-stage model.
 
-`HasWarnings` remains the PDF-stage flag because source reports have format-specific diagnostic models. Use `new PdfConversionProofOptions().RequireNoLoss()` when conversion proof must enforce the same end-to-end fidelity rule. `PdfDocumentConversionResult.Warnings` describes the PDF stage only.
+`HasWarnings` remains the PDF-stage flag because source reports have format-specific diagnostic models. Use `new PdfConversionProofOptions().ThrowIfLoss()` when conversion proof must enforce the same end-to-end fidelity rule. `PdfDocumentConversionResult.Warnings` describes the PDF stage only.
 
 ### Google Workspace preview options
 
@@ -7755,7 +7779,7 @@ Replace `PowerPointChartData`, `PowerPointScatterChartData`, their series types,
 Review these behavioral changes during the upgrade:
 
 - PDF adapters use `PdfResourcePolicy.CreateDefault()` for balanced fidelity. Use `CreatePortableDeterministic()` when conversion must not inspect installed fonts or external resources.
-- OpenDocument, AsciiDoc, LaTeX, and semantic OneNote PDF routes return their source-stage mappings separately from PDF layout warnings. Use `HasLoss` or `RequireNoLoss()` for the end-to-end gate.
+- OpenDocument, AsciiDoc, LaTeX, and semantic OneNote PDF routes return their source-stage mappings separately from PDF layout warnings. Use `HasLoss` or `ThrowIfLoss()` for the end-to-end gate.
 - Word-to-HTML emits detected run colors and highlights by default. Set `IncludeRunColorStyles` or `IncludeRunHighlightStyles` to `false` only for deliberately style-reduced HTML.
 - Excel and CSV numeric, date, formula-cache, and typed writer values use invariant round-trip formatting on every platform.
 - Backend-specific CSV and Excel parser types are no longer public extension points.
@@ -7777,7 +7801,7 @@ OfficeIMO 3.0 renamed its table-only PDF routes so they did not imply full-page 
 
 The PowerPoint names broaden again in 3.1 because the default route changes from table-only recovery to one visual slide per PDF page. Apply the 3.0-to-3.1 mappings after completing this section.
 
-For table-only recovery, `HasLoss` now covers both detected-table truncation and visible source-page content outside the imported tables. `RequireNoLoss()` therefore also throws when non-table text, vectors, visible images, links, forms, annotations, or actions would be omitted. Previously these adapters exposed that condition only through `HasOmittedPageContent`. Use `HasOmittedPageContent` and `SourceScope` when the application needs to distinguish omission from row truncation. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
+For table-only recovery, `HasLoss` now covers both detected-table truncation and visible source-page content outside the imported tables. `ThrowIfLoss()` therefore also throws when non-table text, vectors, visible images, links, forms, annotations, or actions would be omitted. Previously these adapters exposed that condition only through `HasOmittedPageContent`. Use `HasOmittedPageContent` and `SourceScope` when the application needs to distinguish omission from row truncation. Choose Word or RTF semantic conversion, or a rendered-page route, when the goal is a broader page representation.
 
 ### Word, Excel, and EPUB changes
 
@@ -7864,7 +7888,7 @@ Reusable options contain configuration only. Read diagnostics from the operation
 - `Value` contains the converted model or encoded output.
 - `Report` contains diagnostics and fidelity evidence.
 - `HasLoss` reports simplification or omission.
-- `RequireValue()` and `RequireNoLoss()` provide fail-fast gates.
+- `RequireValue()` and `ThrowIfLoss()` provide fail-fast gates.
 
 OpenDocument save methods now return `OdfSaveResult` directly. Replace the discarded-result aliases as follows:
 
@@ -8067,7 +8091,7 @@ PDF paragraph font sizes, indents, spacing and tab positions/widths now use `Off
 
 ## HTML conversion of text no font covers
 
-PDF and image conversions no longer throw `HtmlConversionException` when no available font covers a character. They paint the base character or a replacement box, keep the source text for extraction and report `HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced`. Set `FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss` to keep failing with the `unsupported-text-glyph` diagnostic, or supply a covering face through `Fonts` or a policy-approved `@font-face`.
+PDF and image conversions no longer throw `HtmlConversionException` when no available font covers a character. They paint the base character or a replacement box, keep the source text for extraction and report `HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced`. Set `FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss` to keep failing with the `unsupported-text-glyph` diagnostic, or supply a covering face through `Fonts` or a policy-approved `@font-face`.
 
 ## HTML-to-Excel error values
 
