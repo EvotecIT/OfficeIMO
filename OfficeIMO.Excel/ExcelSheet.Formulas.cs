@@ -101,6 +101,8 @@ namespace OfficeIMO.Excel {
             int count = 0;
             WriteLock(() => {
                 MaterializePendingDirectCellValues();
+                // Formulas reach other sheets too, whose buffered cells must be in their worksheets by then.
+                MaterializeDeferredDataSetImportIfNeeded();
                 long formulaInputMutationVersion = _excelDocument.CaptureFormulaInputMutationVersion();
 
                 var previousCache = _formulaEvaluationCache;
