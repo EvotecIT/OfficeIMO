@@ -478,9 +478,13 @@ internal static partial class HtmlPdfRenderedConverter {
                 && NeedsNumericSystemFace(run.FontDescriptor)) return false;
             bool covered = false;
             foreach (string familyName in EnumerateBoundedSystemFamilies(planned.FamilyRequest)) {
-                if (!NamedFontCoversTextWithStyleFallback(webFonts.Options, OfficeFontFamilyParser.Quote(familyName),
+                string request = OfficeFontFamilyParser.Quote(familyName);
+                if (!NamedFontCoversTextWithStyleFallback(webFonts.Options, request,
                         planned.Text, run.Font.IsBold, run.Font.IsItalic)) continue;
-                covered = true;
+                // Coverage analysis accepts spaces a face can synthesize; the writer still
+                // encodes them through a fallback face, so require a real glyph for each.
+                covered = PlanNamedFaceStyleRuns(planned.Text, request, run.Font.IsBold, run.Font.IsItalic, webFonts.Options)
+                    .All(styleRun => FaceHasEveryGlyph(webFonts.Options, request, styleRun.Text, styleRun.Bold, styleRun.Italic));
                 break;
             }
             if (!covered) return false;
@@ -488,12 +492,24 @@ internal static partial class HtmlPdfRenderedConverter {
         return true;
     }
 
-    internal static bool HasFallbackSelectableText(string text) {
-        foreach (char character in text) {
-            if (character >= ' ' && character != '\u007F' && !char.IsWhiteSpace(character)) return true;
+    private static bool FaceHasEveryGlyph(PdfCore.PdfCreateOptions options, string family, string text, bool bold, bool italic) {
+        if (!options.TryResolveNamedFontFace(family, bold, italic, out PdfCore.PdfNamedFontFace face)) return false;
+        PdfCore.PdfTrueTypeFontProgram? trueType = null;
+        PdfCore.PdfOpenTypeCffFontProgram? cff = null;
+        if (!options.TryGetNamedFontProgram(face, out trueType) || trueType == null) {
+            if (!options.TryGetNamedOpenTypeCffFontProgram(face, out cff) || cff == null) return false;
         }
-        return false;
+        for (int index = 0; index < text.Length; index++) {
+            char character = text[index];
+            if (character is '\n' or '\r' or '\t' or '​') continue;
+            int scalar = character;
+            if (char.IsHighSurrogate(character) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1]))
+                scalar = char.ConvertToUtf32(character, text[++index]);
+            if (!(trueType?.TryGetGlyphId(scalar, out _) ?? cff!.TryGetGlyphId(scalar, out _))) return false;
+        }
+        return true;
     }
+
 
     private static void AppendDrawingText(IEnumerable<OfficeDrawingElement> elements, System.Text.StringBuilder text) {
         foreach (OfficeDrawingElement element in elements) {
