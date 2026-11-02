@@ -50,8 +50,8 @@ Native transparent-color keys, brightness/contrast controls, grayscale and
 two-color picture modes produce a processed PNG in the page scene. Original
 assets remain in `Images`. The read report identifies the managed color-space
 and threshold approximations; recoloring and extended color controls remain
-unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
-limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
+unassessed. Picture effects require bounded raster decoding. `MaxRasterPixels`
+limits each decoded picture, and `MaxImageProcessingPixels` limits cumulative
 decode/filter work and inspected GIF, WebP or icon frame pixels across picture
 references.
 
@@ -147,8 +147,8 @@ multi-page PDF conversion.
 using OfficeIMO;
 
 var options = new PublisherReadOptions {
-    MaximumPages = 100,
-    MaximumImageBytes = 8 * 1024 * 1024,
+    MaxPages = 100,
+    MaxImageBytes = 8 * 1024 * 1024,
     Limits = new OfficeLegacyImportLimits {
         MaxInputBytes = 32 * 1024 * 1024,
         MaxTextCharacters = 1_000_000

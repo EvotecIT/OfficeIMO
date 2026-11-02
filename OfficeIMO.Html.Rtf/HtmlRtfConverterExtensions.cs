@@ -23,7 +23,7 @@ public static partial class HtmlRtfConverterExtensions {
             document.IsHtmlEncapsulationCurrent &&
             document.HtmlEncapsulation != null &&
             !string.IsNullOrWhiteSpace(document.HtmlEncapsulation.Html)) {
-            var importOptions = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+            var importOptions = HtmlToRtfOptions.UntrustedDefaults;
             importOptions.UrlPolicy = effectiveOptions.GetUrlPolicy().Clone();
             HtmlConversionDocument encapsulatedHtml = HtmlConversionDocument.Parse(
                 document.HtmlEncapsulation.Html,

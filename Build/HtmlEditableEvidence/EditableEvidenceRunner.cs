@@ -100,7 +100,7 @@ internal static class EditableEvidenceRunner {
             long allocationStart = GC.GetTotalAllocatedBytes(precise: true);
             TargetEvidence evidence;
             try {
-                HtmlConversionDocumentOptions htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+                HtmlConversionDocumentOptions htmlOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
                 htmlOptions.Limits.MaxCssRules = maxCssRules;
                 using var archiveStream = new MemoryStream(archiveBytes, writable: false);
                 MhtmlDocument archive = MhtmlDocument.Load(archiveStream, htmlOptions: htmlOptions);

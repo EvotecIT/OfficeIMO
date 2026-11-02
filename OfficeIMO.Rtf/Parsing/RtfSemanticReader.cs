@@ -133,7 +133,7 @@ internal static partial class RtfSemanticReader {
 
         private void WalkGroup(RtfGroup group, CharacterState state, int depth, bool allowDestinationSkip) {
             _limits.CheckCancellation();
-            if (depth > _options.MaxDepth) {
+            if (depth > _options.Limits.MaxDepth) {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Error, "RTF100", "Maximum RTF group depth was exceeded.", group.Position));
                 return;
             }

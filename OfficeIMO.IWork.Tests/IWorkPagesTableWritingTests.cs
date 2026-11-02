@@ -131,11 +131,11 @@ public sealed class IWorkPagesTableWritingTests {
     public void Table_budgets_fail_before_mutating_the_caller_stream(string boundary) {
         var limits = new IWorkPagesWriteOptions();
         switch (boundary) {
-            case "tables": limits.MaximumTables = 1; break;
-            case "cells": limits.MaximumTableCells = 12; break;
-            case "paragraphs": limits.MaximumParagraphs = 3; break;
-            case "runs": limits.MaximumTextRuns = 3; break;
-            case "characters": limits.MaximumTextCharacters = 20; break;
+            case "tables": limits.MaxTables = 1; break;
+            case "cells": limits.MaxTableCells = 12; break;
+            case "paragraphs": limits.MaxParagraphs = 3; break;
+            case "runs": limits.MaxTextRuns = 3; break;
+            case "characters": limits.MaxTextCharacters = 20; break;
         }
         using var output = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => Example().Save(output, limits));
@@ -146,10 +146,10 @@ public sealed class IWorkPagesTableWritingTests {
     public void Limits_count_unset_cells_table_names_and_UTF16_attachment_text_at_the_exact_boundary() {
         var document = IWorkPagesDocument.Create();
         document.AddTable(IWorkTableData.Create(2, 3).SetText(1, 1, "x😀"), "T");
-        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaximumTextCharacters = 5 }));
-        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaximumTableCells = 5 }));
+        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaxTextCharacters = 5 }));
+        Assert.Throws<InvalidDataException>(() => document.SaveBytes(new() { MaxTableCells = 5 }));
         var projection = IWorkSourceDocument.Open(document.SaveBytes(new() {
-            MaximumTextCharacters = 6, MaximumTableCells = 6, MaximumTables = 1, MaximumParagraphs = 1, MaximumTextRuns = 1
+            MaxTextCharacters = 6, MaxTableCells = 6, MaxTables = 1, MaxParagraphs = 1, MaxTextRuns = 1
         })).ReadPages();
         Assert.Equal("x😀", Assert.Single(Assert.Single(projection.Tables).Cells).Value);
     }
@@ -163,8 +163,8 @@ public sealed class IWorkPagesTableWritingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTable(data, "Other", columnWidthPoints: float.NaN));
         Assert.Throws<ArgumentException>(() => document.AddTable(data, "Other", columnWidthPoints: 250));
         Assert.Throws<ArgumentException>(() => document.AddTable(data, "Other", rowHeightPoints: 350));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTables = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTableCells = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTables = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTableCells = 0 }));
         Assert.Equal(bytes, document.SaveBytes()); Assert.Single(document.Tables); Assert.Single(document.BodyBlocks);
     }
 

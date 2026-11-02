@@ -63,7 +63,7 @@ public sealed class BibliographyReviewWave57RegressionTests {
     public void EndNote_primary_parsing_observes_cancellation_inside_large_attribute_tokens() {
         string value = new string('x', 64 * 1024 * 1024);
         string source = "\uFEFF<xml><records metadata=\"" + value + "\"/></xml>";
-        var options = new BibliographyReadOptions { MaximumInputCharacters = source.Length + 1, MaximumValueLength = source.Length + 1 };
+        var options = new BibliographyReadOptions { MaxInputCharacters = source.Length + 1, MaxValueLength = source.Length + 1 };
 
         BibliographyCancellationTest.AssertObserved(token =>
             BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, token));

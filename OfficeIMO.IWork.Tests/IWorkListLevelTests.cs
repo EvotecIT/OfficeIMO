@@ -58,7 +58,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListLevelPackage(IWorkDocumentKind.Numbers,
             AttributeTable(6, Enumerable.Range(0, 20).Select(i => ListLevelEntry(0, 0)).ToArray()));
         var source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProjectedTextItems = 10 });
+            new IWorkReadOptions { MaxProjectedTextItems = 10 });
         Assert.Contains("attribute", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

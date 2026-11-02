@@ -73,7 +73,7 @@ public sealed class CslSubstitutionContractTests {
         var processor = new CslProcessor(BibliographyDocument.Parse(json, BibliographyFormat.CslJson).Document, style);
         CslRenderResult result = processor.Render(Array.Empty<CslCitation>(), true);
         Assert.Equal("Alpha", result.Bibliography.Single().Content);
-        Assert.Equal(0, result.BibliographyLayout!.MaximumLeftMarginCharacters);
+        Assert.Equal(0, result.BibliographyLayout!.MaxLeftMarginCharacters);
     }
 
     [Theory]

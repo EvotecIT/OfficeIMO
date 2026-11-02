@@ -15,7 +15,7 @@ internal sealed class BibliographyModelCopy {
     internal string? Value(string? value) {
         _cancellationToken.ThrowIfCancellationRequested();
         if (value == null) return null;
-        if (_values >= _options.MaximumValues || value.Length > _options.MaximumExpandedCharacters - _characters)
+        if (_values >= _options.MaxValues || value.Length > _options.MaxExpandedCharacters - _characters)
             throw new InvalidOperationException("Bibliography reference resolution exceeds its copied-value or expanded-character limit.");
         _values++;
         _characters += value.Length;

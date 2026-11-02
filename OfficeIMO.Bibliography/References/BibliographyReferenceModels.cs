@@ -9,26 +9,26 @@ public sealed class BibliographyReferenceOptions {
     /// <summary>Allows xdata to replace existing fields, including child fields. Later containers win, as in Biber.</summary>
     public bool XDataOverridesExistingFields { get; set; } = true;
     /// <summary>Maximum number of source records. The default is 250,000.</summary>
-    public int MaximumItems { get; set; } = 250_000;
+    public int MaxItems { get; set; } = 250_000;
     /// <summary>Maximum number of reference edges, including unsuccessful references. The default is 1,000,000.</summary>
-    public int MaximumReferences { get; set; } = 1_000_000;
+    public int MaxReferences { get; set; } = 1_000_000;
     /// <summary>Maximum number of reference edges in a chain. The default is 64.</summary>
-    public int MaximumDepth { get; set; } = 64;
+    public int MaxDepth { get; set; } = 64;
     /// <summary>Maximum copied values across the snapshot and inherited fields. The default is 2,000,000.</summary>
-    public int MaximumValues { get; set; } = 2_000_000;
+    public int MaxValues { get; set; } = 2_000_000;
     /// <summary>Maximum aggregate UTF-16 characters in copied values. The default is 64 MiB.</summary>
-    public long MaximumExpandedCharacters { get; set; } = 64L * 1024 * 1024;
+    public long MaxExpandedCharacters { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum diagnostics before the operation fails. The default is 10,000.</summary>
-    public int MaximumDiagnostics { get; set; } = 10_000;
+    public int MaxDiagnostics { get; set; } = 10_000;
 
     internal BibliographyReferenceOptions Snapshot() {
         var copy = (BibliographyReferenceOptions)MemberwiseClone();
-        if (copy.MaximumItems <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumItems));
-        if (copy.MaximumReferences <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumReferences));
-        if (copy.MaximumDepth < 0) throw new ArgumentOutOfRangeException(nameof(MaximumDepth));
-        if (copy.MaximumValues <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumValues));
-        if (copy.MaximumExpandedCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumExpandedCharacters));
-        if (copy.MaximumDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumDiagnostics));
+        if (copy.MaxItems <= 0) throw new ArgumentOutOfRangeException(nameof(MaxItems));
+        if (copy.MaxReferences <= 0) throw new ArgumentOutOfRangeException(nameof(MaxReferences));
+        if (copy.MaxDepth < 0) throw new ArgumentOutOfRangeException(nameof(MaxDepth));
+        if (copy.MaxValues <= 0) throw new ArgumentOutOfRangeException(nameof(MaxValues));
+        if (copy.MaxExpandedCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxExpandedCharacters));
+        if (copy.MaxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnostics));
         return copy;
     }
 }

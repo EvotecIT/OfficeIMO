@@ -84,14 +84,14 @@ public sealed class PublisherPictureEffectTests {
     public void Picture_effect_pixels_obey_per_image_and_cumulative_bounds() {
         byte[] input = PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 });
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaximumRasterPixels = 1 }));
+            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxRasterPixels = 1 }));
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaximumImageProcessingPixels = 3 }));
+            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 3 }));
         PublisherDocument document = PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaximumImageProcessingPixels = 4 });
+            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 4 });
         Assert.Equal(2, ProjectedRaster(document, 362).Width);
         byte[] managed = PictureInput(new Dictionary<ushort, uint> { [0x013F] = 0x00040004 }, 367);
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(managed, new PublisherReadOptions { MaximumRasterPixels = 1 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(managed, new PublisherReadOptions { MaxRasterPixels = 1 }));
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public sealed class PublisherPictureEffectTests {
             [0x4104] = 1, [0x013F] = 0x00040004
         }, 1, objectId: 367);
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaximumImageProcessingPixels = 7 }));
+            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 7 }));
         PublisherDocument document = PublisherDocument.Load(input,
-            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaximumImageProcessingPixels = 8 });
+            new PublisherReadOptions { ImageCodec = new PictureCodec(), MaxImageProcessingPixels = 8 });
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 367).GetPixel(0, 0));
     }

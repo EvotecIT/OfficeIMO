@@ -202,11 +202,10 @@ public sealed class ReaderRtfModularTests {
     [Fact]
     public void ReaderRtfOptions_CloneCopiesNestedReadOptionsIndependently() {
         var options = new ReaderRtfOptions {
-            RtfReadOptions = new RtfReadOptions {
-                MaxDepth = 32,
+            RtfReadOptions = new RtfReadOptions { Limits = {
+                MaxDepth = 32 },
                 WarnOnUnsupportedCodePages = false,
-                WarnOnUnsupportedDestinations = false
-            },
+                WarnOnUnsupportedDestinations = false},
             ChunkByBlock = false,
             IncludeHeadersAndFooters = false,
             IncludeNotes = false,
@@ -219,7 +218,7 @@ public sealed class ReaderRtfModularTests {
 
         Assert.NotSame(options, clone);
         Assert.NotSame(options.RtfReadOptions, clone.RtfReadOptions);
-        Assert.Equal(32, clone.RtfReadOptions?.MaxDepth);
+        Assert.Equal(32, clone.RtfReadOptions?.Limits.MaxDepth);
         Assert.False(clone.ChunkByBlock);
         Assert.False(clone.IncludeHeadersAndFooters);
         Assert.False(clone.IncludeNotes);
@@ -227,18 +226,18 @@ public sealed class ReaderRtfModularTests {
         Assert.False(clone.IncludeDiagnostics);
         Assert.True(clone.IncludePageLocations);
 
-        clone.RtfReadOptions!.MaxDepth = 64;
+        clone.RtfReadOptions!.Limits.MaxDepth = 64;
 
-        Assert.Equal(32, options.RtfReadOptions!.MaxDepth);
-        Assert.Equal(64, clone.RtfReadOptions.MaxDepth);
+        Assert.Equal(32, options.RtfReadOptions!.Limits.MaxDepth);
+        Assert.Equal(64, clone.RtfReadOptions.Limits.MaxDepth);
     }
 
     [Fact]
     public void ReaderRtfOptions_Defaults_To_Bounded_Core_Profile() {
         var options = new ReaderRtfOptions();
 
-        Assert.NotNull(options.RtfReadOptions?.MaxInputBytes);
-        Assert.NotNull(options.RtfReadOptions?.MaxTokenCount);
+        Assert.NotNull(options.RtfReadOptions?.Limits.MaxInputBytes);
+        Assert.NotNull(options.RtfReadOptions?.Limits.MaxTokens);
         Assert.False(options.RtfReadOptions?.ReadEmbeddedObjects);
         Assert.False(options.RtfReadOptions?.ReadFileReferences);
     }

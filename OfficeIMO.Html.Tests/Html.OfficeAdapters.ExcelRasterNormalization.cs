@@ -16,7 +16,7 @@ public class HtmlExcelRasterNormalization {
         byte[] exif = Convert.FromBase64String("TU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAA=");
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red),
             new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: exif) });
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         string html = "<div style='" + containerStyle + "'><img src='data:image/jpeg;base64,"
             + Convert.ToBase64String(jpeg) + "' style='width:120px' alt='Retained picture'></div><p>After</p>";
@@ -46,7 +46,7 @@ public class HtmlExcelRasterNormalization {
         byte[] exif = Convert.FromBase64String("TU0AKgAAAAgAAQESAAMAAAABAAYAAAAAAAA=");
         byte[] jpeg = OfficeJpegCodec.Encode(new OfficeRasterImage(2, 1, OfficeColor.Red),
             new OfficeJpegEncodeOptions { Metadata = new OfficeJpegMetadata(exif: exif) });
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         if (limit == "pixels") limits.MaxDecodedImagePixels = 1;
         else limits.MaxImages = 1;
         string image = "<img src='data:image/jpeg;base64," + Convert.ToBase64String(jpeg) + "' width='120' height='80'>";
@@ -86,7 +86,7 @@ public class HtmlExcelRasterNormalization {
         string retained = "<img src='data:image/png;base64," + Convert.ToBase64String(png) + "'>";
         string html = "<div style='position:absolute;left:20px;top:60px;width:300px;height:100px'>Control"
             + rejected + retained + "</div>";
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxDecodedImagePixels = 2;
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
@@ -167,7 +167,7 @@ public class HtmlExcelRasterNormalization {
         if (reason == "malformed") source = source.Take(source.Length - 12).ToArray();
         if (reason == "animated") source = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory,
             "Fixtures", "ExcelRaster", "animated.webp"));
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
         if (reason == "pixels") limits.MaxDecodedImagePixels = 49 * 33 - 1;
@@ -199,7 +199,7 @@ public class HtmlExcelRasterNormalization {
         byte[] source = ReadWebp();
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] png));
         Assert.True(png.Length > source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxImageBytes = png.Length - 1;
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";
@@ -232,7 +232,7 @@ public class HtmlExcelRasterNormalization {
             source[20] |= 8;
         }
         Assert.False(OfficeImageOrientationNormalizer.TryNormalizeToPng(source, out _, out _));
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         if (!animated) limits.MaxDecodedImagePixels = 5;
         string html = "<div style='position:absolute;left:20px;top:60px;width:150px;height:100px'>Control"
             + "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "' width='120' height='80'></div>";
@@ -249,7 +249,7 @@ public class HtmlExcelRasterNormalization {
         byte[] source = ReadWebp();
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] png));
         Assert.True(png.Length > source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = png.Length - 1;
         limits.MaxTotalImageBytes = limits.MaxImageBytes;
         int admitted = (int)(limits.MaxTotalImageBytes / source.Length);
@@ -268,7 +268,7 @@ public class HtmlExcelRasterNormalization {
         byte[] source = ReadWebp();
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] normalized));
         Assert.True(normalized.Length > source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = normalized.Length;
         limits.MaxTotalImageBytes = normalized.Length + source.Length;
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";
@@ -290,7 +290,7 @@ public class HtmlExcelRasterNormalization {
         Write32(source, 4, source.Length - 8);
         Assert.True(OfficeImagePngConverter.TryConvertToPng(source, out byte[] normalized));
         Assert.True(normalized.Length < source.Length);
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxImageBytes = source.Length;
         limits.MaxTotalImageBytes = source.Length * 2 - 1;
         string image = "<img src='data:image/webp;base64," + Convert.ToBase64String(source) + "'>";

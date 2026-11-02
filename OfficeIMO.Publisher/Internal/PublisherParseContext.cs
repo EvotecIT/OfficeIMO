@@ -24,10 +24,10 @@ internal sealed class PublisherParseContext {
     }
     internal void CheckDepth(int depth) {
         Token.ThrowIfCancellationRequested();
-        if (depth > Options.MaximumNestingDepth) throw new InvalidDataException("Publisher nesting limit exceeded.");
+        if (depth > Options.MaxNestingDepth) throw new InvalidDataException("Publisher nesting limit exceeded.");
     }
     internal void AccountImage(int bytes) {
-        if (bytes > Options.MaximumTotalImageBytes - ImageBytes) throw new InvalidDataException("Publisher total image byte limit exceeded.");
+        if (bytes > Options.MaxTotalImageBytes - ImageBytes) throw new InvalidDataException("Publisher total image byte limit exceeded.");
         ImageBytes += bytes;
     }
     internal void AccountImageStoreEntry() {
@@ -39,7 +39,7 @@ internal sealed class PublisherParseContext {
         if (bytes > Options.Limits.MaxInputBytes - _imageProcessingBytes) throw new InvalidDataException("Publisher image processing byte limit exceeded.");
         _imageProcessingBytes += bytes;
     }
-    internal long RemainingImageProcessingPixels => Options.MaximumImageProcessingPixels - _imageProcessingPixels;
+    internal long RemainingImageProcessingPixels => Options.MaxImageProcessingPixels - _imageProcessingPixels;
     internal void AccountImageProcessingPixels(long pixels) {
         Token.ThrowIfCancellationRequested();
         if (pixels > RemainingImageProcessingPixels) throw new InvalidDataException("Publisher image processing pixel limit exceeded.");

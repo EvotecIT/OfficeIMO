@@ -25,7 +25,7 @@ internal static partial class VisioReaderAdapter {
         }
         if (binary) {
             var binaryOptions = new VisioLegacyBinaryImportOptions();
-            if (options?.MaxInputBytes is long budget) binaryOptions.Limits.MaxInputBytes = (int)Math.Min(binaryOptions.Limits.MaxInputBytes, budget);
+            if (options?.Limits.MaxInputBytes is long budget) binaryOptions.Limits.MaxInputBytes = (int)Math.Min(binaryOptions.Limits.MaxInputBytes, budget);
             VisioPackageType family = extension == ".vss" ? VisioPackageType.Stencil : extension == ".vst" ? VisioPackageType.Template : VisioPackageType.Drawing;
             var result = VisioDocument.LoadLegacyBinary(stream, family, binaryOptions, cancellationToken);
             source.ImportDiagnostics = result.Report.FidelityDiagnostics;

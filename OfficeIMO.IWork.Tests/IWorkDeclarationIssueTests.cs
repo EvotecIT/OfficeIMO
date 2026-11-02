@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Reused_storage_declarations_are_reported_once_under_the_source_limit(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind, BytesField(8, new byte[] { 0x80 }), aliases: true);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         IReadOnlyList<IWorkSourceDeclarationIssue> issues = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().SourceDeclarationIssues,
             IWorkDocumentKind.Numbers => source.ReadNumbers().SourceDeclarationIssues,
@@ -61,9 +61,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Declaration_limit_remains_fatal_and_uses_the_captured_options(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind,
             Message(BytesField(5, new byte[] { 0x80 }), BytesField(8, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -148,8 +148,8 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Declaration_options_are_positive_and_clone_preserves_the_limit() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkReadOptions { MaximumSourceDeclarationIssues = 0 }.Clone());
-        Assert.Equal(7, new IWorkReadOptions { MaximumSourceDeclarationIssues = 7 }.Clone().MaximumSourceDeclarationIssues);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkReadOptions { MaxSourceDeclarationIssues = 0 }.Clone());
+        Assert.Equal(7, new IWorkReadOptions { MaxSourceDeclarationIssues = 7 }.Clone().MaxSourceDeclarationIssues);
     }
 
     [Theory]
@@ -160,7 +160,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(8, Enumerable.Range(0, 9).Select(_ => AttributeEntry(0, Message())).ToArray()));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -203,7 +203,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(Enumerable.Range(3, 8).Select(field => VarintField(field, 0)).ToArray()));
         using MemoryStream package = SelectedRichTextPackage(kind, AttributeTable(8, entry));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -214,7 +214,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Nested_protobuf_depth_limit_remains_fatal(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind, AttributeTable(8, AttributeEntry(0, Message())));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProtobufDepth = 1 });
+            new IWorkReadOptions { MaxProtobufDepth = 1 });
         Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -223,7 +223,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "12345",
             sheetNameBytes: Array.Empty<byte>());
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 4 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 
@@ -236,7 +236,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2023, Message(BytesField(11, Enumerable.Repeat((byte)2, 9).ToArray()))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("value", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -252,7 +252,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(50, 11006, Message(BytesField(4, metadataEntry)))))),
             ("Data/image.png", ValidPreviewPng()));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadPages()).Message);
     }
 }

@@ -95,7 +95,7 @@ public sealed class ReaderIWorkTests {
     [Fact]
     public void NumbersTablesRetainCachedValuesAndReportBoundedProjection() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-            .AddIWorkHandler(new ReaderIWorkOptions { MaximumTableColumns = 2 })
+            .AddIWorkHandler(new ReaderIWorkOptions { MaxTableColumns = 2 })
             .Build();
 
         OfficeDocumentReadResult document = reader.ReadDocument(

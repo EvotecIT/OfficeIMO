@@ -79,14 +79,14 @@ public sealed partial class IWorkBoundaryTests {
     public void Visibility_evidence_deduplicates_shared_models_and_uses_the_captured_declaration_budget() {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(14, 1), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
         using MemoryStream overBudget = VisibilityCountPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(14, 1), VarintField(41, 1)));
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(overBudget, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

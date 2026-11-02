@@ -24,7 +24,7 @@ internal static class NativePagesRichNumberedItemWriterSmoke {
             "Rejected rich-list input changed counters or document state.");
         using var output = new MemoryStream(); output.WriteByte(9);
         try {
-            document.Save(output, new() { MaximumTextRuns = 1 });
+            document.Save(output, new() { MaxTextRuns = 1 });
             throw new InvalidOperationException("Rich-list run budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(output.ToArray().SequenceEqual(new byte[] { 9 }), "Run-budget rejection changed the caller stream.");

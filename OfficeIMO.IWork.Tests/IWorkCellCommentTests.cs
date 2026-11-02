@@ -98,10 +98,10 @@ public sealed partial class IWorkBoundaryTests {
     public void Comments_charge_source_wide_text_and_catalog_limits_for_repeated_uses() {
         using var characters = CommentPackage(IWorkDocumentKind.Numbers, repeatModel: true);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(characters,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 40 }).ReadNumbers());
+            new IWorkReadOptions { MaxProjectedTextCharacters = 40 }).ReadNumbers());
         using var entries = CommentPackage(IWorkDocumentKind.Numbers, repeatModel: true);
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(entries,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers());
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers());
     }
 
     [Theory]

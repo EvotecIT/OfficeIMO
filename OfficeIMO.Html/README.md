@@ -834,7 +834,7 @@ Uri? baseUri = document.BaseUri;
 ## Trust and conversion limits
 
 ```csharp
-var options = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+var options = HtmlConversionDocumentOptions.UntrustedDefaults;
 options.Limits.MaxInputCharacters = 2_000_000;
 options.Limits.MaxHtmlNodes = 50_000;
 options.Limits.MaxSelectorEvaluations = 1_000_000;

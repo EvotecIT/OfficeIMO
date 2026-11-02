@@ -9,7 +9,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Parsers_stop_after_the_configured_diagnostic_limit(BibliographyFormat format, string fragment, string separator, int limit) {
         string source = string.Join(separator, Enumerable.Repeat(fragment, 100));
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaximumDiagnosticCount = limit });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaxDiagnosticCount = limit });
 
         Assert.True(read.HasErrors);
         Assert.Equal(limit + 1, read.Diagnostics.Count);
@@ -78,7 +78,7 @@ public sealed class BibliographyReviewRemediationTests {
     [InlineData("<xml><extension><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/></extension><records/></xml>", 80, false)]
     [InlineData("<xml xmlns:ext=\"urn:extension\"><records><record><rec-number>1</rec-number><ext:data><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/></ext:data></record></records></xml>", 80, false)]
     public void EndNote_XML_values_observe_the_value_length_limit(string source, int limit, bool requireLengthMessage) {
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = limit });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaxValueLength = limit });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001"
@@ -90,7 +90,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void EndNote_limit_diagnostics_report_character_offsets() {
         const string source = "<xml>\r\n  <records>\r\n    <record>\r\n      <rec-number>1</rec-number>\r\n      <ref-type name=\"Book\">6</ref-type>\r\n      <titles><title>abcdef</title></titles>\r\n    </record>\r\n  </records>\r\n</xml>";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 5 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaxValueLength = 5 });
 
         BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, static diagnostic => diagnostic.Code == "BIBLIM001");
         Assert.Equal(source.IndexOf("<title>", StringComparison.Ordinal), diagnostic.Offset);
@@ -100,7 +100,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Bib_native_entries_observe_the_value_count_limit() {
         const string source = "@comment{a}\n@comment{b}\n@comment{c}";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueCount = 2 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxValueCount = 2 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -110,7 +110,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Bib_keyword_items_observe_the_value_count_limit() {
         const string source = "@book{x,keywords={alpha,beta,gamma}}";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueCount = 4 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxValueCount = 4 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -165,7 +165,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Empty_CSL_contributor_objects_count_toward_the_value_limit() {
         const string source = "[{\"id\":\"x\",\"type\":\"book\",\"author\":[{},{},{}]}]";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueCount = 4 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxValueCount = 4 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -192,7 +192,7 @@ public sealed class BibliographyReviewRemediationTests {
     [InlineData("TY  - BOOK\r\nTI  - abcde\r\nER  -\r\n", BibliographyFormat.Ris, "TI")]
     [InlineData("PMID- 1\r\nTI  - abcde\r\n", BibliographyFormat.Nbib, "TI")]
     public void Tagged_limit_diagnostics_report_character_offsets(string source, BibliographyFormat format, string failingTag) {
-        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaximumValueLength = 4 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaxValueLength = 4 });
 
         BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, static diagnostic => diagnostic.Code == "BIBLIM001");
         Assert.Equal(source.IndexOf(failingTag, StringComparison.Ordinal), diagnostic.Offset);
@@ -202,7 +202,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void CSL_writer_rejects_native_values_that_require_nondefault_read_depth() {
         string nested = new string('[', 1010) + "0" + new string(']', 1010);
         string source = "[{\"id\":\"x\",\"type\":\"book\",\"custom\":" + nested + "}]";
-        var readOptions = new BibliographyReadOptions { MaximumNestingDepth = 1024 };
+        var readOptions = new BibliographyReadOptions { MaxNestingDepth = 1024 };
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, readOptions).Document;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>

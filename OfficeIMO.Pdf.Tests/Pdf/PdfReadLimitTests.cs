@@ -72,7 +72,7 @@ public class PdfReadLimitTests {
         Assert.Equal(512L * 1024L * 1024L, second.Limits.MaxInputBytes);
         Assert.Equal(512L * 1024L * 1024L, PdfLoadOptions.Default.Limits.MaxInputBytes);
         Assert.NotSame(PdfLoadOptions.Default, PdfLoadOptions.Default);
-        Assert.NotSame(PdfReadLimits.Default, PdfReadLimits.Default);
+        Assert.NotSame(new PdfReadLimits(), new PdfReadLimits());
     }
 
     [Fact]

@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             // libwebp lossless 2001 x 2000 solid red: small encoded input, more than four million decoded pixels.
             const string source = "UklGRsoAAABXRUJQVlA4TL4AAAAv0MfzAQcQ/Y/+BwQkSf//kxH9z/jPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nPf/7zn//85z//+c9//vOf//znP//5z3/+85///Oc///nP/9EC";
             var result = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + source + "' alt='Large photo'>")
-                .ConvertToWordWithEvidence(WordHtmlImportOptions.CreateUntrustedHtmlProfile());
+                .ConvertToWordWithEvidence(WordHtmlImportOptions.UntrustedDefaults);
             using var doc = result.Value;
             Assert.Empty(doc.Images);
             Assert.Contains(result.Report.Diagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));

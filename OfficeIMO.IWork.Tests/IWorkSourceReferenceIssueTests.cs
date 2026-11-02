@@ -103,9 +103,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Source_reference_evidence_enforces_the_captured_budget(IWorkDocumentKind kind) {
         using MemoryStream package = ReferenceIssuePackage(kind,
             field => Message(ReferenceField(field, 999), ReferenceField(field, 999)));
-        var options = new IWorkReadOptions { MaximumSourceReferenceIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceReferenceIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind, options);
-        options.MaximumSourceReferenceIssues = 100;
+        options.MaxSourceReferenceIssues = 100;
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) source.ReadPages();
             else if (kind == IWorkDocumentKind.Numbers) source.ReadNumbers();
@@ -138,7 +138,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(2, 2, Message(ReferenceField(2, 999), ReferenceField(2, 998))),
             ArchiveRecord(3, 2, Message(ReferenceField(2, 997), ReferenceField(2, 996)))))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 3 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 3 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 

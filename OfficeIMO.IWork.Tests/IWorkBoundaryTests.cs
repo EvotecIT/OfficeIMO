@@ -90,9 +90,9 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Table.iwa", FrameIwa(second)));
         int perEntryLimit = Math.Max(first.Length, second.Length);
         var options = new IWorkReadOptions {
-            MaximumDecompressedIwaBytes = perEntryLimit,
-            MaximumSnappyChunkBytes = perEntryLimit,
-            MaximumTotalDecompressedIwaBytes = first.Length + second.Length - 1
+            MaxDecompressedIwaBytes = perEntryLimit,
+            MaxSnappyChunkBytes = perEntryLimit,
+            MaxTotalDecompressedIwaBytes = first.Length + second.Length - 1
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -140,7 +140,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Second", 1, 1, 2d)
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 });
+            new IWorkReadOptions { MaxMaterializedCells = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -255,7 +255,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumEntryCount = 2 }));
+                new IWorkReadOptions { MaxEntryCount = 2 }));
 
         Assert.Contains("entry count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -270,7 +270,7 @@ public sealed partial class IWorkBoundaryTests {
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
                 IWorkSourceDocument.Open(directory, IWorkDocumentKind.Numbers,
-                    new IWorkReadOptions { MaximumEntryCount = 2 }));
+                    new IWorkReadOptions { MaxEntryCount = 2 }));
 
             Assert.Contains("entry count", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -407,7 +407,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: false, bodyText: "12345");
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 4 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -418,7 +418,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Enforces_source_wide_text_character_bounds_for_numbers_text_shapes() {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "12345");
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 4 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -429,7 +429,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Enforces_bounded_iterative_text_style_inheritance() {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 3);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 2 });
+            new IWorkReadOptions { MaxTextStyleInheritanceDepth = 2 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -440,7 +440,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Enforces_text_attribute_bounds_before_nested_entry_projection() {
         using MemoryStream package = CreatePagesPackageWithTwoCharacterStyles();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 1 });
+            new IWorkReadOptions { MaxProjectedTextItems = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 

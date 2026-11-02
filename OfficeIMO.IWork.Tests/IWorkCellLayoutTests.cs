@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_LAYOUT_UNSUPPORTED");
         package.Position = 0;
         Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadPages());
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadPages());
     }
 
     [Theory]

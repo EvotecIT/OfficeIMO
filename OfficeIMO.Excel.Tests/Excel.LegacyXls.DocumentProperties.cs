@@ -107,18 +107,18 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertScalarCustomPropertyVariantTypes(ExcelDocument document, DateTime oleDate) {
-            Assert.Equal(-12, document.CustomDocumentProperties["SignedByte"].Value);
-            Assert.Equal((byte)250, document.CustomDocumentProperties["UnsignedByte"].Value);
-            Assert.Equal(-32000, document.CustomDocumentProperties["SignedShort"].Value);
-            Assert.Equal((ushort)65000, document.CustomDocumentProperties["UnsignedShort"].Value);
-            Assert.Equal(-9000000000L, document.CustomDocumentProperties["SignedInt64"].Value);
-            Assert.Equal(4000000000U, document.CustomDocumentProperties["UnsignedInt32"].Value);
-            Assert.Equal(ulong.MaxValue, document.CustomDocumentProperties["UnsignedInt64"].Value);
-            Assert.Equal(-2048, document.CustomDocumentProperties["VariantInt"].Value);
-            Assert.Equal(3000000000U, document.CustomDocumentProperties["VariantUInt"].Value);
-            Assert.Equal(12.5D, document.CustomDocumentProperties["SinglePrecision"].NumberDouble);
-            Assert.Equal(1234.5678D, document.CustomDocumentProperties["Currency"].NumberDouble);
-            AssertSameInstant(oleDate.ToUniversalTime(), document.CustomDocumentProperties["OleDate"].Date);
+            Assert.Equal(-12, document.CustomProperties["SignedByte"].Value);
+            Assert.Equal((byte)250, document.CustomProperties["UnsignedByte"].Value);
+            Assert.Equal(-32000, document.CustomProperties["SignedShort"].Value);
+            Assert.Equal((ushort)65000, document.CustomProperties["UnsignedShort"].Value);
+            Assert.Equal(-9000000000L, document.CustomProperties["SignedInt64"].Value);
+            Assert.Equal(4000000000U, document.CustomProperties["UnsignedInt32"].Value);
+            Assert.Equal(ulong.MaxValue, document.CustomProperties["UnsignedInt64"].Value);
+            Assert.Equal(-2048, document.CustomProperties["VariantInt"].Value);
+            Assert.Equal(3000000000U, document.CustomProperties["VariantUInt"].Value);
+            Assert.Equal(12.5D, document.CustomProperties["SinglePrecision"].NumberDouble);
+            Assert.Equal(1234.5678D, document.CustomProperties["Currency"].NumberDouble);
+            AssertSameInstant(oleDate.ToUniversalTime(), document.CustomProperties["OleDate"].Date);
         }
 
         private static void AssertSameInstant(DateTime expected, DateTime? actual) {

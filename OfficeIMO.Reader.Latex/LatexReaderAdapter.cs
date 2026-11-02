@@ -26,15 +26,15 @@ internal static class LatexReaderAdapter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderLatexOptions adapter = ReaderLatexOptionsCloner.Clone(latexOptions);
-        long? nativeLimit = adapter.ParseOptions.MaximumInputBytes;
-        adapter.ParseOptions.MaximumInputBytes = reader.MaxInputBytes.HasValue
+        long? nativeLimit = adapter.ParseOptions.MaxInputBytes;
+        adapter.ParseOptions.MaxInputBytes = reader.MaxInputBytes.HasValue
             ? nativeLimit.HasValue ? Math.Min(nativeLimit.Value, reader.MaxInputBytes.Value) : reader.MaxInputBytes
             : nativeLimit;
         LatexParseResult result;
         try {
             result = LatexDocument.LoadResult(stream, adapter.ParseOptions, null, cancellationToken);
         } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
-            throw new IOException($"Input exceeds MaxInputBytes ({adapter.ParseOptions.MaximumInputBytes} bytes).", exception);
+            throw new IOException($"Input exceeds MaxInputBytes ({adapter.ParseOptions.MaxInputBytes} bytes).", exception);
         }
         string name = string.IsNullOrWhiteSpace(sourceName) ? "document.tex" : sourceName!.Trim();
         return ReadResult(result, name, reader, adapter, cancellationToken).ToArray();

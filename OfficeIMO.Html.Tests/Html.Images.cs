@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
                 fetched = true;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
             }));
-            var options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+            var options = WordHtmlImportOptions.UntrustedDefaults;
             options.HttpClient = httpClient;
             string html = "<img src=\"https://example.test/untrusted.png\" alt=\"Blocked by profile\" />";
 

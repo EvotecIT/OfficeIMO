@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.All(report.SourceDeclarationIssues, issue => Assert.Equal(IWorkSourceDeclarationIssueKind.InvalidValue, issue.Kind));
         Assert.Equal(2, Assert.Single(report.SourceDeclarationIssues, issue => issue.FieldPath == "11/13").DeclaredValueCount);
         package.Position = 0;
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 }

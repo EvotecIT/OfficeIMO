@@ -34,7 +34,7 @@ public sealed class BibliographyIoAndSafetyTests {
     [Fact]
     public void EndNote_materialization_observes_cancellation() {
         string source = "<xml><padding>" + new string('x', 16 * 1024 * 1024) + "</padding><records /></xml>";
-        var options = new BibliographyReadOptions { MaximumValueLength = 20 * 1024 * 1024 };
+        var options = new BibliographyReadOptions { MaxValueLength = 20 * 1024 * 1024 };
         BibliographyCancellationTest.AssertObserved(token => BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, token));
     }
 
@@ -67,7 +67,7 @@ public sealed class BibliographyIoAndSafetyTests {
     [Fact]
     public void Stream_byte_limit_is_enforced_before_decoding() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("@book{x,title={too long}}"));
-        var options = new BibliographyReadOptions { MaximumInputBytes = 8 };
+        var options = new BibliographyReadOptions { MaxInputBytes = 8 };
 
         Assert.Throws<InvalidDataException>(() => BibliographyDocument.Load(stream, BibliographyFormat.BibTex, options));
     }
@@ -87,7 +87,7 @@ public sealed class BibliographyIoAndSafetyTests {
 
     [Fact]
     public void Item_limit_returns_diagnostic_and_bounded_partial_model() {
-        var options = new BibliographyReadOptions { MaximumItemCount = 1 };
+        var options = new BibliographyReadOptions { MaxItemCount = 1 };
         BibliographyReadResult result = BibliographyDocument.Parse("@book{a,title={a}}\n@book{b,title={b}}", BibliographyFormat.BibTex, options);
 
         Assert.True(result.HasErrors);
@@ -97,7 +97,7 @@ public sealed class BibliographyIoAndSafetyTests {
 
     [Fact]
     public void Nested_value_limit_returns_diagnostic() {
-        var options = new BibliographyReadOptions { MaximumValueCount = 3 };
+        var options = new BibliographyReadOptions { MaxValueCount = 3 };
         BibliographyReadResult result = BibliographyDocument.Parse("[{\"id\":\"x\",\"author\":[{\"family\":\"Doe\",\"given\":\"Jane\"}]}]", BibliographyFormat.CslJson, options);
 
         Assert.True(result.HasErrors);
@@ -106,7 +106,7 @@ public sealed class BibliographyIoAndSafetyTests {
 
     [Fact]
     public void EndNote_xml_nesting_limit_returns_diagnostic() {
-        var options = new BibliographyReadOptions { MaximumNestingDepth = 3 };
+        var options = new BibliographyReadOptions { MaxNestingDepth = 3 };
 
         BibliographyReadResult result = BibliographyDocument.Parse("<xml><records><record><titles><title>x</title></titles></record></records></xml>", BibliographyFormat.EndNoteXml, options);
 

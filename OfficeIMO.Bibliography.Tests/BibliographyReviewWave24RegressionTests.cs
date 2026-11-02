@@ -69,7 +69,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         string large = new string('x', 100);
         string source = "@string{a={" + large + "}}\n" + string.Join("\n", Enumerable.Range(0, 8).Select(index => "@string{s" + index + "=a}"));
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumInputCharacters = 512 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxInputCharacters = 512 });
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001" && diagnostic.Message.Contains("cumulative expanded", StringComparison.Ordinal));
     }

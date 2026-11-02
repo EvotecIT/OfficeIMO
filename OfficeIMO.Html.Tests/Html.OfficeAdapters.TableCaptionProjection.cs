@@ -135,7 +135,7 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void PowerPointCaptionMetadataLimitDoesNotOmitTheTable() {
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 12;
         const string html = "<main><h1>Water</h1><table><caption>Caption exceeds metadata limit</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";

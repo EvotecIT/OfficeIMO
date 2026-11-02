@@ -8,7 +8,7 @@ internal static class IWorkKeynotePackageWriter {
     internal static byte[] Write(IWorkKeynoteDocument document, IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document.Slides.Count == 0) throw new InvalidOperationException("A native Keynote presentation requires at least one slide.");
-        if (document.Slides.Count > limits.MaximumSlides) throw new InvalidDataException("The native Keynote slide limit was exceeded.");
+        if (document.Slides.Count > limits.MaxSlides) throw new InvalidDataException("The native Keynote slide limit was exceeded.");
         IWorkKeynoteSlideBuilder[] input = document.Slides.ToArray();
         var slides = new List<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)>(input.Length);
         long totalBoxes = 0, totalCharacters = 0, totalRuns = 0;
@@ -17,39 +17,39 @@ internal static class IWorkKeynotePackageWriter {
         foreach (IWorkKeynoteSlideBuilder slide in input) {
             cancellationToken.ThrowIfCancellationRequested();
             totalBoxes += slide.TextBoxes.Count;
-            if (totalBoxes > limits.MaximumTextBoxes) throw new InvalidDataException("The native Keynote text-box limit was exceeded.");
+            if (totalBoxes > limits.MaxTextBoxes) throw new InvalidDataException("The native Keynote text-box limit was exceeded.");
             IWorkKeynoteCreationDrawable[] drawables = slide.Drawables.ToArray();
             foreach (IWorkKeynoteTextBox box in drawables.OfType<IWorkKeynoteTextBox>()) {
                 cancellationToken.ThrowIfCancellationRequested();
                 totalRuns += box.Runs.Count;
-                if (totalRuns > limits.MaximumTextRuns) throw new InvalidDataException("The native Keynote character-run limit was exceeded.");
+                if (totalRuns > limits.MaxTextRuns) throw new InvalidDataException("The native Keynote character-run limit was exceeded.");
                 totalCharacters += box.Text.Length;
-                if (totalCharacters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
+                if (totalCharacters > limits.MaxTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
             }
             foreach (IWorkKeynoteImage image in drawables.OfType<IWorkKeynoteImage>()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++totalImages > limits.MaximumImages) throw new InvalidDataException("The native Keynote image limit was exceeded.");
+                if (++totalImages > limits.MaxImages) throw new InvalidDataException("The native Keynote image limit was exceeded.");
                 encodedImageBytes = checked(encodedImageBytes + image.Length);
                 decodedImageBytes = checked(decodedImageBytes + image.DecodedBytes);
-                if (encodedImageBytes > limits.MaximumEncodedImageBytes)
+                if (encodedImageBytes > limits.MaxEncodedImageBytes)
                     throw new InvalidDataException("The native Keynote encoded-image limit was exceeded.");
-                if (decodedImageBytes > limits.MaximumDecodedImageBytes)
+                if (decodedImageBytes > limits.MaxDecodedImageBytes)
                     throw new InvalidDataException("The native Keynote decoded-image limit was exceeded.");
-                if (encodedImageBytes > limits.MaximumPackageBytes)
+                if (encodedImageBytes > limits.MaxPackageBytes)
                     throw new InvalidDataException("The native Keynote package limit was exceeded by image payloads.");
             }
             foreach (IWorkKeynoteTable table in drawables.OfType<IWorkKeynoteTable>()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (++totalTables > limits.MaximumTables) throw new InvalidDataException("The native Keynote table limit was exceeded.");
+                if (++totalTables > limits.MaxTables) throw new InvalidDataException("The native Keynote table limit was exceeded.");
                 totalTableCells += (long)table.RowCount * table.ColumnCount;
-                if (totalTableCells > limits.MaximumTableCells) throw new InvalidDataException("The native Keynote table-cell limit was exceeded.");
+                if (totalTableCells > limits.MaxTableCells) throw new InvalidDataException("The native Keynote table-cell limit was exceeded.");
                 totalCharacters += table.Name.Length;
                 foreach (IWorkTableCell cell in table.Cells) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (cell.Kind == IWorkCellKind.Text) totalCharacters += ((string)cell.Value!).Length;
-                    if (totalCharacters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
+                    if (totalCharacters > limits.MaxTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
                 }
-                if (totalCharacters > limits.MaximumTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
+                if (totalCharacters > limits.MaxTextCharacters) throw new InvalidDataException("The native Keynote text-character limit was exceeded.");
             }
             slides.Add((slide, drawables));
         }
@@ -57,13 +57,13 @@ internal static class IWorkKeynotePackageWriter {
         var builder = new IWorkKeynoteArchiveBuilder(limits, cancellationToken, hash);
         var archives = builder.Build(document.SlideSize, slides);
         return IWorkNativePackageWriter.Write(archives.Document, archives.Metadata, builder.DocumentIdentifier,
-            limits.MaximumPackageBytes, cancellationToken, builder.ImageResources);
+            limits.MaxPackageBytes, cancellationToken, builder.ImageResources);
     }
 
     private static byte[] ModelHash(IWorkCanvasSize size,
         IEnumerable<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)> slides,
         IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken) {
-        IWorkProtoWriter P() => new(limits.MaximumPackageBytes, cancellationToken);
+        IWorkProtoWriter P() => new(limits.MaxPackageBytes, cancellationToken);
         var input = P().Float(1, (float)size.WidthPoints).Float(2, (float)size.HeightPoints);
         foreach (var slide in slides) {
             var row = P().String(1, slide.Slide.BackgroundColor.RgbHex);
@@ -79,7 +79,7 @@ internal static class IWorkKeynotePackageWriter {
                     continue;
                 }
                 if (drawable is IWorkKeynoteTable table) {
-                    var data = table.Data.ModelFields(limits.MaximumPackageBytes, cancellationToken);
+                    var data = table.Data.ModelFields(limits.MaxPackageBytes, cancellationToken);
                     row.Message(3, P().Message(3, data));
                     continue;
                 }

@@ -120,7 +120,7 @@ public sealed partial class EpubPublication {
                 if (!checkedMediaTypes.TryGetValue(item.MediaType, out bool hasRemoteResources)) {
                     ValidateContent(content, item.MediaType);
                     string analysisContent = content.ToString(SaveOptions.DisableFormatting);
-                    var limits = OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile();
+                    var limits = OfficeIMO.Html.HtmlConversionLimits.UntrustedDefaults;
                     // ParseXml already bounded the retained bytes; canonical escaping can enlarge this snapshot.
                     limits.MaxInputCharacters = (int)Math.Min(Math.Max(_maximumEntryBytes, analysisContent.Length), int.MaxValue);
                     var resources = OfficeIMO.Html.HtmlResourcePipeline.BuildManifest(

@@ -24,7 +24,7 @@ public sealed class BibliographyReviewWave51RegressionTests {
         string source = "[" + value + "," + value + "]";
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions {
-            MaximumValueCount = 1
+            MaxValueCount = 1
         });
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");

@@ -133,7 +133,7 @@ public sealed partial class RtfDocument {
     /// <summary>Reads RTF from a string with cooperative cancellation during CPU-bound parsing.</summary>
     public static RtfReadResult Read(string rtf, RtfReadOptions? options, CancellationToken cancellationToken) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
         RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions, cancellationToken);
         return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
     }
@@ -153,7 +153,7 @@ public sealed partial class RtfDocument {
     /// <summary>Loads RTF from a file with lossless syntax and diagnostics.</summary>
     public static RtfReadResult LoadResult(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return LoadResult(stream, readOptions, encoding, cancellationToken);
     }
@@ -165,7 +165,7 @@ public sealed partial class RtfDocument {
     /// <summary>Loads RTF from source bytes using the byte-preserving lossless representation.</summary>
     public static RtfReadResult LoadResult(byte[] bytes, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
         new RtfReadLimitGuard(readOptions, cancellationToken).CheckInputBytes(bytes.LongLength);
         return ParseResult(RtfBytePreservingEncoding.GetString(bytes), readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }
@@ -177,8 +177,8 @@ public sealed partial class RtfDocument {
     /// <summary>Loads RTF from a stream with lossless syntax and diagnostics.</summary>
     public static RtfReadResult LoadResult(Stream stream, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
-        byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.MaxInputBytes, cancellationToken);
+        RtfReadOptions readOptions = options ?? new RtfReadOptions();
+        byte[] bytes = RtfBytePreservingEncoding.ReadBytesToEnd(stream, readOptions.Limits.MaxInputBytes, cancellationToken);
         string rtf = DecodeInput(bytes, encoding);
         return ParseResult(rtf, readOptions, cancellationToken).AttachOriginalBytes(bytes);
     }

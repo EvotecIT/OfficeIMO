@@ -22,10 +22,10 @@ public sealed class ProjectFormatRegressionTests {
         authored.Save(source, new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow });
         byte[] bytes = source.ToArray();
         using var document = ProjectDocument.Load(new MemoryStream(bytes));
-        var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length, AllowLoss = true };
         document.AssessSave(exact).ThrowIfErrors();
         using var copy = new MemoryStream(); document.Save(copy, exact); Assert.Equal(bytes, copy.ToArray());
-        var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length - 1, AllowLoss = true };
         ProjectReport assessment = document.AssessSave(tooSmall);
         Assert.True(assessment.HasErrors);
         Assert.True(assessment.HasLoss);
@@ -54,9 +54,9 @@ public sealed class ProjectFormatRegressionTests {
         using (document == authored ? null : document) {
             var generatedOptions = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, LossPolicy = OfficeConversionLossPolicy.Allow };
             byte[] generated = ProjectXmlCodec.Write(document, generatedOptions, default);
-            var exact = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var exact = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length, AllowLoss = true };
             document.AssessSave(exact).ThrowIfErrors();
-            var tooSmall = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var tooSmall = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, PreserveUnchangedBytes = false, MaxOutputBytes = generated.Length - 1, AllowLoss = true };
             var assessment = document.AssessSave(tooSmall);
             Assert.Contains(assessment.Diagnostics, d => d.Code == "PROJECT_OUTPUT_LIMIT" && d.Severity == ProjectDiagnosticSeverity.Error);
             using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
@@ -94,9 +94,9 @@ public sealed class ProjectFormatRegressionTests {
         using (document == authored ? null : document) {
             var generatedOptions = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
             byte[] generated = ProjectNativeWriter.Plan(document, generatedOptions, true, default).Bytes!;
-            var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var exact = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length, AllowLoss = true };
             document.AssessSave(exact).ThrowIfErrors();
-            var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+            var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = generated.Length - 1, AllowLoss = true };
             var assessment = document.AssessSave(tooSmall);
             Assert.Contains(assessment.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
             using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
@@ -116,7 +116,7 @@ public sealed class ProjectFormatRegressionTests {
     [InlineData(ProjectFileFormat.Mpt14)]
     public void GeneratedNativeAssessmentReportsIntermediateOutputLimits(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();
-        var options = new ProjectSaveOptions { Format = format, MaxOutputBytes = 1, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, MaxOutputBytes = 1, AllowLoss = true };
         var assessment = document.AssessSave(options);
         Assert.Contains(assessment.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_OUTPUT_LIMIT" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
@@ -136,7 +136,7 @@ public sealed class ProjectFormatRegressionTests {
         document.Tasks.GetByUid(2).Name = "Short name";
         byte[] generated = ProjectNativeWriter.Plan(document, options, true, default).Bytes!;
         Assert.True(generated.Length < original.Length);
-        var bounded = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, MaxOutputBytes = generated.Length, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var bounded = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, MaxOutputBytes = generated.Length, AllowLoss = true };
         document.AssessSave(bounded).ThrowIfErrors();
         using var output = new MemoryStream();
         document.Save(output, bounded);

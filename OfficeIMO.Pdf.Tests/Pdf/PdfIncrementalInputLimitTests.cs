@@ -226,9 +226,9 @@ public class PdfIncrementalInputLimitTests {
         Assert.Equal(input.Limits.MaxInputBytes, completion.Limits.MaxInputBytes);
         Assert.Equal(input.Limits.MaxIndirectObjects + 64, completion.Limits.MaxIndirectObjects);
         Assert.Equal(input.Limits.MaxRevisions + 1, completion.Limits.MaxRevisions);
-        Assert.Equal(PdfReadLimits.Default.MaxRawStreamBytes, completion.Limits.MaxRawStreamBytes);
-        Assert.Equal(PdfReadLimits.Default.MaxDecodedStreamBytes, completion.Limits.MaxDecodedStreamBytes);
-        Assert.Equal(PdfReadLimits.Default.MaxTotalDecodedStreamBytes, completion.Limits.MaxTotalDecodedStreamBytes);
+        Assert.Equal(new PdfReadLimits().MaxRawStreamBytes, completion.Limits.MaxRawStreamBytes);
+        Assert.Equal(new PdfReadLimits().MaxDecodedStreamBytes, completion.Limits.MaxDecodedStreamBytes);
+        Assert.Equal(new PdfReadLimits().MaxTotalDecodedStreamBytes, completion.Limits.MaxTotalDecodedStreamBytes);
         Assert.True(completion.Limits.MaxObjectCharacters >= 1_020_000);
     }
 
@@ -244,7 +244,7 @@ public class PdfIncrementalInputLimitTests {
         PdfLoadOptions completion = PdfIncrementalUpdater.ResolvePersistedCompletionReadOptions(
             input, 1_020_000);
 
-        Assert.Equal(PdfReadLimits.Default.MaxRawStreamBytes, completion.Limits.MaxRawStreamBytes);
+        Assert.Equal(new PdfReadLimits().MaxRawStreamBytes, completion.Limits.MaxRawStreamBytes);
         Assert.Equal(1024, completion.Limits.MaxDecodedStreamBytes);
         Assert.Equal(2048, completion.Limits.MaxTotalDecodedStreamBytes);
     }
@@ -286,7 +286,7 @@ public class PdfIncrementalInputLimitTests {
         PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
             PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedObject, new byte[] { 0x30, 0x01, 0x00 }));
         Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
-        Assert.Equal(PdfReadLimits.Default.MaxObjectCharacters, error.Limit);
+        Assert.Equal(new PdfReadLimits().MaxObjectCharacters, error.Limit);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public class PdfIncrementalInputLimitTests {
         PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() =>
             PdfIncrementalUpdater.ApplyExternalSignature(preparedWithOversizedReason, new byte[] { 0x30, 0x01, 0x00 }));
         Assert.Equal(PdfReadLimitKind.ObjectCharacters, error.Kind);
-        Assert.Equal(PdfReadLimits.Default.MaxObjectCharacters, error.Limit);
+        Assert.Equal(new PdfReadLimits().MaxObjectCharacters, error.Limit);
     }
 
     [Fact]

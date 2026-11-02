@@ -48,9 +48,9 @@ internal static class NativePreservationSmoke {
         Console.WriteLine("PASS | native Keynote image translation | D9F69DD9C3511CC34AA9B9766061308F29DC7871DB8F8F1FA23036A8122A800F | exact package, resources, cache acceptance, immutable source, strict saved/reopened PPTX and cancellation");
         byte[] tightInput = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "preservation.key"));
         var tight = IWorkSourceDocument.Open(tightInput, options: new() {
-            MaximumPackageBytes = tightInput.Length, MaximumEntryBytes = 92_000, MaximumTotalEntryBytes = 92_000,
-            MaximumIwaBytes = 32_768, MaximumDecompressedIwaBytes = 32_768, MaximumSnappyChunkBytes = 32_768,
-            MaximumTotalDecompressedIwaBytes = 50_000, MaximumRecordCount = 205
+            MaxPackageBytes = tightInput.Length, MaxEntryBytes = 92_000, MaxTotalEntryBytes = 92_000,
+            MaxIwaBytes = 32_768, MaxDecompressedIwaBytes = 32_768, MaxSnappyChunkBytes = 32_768,
+            MaxTotalDecompressedIwaBytes = 50_000, MaxRecordCount = 205
         });
         Require(tight.BeginEdit().SaveBytesResult().Report.OutputPackageContentHash == tight.ComputePackageContentHash(),
             "Valid tight read bounds prevented unchanged preservation.");

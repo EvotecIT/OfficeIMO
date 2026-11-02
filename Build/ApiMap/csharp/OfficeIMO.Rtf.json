@@ -1,0 +1,71 @@
+{
+  "package": "OfficeIMO.Rtf",
+  "changes": [
+    {
+      "old": "OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults",
+      "category": "limits",
+      "reason": "Profiles for untrusted input use one discoverable name across formats.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "new RtfReadOptions()",
+      "category": "limits",
+      "reason": "The factory only returned a default instance; construct the type directly.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Rtf.RtfReadOptions.Limits (RtfReadLimits)",
+      "replacement": "new RtfReadOptions { Limits = { MaxDepth = 64 } }",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfReadOptions.MaxTokenCount / MaxGroupCount / MaxImageCount / MaxObjectCount / MaxSemanticBlockCount",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfReadLimits.MaxTokens / MaxGroups / MaxImages / MaxObjects / MaxSemanticBlocks",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfReadOptions.MaxBinaryBytesPerPayload / MaxImageBytesPerImage / MaxObjectBytesPerObject",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfReadLimits.MaxBinaryPayloadBytes / MaxImageBytes / MaxObjectBytes",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfDocument.Info",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfConversionReport.Diagnostics",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfConversionReport.NativeDiagnostics",
+      "replacement": "Diagnostics is now the common OfficeDiagnostic list.",
+      "category": "contract",
+      "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
+      "applied": true
+    }
+  ]
+}

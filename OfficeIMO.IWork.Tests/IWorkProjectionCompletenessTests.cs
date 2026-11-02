@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             sheetReferenceCount: 2);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumProjectedSheets = 1 }));
+                new IWorkReadOptions { MaxProjectedSheets = 1 }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -58,7 +58,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Second", 1, 1, 2d)
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTables = 1 });
+            new IWorkReadOptions { MaxProjectedTables = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
             bodyText: "First\nSecond");
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 1 });
+            new IWorkReadOptions { MaxProjectedTextItems = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -106,7 +106,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Enforces_the_projected_slide_budget_before_owner_materialization() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(2);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumProjectedSlides = 1 });
+            new IWorkReadOptions { MaxProjectedSlides = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 

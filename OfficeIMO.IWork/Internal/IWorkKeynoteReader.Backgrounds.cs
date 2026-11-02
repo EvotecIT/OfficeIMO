@@ -13,7 +13,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkCellFill? fill = null;
         if (supported) {
             var chain = IWorkStyleReader.ReadChain(source.Index, style!.Identifier,
-                budget.MaximumTextStyleInheritanceDepth, static type => type == 9,
+                budget.MaxTextStyleInheritanceDepth, static type => type == 9,
                 tolerateStyleDepth: true, references, ref supported);
             for (int i = chain.Count - 1; i >= 0; i--) {
                 source.CancellationToken.ThrowIfCancellationRequested();

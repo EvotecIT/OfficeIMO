@@ -31,9 +31,6 @@ public sealed partial class PdfReadLimits {
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
     internal const int DefaultMaxImageReferenceSteps = 100_000;
 
-    /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
-    public static PdfReadLimits Default => new PdfReadLimits();
-
     /// <summary>Maximum input byte count accepted before text/object scanning. Default: 512 MiB.</summary>
     public long MaxInputBytes { get; init; } = 512L * 1024L * 1024L;
 

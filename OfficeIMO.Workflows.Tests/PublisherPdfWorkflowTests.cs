@@ -87,7 +87,7 @@ public sealed class PublisherPdfWorkflowTests {
         try {
             string input = CopySource(root), output = Path.Combine(root, "result.pdf");
             byte[] sentinel = [3, 2, 1]; File.WriteAllBytes(output, sentinel);
-            var read = new PublisherReadOptions { MaximumPages = limit == "pages" ? 1 : 1024 };
+            var read = new PublisherReadOptions { MaxPages = limit == "pages" ? 1 : 1024 };
             if (limit == "records") read.Limits.MaxRecords = 16;
             var request = ((new OfficeWorkflowRequest {
                 Operation = OfficeWorkflowOperation.Convert,
@@ -142,15 +142,15 @@ public sealed class PublisherPdfWorkflowTests {
         var options = new OfficeConversionOptions {
             FailOnLoss = true,
             RegisteredSettings = new OfficeWorkflowRouteSettings {
-                PublisherRead = new() { MaximumPages = 3 },
+                PublisherRead = new() { MaxPages = 3 },
                 PublisherPdf = new()
             }
         };
         OfficeConversionOptions copy = options.ForRoute("publisher-pdf");
         var native = Assert.IsType<OfficeWorkflowRouteSettings>(options.RegisteredSettings);
         var copied = Assert.IsType<OfficeWorkflowRouteSettings>(copy.RegisteredSettings);
-        native.PublisherRead!.MaximumPages = 30; native.PublisherRead.Limits.MaxRecords = 32;
-        Assert.Equal(3, copied.PublisherRead!.MaximumPages); Assert.Equal(1_000_000, copied.PublisherRead.Limits.MaxRecords);
+        native.PublisherRead!.MaxPages = 30; native.PublisherRead.Limits.MaxRecords = 32;
+        Assert.Equal(3, copied.PublisherRead!.MaxPages); Assert.Equal(1_000_000, copied.PublisherRead.Limits.MaxRecords);
         Assert.NotSame(native.PublisherPdf, copied.PublisherPdf); Assert.True(copy.FailOnLoss);
         OfficeConversionOptions text = options.ForRoute("txt-pdf"); Assert.Null(text.RegisteredSettings); Assert.True(text.FailOnLoss);
         Assert.Throws<ArgumentException>(() => OfficeWorkflowRenderingOptions.Capture(options).Snapshot(OfficeWorkflowCatalog.FindExecutable("txt-pdf")!));
@@ -167,7 +167,7 @@ public sealed class PublisherPdfWorkflowTests {
                 ResumeFrom = Path.Combine(Path.Combine(root, "state"), "plan.json"),
                 MaxParallelism = 1,
                 ConversionOptions = new() {
-                    RegisteredSettings = new OfficeWorkflowRouteSettings { PublisherRead = new() { MaximumPages = 8 } }
+                    RegisteredSettings = new OfficeWorkflowRouteSettings { PublisherRead = new() { MaxPages = 8 } }
                 }
             };
             var initialItems = new List<OfficeBatchItemReport>();
@@ -177,7 +177,7 @@ public sealed class PublisherPdfWorkflowTests {
             Assert.Equal(2, (await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request, new InlineProgress(reusedItems))).Reused);
             Assert.Contains(Assert.Single(reusedItems, item => item.InputPath == input).Diagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
             string output = Path.Combine(request.OutputDirectory, "source.pdf"); byte[] before = File.ReadAllBytes(output);
-            ((OfficeIMO.Workflows.OfficeWorkflowRouteSettings)(request.ConversionOptions).RegisteredSettings!).PublisherRead!.MaximumPages = 1;
+            ((OfficeIMO.Workflows.OfficeWorkflowRouteSettings)(request.ConversionOptions).RegisteredSettings!).PublisherRead!.MaxPages = 1;
             var changed = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), request);
             Assert.Equal(1, changed.Failed); Assert.Equal(1, changed.Reused); Assert.Equal(before, File.ReadAllBytes(output));
         } finally { Directory.Delete(root, true); }

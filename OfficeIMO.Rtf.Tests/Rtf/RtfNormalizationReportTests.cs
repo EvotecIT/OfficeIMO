@@ -16,7 +16,7 @@ public sealed class RtfNormalizationReportTests {
 
     [Fact]
     public void Normalization_Reports_Read_Policy_Blocks_And_Invalidated_Alternate_Html() {
-        RtfReadResult blocked = RtfDocument.Read(@"{\rtf1\ansi{\*\filetbl{\file\fid0 path}}Visible\par}", RtfReadOptions.CreateUntrustedProfile());
+        RtfReadResult blocked = RtfDocument.Read(@"{\rtf1\ansi{\*\filetbl{\file\fid0 path}}Visible\par}", RtfReadOptions.UntrustedDefaults);
         Assert.Contains(blocked.Document.ToRtfResult().Report.Diagnostics, item => item.Code == "RTF106" && item.Action == RtfConversionAction.Blocked);
         RtfDocument html = RtfDocument.Read(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original HTML</p>}\htmlrtf1 Original fallback\par}").Document;
         Assert.DoesNotContain(html.ToRtfResult().Report.Diagnostics, item => item.Code == "RtfNormalizationHtmlOmitted");

@@ -133,7 +133,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { 1 }, Assert.Single(Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets).Tables).HiddenRows);
         package.Position = 0;
         Assert.Contains("limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static byte[] VisibilityUuid(ulong lower, ulong upper = 10) => Message(VarintField(1, lower), VarintField(2, upper));

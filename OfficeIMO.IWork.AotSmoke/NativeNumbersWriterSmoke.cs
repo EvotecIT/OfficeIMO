@@ -48,7 +48,7 @@ internal static class NativeNumbersWriterSmoke {
             && !reopened.ValidateOpenXml().Any(), "Saved Numbers XLSX loses typed scalar values or literal text.");
         byte[] before = destination.ToArray();
         try {
-            document.Save(destination, new() { MaximumTableCells = 25 });
+            document.Save(destination, new() { MaxTableCells = 25 });
             throw new InvalidOperationException("Numbers dense-grid limit was not enforced.");
         } catch (InvalidDataException) {
             Require(before.SequenceEqual(destination.ToArray()), "Numbers budget rejection mutated its destination.");

@@ -80,7 +80,7 @@ public sealed partial class CslProcessor {
     private CslDisambiguationValue[]? TryConditionalDetail(CslConditionAttempt attempt, CslDisambiguationValue[] before, CslRecord[] records,
         IReadOnlyList<CslDisambiguationForm> forms, CslEvaluator evaluator, XElement layout, int depth, bool reassignSuffixes, ulong? requiredScore = null) {
         evaluator.PerformOperation();
-        if (depth >= _style.MaximumDepth) throw new InvalidDataException("CSL conditional disambiguation exceeds MaximumNestingDepth.");
+        if (depth >= _style.MaxDepth) throw new InvalidDataException("CSL conditional disambiguation exceeds MaxNestingDepth.");
         var selected = new List<(CslRecord Record, string Key)>(attempt.Choices);
         string[]? originalSuffixes = SnapshotSuffixes(records, reassignSuffixes);
         foreach (var choice in selected) choice.Record.ActiveConditions.Add(choice.Key);

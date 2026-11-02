@@ -305,11 +305,11 @@ internal static partial class IWorkTableReader {
         if (formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)) {
             projectionBudget.AddFormulaRenderingOperations(
                 IWorkFormulaReader.MeasureRenderingOperations(formula,
-                    options.MaximumFormulaNodes));
+                    options.MaxFormulaNodes));
             result = IWorkFormulaReader.Render(formula, row - 1, column - 1,
-                options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
+                options.MaxFormulaNodes, options.MaxFormulaCharacters);
             if (result.RequiresTableBinding) definition = new IWorkFormulaDefinition(formula, row - 1, column - 1,
-                options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
+                options.MaxFormulaNodes, options.MaxFormulaCharacters);
         } else {
             result = new IWorkFormulaResult("=?", false);
         }

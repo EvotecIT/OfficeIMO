@@ -129,7 +129,7 @@ internal static class MhtmlReaderAdapter {
             projection.UrlPolicy.AllowedUrlSchemes.Add(archive.BaseUri.Scheme);
         }
         options.HtmlToMarkdownOptions = projection;
-        var conversion = options.ConversionOptions?.Clone() ?? OfficeIMO.Html.HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var conversion = options.ConversionOptions?.Clone() ?? OfficeIMO.Html.HtmlConversionDocumentOptions.UntrustedDefaults;
         conversion.BaseUri ??= archive.BaseUri;
         if (conversion.ResourceUrlPolicy.RestrictUrlSchemes) {
             conversion.ResourceUrlPolicy.AllowedUrlSchemes.Add("cid");

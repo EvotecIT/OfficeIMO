@@ -155,15 +155,15 @@ public sealed class LatexMacroSafetyRegressionTests {
             "\\newcommand{\\shorten}[1]{x}",
             new LatexParseOptions {
                 MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions,
-                MaximumExpansionInputLength = 4096,
-                MaximumExpansionTokenCount = 32
+                MaxExpansionInputLength = 4096,
+                MaxExpansionTokenCount = 32
             }).Document;
         string tokenDenseInvocation = "\\shorten{" + string.Concat(Enumerable.Repeat("{}", 64)) + "}";
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             document.ExpandSimpleMacros(tokenDenseInvocation));
 
-        Assert.Contains("MaximumTokenCount", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("MaxTokenCount", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public sealed class LatexMacroSafetyRegressionTests {
             "\\newcommand{\\empty}{}",
             new LatexParseOptions {
                 MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions,
-                MaximumExpansionTokenCount = 4
+                MaxExpansionTokenCount = 4
             }).Document;
 
         LatexMacroExpansionResult result = document.ExpandSimpleMacros("\\empty");

@@ -7,7 +7,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
     [InlineData("é", true)]
     public void CSL_limit_diagnostics_use_zero_based_UTF16_offsets(string prefix, bool leadingBom) {
         string source = (leadingBom ? "\uFEFF" : "") + "[{\"id\":\"" + prefix + "\",\"x\":\"long\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 3 };
+        var options = new BibliographyReadOptions { MaxValueLength = 3 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 
@@ -19,7 +19,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
     [Fact]
     public void CSL_large_token_parsing_observes_cancellation() {
         string source = "[{\"id\":\"x\",\"title\":\"" + new string('x', 16 * 1024 * 1024) + "\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 20 * 1024 * 1024 };
+        var options = new BibliographyReadOptions { MaxValueLength = 20 * 1024 * 1024 };
         BibliographyCancellationTest.AssertObserved(token =>
             BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options, token));
     }
@@ -29,7 +29,7 @@ public sealed class BibliographyReviewWave33RegressionTests {
         const string opening = "[{\"id\":\"x\",\"title\":\"";
         int fillerLength = 4095 - Encoding.UTF8.GetByteCount(opening);
         string source = opening + new string('a', fillerLength) + "\\u00e9\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = fillerLength + 1 };
+        var options = new BibliographyReadOptions { MaxValueLength = fillerLength + 1 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 

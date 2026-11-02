@@ -63,7 +63,7 @@ public sealed class PublisherPdfTests {
     [Fact]
     public void Application_codec_output_obeys_pixel_limits_and_cancellation() {
         string file = PublisherNativeTests.Fixture("SampleBrochure.pub");
-        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = new TestCodec(), MaximumRasterPixels = 3 }));
+        Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(file, new PublisherReadOptions { ImageCodec = new TestCodec(), MaxRasterPixels = 3 }));
         using var source = new CancellationTokenSource();
         Assert.Throws<OperationCanceledException>(() => PublisherDocument.Load(file,
             new PublisherReadOptions { ImageCodec = new TestCodec(source) }, source.Token));

@@ -112,7 +112,7 @@ public sealed class IWorkDirectoryWorkflowTests {
     public async Task Directory_read_bounds_and_cancellation_leave_no_output() {
         using var bundle = new Bundle("numbers", "xlsx");
         var request = bundle.Request("numbers-xlsx");
-        request.RegisteredConversionSettings = new IWorkWorkflowSettings { ReadOptions = new() { MaximumPackageBytes = 16 } };
+        request.RegisteredConversionSettings = new IWorkWorkflowSettings { ReadOptions = new() { MaxPackageBytes = 16 } };
         var bounded = await IWorkWorkflow.CreateRunner().RunAsync(request);
         Assert.False(bounded.Succeeded);
         Assert.False(File.Exists(bundle.Output));

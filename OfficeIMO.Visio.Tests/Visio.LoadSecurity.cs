@@ -83,9 +83,9 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.ThrowsAny<XmlException>(() => VisioDocument.Load(filePath,
-                    new VisioLoadOptions { MaxPackageXmlCharacters = 20_000 }));
+                    new VisioLoadOptions { Limits = { MaxPackageXmlCharacters = 20_000 } }));
                 VisioDocument accepted = VisioDocument.Load(filePath,
-                    new VisioLoadOptions { MaxPackageXmlCharacters = 30_000 });
+                    new VisioLoadOptions { Limits = { MaxPackageXmlCharacters = 30_000 } });
                 Assert.Single(accepted.Pages);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);

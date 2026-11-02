@@ -1,0 +1,15 @@
+{
+  "package": "OfficeIMO.Xps",
+  "changes": [
+    {
+      "old": "OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Xps.XpsReadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)",
+      "replacement": "new XpsReadOptions { Limits = { MaxPages = 100 } }",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    }
+  ]
+}

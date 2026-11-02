@@ -55,7 +55,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         const int length = 128;
 #endif
         string source = shortContinuation ? "TY  - BOOK\nTI  - A\n      123456\nER  -\n" : prefix + new string('x', length);
-        var options = new BibliographyReadOptions { MaximumValueLength = shortContinuation ? 5 : 4 };
+        var options = new BibliographyReadOptions { MaxValueLength = shortContinuation ? 5 : 4 };
 #if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
 #else

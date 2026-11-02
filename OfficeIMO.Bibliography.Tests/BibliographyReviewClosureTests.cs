@@ -5,7 +5,7 @@ public sealed class BibliographyReviewClosureTests {
     public void Bib_macro_expansion_observes_the_value_length_limit() {
         const string source = "@string{x={123456}}\n@book{a,title=x # x}";
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueLength = 10 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxValueLength = 10 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -286,7 +286,7 @@ public sealed class BibliographyReviewClosureTests {
     [InlineData("@book{x,title=12345678901}")]
     [InlineData("%12345678901\n@book{x,title={ok}}")]
     public void Bib_sibling_value_paths_enforce_the_limit_before_materializing_output(string source) {
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaximumValueLength = 10 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, new BibliographyReadOptions { MaxValueLength = 10 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");

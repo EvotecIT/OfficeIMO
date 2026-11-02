@@ -27,7 +27,7 @@ public sealed partial class XpsDocument {
         if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentException("A MIME content type is required.", nameof(contentType));
         string name = XpsPackage.PartName(partName);
         if (name == "[Content_Types].xml" || name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) || OfficeOpcPieceAssembler.HasPieceSuffix(name)) throw new ArgumentException("Reserved package part.", nameof(partName));
-        if (bytes.Length > _limits.MaximumPartBytes || _parts.Count >= _limits.MaximumParts) throw new InvalidOperationException("XPS resource limit exceeded.");
+        if (bytes.Length > _limits.MaxPartBytes || _parts.Count >= _limits.MaxParts) throw new InvalidOperationException("XPS resource limit exceeded.");
         if (_parts.ContainsKey(name)) throw new ArgumentException("The resource already exists.", nameof(partName));
         byte[] copy = (byte[])bytes.Clone();
         _ = PrepareOutput(default, new Dictionary<string, byte[]> { [name] = copy }, new Dictionary<string, string> { [name] = contentType }, validateResources: false);
@@ -46,7 +46,7 @@ public sealed partial class XpsDocument {
         if (type == XpsPackage.Type("fixedpage") || type == XpsPackage.Type("fixeddocument") || type == XpsPackage.Type("fixeddocumentsequence") ||
             type == XpsPackage.Type("documentstructure") || type == XpsPackage.Type("storyfragments"))
             throw new ArgumentException("Use the owning API to edit structural package parts.", nameof(partName));
-        if (bytes.Length > _limits.MaximumPartBytes)
+        if (bytes.Length > _limits.MaxPartBytes)
             throw new InvalidOperationException("XPS resource limit exceeded.");
         byte[] copy = (byte[])bytes.Clone();
         _ = PrepareOutput(default, new Dictionary<string, byte[]> { [name] = copy }, validateResources: false);
@@ -114,7 +114,7 @@ public sealed partial class XpsDocument {
         foreach (string name in output.Keys.Where(n => n != "[Content_Types].xml" && !n.EndsWith(".rels", StringComparison.OrdinalIgnoreCase)).OrderBy(n => n, StringComparer.Ordinal))
             types.Add(new XElement(XpsPackage.ContentTypes + "Override", new XAttribute("PartName", "/" + name), new XAttribute("ContentType", replacementTypes != null && replacementTypes.TryGetValue(name, out var type) ? type : ContentType(name))));
         output["[Content_Types].xml"] = XpsPackage.Serialize(types);
-        if (output.Count > _limits.MaximumParts || output.Values.Any(b => b.Length > _limits.MaximumPartBytes) || output.Values.Sum(b => (long)b.Length) > _limits.MaximumExpandedBytes) throw new InvalidOperationException("XPS output limits exceeded.");
+        if (output.Count > _limits.MaxParts || output.Values.Any(b => b.Length > _limits.MaxPartBytes) || output.Values.Sum(b => (long)b.Length) > _limits.MaxExpandedBytes) throw new InvalidOperationException("XPS output limits exceeded.");
         return output;
     }
     private static string NextRelationshipId(XElement relationships) {

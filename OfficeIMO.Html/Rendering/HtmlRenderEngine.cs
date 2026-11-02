@@ -63,7 +63,7 @@ public static class HtmlRenderEngine {
     /// Renders a prepared HTML DOM without reparsing source text or mutating the caller's document.
     /// </summary>
     internal static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) =>
-        Render(document, options, HtmlConversionLimits.CreateUntrustedProfile(),
+        Render(document, options, HtmlConversionLimits.UntrustedDefaults,
             sourceAlreadyValidated: false, cancellationToken: CancellationToken.None);
 
     /// <summary>
@@ -109,7 +109,7 @@ public static class HtmlRenderEngine {
         IHtmlDocument document,
         HtmlRenderOptions? options,
         CancellationToken cancellationToken) =>
-        Render(document, options, HtmlConversionLimits.CreateUntrustedProfile(),
+        Render(document, options, HtmlConversionLimits.UntrustedDefaults,
             sourceAlreadyValidated: false, cancellationToken);
 
     private static HtmlRenderDocument Render(
@@ -335,7 +335,7 @@ public static class HtmlRenderEngine {
                 renderDocument,
                 resolved,
                 initialDiagnostics: null,
-                HtmlConversionLimits.CreateUntrustedProfile(),
+                HtmlConversionLimits.UntrustedDefaults,
                 operationCancellationToken).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }

@@ -40,7 +40,7 @@ internal static class NativePagesTableWriterSmoke {
         using var output = new MemoryStream(); output.WriteByte(9);
         byte[] before = output.ToArray();
         try {
-            document.Save(output, new() { MaximumTableCells = 12 });
+            document.Save(output, new() { MaxTableCells = 12 });
             throw new InvalidOperationException("Pages dense-grid bound was not enforced.");
         } catch (InvalidDataException) {
             Require(output.CanWrite && before.SequenceEqual(output.ToArray()), "Pages budget rejection changed its caller stream.");

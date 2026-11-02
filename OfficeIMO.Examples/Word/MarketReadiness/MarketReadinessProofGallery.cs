@@ -234,7 +234,7 @@ namespace OfficeIMO.Examples.Word {
 
                 File.WriteAllText(sourcePath, scenario.Value, Encoding.UTF8);
 
-                WordHtmlImportOptions options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+                WordHtmlImportOptions options = WordHtmlImportOptions.UntrustedDefaults;
                 using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Value).ToWord(options, out OfficeConversionReport conversion);
                 document.Save(docxPath);
                 File.WriteAllText(roundTripPath, document.ToHtml(new WordHtmlExportOptions { IncludeDefaultCss = true }), Encoding.UTF8);

@@ -14,7 +14,7 @@ internal sealed class AsciiDocSyntaxFactory {
     internal System.Threading.CancellationToken CancellationToken { get; }
     internal AsciiDocParseOptions Options { get; }
     internal void ReserveTableCell() {
-        if (_tableCells >= Options.MaximumTableCellCount) throw new InvalidDataException("AsciiDoc source exceeds MaximumTableCellCount.");
+        if (_tableCells >= Options.MaxTableCellCount) throw new InvalidDataException("AsciiDoc source exceeds MaxTableCellCount.");
         _tableCells++;
     }
 

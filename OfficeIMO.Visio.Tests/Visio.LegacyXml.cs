@@ -119,6 +119,6 @@ public class VisioLegacyXmlTests {
         using var wrong = new MemoryStream(Encoding.UTF8.GetBytes("<VisioDocument/>"));
         Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(wrong));
         using var deep = new MemoryStream(Encoding.UTF8.GetBytes("<VisioDocument xmlns='http://schemas.microsoft.com/visio/2003/core'><Pages><Page><Shapes/></Page></Pages></VisioDocument>"));
-        Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(deep, options: new VisioLoadOptions { MaxLegacyXmlDepth = 2 }));
+        Assert.Throws<InvalidDataException>(() => VisioDocument.LoadLegacyXml(deep, options: new VisioLoadOptions { Limits = { MaxLegacyXmlDepth = 2 } }));
     }
 }

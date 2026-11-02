@@ -69,8 +69,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNativeSlideLinkPackage(NativeSecondSlideLink, mapCount: 70);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Keynote, new IWorkReadOptions {
-                MaximumProjectedTables = 1, MaximumProjectedImages = 1,
-                MaximumProjectedTextItems = 64
+                MaxProjectedTables = 1, MaxProjectedImages = 1,
+                MaxProjectedTextItems = 64
             });
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
         Assert.Contains("combined projection limit of 66", exception.Message, StringComparison.Ordinal);

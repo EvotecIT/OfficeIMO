@@ -80,7 +80,7 @@ public sealed class AsciiDocInlineParsingTests {
 
     [Fact]
     public void InlineNodeLimit_IsEnforced() {
-        var options = new AsciiDocParseOptions { MaximumInlineNodeCount = 2 };
+        var options = new AsciiDocParseOptions { MaxInlineNodeCount = 2 };
 
         Assert.Throws<InvalidDataException>(() => AsciiDocDocument.ParseResult("*one* {two} three", options));
     }

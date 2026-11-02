@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] tile = Message(BytesField(5, new byte[] { 0x80 }), BytesField(5, row));
         using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2, columns: 3,
             tilePayload: tile, additionalRecords: ArchiveRecord(99, 6002, tile));
-        var options = new IWorkReadOptions { MaximumMaterializedCells = 1 };
+        var options = new IWorkReadOptions { MaxMaterializedCells = 1 };
         IWorkConversionReport report = ConvertUnitReport(package, kind, readOptions: options);
         IWorkSourceCellIssue issue = Assert.Single(report.SourceCellIssues);
         Assert.Equal((2, 3), (issue.Row, issue.Column));

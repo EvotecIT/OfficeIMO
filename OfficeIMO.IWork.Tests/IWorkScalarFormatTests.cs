@@ -133,16 +133,16 @@ public sealed partial class IWorkBoundaryTests {
             Enumerable.Range(0, 17).Select(_ => VarintField(99, 0))).ToArray());
         using var parserLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, fields);
         Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(parserLimited,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
         using var catalogLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, VarintField(1, 1), extraFormat: true);
         Assert.Contains("catalog", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(catalogLimited,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Unused_scalar_format_catalogs_remain_unselected() {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 999));
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumTableCatalogEntries = 1 }).ReadNumbers();
+        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.SourceDeclarationIssues);
@@ -160,7 +160,7 @@ public sealed partial class IWorkBoundaryTests {
             tilePayload: BytesField(5, Message(VarintField(1, 0), BytesField(6, Message(cell, cell)),
                 BytesField(7, new byte[] { 0, 0, (byte)cell.Length, 0 }))));
         Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(overBudget,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 }).ReadNumbers()).Message);
+            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static void AssertScalarFormatSavedValue(IWorkSourceDocument source, IWorkDocumentKind kind, IWorkTableCell cell) {

@@ -26,15 +26,15 @@ public sealed class PublisherPictureWorkTests {
         byte[] input = PublisherPictureWorkFixture.WithImage(PublisherPictureEffectTests.PictureInput(
             new Dictionary<ushort, uint> { [0x013F] = 0x00040004 }), gif);
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { MaximumImageProcessingPixels = 3 }));
-        PublisherDocument document = PublisherDocument.Load(input, new PublisherReadOptions { MaximumImageProcessingPixels = 4 });
+            new PublisherReadOptions { MaxImageProcessingPixels = 3 }));
+        PublisherDocument document = PublisherDocument.Load(input, new PublisherReadOptions { MaxImageProcessingPixels = 4 });
         Assert.Equal(OfficeColor.White, PublisherPictureEffectTests.ProjectedRaster(document, 362).GetPixel(0, 0));
         Assert.Contains(document.ReadReport.FidelityDiagnostics, d => d.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected);
         input = PublisherDrawingFixture.Mutate(input, new Dictionary<ushort, uint> {
             [0x4104] = 1, [0x013F] = 0x00040004
         }, 1, objectId: 367);
         Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(input,
-            new PublisherReadOptions { MaximumImageProcessingPixels = 7 }));
-        PublisherDocument.Load(input, new PublisherReadOptions { MaximumImageProcessingPixels = 8 });
+            new PublisherReadOptions { MaxImageProcessingPixels = 7 }));
+        PublisherDocument.Load(input, new PublisherReadOptions { MaxImageProcessingPixels = 8 });
     }
 }

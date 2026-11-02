@@ -128,7 +128,7 @@ public sealed class HtmlEditableLayoutExcelTests {
             "<table><caption>First</caption><tr><td>First table</td></tr></table>" +
             "<table><caption>Second</caption><tr><td>Second table" +
             "<div style='display:grid;width:140px;height:40px'>Limited layout</div></td></tr></table>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxSemanticContainers = 2;
 
@@ -237,7 +237,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         string html = "<div style='position:absolute;left:1000000000000000px;top:1000000000000000px;" +
             "width:1000000000000000px;height:1000000000000000px'>Bounded" +
             "<img src='" + image + "' style='position:absolute;left:0;top:0;width:12px;height:12px'></div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxAbsoluteGeometry = 640D;
 
         HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
@@ -363,7 +363,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         string html = "<div style='position:absolute;top:120px;width:120px;height:60px'>Budgeted region"
             + "<img src='" + image + "' style='width:12px;height:12px'><img src='" + image
             + "' style='width:12px;height:12px'></div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 1;
 

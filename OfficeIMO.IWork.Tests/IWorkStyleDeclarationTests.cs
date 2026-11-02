@@ -103,7 +103,7 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(11, Message(VarintField(4, 0), VarintField(4, 1), StringField(5, "Other"))))),
                 ArchiveRecord(20, 2021, Message(BytesField(11, StringField(5, "Arial"))))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         IWorkTable table = ReadSelectedRichTable(source, kind).Item1;
         Assert.Equal(2, table.Cells.Count);
         foreach (IWorkTableCell cell in table.Cells) {
@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         IWorkSourceDeclarationIssue issue = Assert.Single(ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).SourceDeclarationIssues);
+            readOptions: new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).SourceDeclarationIssues);
         Assert.Equal("11/4", issue.FieldPath); Assert.Equal(2, issue.DeclaredValueCount);
     }
 
@@ -123,7 +123,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11,
                 Message(VarintField(1, 2), FloatField(3, float.NaN)))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 });
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, BytesField(7,
                 Message(Enumerable.Range(3, 9).Select(field => FloatField(field, 0)).ToArray())))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

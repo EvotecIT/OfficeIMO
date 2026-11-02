@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
             IWorkSourceDocument source = IWorkSourceDocument.Open(package,
                 IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumProtobufFieldCount = 1 });
+                new IWorkReadOptions { MaxProtobufFieldCount = 1 });
             source.ReadNumbers();
         });
 

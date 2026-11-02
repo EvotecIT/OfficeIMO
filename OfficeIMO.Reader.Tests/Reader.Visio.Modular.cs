@@ -34,16 +34,16 @@ public sealed class ReaderVisioModularTests {
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetCapabilities(),
             item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
 
-        Assert.Equal(VisioLoadOptions.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
+        Assert.Equal(VisioLoadLimits.DefaultMaxInputBytes, capability.DefaultMaxInputBytes);
         Assert.Equal(
-            VisioLoadOptions.DefaultMaxInputBytes,
+            VisioLoadLimits.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("diagram.vsdx"));
         Assert.Null(VisioReaderAdapter.CreateLoadOptions(new ReaderOptions()));
 
         VisioLoadOptions mapped = Assert.IsType<VisioLoadOptions>(
             VisioReaderAdapter.CreateLoadOptions(new ReaderOptions { MaxInputBytes = 700L * 1024L * 1024L }));
 
-        Assert.Equal(700L * 1024L * 1024L, mapped.MaxInputBytes);
+        Assert.Equal(700L * 1024L * 1024L, mapped.Limits.MaxInputBytes);
     }
 
     [Fact]

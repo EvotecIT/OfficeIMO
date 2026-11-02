@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Currency_identifiers_consume_the_projection_text_budget() {
-        var options = new IWorkReadOptions { MaximumProjectedTextCharacters = 2 };
+        var options = new IWorkReadOptions { MaxProjectedTextCharacters = 2 };
         using MemoryStream numeric = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), sheetName: "");
         Assert.NotNull(IWorkSourceDocument.Open(numeric, options).ReadNumbers());
         using MemoryStream currency = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13),
@@ -106,7 +106,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(3, FormatEntry(CurrencyFormat("USD", 2))),
                 BytesField(3, Message(VarintField(1, 2), BytesField(6, CurrencyFormat("EUR", 2)))))));
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 1 }).ReadNumbers()).Message);
     }
 
     private static byte[] CurrencyCell(uint identifier) {

@@ -37,7 +37,7 @@ public sealed class HtmlEditableLayoutReviewWave30Tests {
 
     [Fact]
     public void PreparedProjectionIntersectsCallerAndOwningNodeLimits() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxHtmlNodes = 64;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:120px;height:30px'>Projected</div>"

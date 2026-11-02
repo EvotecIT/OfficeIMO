@@ -61,7 +61,7 @@ internal static class IWorkContainerReader {
         cancellationToken.ThrowIfCancellationRequested();
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
-        byte[] package = ReadBounded(stream, options.MaximumPackageBytes, "package", cancellationToken);
+        byte[] package = ReadBounded(stream, options.MaxPackageBytes, "package", cancellationToken);
         using var copy = new MemoryStream(package, writable: false);
         return ReadZip(copy, options, cancellationToken);
     }
@@ -110,9 +110,9 @@ internal static class IWorkContainerReader {
                 string full = Path.GetFullPath(fileSystemEntry);
                 if (!full.StartsWith(root, pathComparison)) throw new InvalidDataException("A bundle entry resolves outside the source directory.");
                 string relative = NormalizePath(full.Substring(root.Length));
-                long remainingPackageBytes = options.MaximumPackageBytes - total;
-                long remainingEntryBytes = options.MaximumTotalEntryBytes - total;
-                long readLimit = Math.Min(options.MaximumEntryBytes,
+                long remainingPackageBytes = options.MaxPackageBytes - total;
+                long remainingEntryBytes = options.MaxTotalEntryBytes - total;
+                long readLimit = Math.Min(options.MaxEntryBytes,
                     Math.Min(remainingPackageBytes, remainingEntryBytes));
                 if (readLimit < 0) {
                     throw new InvalidDataException("Directory bundle size exceeds a configured package limit.");
@@ -142,8 +142,8 @@ internal static class IWorkContainerReader {
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
         long total = 0;
         int nodeCount = 0;
-        ValidateZipCentralDirectory(stream, options.MaximumEntryCount - nodeCount,
-            options.MaximumEntryCount, cancellationToken);
+        ValidateZipCentralDirectory(stream, options.MaxEntryCount - nodeCount,
+            options.MaxEntryCount, cancellationToken);
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true)) {
             ReadArchiveEntries(archive, entries, prefix: null, ref total, ref nodeCount, options,
                 cancellationToken);
@@ -161,8 +161,8 @@ internal static class IWorkContainerReader {
         ref int nodeCount, IWorkReadOptions options, CancellationToken cancellationToken) {
         if (!entries.TryGetValue("Index.zip", out IWorkPackageEntry? nested)) return;
         using var stream = new MemoryStream(nested.Bytes, writable: false);
-        ValidateZipCentralDirectory(stream, options.MaximumEntryCount - nodeCount,
-            options.MaximumEntryCount, cancellationToken);
+        ValidateZipCentralDirectory(stream, options.MaxEntryCount - nodeCount,
+            options.MaxEntryCount, cancellationToken);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         ReadArchiveEntries(archive, entries, "Index", ref total, ref nodeCount, options,
             cancellationToken);
@@ -200,7 +200,7 @@ internal static class IWorkContainerReader {
             }
             EnforceEntryBounds(entry.Length, ref total, options, normalized);
             using Stream input = entry.Open();
-            byte[] bytes = ReadBounded(input, Math.Min(options.MaximumEntryBytes, entry.Length),
+            byte[] bytes = ReadBounded(input, Math.Min(options.MaxEntryBytes, entry.Length),
                 normalized, cancellationToken);
             if (bytes.LongLength != entry.Length) throw new InvalidDataException($"Entry {normalized} changed length while it was read.");
             AddEntry(entries, normalized, bytes);
@@ -208,18 +208,18 @@ internal static class IWorkContainerReader {
     }
 
     private static void EnforceEntryCount(ref int count, IWorkReadOptions options) {
-        if (count >= options.MaximumEntryCount) {
-            throw new InvalidDataException($"Package entry count exceeds the configured limit of {options.MaximumEntryCount}.");
+        if (count >= options.MaxEntryCount) {
+            throw new InvalidDataException($"Package entry count exceeds the configured limit of {options.MaxEntryCount}.");
         }
         count++;
     }
 
     private static void EnforceEntryBounds(long length, ref long total, IWorkReadOptions options, string path) {
-        if (length < 0 || length > options.MaximumEntryBytes) {
-            throw new InvalidDataException($"Entry {path} has length {length}, above the configured limit of {options.MaximumEntryBytes} bytes.");
+        if (length < 0 || length > options.MaxEntryBytes) {
+            throw new InvalidDataException($"Entry {path} has length {length}, above the configured limit of {options.MaxEntryBytes} bytes.");
         }
-        if (total > options.MaximumTotalEntryBytes - length) {
-            throw new InvalidDataException($"Combined package entries exceed the configured limit of {options.MaximumTotalEntryBytes} bytes.");
+        if (total > options.MaxTotalEntryBytes - length) {
+            throw new InvalidDataException($"Combined package entries exceed the configured limit of {options.MaxTotalEntryBytes} bytes.");
         }
         total += length;
     }

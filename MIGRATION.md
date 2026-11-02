@@ -3379,6 +3379,40 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 <details>
 <summary>60 changes</summary>
 
+#### OfficeIMO.Access
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Access.AccessSaveOptions.LossPolicy` | Changed | `OfficeIMO.Access.AccessSaveOptions.AllowLoss` | AllowLoss = true replaces LossPolicy = OfficeConversionLossPolicy.Allow. |
+
+</details>
+
+#### OfficeIMO.AsciiDoc
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.AsciiDoc.AsciiDocParseOptions / AsciiDoc processor options Maximum* properties` | Renamed | `Max* (for example MaxInputLength, MaxBlockCount, MaxIncludeDepth)` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Bibliography
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Bibliography.BibliographyWriteOptions.RequireNoLoss` | Renamed | `OfficeIMO.Bibliography.BibliographyWriteOptions.FailOnLoss` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
+| limits | `OfficeIMO.Bibliography read, write, reference and CSL options Maximum* properties` | Renamed | `Max* (for example MaxInputBytes, MaxItemCount, MaxNestingDepth)` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
 | Visibility | `OfficeIMO.ContentSafety.OfficeContentSafetyInputGuard` | Internal | &mdash; | Use the documented document, options and result APIs. |
@@ -3544,6 +3578,58 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 <details>
 <summary>1 change</summary>
+| contract | `OfficeIMO.Html.HtmlConversionException : InvalidOperationException` | Changed | `OfficeIMO.Html.HtmlConversionException : OfficeConversionException` | Report carries the HTML diagnostics. |
+| contract | `OfficeIMO.Html.HtmlConversionReport.Diagnostics / HtmlRenderDocument.Diagnostics` | Renamed | `NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
+| contract | `OfficeIMO.Html.HtmlRenderResult.RequireNoLoss() / HtmlRenderDocument.RequireNoLoss() (returned this)` | Renamed | `ThrowIfLoss()` | ThrowIfLoss() returns void. |
+| limits | `OfficeIMO.Html.HtmlConversionDocumentOptions.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Html.HtmlConversionDocumentOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+| limits | `OfficeIMO.Html.HtmlConversionLimits.CreateTrustedProfile()` | Removed | &mdash; | new HtmlConversionLimits() |
+| limits | `OfficeIMO.Html.HtmlConversionLimits.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Html.HtmlConversionLimits.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+| limits | `OfficeIMO.Html.HtmlImportLimits.CreateDefault()` | Removed | &mdash; | new HtmlImportLimits() |
+
+</details>
+
+#### OfficeIMO.Html.Rtf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Html.Rtf.HtmlToRtfOptions.CreateUntrustedHtmlProfile()` | Renamed | `OfficeIMO.Html.Rtf.HtmlToRtfOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+
+</details>
+
+#### OfficeIMO.IWork
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.IWork.IWorkReadOptions / IWorkPagesWriteOptions / IWorkKeynoteWriteOptions / IWorkNumbersWriteOptions / IWorkNativeSaveOptions Maximum* properties` | Renamed | `Max* (for example MaxPackageBytes, MaxEntryCount, MaxTableRows)` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Latex
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Latex.LatexParseOptions Maximum* properties` | Renamed | `Max* (MaxInputLength, MaxInputBytes, MaxTokenCount, MaxNestingDepth, MaxExpansionDepth, MaxExpansionLength, MaxExpansionInputLength, MaxExpansionTokenCount)` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.OpenDocument
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.OpenDocument.OdfDocument.Metadata` | Renamed | `OfficeIMO.OpenDocument.OdfDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
+| contract | `OfficeIMO.OpenDocument.OdfConversionLossException : InvalidOperationException` | Changed | `OfficeIMO.OpenDocument.OdfConversionLossException : OfficeConversionException` | One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception. |
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3592,6 +3678,28 @@ data-only updates retain existing native marker formatting.
 
 Clearing PowerPoint axis-label text styling restores the theme's font, size and
 colour while retaining label rotation. It no longer leaves those text properties
+#### OfficeIMO.Project
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Project.ProjectSaveOptions.LossPolicy` | Changed | `OfficeIMO.Project.ProjectSaveOptions.AllowLoss` | AllowLoss = true replaces LossPolicy = OfficeConversionLossPolicy.Allow. |
+
+</details>
+
+#### OfficeIMO.Publisher
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Publisher.PublisherReadOptions.MaximumPages / MaximumNestingDepth / MaximumImageBytes / MaximumTotalImageBytes / MaximumRasterPixels / MaximumImageProcessingPixels` | Renamed | `MaxPages / MaxNestingDepth / MaxImageBytes / MaxTotalImageBytes / MaxRasterPixels / MaxImageProcessingPixels` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
 unset.
 
 ## PowerPoint composition defaults
@@ -3601,6 +3709,58 @@ Automatic card composition fits up to eight cards per slide and honors
 the previous continuation limit.
 
 ## HTML paragraph spacing
+</details>
+
+#### OfficeIMO.Reader.IWork
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Reader.IWork.ReaderIWorkOptions.MaximumTableColumns / MaximumProjectedTableCells` | Renamed | `MaxTableColumns / MaxProjectedTableCells` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Rtf
+
+<details>
+<summary>7 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Rtf.RtfDocument.Info` | Renamed | `OfficeIMO.Rtf.RtfDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
+| contract | `OfficeIMO.Rtf.RtfConversionReport.Diagnostics` | Renamed | `OfficeIMO.Rtf.RtfConversionReport.NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()` | Removed | &mdash; | new RtfReadOptions() |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxBinaryBytesPerPayload / MaxImageBytesPerImage / MaxObjectBytesPerObject` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxBinaryPayloadBytes / MaxImageBytes / MaxObjectBytes` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth` | Moved | `OfficeIMO.Rtf.RtfReadOptions.Limits (RtfReadLimits)` | new RtfReadOptions { Limits = { MaxDepth = 64 } } |
+| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxTokenCount / MaxGroupCount / MaxImageCount / MaxObjectCount / MaxSemanticBlockCount` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxTokens / MaxGroups / MaxImages / MaxObjects / MaxSemanticBlocks` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
+
+</details>
+
+#### OfficeIMO.Visio
+
+<details>
+<summary>3 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `OfficeIMO.Visio.VisioDocument.Title / Author` | Moved | `OfficeIMO.Visio.VisioDocument.Properties (VisioDocumentProperties)` | document.Properties.Title = "..." |
+| Naming | `OfficeIMO.Visio.VisioTextHorizontalAlignment` | Merged | `OfficeIMO.OfficeAlignment` | HorzAlign is mapped explicitly; Start and End write Left and Right. |
+| limits | `OfficeIMO.Visio.VisioLoadOptions.MaxInputBytes / MaxLegacyXmlCharacters / MaxPackageXmlCharacters / MaxLegacyXmlDepth / MaxLegacyXmlElements / DefaultMaxInputBytes` | Moved | `OfficeIMO.Visio.VisioLoadOptions.Limits (VisioLoadLimits)` | new VisioLoadOptions { Limits = { MaxInputBytes = null } } |
+
+</details>
+
+#### OfficeIMO.Xps
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| limits | `OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth` | Moved | `OfficeIMO.Xps.XpsReadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)` | new XpsReadOptions { Limits = { MaxPages = 100 } } |
+
 
 The HTML engine gives `p` elements browser-default margins of `1em` above and
 below, with adjacent margin collapse. Explicit CSS overrides these defaults.
@@ -3709,58 +3869,6 @@ including Markdown and PDF. PDF Markdown text extraction is `ExtractMarkdown()`;
 `To{Target}` names return target models. Rename lifecycle settings to `{Format}CreateOptions`,
 `{Format}LoadOptions` and `{Format}SaveOptions`; use the load options type's
 `UntrustedDefaults` for external input. Inspection snapshots use `Info` names and
-</details>
-
-#### OfficeIMO.Reader.IWork
-
-<details>
-<summary>1 change</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| limits | `OfficeIMO.Reader.IWork.ReaderIWorkOptions.MaximumTableColumns / MaximumProjectedTableCells` | Renamed | `MaxTableColumns / MaxProjectedTableCells` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
-
-</details>
-
-#### OfficeIMO.Rtf
-
-<details>
-<summary>7 changes</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| Naming | `OfficeIMO.Rtf.RtfDocument.Info` | Renamed | `OfficeIMO.Rtf.RtfDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
-| contract | `OfficeIMO.Rtf.RtfConversionReport.Diagnostics` | Renamed | `OfficeIMO.Rtf.RtfConversionReport.NativeDiagnostics` | Diagnostics is now the common OfficeDiagnostic list. |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateOfficeIMOProfile()` | Removed | &mdash; | new RtfReadOptions() |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()` | Renamed | `OfficeIMO.Rtf.RtfReadOptions.UntrustedDefaults` | Profiles for untrusted input use one discoverable name across formats. |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxBinaryBytesPerPayload / MaxImageBytesPerImage / MaxObjectBytesPerObject` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxBinaryPayloadBytes / MaxImageBytes / MaxObjectBytes` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxDepth / MaxInputBytes / MaxInputCharacters / MaxTextCharacters / MaxTotalBinaryBytes / MaxTotalImageBytes / MaxTotalObjectBytes / DefaultMaxDepth / CompatibilityMaxDepth` | Moved | `OfficeIMO.Rtf.RtfReadOptions.Limits (RtfReadLimits)` | new RtfReadOptions { Limits = { MaxDepth = 64 } } |
-| limits | `OfficeIMO.Rtf.RtfReadOptions.MaxTokenCount / MaxGroupCount / MaxImageCount / MaxObjectCount / MaxSemanticBlockCount` | Renamed | `OfficeIMO.Rtf.RtfReadLimits.MaxTokens / MaxGroups / MaxImages / MaxObjects / MaxSemanticBlocks` | Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object. |
-
-</details>
-
-#### OfficeIMO.Visio
-
-<details>
-<summary>3 changes</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| Naming | `OfficeIMO.Visio.VisioDocument.Title / Author` | Moved | `OfficeIMO.Visio.VisioDocument.Properties (VisioDocumentProperties)` | document.Properties.Title = "..." |
-| Naming | `OfficeIMO.Visio.VisioTextHorizontalAlignment` | Merged | `OfficeIMO.OfficeAlignment` | HorzAlign is mapped explicitly; Start and End write Left and Right. |
-| limits | `OfficeIMO.Visio.VisioLoadOptions.MaxInputBytes / MaxLegacyXmlCharacters / MaxPackageXmlCharacters / MaxLegacyXmlDepth / MaxLegacyXmlElements / DefaultMaxInputBytes` | Moved | `OfficeIMO.Visio.VisioLoadOptions.Limits (VisioLoadLimits)` | new VisioLoadOptions { Limits = { MaxInputBytes = null } } |
-
-</details>
-
-#### OfficeIMO.Xps
-
-<details>
-<summary>1 change</summary>
-
-| Topic | 3.5 | Change | 3.6 | Details |
-| --- | --- | --- | --- | --- |
-| limits | `OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth` | Moved | `OfficeIMO.Xps.XpsReadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)` | new XpsReadOptions { Limits = { MaxPages = 100 } } |
-
 are reached through `Inspect()`. Shared `OfficeColor` and `OfficeColorRole` move
 from `OfficeIMO.Drawing` to `OfficeIMO`.
 
@@ -4945,17 +5053,17 @@ Selected image markers retain incomplete-formatting diagnostics and source-decla
 
 ## iWork selected cell features and row storage acceptance
 
-Tables with decoded conditional-style, applied-rule or unresolved/unsupported comment selectors now require `AllowPartialEditableReconstruction = true` to retain editable values; automatic conversion otherwise uses its preview fallback. Inspect `IWORK_TABLE_CELL_FEATURES_UNASSESSED` and `IWorkTableCell.UnsupportedFeatures` before accepting partial output. Feature-only empty cells now count against `MaximumMaterializedCells`. Handle the additive `IWorkSourceDeclarationIssueKind.UnsupportedField` enum member when interpreting declaration evidence.
+Tables with decoded conditional-style, applied-rule or unresolved/unsupported comment selectors now require `AllowPartialEditableReconstruction = true` to retain editable values; automatic conversion otherwise uses its preview fallback. Inspect `IWORK_TABLE_CELL_FEATURES_UNASSESSED` and `IWorkTableCell.UnsupportedFeatures` before accepting partial output. Feature-only empty cells now count against `MaxMaterializedCells`. Handle the additive `IWorkSourceDeclarationIssueKind.UnsupportedField` enum member when interpreting declaration evidence.
 
 Selected date/time and duration formats now require the partial policy because their display settings remain unassessed. The same applies to unresolved or non-default text and Boolean formats; qualified default text (`260`) and Boolean (`1`) formats stay editable. Inspect the additive `DateFormat`, `DurationFormat`, `TextFormat` and `BooleanFormat` flags in `IWorkTableCell.UnsupportedFeatures`, and handle them in exhaustive enum switches. Reconvert earlier imports when source display formats matter. Partial conversion retains typed values and existing destination defaults rather than claiming custom-format preservation.
 
 Malformed or inconsistent row cell counts and non-empty modern buffers without selected offsets also require the partial policy. Inspect `IWORK_TABLE_ROW_STORAGE_UNASSESSED`; its evidence identifies native paths without estimating missing-cell counts.
 
-Reconvert imports whose truncated cells may have consumed bytes from a following out-of-table record. Those cells now retain decode errors and unassessed formula caches rather than borrowed values. Populated out-of-table offsets and oversized offset envelopes retain declaration evidence at `5[n]/7`; oversized envelopes contribute no identified cells or formulas. `MaximumTableDimensionEntries` now includes every inspected modern row offset slot, including empty trailing slots. Increase an intentionally narrow limit when legitimate source tables need more slots; the default remains 1,100,000 combined entries across the source.
+Reconvert imports whose truncated cells may have consumed bytes from a following out-of-table record. Those cells now retain decode errors and unassessed formula caches rather than borrowed values. Populated out-of-table offsets and oversized offset envelopes retain declaration evidence at `5[n]/7`; oversized envelopes contribute no identified cells or formulas. `MaxTableDimensionEntries` now includes every inspected modern row offset slot, including empty trailing slots. Increase an intentionally narrow limit when legitimate source tables need more slots; the default remains 1,100,000 combined entries across the source.
 
 Positive hidden/filtered row or column counts and malformed visibility counts now require the same partial policy. Inspect `IWORK_TABLE_VISIBILITY_UNASSESSED` before accepting editable output or Reader content: these routes can include content hidden in the source. Reconvert previously accepted tables when source visibility matters. Visibility counts alone do not identify hidden positions; qualified base user-hidden states use UUID position maps.
 
-The same policy applies to unresolved base hidden-state selections, summary states, filtering/pivot hiding, collapsed groups, other unqualified extents and unreadable visibility envelopes, including sources with zero hidden counts. Inspect `IWORK_TABLE_HIDDEN_STATES_UNASSESSED`. Empty extents and disabled filters retain the editable path. `MaximumTableDimensionEntries` includes hidden-state declarations, selected UUID position maps and filter references; increase a deliberately narrow custom limit when those records are expected, without bypassing the partial-output decision.
+The same policy applies to unresolved base hidden-state selections, summary states, filtering/pivot hiding, collapsed groups, other unqualified extents and unreadable visibility envelopes, including sources with zero hidden counts. Inspect `IWORK_TABLE_HIDDEN_STATES_UNASSESSED`. Empty extents and disabled filters retain the editable path. `MaxTableDimensionEntries` includes hidden-state declarations, selected UUID position maps and filter references; increase a deliberately narrow custom limit when those records are expected, without bypassing the partial-output decision.
 
 Qualified base user-hidden rows and columns are available through `IWorkTable.HiddenRows` and `HiddenColumns` and remain hidden in XLSX without removing their cells. Reconvert older imports when source visibility matters. Reader still includes their content and reports `IWORK_READER_HIDDEN_TABLE_CONTENT_INCLUDED`. DOCX/PPTX editable tables require `AllowPartialEditableReconstruction = true` and report `IWORK_PAGES_TABLE_VISIBILITY_OMITTED` or `IWORK_KEYNOTE_TABLE_VISIBILITY_OMITTED`, because those positions remain visible. Independent native proof currently covers hidden columns with empty cells; see the [support matrix](Docs/officeimo.iwork-support-matrix.md) for remaining limits.
 
@@ -4999,7 +5107,7 @@ Reconvert Numbers inputs that use `MINUTE`, `OR`, `PI`, `ROUND`, `SECOND`, or `S
 
 ## iWork cross-table ranges
 
-Finite rectangular cross-table references now resolve unique native identities among selected tables. `IWorkTableCell.Formula` contains source sheet/table labels; use the Excel adapter to render references with the actual worksheet names, including normalized names and collision suffixes. `FormulaIsComplete` assesses reconstructed source semantics, not a formula string ready to paste into an arbitrary workbook. Source and destination binding both count toward `MaximumFormulaRenderingOperations`. Table-local and cross-table whole-row/column references, including coordinate-backed header-name aliases, now map to the current target body instead of remaining cache-only. Inspect `IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED`: the destination excludes header columns or header/footer rows, but fixed ranges do not preserve native labels or automatic expansion. `RequireNoLoss()` rejects this approximation. Missing, inactive, malformed or ambiguous targets, ambiguous body metadata and unsupported reference families retain valid caches with incomplete expressions. Empty destination bodies require fallback. Whole-axis forms from other, unqualified reference node families remain incomplete and keep valid caches. Merge declarations that reference another table remain rejected and reported through `SourceDeclarationIssues`.
+Finite rectangular cross-table references now resolve unique native identities among selected tables. `IWorkTableCell.Formula` contains source sheet/table labels; use the Excel adapter to render references with the actual worksheet names, including normalized names and collision suffixes. `FormulaIsComplete` assesses reconstructed source semantics, not a formula string ready to paste into an arbitrary workbook. Source and destination binding both count toward `MaxFormulaRenderingOperations`. Table-local and cross-table whole-row/column references, including coordinate-backed header-name aliases, now map to the current target body instead of remaining cache-only. Inspect `IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED`: the destination excludes header columns or header/footer rows, but fixed ranges do not preserve native labels or automatic expansion. `ThrowIfLoss()` rejects this approximation. Missing, inactive, malformed or ambiguous targets, ambiguous body metadata and unsupported reference families retain valid caches with incomplete expressions. Empty destination bodies require fallback. Whole-axis forms from other, unqualified reference node families remain incomplete and keep valid caches. Merge declarations that reference another table remain rejected and reported through `SourceDeclarationIssues`.
 
 ## iWork high-precision numeric recovery
 
@@ -5011,7 +5119,7 @@ Range, streaming, typed-object, and PDF reads use correctly rounded conversion o
 
 ## iWork selected cell styling
 
-`IWorkTable.Cells` and `GetCell` can now return empty cells that carry a supported selected native fill, padding or vertical alignment. Check `Kind == IWorkCellKind.Empty` when distinguishing values from formatting; their display text is empty. `Fill == null` means absent or unresolved, while `Fill.IsNone` represents an explicit no-fill override. Styled empty cells count toward `MaximumMaterializedCells`.
+`IWorkTable.Cells` and `GetCell` can now return empty cells that carry a supported selected native fill, padding or vertical alignment. Check `Kind == IWorkCellKind.Empty` when distinguishing values from formatting; their display text is empty. `Fill == null` means absent or unresolved, while `Fill.IsNone` represents an explicit no-fill override. Styled empty cells count toward `MaxMaterializedCells`.
 
 Reconvert iWork tables to retain supported selected, region and alternating body-row fills in DOCX, XLSX and PPTX. Use `IWorkTable.GetFill(row, column)` for effective fills at one-based positions; `IWorkTableCell.Fill` retains only the selected fill. Footer fills now take precedence over header-column fills at their intersection. `IWorkTable.FillStyles.BandedBody` exposes the active band fill. Unsupported or unresolved banding suppresses defaults and reports `IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED`. Unsupported selected fills can require the existing partial-reconstruction policy; inspect `IWORK_TABLE_CELL_FILL_UNSUPPORTED`.
 
@@ -5690,7 +5798,7 @@ Conflicting iWork merge rectangles are removed from the source projection while 
 work to 64 MiB by default during preview inspection and, separately, during
 each semantic projection. Failed image validation consumes work it already
 performed. Set this option higher for trusted Pages, Numbers, or Keynote files
-with unusually large raster images; `MaximumPackageBytes` still limits source
+with unusually large raster images; `MaxPackageBytes` still limits source
 package size independently.
 
 ### Excel image export encoded-byte ceiling
@@ -7767,7 +7875,7 @@ Tier 1 forward PDF adapters use `source.ToPdf(options, out OfficeConversionRepor
 
 `VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
 limit before opening the package. For trusted documents that intentionally
-exceed that size, pass `new VisioLoadOptions { MaxInputBytes = null }`. The
+exceed that size, pass `new VisioLoadOptions { Limits = { MaxInputBytes = null } }`. The
 options-first async overload keeps cancellation explicit:
 `LoadAsync(path, options, cancellationToken)`. The token-first overloads were
 removed. Replace `LoadAsync(path, cancellationToken)` with

@@ -64,11 +64,11 @@ public sealed class CslProcessorContractTests {
     public void ResourceLimitsCancellationAndInvalidReferencesFailBeforeReturningOutput() {
         Assert.Throws<System.Xml.XmlException>(() => CslStyle.Parse("<!DOCTYPE style [<!ENTITY external SYSTEM 'file:///missing'>]>" + Header + "<citation><layout><text value=\"&external;\"/></layout></citation></style>"));
         Assert.Throws<InvalidDataException>(() => CslStyle.Parse(Header + "<macro name=\"cycle\"><text macro=\"cycle\"/></macro><citation><layout><text macro=\"cycle\"/></layout></citation></style>"));
-        Assert.Throws<InvalidDataException>(() => CslStyle.Parse(Header, new CslStyleLoadOptions { MaximumCharacters = 10 }));
+        Assert.Throws<InvalidDataException>(() => CslStyle.Parse(Header, new CslStyleLoadOptions { MaxCharacters = 10 }));
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"one\",\"type\":\"book\",\"title\":\"Long title\"}]", BibliographyFormat.CslJson).Document;
         CslStyle style = CslStyle.Parse(Header + "<citation><layout><text variable=\"title\"/></layout></citation></style>");
         var citation = new CslCitation("one"); citation.Items.Add(new CslCitationItem("one"));
-        var processor = new CslProcessor(document, style, new CslRenderOptions { MaximumOutputCharacters = 5 });
+        var processor = new CslProcessor(document, style, new CslRenderOptions { MaxOutputCharacters = 5 });
         Assert.Throws<InvalidDataException>(() => processor.Render(new[] { citation }));
         Assert.Throws<OperationCanceledException>(() => processor.Render(new[] { citation }, cancellationToken: new CancellationToken(true)));
         citation.Items.Add(new CslCitationItem("missing"));
@@ -79,11 +79,11 @@ public sealed class CslProcessorContractTests {
     public void RepeatedNonrecursiveMacroExpansionIsBoundedEvenWhenItProducesNoText() {
         var macros = new System.Text.StringBuilder("<macro name=\"m0\"><text variable=\"title\"/></macro>");
         for (int index = 1; index < 25; index++) macros.Append("<macro name=\"m").Append(index).Append("\"><text macro=\"m").Append(index - 1).Append("\"/><text macro=\"m").Append(index - 1).Append("\"/></macro>");
-        CslStyle style = CslStyle.Parse(Header + macros + "<citation><layout><text macro=\"m24\"/></layout></citation></style>", new CslStyleLoadOptions { MaximumNestingDepth = 128 });
+        CslStyle style = CslStyle.Parse(Header + macros + "<citation><layout><text macro=\"m24\"/></layout></citation></style>", new CslStyleLoadOptions { MaxNestingDepth = 128 });
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"one\",\"type\":\"book\"}]", BibliographyFormat.CslJson).Document;
         var cite = new CslCitation("cluster"); cite.Items.Add(new CslCitationItem("one"));
-        var processor = new CslProcessor(document, style, new CslRenderOptions { MaximumRenderingOperations = 100 });
+        var processor = new CslProcessor(document, style, new CslRenderOptions { MaxRenderingOperations = 100 });
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => processor.Render(new[] { cite }));
-        Assert.Contains("MaximumRenderingOperations", error.Message);
+        Assert.Contains("MaxRenderingOperations", error.Message);
     }
 }

@@ -175,7 +175,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         string html = "<div style='position:absolute;left:900px;top:800px;width:700px;height:600px'>Short" +
             "<img src='" + image + "' style='width:500px;height:400px'></div>" +
             "<div style='position:absolute;width:120px;height:40px'>This metadata is much too long</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 8;
         limits.MaxAbsoluteGeometry = 50D;
 
@@ -207,7 +207,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     public void OmittedPositionedRegionDoesNotDisplaceFollowingInFlowRegion() {
         const string html = "<div style='position:absolute;left:0;top:0;width:300px;height:80px'>Metadata too long</div>" +
             "<div style='display:grid;width:300px;height:80px'>Grid</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -234,7 +234,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         const string gridOnly = "<div style='display:grid;width:300px;height:80px'>Grid</div>";
         const string html = gridOnly
             + "<div style='position:absolute;z-index:10;left:0;top:0;width:300px;height:80px'>Omitted</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
@@ -347,7 +347,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         string html = "<div style='position:absolute;width:120px;height:60px'>Budgeted region"
             + "<img src='" + image + "' style='width:12px;height:12px'><img src='" + image
             + "' style='width:12px;height:12px'></div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 3;
 

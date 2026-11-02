@@ -82,7 +82,7 @@ Parsed paragraphs retain the RTF stream's active line-spacing and tab-stop state
 The default OfficeIMO profile is bounded, does not materialize embedded objects or file-table references, and accepts only web and mail hyperlinks. Uploaded files can state that policy explicitly and provide a cancellation token:
 
 ```csharp
-RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
+RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
 using FileStream input = File.OpenRead("upload.rtf");
 
 RtfReadResult read = await RtfDocument.LoadResultAsync(

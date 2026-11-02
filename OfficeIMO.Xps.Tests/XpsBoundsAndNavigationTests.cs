@@ -30,7 +30,7 @@ public sealed class XpsBoundsAndNavigationTests {
         var reopened = XpsDocument.Load(loaded.Save());
         Assert.Equal(204, reopened.Pages.Count);
         Assert.Equal(2, reopened.Pages[102].GetMarkup().Elements().Count());
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { MaximumPages = 203 }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { Limits = { MaxPages = 203 } }));
     }
 
     [Fact]

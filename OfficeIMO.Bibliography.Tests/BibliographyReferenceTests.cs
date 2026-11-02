@@ -122,7 +122,7 @@ public sealed class BibliographyReferenceTests {
         BibliographyDocument source = Parse("@book{a, crossref={b}}\n@book{b, crossref={c}}\n@book{c, crossref={d}}\n" +
             "@book{d, crossref={root}}\n@book{root, publisher={Press}}");
         if (reverse) ReverseItems(source);
-        BibliographyReferenceResult result = source.ResolveReferences(new BibliographyReferenceOptions { MaximumDepth = 2 });
+        BibliographyReferenceResult result = source.ResolveReferences(new BibliographyReferenceOptions { MaxDepth = 2 });
 
         Assert.Equal("Press", result.Document.Items.Single(item => item.Key == "c").Publisher);
         Assert.Null(result.Document.Items.Single(item => item.Key == "b").Publisher);
@@ -161,14 +161,14 @@ public sealed class BibliographyReferenceTests {
     [Fact]
     public void ResolutionCanBeDisabledAndCancellationAndExpansionLimitsPreserveTheInput() {
         BibliographyDocument source = Parse("@book{child, crossref={missing}, xdata={missing}}", BibliographyFormat.BibLatex);
-        BibliographyReferenceResult disabled = source.ResolveReferences(new BibliographyReferenceOptions { ResolveCrossref = false, ResolveXData = false, MaximumDepth = 0 });
+        BibliographyReferenceResult disabled = source.ResolveReferences(new BibliographyReferenceOptions { ResolveCrossref = false, ResolveXData = false, MaxDepth = 0 });
         Assert.True(disabled.IsComplete);
         Assert.Empty(disabled.Provenance);
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => source.ResolveReferences(cancellationToken: cancellation.Token));
-        Assert.Throws<ArgumentOutOfRangeException>(() => source.ResolveReferences(new BibliographyReferenceOptions { MaximumDepth = -1 }));
-        Assert.Throws<InvalidOperationException>(() => source.ResolveReferences(new BibliographyReferenceOptions { MaximumReferences = 1 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => source.ResolveReferences(new BibliographyReferenceOptions { MaxDepth = -1 }));
+        Assert.Throws<InvalidOperationException>(() => source.ResolveReferences(new BibliographyReferenceOptions { MaxReferences = 1 }));
 
         var expanded = new BibliographyDocument(BibliographyFormat.BibLatex);
         expanded.Items.Add(new BibliographyItem { Key = "base", NativeType = "xdata", Publisher = new string('p', 100) });
@@ -177,10 +177,10 @@ public sealed class BibliographyReferenceTests {
             item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.BibLatex, "xdata", "base"));
             expanded.Items.Add(item);
         }
-        Assert.Throws<InvalidOperationException>(() => expanded.ResolveReferences(new BibliographyReferenceOptions { MaximumExpandedCharacters = 1_000 }));
+        Assert.Throws<InvalidOperationException>(() => expanded.ResolveReferences(new BibliographyReferenceOptions { MaxExpandedCharacters = 1_000 }));
         Assert.All(expanded.Items.Skip(1), item => Assert.Null(item.Publisher));
-        Assert.Throws<InvalidOperationException>(() => expanded.ResolveReferences(new BibliographyReferenceOptions { MaximumItems = 5 }));
-        Assert.Throws<InvalidOperationException>(() => expanded.ResolveReferences(new BibliographyReferenceOptions { MaximumValues = 5 }));
+        Assert.Throws<InvalidOperationException>(() => expanded.ResolveReferences(new BibliographyReferenceOptions { MaxItems = 5 }));
+        Assert.Throws<InvalidOperationException>(() => expanded.ResolveReferences(new BibliographyReferenceOptions { MaxValues = 5 }));
     }
 
     private static BibliographyDocument Parse(string text, BibliographyFormat format = BibliographyFormat.BibTex) => BibliographyDocument.Parse(text, format).Document;

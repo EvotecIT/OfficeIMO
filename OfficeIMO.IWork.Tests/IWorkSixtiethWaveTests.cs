@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumEntryCount = nested ? 2 : 1 }));
+                new IWorkReadOptions { MaxEntryCount = nested ? 2 : 1 }));
 
         Assert.Contains("before package entries are opened", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -149,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(malformed, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumEntryCount = 10 }));
+                new IWorkReadOptions { MaxEntryCount = 10 }));
 
         Assert.Contains("declares 2 entries but contains 1", exception.Message,
             StringComparison.OrdinalIgnoreCase);

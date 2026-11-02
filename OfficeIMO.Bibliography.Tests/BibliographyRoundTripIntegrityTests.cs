@@ -123,7 +123,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
 
     [Fact]
     public void RIS_type_tag_observes_the_value_length_limit() {
-        BibliographyReadResult read = BibliographyDocument.Parse("TY  - BOOK\nER  -\n", BibliographyFormat.Ris, new BibliographyReadOptions { MaximumValueLength = 3 });
+        BibliographyReadResult read = BibliographyDocument.Parse("TY  - BOOK\nER  -\n", BibliographyFormat.Ris, new BibliographyReadOptions { MaxValueLength = 3 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -134,7 +134,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
     [InlineData("[{\"id\":\"x\",\"type\":\"book\",\"author\":[{\"family\":\"Doe\",\"extension\":{\"a\":\"1234567890\",\"b\":\"1234567890\"}}]}]")]
     [InlineData("[{\"id\":\"x\",\"type\":\"book\",\"issued\":{\"literal\":\"2024\",\"extension\":{\"a\":\"1234567890\",\"b\":\"1234567890\"}}}]")]
     public void Aggregate_native_CSL_values_observe_the_value_length_limit(string source) {
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueLength = 30 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxValueLength = 30 });
 
         Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");

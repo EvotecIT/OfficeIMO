@@ -120,7 +120,7 @@ public sealed partial class IWorkBoundaryTests {
         var cells = Enumerable.Range(1, 5).Select(c => new IWorkTableCell(1, c, IWorkCellKind.Number, 12d)).ToArray();
         var own = new IWorkFormulaTableBinding(new IWorkTable("Inputs", 1, 5, cells), string.Empty, false);
         IWorkWireMessage formula = IntegerReferenceFormula(58, IntegerRectangle(4));
-        var options = new IWorkReadOptions { MaximumFormulaRenderingOperations = 5 };
+        var options = new IWorkReadOptions { MaxFormulaRenderingOperations = 5 };
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 4, 1000, owningTable: own,
             budget: new IWorkProjectionBudget(options)).IsComplete);
         var budget = new IWorkProjectionBudget(options);

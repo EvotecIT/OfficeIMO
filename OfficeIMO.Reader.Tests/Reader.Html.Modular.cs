@@ -284,7 +284,7 @@ public sealed class ReaderHtmlModularTests {
     public void PreparedNoscriptImageRespectsDocumentResourceHostPolicy(string host, bool allowed) {
         var projection = MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
         projection.ExcludeSelectors.Add(".remove");
-        var conversion = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var conversion = HtmlConversionDocumentOptions.UntrustedDefaults;
         HtmlUrlPolicy resourcePolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
         resourcePolicy.ResolvedUrlTransform = url => new Uri(url).Host == "allowed.example" ? url : null;
         conversion.ResourceUrlPolicy = resourcePolicy;

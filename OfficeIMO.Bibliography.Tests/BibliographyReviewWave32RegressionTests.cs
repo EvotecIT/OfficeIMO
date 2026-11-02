@@ -118,7 +118,7 @@ public sealed class BibliographyReviewWave32RegressionTests {
     [InlineData("record")]
     public void EndNote_structural_mixed_text_counts_as_a_materialized_value(string elementName) {
         const string clean = "<records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Before</title></titles></record></records>";
-        var options = new BibliographyReadOptions { MaximumValueCount = 4 };
+        var options = new BibliographyReadOptions { MaxValueCount = 4 };
 
         BibliographyReadResult baseline = BibliographyDocument.Parse(clean, BibliographyFormat.EndNoteXml, options);
         BibliographyReadResult mixed = BibliographyDocument.Parse(CreateMixedTextSource(elementName, "orphan"), BibliographyFormat.EndNoteXml, options);

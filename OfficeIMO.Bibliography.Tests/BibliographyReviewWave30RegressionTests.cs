@@ -121,7 +121,7 @@ public sealed class BibliographyReviewWave30RegressionTests {
     public void EndNote_record_projection_observes_cancellation_after_materialization() {
         var record = new XElement("record", new XElement("rec-number", "1"), new XElement("ref-type", new XAttribute("name", "Book"), "6"));
         for (int index = 0; index < 200_000; index++) record.Add(new XElement("custom", index.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-        var options = new BibliographyReadOptions { MaximumValueCount = 500_000 };
+        var options = new BibliographyReadOptions { MaxValueCount = 500_000 };
         var items = new List<BibliographyItem>();
         var diagnostics = new List<BibliographyDiagnostic>();
         var guard = new BibliographyDiagnosticGuard(options, diagnostics, items);

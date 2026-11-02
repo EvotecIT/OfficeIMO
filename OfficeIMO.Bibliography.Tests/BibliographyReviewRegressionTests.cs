@@ -144,11 +144,11 @@ public sealed class BibliographyReviewRegressionTests {
         string nested = "true";
         for (int index = 0; index < 80; index++) nested = "{\"level\":" + nested + "}";
         string source = "[{\"id\":\"deep\",\"type\":\"book\",\"x-deep\":" + nested + "}]";
-        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumNestingDepth = 128 }).Document;
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxNestingDepth = 128 }).Document;
         document.Items[0].Title = "Edited";
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyNativeField field = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumNestingDepth = 128 }).Document.Items[0].NativeFields);
+        BibliographyNativeField field = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxNestingDepth = 128 }).Document.Items[0].NativeFields);
 
         Assert.StartsWith("{", field.RawValue, StringComparison.Ordinal);
         Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126");
@@ -274,9 +274,9 @@ public sealed class BibliographyReviewRegressionTests {
     [InlineData("<xml><records><record><title>abcdef</title>", 0, 0, 5)]
     public void EndNote_limits_are_enforced_before_the_XML_DOM_is_materialized(string source, int itemLimit, int valueLimit, int lengthLimit) {
         var options = new BibliographyReadOptions();
-        if (itemLimit != 0) options.MaximumItemCount = itemLimit;
-        if (valueLimit != 0) options.MaximumValueCount = valueLimit;
-        if (lengthLimit != 0) options.MaximumValueLength = lengthLimit;
+        if (itemLimit != 0) options.MaxItemCount = itemLimit;
+        if (valueLimit != 0) options.MaxValueCount = valueLimit;
+        if (lengthLimit != 0) options.MaxValueLength = lengthLimit;
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options);
 
@@ -287,7 +287,7 @@ public sealed class BibliographyReviewRegressionTests {
     [Fact]
     public void EndNote_item_limits_ignore_records_nested_in_root_extensions() {
         const string source = "<xml><extension><records><record/><record/></records></extension><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>";
-        var options = new BibliographyReadOptions { MaximumItemCount = 1 };
+        var options = new BibliographyReadOptions { MaxItemCount = 1 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options);
 
@@ -337,9 +337,9 @@ public sealed class BibliographyReviewRegressionTests {
     [InlineData("[{\"id\":\"x\",\"custom\":{\"a\":1,\"b\":2}", 0, 0, 10)]
     public void CSL_limits_are_enforced_before_the_JSON_DOM_is_materialized(string source, int itemLimit, int valueLimit, int lengthLimit) {
         var options = new BibliographyReadOptions();
-        if (itemLimit != 0) options.MaximumItemCount = itemLimit;
-        if (valueLimit != 0) options.MaximumValueCount = valueLimit;
-        if (lengthLimit != 0) options.MaximumValueLength = lengthLimit;
+        if (itemLimit != 0) options.MaxItemCount = itemLimit;
+        if (valueLimit != 0) options.MaxValueCount = valueLimit;
+        if (lengthLimit != 0) options.MaxValueLength = lengthLimit;
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 
@@ -352,7 +352,7 @@ public sealed class BibliographyReviewRegressionTests {
     [Fact]
     public void CSL_decoded_value_lengths_do_not_count_escape_syntax() {
         const string source = "[{\"title\":\"\\u0061\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 5 };
+        var options = new BibliographyReadOptions { MaxValueLength = 5 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 
@@ -363,7 +363,7 @@ public sealed class BibliographyReviewRegressionTests {
     [Fact]
     public void CSL_root_array_items_are_not_double_counted_as_values() {
         const string source = "[{},{}]";
-        var options = new BibliographyReadOptions { MaximumItemCount = 2, MaximumValueCount = 1 };
+        var options = new BibliographyReadOptions { MaxItemCount = 2, MaxValueCount = 1 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
 
@@ -502,8 +502,8 @@ public sealed class BibliographyReviewRegressionTests {
     public void CSL_aggregate_value_lengths_use_UTF16_coordinates() {
         const string source = "[{\"id\":\"x\",\"custom\":{\"text\":\"😀\"}}]";
 
-        BibliographyReadResult accepted = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueLength = 13 });
-        BibliographyReadResult rejected = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaximumValueLength = 12 });
+        BibliographyReadResult accepted = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxValueLength = 13 });
+        BibliographyReadResult rejected = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions { MaxValueLength = 12 });
 
         Assert.False(accepted.HasErrors);
         Assert.Contains(rejected.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -528,7 +528,7 @@ public sealed class BibliographyReviewRegressionTests {
     [Fact]
     public void Bib_raw_directives_observe_cancellation_during_scan() {
         string source = "@comment{" + new string('x', 8 * 1024 * 1024);
-        var options = new BibliographyReadOptions { MaximumValueLength = 16 * 1024 * 1024 };
+        var options = new BibliographyReadOptions { MaxValueLength = 16 * 1024 * 1024 };
         BibliographyCancellationTest.AssertObserved(token =>
             BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options, token), delayMilliseconds: 10);
     }

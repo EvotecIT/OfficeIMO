@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumFormulaNodes = 1 });
+            new IWorkReadOptions { MaxFormulaNodes = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(
             () => source.ReadNumbers());
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
             imageBytes: ValidPreviewPng(), metadataEntryCount: 2);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumImageMetadataEntries = 1 });
+            new IWorkReadOptions { MaxImageMetadataEntries = 1 });
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
         var budget = new IWorkProjectionBudget(source.Options);
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumProjectedSheets = 1 }));
+                new IWorkReadOptions { MaxProjectedSheets = 1 }));
         Assert.Contains("sheet count", exception.Message,
             StringComparison.OrdinalIgnoreCase);
     }

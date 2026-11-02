@@ -119,7 +119,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;
-        _limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
+        _limits = (limits ?? HtmlConversionLimits.UntrustedDefaults).Clone();
         _initialLogicalTextOrder = Math.Max(0, logicalTextOrderStart);
         _initialSemanticNodeId = Math.Max(0, semanticNodeIdStart);
         _nextLogicalTextOrder = _initialLogicalTextOrder;

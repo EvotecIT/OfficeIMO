@@ -45,7 +45,7 @@ editor.SaveLossless("updated-lossless.rtf");
 ## Process uploaded RTF safely
 
 ```csharp
-RtfReadOptions options = RtfReadOptions.CreateUntrustedProfile();
+RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
 using FileStream input = File.OpenRead("upload.rtf");
 
 RtfReadResult read = await RtfDocument.LoadResultAsync(

@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Metadata_only_pages_text_boxes_respect_the_text_item_budget() {
         using MemoryStream package = CreatePagesPackageWithMetadataOnlyTextBoxes();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 3 });
+            new IWorkReadOptions { MaxProjectedTextItems = 3 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Metadata_only_keynote_text_boxes_respect_the_text_item_budget() {
         using MemoryStream package = CreateKeynotePackageWithMetadataOnlyTextBoxes();
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumProjectedTextItems = 1 });
+            new IWorkReadOptions { MaxProjectedTextItems = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 

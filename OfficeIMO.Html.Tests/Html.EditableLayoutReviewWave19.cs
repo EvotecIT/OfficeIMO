@@ -58,7 +58,7 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style=\"position:absolute;width:180px;height:50px;background-color:#123456;"
             + "background-image:url('" + image + "');background-repeat:no-repeat;background-size:24px 18px\">Layered</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)

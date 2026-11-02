@@ -104,7 +104,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         const string html = "<h1>Title</h1>"
             + "<div style='display:grid;width:40px;height:60px'>Rejected flow</div>"
             + "<div style='position:absolute;left:20px;top:20px;width:20px;height:20px'>Retried positioned</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 2;
         limits.MaxAbsoluteGeometry = 50D;
 

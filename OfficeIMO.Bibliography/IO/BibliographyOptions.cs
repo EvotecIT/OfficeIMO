@@ -3,28 +3,28 @@ namespace OfficeIMO.Bibliography;
 /// <summary>Bounded bibliography parsing options.</summary>
 public sealed class BibliographyReadOptions {
     /// <summary>Maximum encoded input bytes. Defaults to 64 MiB.</summary>
-    public long MaximumInputBytes { get; set; } = 64L * 1024 * 1024;
+    public long MaxInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum decoded UTF-16 characters. Defaults to 64 MiB.</summary>
-    public int MaximumInputCharacters { get; set; } = 64 * 1024 * 1024;
+    public int MaxInputCharacters { get; set; } = 64 * 1024 * 1024;
     /// <summary>Maximum records. Defaults to 250,000.</summary>
-    public int MaximumItemCount { get; set; } = 250_000;
+    public int MaxItemCount { get; set; } = 250_000;
     /// <summary>Maximum fields, contributors, identifiers, dates, keywords, and notes across all records.</summary>
-    public int MaximumValueCount { get; set; } = 2_000_000;
+    public int MaxValueCount { get; set; } = 2_000_000;
     /// <summary>Maximum decoded length of one value. Defaults to 4 MiB.</summary>
-    public int MaximumValueLength { get; set; } = 4 * 1024 * 1024;
+    public int MaxValueLength { get; set; } = 4 * 1024 * 1024;
     /// <summary>Maximum parser diagnostics before parsing stops. Defaults to 10,000.</summary>
-    public int MaximumDiagnosticCount { get; set; } = 10_000;
+    public int MaxDiagnosticCount { get; set; } = 10_000;
     /// <summary>Maximum nested BibTeX braces or JSON/XML depth. Defaults to 128.</summary>
-    public int MaximumNestingDepth { get; set; } = 128;
+    public int MaxNestingDepth { get; set; } = 128;
 
     internal void Validate() {
-        if (MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputBytes));
-        if (MaximumInputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumInputCharacters));
-        if (MaximumItemCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumItemCount));
-        if (MaximumValueCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumValueCount));
-        if (MaximumValueLength <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumValueLength));
-        if (MaximumDiagnosticCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumDiagnosticCount));
-        if (MaximumNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumNestingDepth));
+        if (MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
+        if (MaxInputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters));
+        if (MaxItemCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxItemCount));
+        if (MaxValueCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxValueCount));
+        if (MaxValueLength <= 0) throw new ArgumentOutOfRangeException(nameof(MaxValueLength));
+        if (MaxDiagnosticCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticCount));
+        if (MaxNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNestingDepth));
     }
 }
 

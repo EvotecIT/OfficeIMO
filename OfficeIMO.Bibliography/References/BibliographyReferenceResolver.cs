@@ -14,7 +14,7 @@ internal sealed partial class BibliographyReferenceResolver {
         _options = options; _cancellationToken = cancellationToken;
         _copy = new BibliographyModelCopy(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        if (source.Items.Count > options.MaximumItems) throw new InvalidOperationException("Bibliography reference resolution exceeds its item limit.");
+        if (source.Items.Count > options.MaxItems) throw new InvalidOperationException("Bibliography reference resolution exceeds its item limit.");
         _references = new List<Reference>[source.Items.Count];
         _provenance = new Dictionary<string, BibliographyFieldProvenance>[source.Items.Count];
         for (int index = 0; index < source.Items.Count; index++) {
@@ -91,7 +91,7 @@ internal sealed partial class BibliographyReferenceResolver {
         for (int position = 0; position <= value.Length; position++) {
             if ((position & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
             if (position < value.Length && (!multiple || value[position] != ',')) continue;
-            if (_referenceCount >= _options.MaximumReferences) throw new InvalidOperationException("Bibliography reference resolution exceeds its reference limit.");
+            if (_referenceCount >= _options.MaxReferences) throw new InvalidOperationException("Bibliography reference resolution exceeds its reference limit.");
             _referenceCount++;
             string key = value.Substring(start, position - start).Trim();
             start = position + 1;
@@ -141,9 +141,9 @@ internal sealed partial class BibliographyReferenceResolver {
                     Diagnose("BIBREF008", BibliographyDiagnosticSeverity.Error, "Parent '" + _items[reference.Parent].Key + "' could not be resolved within the configured limits.", index, reference.Relation);
                 }
             }
-            if (!failed[index] && depth[index] > _options.MaximumDepth) {
+            if (!failed[index] && depth[index] > _options.MaxDepth) {
                 failed[index] = true;
-                Diagnose("BIBREF005", BibliographyDiagnosticSeverity.Error, "Reference chain exceeds MaximumDepth; this record retains its original values.", index);
+                Diagnose("BIBREF005", BibliographyDiagnosticSeverity.Error, "Reference chain exceeds MaxDepth; this record retains its original values.", index);
             }
             if (!failed[index]) foreach (Reference reference in _references[index]) Merge(reference);
             complete[index] = true;
@@ -161,7 +161,7 @@ internal sealed partial class BibliographyReferenceResolver {
 
     private void Diagnose(string code, BibliographyDiagnosticSeverity severity, string message, int itemIndex, string? field = null) {
         _cancellationToken.ThrowIfCancellationRequested();
-        if (_diagnostics.Count >= _options.MaximumDiagnostics) throw new InvalidOperationException("Bibliography reference resolution exceeds its diagnostic limit.");
+        if (_diagnostics.Count >= _options.MaxDiagnostics) throw new InvalidOperationException("Bibliography reference resolution exceeds its diagnostic limit.");
         _diagnostics.Add(new BibliographyDiagnostic(code, severity, message, itemKey: _items[itemIndex].Key, field: field));
     }
 

@@ -38,7 +38,7 @@ namespace OfficeIMO.ChartForgeX.Tests {
         public void ValidEllipseRetainsItsFourCubicsAndExactCommandBudget() {
             OfficeDrawing drawing = Preset(OfficeShapeKind.Ellipse);
             Assert.True(OfficeDrawingPortableExporter.TryExportJson(drawing,
-                new OfficeDrawingPortableOptions(Family) { MaximumCommands = 6 }, out string? json, out IReadOnlyList<OfficeConversionFidelityDiagnostic> diagnostics));
+                new OfficeDrawingPortableOptions(Family) { MaximumCommands = 6 }, out string? json, out IReadOnlyList<OfficeDiagnostic> diagnostics));
             Assert.Empty(diagnostics);
             using JsonDocument document = JsonDocument.Parse(json!);
             JsonElement path = document.RootElement.GetProperty("elements")[0];

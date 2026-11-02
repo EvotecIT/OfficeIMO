@@ -8,7 +8,7 @@ namespace OfficeIMO.Html.Tests;
 public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     [Fact]
     public void OversizedTableFallbackHonorsSourceFieldLimit() {
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<table><tr><td>ForbiddenMarker " + new string('x', 2000) + "</td></tr></table>")
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false, Limits = limits });
@@ -211,7 +211,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         string html = "<article><h1>Field notes</h1>"
             + string.Concat(Enumerable.Range(1, 18).Select(index => "<p>Entry " + index + "</p>"))
             + "</article>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxSemanticContainers = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(

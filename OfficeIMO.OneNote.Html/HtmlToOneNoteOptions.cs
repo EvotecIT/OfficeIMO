@@ -4,12 +4,12 @@ namespace OfficeIMO.OneNote.Html;
 
 /// <summary>Controls ordinary HTML import into typed offline OneNote models.</summary>
 public sealed class HtmlToOneNoteOptions {
-    private HtmlImportLimits _limits = HtmlImportLimits.CreateDefault();
+    private HtmlImportLimits _limits = new HtmlImportLimits();
 
     /// <summary>Shared native-artifact limits for this import operation.</summary>
     public HtmlImportLimits Limits {
         get => _limits;
-        set => _limits = value ?? HtmlImportLimits.CreateDefault();
+        set => _limits = value ?? new HtmlImportLimits();
     }
 
     /// <summary>Name assigned to the generated section.</summary>

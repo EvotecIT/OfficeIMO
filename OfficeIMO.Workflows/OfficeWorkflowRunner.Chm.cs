@@ -21,7 +21,7 @@ public sealed partial class OfficeWorkflowRunner {
                 bytes = result.RequireValue(); report = result.Report; break;
             }
             default: {
-                var result = source.ToMarkdownResult(conversion, cancellationToken: token); bytes = EncodeUtf8Bounded(result.RequireValue(), conversion.MaxOutputBytes); report = result.Report; break;
+                var result = source.ToMarkdownResult(conversion, cancellationToken: token); bytes = EncodeUtf8Bounded(result.Value, conversion.MaxOutputBytes); report = result.Report; break;
             }
         }
         var evidence = new OfficeWorkflowConversionEvidence(report, new Dictionary<string, string> {

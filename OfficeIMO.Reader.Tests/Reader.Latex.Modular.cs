@@ -337,7 +337,7 @@ public sealed class ReaderLatexModularTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source));
         stream.Position = 5;
         Assert.Throws<IOException>(() => LatexReaderAdapter.Read(stream, readerOptions: new ReaderOptions { MaxInputBytes = readerLimit },
-            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaximumInputBytes = nativeLimit } }).ToArray());
+            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaxInputBytes = nativeLimit } }).ToArray());
         Assert.Equal(5, stream.Position);
         Assert.True(stream.CanRead);
     }
@@ -378,7 +378,7 @@ public sealed class ReaderLatexModularTests {
     public void NativeParserLimitExceptionsRetainTheirType() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source));
         Assert.Throws<InvalidDataException>(() => LatexReaderAdapter.Read(stream,
-            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaximumInputLength = 8 } }).ToArray());
+            latexOptions: new ReaderLatexOptions { ParseOptions = new LatexParseOptions { MaxInputLength = 8 } }).ToArray());
         Assert.Equal(0, stream.Position);
     }
 
@@ -595,18 +595,18 @@ public sealed class ReaderLatexModularTests {
     [Fact]
     public void RegistrationSnapshotsEveryNativeLimitAndCustomOpaqueEnvironment() {
         var parse = new LatexParseOptions {
-            MaximumInputBytes = 8, MaximumExpansionInputLength = 123, MaximumExpansionTokenCount = 7
+            MaxInputBytes = 8, MaxExpansionInputLength = 123, MaxExpansionTokenCount = 7
         };
         parse.VerbatimEnvironmentNames.Add("opaque");
         ReaderLatexOptions clone = ReaderLatexOptionsCloner.Clone(new ReaderLatexOptions { ParseOptions = parse });
-        Assert.Equal(8, clone.ParseOptions.MaximumInputBytes);
-        Assert.Equal(123, clone.ParseOptions.MaximumExpansionInputLength);
-        Assert.Equal(7, clone.ParseOptions.MaximumExpansionTokenCount);
+        Assert.Equal(8, clone.ParseOptions.MaxInputBytes);
+        Assert.Equal(123, clone.ParseOptions.MaxExpansionInputLength);
+        Assert.Equal(7, clone.ParseOptions.MaxExpansionTokenCount);
         parse.VerbatimEnvironmentNames.Clear();
         Assert.Contains("opaque", clone.ParseOptions.VerbatimEnvironmentNames);
         using var limited = new MemoryStream(Encoding.UTF8.GetBytes(Source));
         Assert.Throws<IOException>(() => LatexReaderAdapter.Read(limited, latexOptions: clone).ToArray());
-        clone.ParseOptions.MaximumInputBytes = null;
+        clone.ParseOptions.MaxInputBytes = null;
         const string opaque = "\\documentclass{article}\\begin{document}\\begin{opaque}\\section{FAKE}\\end{opaque}\\end{document}";
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(opaque));
         ReaderChunk[] chunks = LatexReaderAdapter.Read(input, latexOptions: clone).ToArray();

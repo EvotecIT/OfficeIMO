@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Text", 1, 1, 0d, textValue: "12345")
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 4 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 

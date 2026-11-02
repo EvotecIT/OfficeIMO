@@ -498,7 +498,7 @@ internal sealed partial class PstStoreWriterCore {
 
         internal EmailStorePstWriterOptions CreateOptions(string checkpointPath,
             IProgress<EmailStorePstWriteProgress>? progress) => new EmailStorePstWriterOptions(
-                DisplayName, OverwriteExisting, FailOnDataLoss, MaxFolderCount,
+                DisplayName, OverwriteExisting, FailOnLoss, MaxFolderCount,
                 MaxItemCount, MaxNestedMessageDepth, checkpointPath,
                 CheckpointIntervalItems, MaxIndexRecordsInMemory,
                 RetainCheckpointOnDispose, MaxDiagnostics, progress);

@@ -152,9 +152,9 @@ public sealed partial class LatexDocument {
         if (_options.MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {
             throw new InvalidOperationException("Safe simple macro expansion was not enabled in LatexParseOptions.");
         }
-        return LatexSimpleMacroExpander.Expand(value, GetCurrentView().MacroDefinitions, _options.MaximumExpansionDepth,
-            _options.MaximumExpansionLength, _options.MaximumExpansionInputLength,
-            _options.MaximumExpansionTokenCount, _options.VerbatimEnvironmentNames);
+        return LatexSimpleMacroExpander.Expand(value, GetCurrentView().MacroDefinitions, _options.MaxExpansionDepth,
+            _options.MaxExpansionLength, _options.MaxExpansionInputLength,
+            _options.MaxExpansionTokenCount, _options.VerbatimEnvironmentNames);
     }
 
     internal IEnumerable<ILatexSourceEdit> GetSourceEdits() {

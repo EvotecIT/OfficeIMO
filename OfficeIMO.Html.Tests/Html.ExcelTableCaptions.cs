@@ -21,7 +21,7 @@ public sealed class HtmlExcelTableCaptionTests {
 
     [Fact]
     public void ExcelCaptionLinkHonorsNativeMetadataLimit() {
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 64;
         string html = "<table><caption><a href='https://example.test/" + new string('x', 100) + "'>Units</a></caption><tr><td>m</td></tr></table>";
         var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });

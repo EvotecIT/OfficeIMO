@@ -177,7 +177,7 @@ public sealed partial class IWorkWorkflowTests {
         OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner(reading, policy);
         policy.RequireCompleteVisualCoverage = false;
         policy.Mode = IWorkConversionMode.EditableOnly;
-        reading.MaximumPackageBytes = 1;
+        reading.MaxPackageBytes = 1;
         var request = files.Request("pages-docx");
         request.RegisteredConversionSettings = null; // Exercise the runner's captured policy.
         OfficeWorkflowResult result = await runner.RunAsync(request);
@@ -404,7 +404,7 @@ public sealed partial class IWorkWorkflowTests {
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         settings.ConversionOptions.Mode = IWorkConversionMode.EditableOnly;
         settings.ConversionOptions.RequireCompleteVisualCoverage = true;
-        settings.ReadOptions.MaximumPackageBytes = 1;
+        settings.ReadOptions.MaxPackageBytes = 1;
         proceed.SetResult();
         OfficeWorkflowResult result = await run;
         Assert.True(result.Succeeded, result.Summary);

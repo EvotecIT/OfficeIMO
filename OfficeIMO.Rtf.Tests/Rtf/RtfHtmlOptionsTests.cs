@@ -9,7 +9,7 @@ public class RtfHtmlOptionsTests {
     [Fact]
     public void HtmlToRtfOptions_Profiles_Expose_Bounded_Untrusted_Profile() {
         HtmlToRtfOptions defaultProfile = HtmlToRtfOptions.CreateOfficeIMOProfile();
-        HtmlToRtfOptions untrustedProfile = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        HtmlToRtfOptions untrustedProfile = HtmlToRtfOptions.UntrustedDefaults;
 
         Assert.Null(defaultProfile.MaxHtmlNodes);
         Assert.Null(defaultProfile.MaxHtmlDepth);

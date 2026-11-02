@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(kind,
             Message(BytesField(16, new byte[] { 0xff }), StringField(16, "9.")), aliases: true);
         IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }), kind).Item1;
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }), kind).Item1;
         Assert.Equal(2, table.Cells.Count);
         foreach (IWorkTableCell cell in table.Cells) {
             IWorkTextParagraph paragraph = Assert.Single(cell.RichText!.Paragraphs);
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: true,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false,
-                MaximumSourceDeclarationIssues = 1 });
+                MaxSourceDeclarationIssues = 1 });
         AssertListDeclaration(Assert.Single(report.SourceDeclarationIssues), "16", 2);
         Assert.Empty(report.PreservedRecords);
         Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
@@ -137,8 +137,8 @@ public sealed partial class IWorkBoundaryTests {
             _ => Message(BytesField(16, new byte[] { 0xff }), StringField(16, new string('X', 100)))
         };
         var options = limit switch {
-            "declaration" => new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 },
-            _ => new IWorkReadOptions { MaximumProjectedTextCharacters = 10 }
+            "declaration" => new IWorkReadOptions { MaxSourceDeclarationIssues = 1 },
+            _ => new IWorkReadOptions { MaxProjectedTextCharacters = 10 }
         };
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers, fields);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, options);

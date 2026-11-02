@@ -119,7 +119,7 @@ public class HtmlOneNoteRoleTables {
     public void OneNoteHtml_OversizedTableLeavesBudgetForFollowingValidTable() {
         const string html = "<table><tr><td>Too</td><td>many</td></tr><tr><td>cells</td><td>here</td></tr></table>"
             + "<table><tr><td>Retained</td></tr></table>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxTableCells = 3;
 
@@ -173,7 +173,7 @@ public class HtmlOneNoteRoleTables {
 
     [Fact]
     public void OneNoteHtml_LinkedCaptionKeepsTextWhenLinkExceedsMetadataLimit() {
-        var limits = HtmlImportLimits.CreateDefault(); limits.MaxMetadataCharacters = 256;
+        var limits = new HtmlImportLimits(); limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<table><caption><a href='https://example.org/" + new string('x', 300)
             + "'>Retained caption</a></caption><tr><td>Cell</td></tr></table>")
             .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
@@ -189,7 +189,7 @@ public class HtmlOneNoteRoleTables {
     public void OneNoteHtml_ImageLinkSurvivesNativeReopenWithinMetadataLimit(bool oversized) {
         const string png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1sAAAAASUVORK5CYII=";
         string link = "https://example.org/" + (oversized ? new string('x', 300) : "source");
-        var limits = HtmlImportLimits.CreateDefault(); limits.MaxMetadataCharacters = 256;
+        var limits = new HtmlImportLimits(); limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<a href='" + link + "'><img src='data:image/png;base64," + png + "' alt='Photo'></a>")
             .ToOneNoteSectionResult(new HtmlToOneNoteOptions { Limits = limits });
         var reopened = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));

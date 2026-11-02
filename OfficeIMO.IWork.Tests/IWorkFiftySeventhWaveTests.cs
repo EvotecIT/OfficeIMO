@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
             imageBytes: ValidPreviewPng(), metadataOuterFieldCount: 2);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedImages = 1 });
+            new IWorkReadOptions { MaxProjectedImages = 1 });
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
         var budget = new IWorkProjectionBudget(source.Options);

@@ -18,8 +18,8 @@ public sealed partial class HtmlToRtfOptions {
     /// structural limits while preserving the same shared OfficeIMO HTML conversion path.
     /// Callers can relax individual limits when their ingestion boundary is more trusted.
     /// </remarks>
-    /// <returns>A new <see cref="HtmlToRtfOptions"/> instance configured for untrusted HTML.</returns>
-    public static HtmlToRtfOptions CreateUntrustedHtmlProfile() => new HtmlToRtfOptions {
+    /// <value>A new <see cref="HtmlToRtfOptions"/> instance configured for untrusted HTML.</value>
+    public static HtmlToRtfOptions UntrustedDefaults => new HtmlToRtfOptions {
         MaxHtmlNodes = 10000,
         MaxHtmlDepth = 64,
         IgnoreInsignificantWhitespace = true,

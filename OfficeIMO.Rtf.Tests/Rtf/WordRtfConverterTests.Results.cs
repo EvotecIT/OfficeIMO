@@ -68,7 +68,7 @@ public partial class WordRtfConverterTests {
         const string rtf = @"{\rtf1{\object\objemb{\*\objdata 0102}}Visible}";
 
         RtfConversionResult<WordDocument> result = RtfDocument
-            .Read(rtf, RtfReadOptions.CreateUntrustedProfile())
+            .Read(rtf, RtfReadOptions.UntrustedDefaults)
             .ToWordDocumentResult("string");
         using (result.Value) {
             RtfConversionDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics, item => item.Code == "RTF105");
@@ -79,8 +79,8 @@ public partial class WordRtfConverterTests {
 
     [Fact]
     public void Word_Rtf_Read_Result_Uses_Bounded_Core_Profile() {
-        var options = RtfReadOptions.CreateUntrustedProfile();
-        options.MaxInputCharacters = 4;
+        var options = RtfReadOptions.UntrustedDefaults;
+        options.Limits.MaxInputCharacters = 4;
 
         Assert.Throws<RtfReadLimitException>(() =>
             RtfDocument.Read(@"{\rtf1 Too large}", options).ToWordDocumentResult("string"));

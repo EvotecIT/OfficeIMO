@@ -53,7 +53,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
 #endif
         string name = new string('A', length);
         string source = "@book{x,author={" + name + "}}";
-        var options = new BibliographyReadOptions { MaximumValueLength = name.Length + 1 };
+        var options = new BibliographyReadOptions { MaxValueLength = name.Length + 1 };
         BibliographyDocument.Parse("@book{x,author={Doe}}", BibliographyFormat.BibLatex);
 #if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options);

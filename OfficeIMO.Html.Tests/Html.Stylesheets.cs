@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
                 });
             }));
             string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/untrusted.css\" /><p>Remote CSS</p>";
-            var options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+            var options = WordHtmlImportOptions.UntrustedDefaults;
             options.HttpClient = httpClient;
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);

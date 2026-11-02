@@ -258,7 +258,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlRenderAsync_EnforcesSharedCssByteLimitsAcrossResolvedStylesheets() {
         const string firstCss = ".first { color:red; }";
         const string secondCss = ".second { color:blue; }";
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 24;
         limits.MaxTotalCssBytes = 30;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -288,7 +288,7 @@ public sealed partial class HtmlRenderingTests {
         byte[] encodedCss = System.Text.Encoding.Unicode.GetPreamble()
             .Concat(System.Text.Encoding.Unicode.GetBytes(css))
             .ToArray();
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = System.Text.Encoding.UTF8.GetByteCount(css);
         limits.MaxTotalCssBytes = 128;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -312,7 +312,7 @@ public sealed partial class HtmlRenderingTests {
     public async Task HtmlRenderAsync_RejectsOversizedStylesheetBeforeQueuingImports() {
         const string oversizedCss = "@import 'must-not-load.css'; .oversized { color: red; padding: 20px; }";
         var requested = new List<string>();
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 32;
         limits.MaxTotalCssBytes = 128;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -339,7 +339,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public async Task HtmlRenderAsync_EnforcesPerSheetCssByteLimitOnResolvedImports() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 24;
         limits.MaxTotalCssBytes = 64;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(

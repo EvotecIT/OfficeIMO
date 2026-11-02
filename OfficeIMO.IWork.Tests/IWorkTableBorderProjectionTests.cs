@@ -209,7 +209,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DimensionPackage(IWorkDocumentKind.Numbers, modelDeclarations: ReferenceField(86, 70),
             styleRecords: new[] { ArchiveRecord(70, 6372, ReferenceField(1, 71)), ArchiveRecord(71, 6373, VarintField(6, 0)) });
         var error = Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 1 }).ReadNumbers());
+            new IWorkReadOptions { MaxTableDimensionEntries = 1 }).ReadNumbers());
         Assert.Contains("dimension entries", error.Message);
     }
 

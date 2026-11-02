@@ -39,7 +39,7 @@ internal sealed class IWorkTableCellStyleCatalog(IWorkSourceDocument source, IWo
         var layoutReader = new IWorkCellLayoutReader(references);
         if (complete) {
             var chain = IWorkStyleReader.ReadChain(source.Index, style!.Identifier,
-                budget.MaximumTextStyleInheritanceDepth, type => type == 6004,
+                budget.MaxTextStyleInheritanceDepth, type => type == 6004,
                 tolerateStyleDepth: true, references, ref complete);
             for (int i = chain.Count - 1; i >= 0; i--) {
                 source.CancellationToken.ThrowIfCancellationRequested();

@@ -79,7 +79,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static WordHtmlImportOptions CreateImportOptions(WordHtmlImportOptions? options) {
-            WordHtmlImportOptions importOptions = options?.Clone() ?? WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+            WordHtmlImportOptions importOptions = options?.Clone() ?? WordHtmlImportOptions.UntrustedDefaults;
             importOptions.EnableAccessibilityDiagnostics = true;
             return importOptions;
         }

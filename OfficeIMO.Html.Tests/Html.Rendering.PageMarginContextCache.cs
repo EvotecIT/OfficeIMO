@@ -13,7 +13,7 @@ public sealed partial class HtmlRenderingTests {
             "@page name" + index + "{@bottom-center{content:'x';font-family:Family" + index + "}}"));
         using var document = new HtmlParser().ParseDocument("<style>" + css + "</style><p>Body</p>");
         var options = PageMarginTypographyOptions();
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, limits);
         HtmlComputedStyle root = styles.Elements[document.DocumentElement!];
         HtmlCssPageRuleSet rules = HtmlCssPageSettingsResolver.Apply(document, options, new HtmlDiagnosticReport(), limits);
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginContextCache_RootAndComputedStyleScopesKeepTheirValuesAndBudgets() {
         using var document = new HtmlParser().ParseDocument(PageMarginContextCacheSource(string.Empty, "'A'") + "<p>Body</p>");
         var options = PageMarginTypographyOptions();
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssDeclarations = 300;
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, options, limits);
         HtmlComputedStyle root = styles.Elements[document.DocumentElement!];
@@ -120,7 +120,7 @@ public sealed partial class HtmlRenderingTests {
         using var document = new HtmlParser().ParseDocument("<style>html{font:12px/1 Pinned}</style><p>Body</p>");
         var options = PageMarginTypographyOptions();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, options,
-            HtmlConversionLimits.CreateTrustedProfile());
+            new HtmlConversionLimits());
         var rules = new HtmlCssPageRuleSet();
         rules.Add(new HtmlCssPageRule(null, HtmlCssPageSelector.Generic,
             new Dictionary<HtmlCssPageMarginPosition, HtmlCssPageMarginRule> {

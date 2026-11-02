@@ -127,7 +127,7 @@ Imported tables use a default column grid that fits the section text area or con
 
 ```csharp
 using OfficeIMO.Html;
-var safeOptions = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+var safeOptions = WordHtmlImportOptions.UntrustedDefaults;
 safeOptions.MaxHtmlNodes = 5000;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);

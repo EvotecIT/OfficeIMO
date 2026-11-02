@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-                new IWorkReadOptions { MaximumProjectedSheets = 1 },
+                new IWorkReadOptions { MaxProjectedSheets = 1 },
                 new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-                new IWorkReadOptions { MaximumProjectedImageBytes = image.LongLength }));
+                new IWorkReadOptions { MaxProjectedImageBytes = image.LongLength }));
 
         Assert.Contains("destination image", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             WordIWorkConverter.ConvertPagesToWordResult(package,
-                new IWorkReadOptions { MaximumProjectedImageBytes = image.LongLength }));
+                new IWorkReadOptions { MaxProjectedImageBytes = image.LongLength }));
 
         Assert.Contains("destination image", exception.Message,
             StringComparison.OrdinalIgnoreCase);

@@ -100,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = KeynoteWithBuildDeclarations(ReferenceField(1, 10),
             SlideBackgroundStyle(10, null, 11), SlideBackgroundStyle(11, FillColor(1, 0, 0)));
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 }, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            readOptions: new IWorkReadOptions { MaxTextStyleInheritanceDepth = 1 }, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Slides[0].HasBackgroundFill);
     }

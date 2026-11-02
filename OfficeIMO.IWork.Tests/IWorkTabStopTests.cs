@@ -91,10 +91,10 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Tab_stop_materialization_uses_the_source_wide_text_budget() {
         using var baseline = ParagraphLayoutPackage(IWorkDocumentKind.Numbers, Message());
-        Assert.NotEmpty(IWorkSourceDocument.Open(baseline, new IWorkReadOptions { MaximumProjectedTextItems = 20 }).ReadNumbers().Sheets);
+        Assert.NotEmpty(IWorkSourceDocument.Open(baseline, new IWorkReadOptions { MaxProjectedTextItems = 20 }).ReadNumbers().Sheets);
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Numbers, BytesField(25,
             Message(Enumerable.Range(1, 32).Select(i => BytesField(1, FloatField(1, i))).ToArray())));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 20 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 20 });
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -111,10 +111,10 @@ public sealed partial class IWorkBoundaryTests {
             modelFields: selectedCellStyle ? Message() : ReferenceField(24, 19),
             storeFields: selectedCellStyle ? ReferenceField(5, 20) : Message(),
             selectCellTextStyle: selectedCellStyle, additionalRecords: Message(style, catalog));
-        var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 200 });
+        var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 200 });
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() => bounded.ReadNumbers()).Message);
         package.Position = 0;
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 1000 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 1000 });
         var table = Assert.Single(Assert.Single(source.ReadNumbers().Sheets).Tables);
         Assert.Equal(30, Assert.Single(table.Cells).RichText!.Paragraphs.Count);
         Assert.Equal(20, table.GetParagraphStyle(1, 1)!.TabStops!.Count);

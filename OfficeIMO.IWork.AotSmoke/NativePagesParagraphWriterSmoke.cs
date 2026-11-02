@@ -56,7 +56,7 @@ internal static class NativePagesParagraphWriterSmoke {
             "Saved/reopened Pages DOCX lost relative line spacing.");
         using var destination = new MemoryStream(); destination.WriteByte(9);
         try {
-            document.Save(destination, new() { MaximumTabStops = 3 });
+            document.Save(destination, new() { MaxTabStops = 3 });
             throw new InvalidOperationException("Pages custom-tab limit was not enforced.");
         } catch (InvalidDataException) {
             Require(destination.ToArray().SequenceEqual(new byte[] { 9 }), "Pages tab-limit rejection changed its destination.");

@@ -24,7 +24,7 @@ internal sealed partial class OfficeImoAgentService {
             && item.TargetExtension == target && item.Engine.Contains("IWork", StringComparison.Ordinal))?.Id
             ?? throw new AgentUsageException("Choose a Pages-to-DOCX, Numbers-to-XLSX, Keynote-to-PPTX, or iWork-to-PDF conversion.");
         var settings = new IWorkWorkflowSettings { ConversionOptions = options ?? new() };
-        long maximumPackageBytes = Math.Min(maximumInputBytes, settings.ReadOptions.MaximumPackageBytes);
+        long maximumPackageBytes = Math.Min(maximumInputBytes, settings.ReadOptions.MaxPackageBytes);
         var request = new OfficeWorkflowRequest {
             InputPath = input, OutputPath = destination, Operation = OfficeWorkflowOperation.Convert,
             ConversionRouteId = route,

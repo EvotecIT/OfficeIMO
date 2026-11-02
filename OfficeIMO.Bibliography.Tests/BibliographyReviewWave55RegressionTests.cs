@@ -9,7 +9,7 @@ public sealed class BibliographyReviewWave55RegressionTests {
         string source = attribute
             ? "<library metadata=\"" + large + "\"><records/></library>"
             : "<library><metadata>" + large + "</metadata><records/></library>";
-        var options = new BibliographyReadOptions { MaximumInputCharacters = source.Length + 1, MaximumValueLength = source.Length + 1 };
+        var options = new BibliographyReadOptions { MaxInputCharacters = source.Length + 1, MaxValueLength = source.Length + 1 };
 
         BibliographyCancellationTest.AssertObserved(token => BibliographyDocument.Parse(source, options, token));
     }

@@ -23,11 +23,11 @@ public static class AsciiDocProcessor {
     }
 
     private static void ValidateOptions(AsciiDocProcessorOptions options) {
-        if (options.MaximumIncludeDepth < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaximumIncludeDepth cannot be negative.");
-        if (options.MaximumIncludeCount < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaximumIncludeCount cannot be negative.");
-        if (options.MaximumIncludedCharacters < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaximumIncludedCharacters cannot be negative.");
-        if (options.MaximumOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumOutputLength must be positive.");
-        if (options.MaximumExtensionInvocations < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaximumExtensionInvocations cannot be negative.");
+        if (options.MaxIncludeDepth < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxIncludeDepth cannot be negative.");
+        if (options.MaxIncludeCount < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxIncludeCount cannot be negative.");
+        if (options.MaxIncludedCharacters < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxIncludedCharacters cannot be negative.");
+        if (options.MaxOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxOutputLength must be positive.");
+        if (options.MaxExtensionInvocations < 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxExtensionInvocations cannot be negative.");
     }
 
     private sealed class PreprocessorState {
@@ -57,7 +57,7 @@ public static class AsciiDocProcessor {
         internal AsciiDocProcessedSource ProcessSource(string source, string? sourceName, int includeDepth, IReadOnlyList<AsciiDocSelectedLine>? selected = null) {
             bool addedSource = sourceName != null && _activeSources.Add(sourceName);
             _cancellationToken.ThrowIfCancellationRequested();
-            var output = new AsciiDocProcessingOutput(Math.Min(source.Length, Math.Min(_options.MaximumOutputLength, 4096)));
+            var output = new AsciiDocProcessingOutput(Math.Min(source.Length, Math.Min(_options.MaxOutputLength, 4096)));
             var conditions = new Stack<bool>();
             bool active = true;
             IReadOnlyList<AsciiDocSelectedLine> lines = selected ?? AsciiDocLineReader.Read(source, _cancellationToken).Select(line => new AsciiDocSelectedLine(line)).ToArray();
@@ -186,14 +186,14 @@ public static class AsciiDocProcessor {
                 Append(output, line.Text);
                 return;
             }
-            if (includeDepth >= _options.MaximumIncludeDepth || _includeCount >= _options.MaximumIncludeCount) {
+            if (includeDepth >= _options.MaxIncludeDepth || _includeCount >= _options.MaxIncludeCount) {
                 Report("ADOCPROC002", AsciiDocDiagnosticSeverity.Error, "Include limit exceeded.", sourceName, lineNumber);
                 Append(output, line.Text);
                 return;
             }
 
             var request = new AsciiDocIncludeRequest(target, sourceName, includeDepth + 1, Attributes,
-                _options.MaximumIncludedCharacters - _includedCharacters, _cancellationToken);
+                _options.MaxIncludedCharacters - _includedCharacters, _cancellationToken);
             AsciiDocIncludeResult? resolved = _options.IncludeResolver.Resolve(request);
             if (resolved == null) {
                 if (!optional) {
@@ -210,11 +210,11 @@ public static class AsciiDocProcessor {
 
             _includeCount++;
             _cancellationToken.ThrowIfCancellationRequested();
-            if ((long)_includedCharacters + resolved.Content.Length > _options.MaximumIncludedCharacters) throw new InvalidDataException("Includes exceed MaximumIncludedCharacters.");
+            if ((long)_includedCharacters + resolved.Content.Length > _options.MaxIncludedCharacters) throw new InvalidDataException("Includes exceed MaxIncludedCharacters.");
             _includedCharacters += resolved.Content.Length;
             IReadOnlyList<AsciiDocSelectedLine> selected = AsciiDocIncludeSelector.Apply(resolved.Content, elementAttributes, _cancellationToken);
             AsciiDocProcessedSource expanded = ProcessSource(resolved.Content, resolved.SourceName, includeDepth + 1, selected);
-            if ((long)output.Length + expanded.Content.Length > _options.MaximumOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaximumOutputLength.");
+            if ((long)output.Length + expanded.Content.Length > _options.MaxOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaxOutputLength.");
             _cancellationToken.ThrowIfCancellationRequested();
             output.Append(expanded, _cancellationToken);
             if (line.LineEnding.Length > 0 && expanded.Content.Length > 0 && !AsciiDocText.EndsWithLineEnding(expanded.Content)) Append(output, line.LineEnding, false);
@@ -229,7 +229,7 @@ public static class AsciiDocProcessor {
             string? sourceName,
             int lineNumber) {
             _extensionInvocations++;
-            if (_extensionInvocations > _options.MaximumExtensionInvocations) {
+            if (_extensionInvocations > _options.MaxExtensionInvocations) {
                 Report("ADOCPROC008", AsciiDocDiagnosticSeverity.Error, "Extension invocation limit exceeded.", sourceName, lineNumber);
                 Append(output, line.Text);
                 return;
@@ -252,7 +252,7 @@ public static class AsciiDocProcessor {
         private string Substitute(string value, string? sourceName, int lineNumber) {
             var substitutionOptions = new AsciiDocAttributeSubstitutionOptions {
                 UndefinedAttributeBehavior = _options.UndefinedAttributeBehavior,
-                MaximumOutputLength = _options.MaximumOutputLength
+                MaxOutputLength = _options.MaxOutputLength
             };
             AsciiDocAttributeSubstitutionResult result = AsciiDocAttributeSubstitutor.Substitute(value, Attributes, substitutionOptions);
             for (int index = 0; index < result.Diagnostics.Count; index++) {
@@ -265,7 +265,7 @@ public static class AsciiDocProcessor {
         private void Append(AsciiDocProcessingOutput output, string? value, bool exact = true) {
             _cancellationToken.ThrowIfCancellationRequested();
             if (value == null) return;
-            if ((long)output.Length + value.Length > _options.MaximumOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaximumOutputLength.");
+            if ((long)output.Length + value.Length > _options.MaxOutputLength) throw new InvalidDataException("Processed AsciiDoc exceeds MaxOutputLength.");
             output.Append(value, exact);
         }
 

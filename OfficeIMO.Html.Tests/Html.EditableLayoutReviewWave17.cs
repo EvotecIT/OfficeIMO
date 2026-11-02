@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlEditableLayoutReviewWave17Tests {
     [Fact]
     public void ProjectionRenderIntersectsCallerAndOwningDocumentNodeLimits() {
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxHtmlNodes = 64;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:120px;height:30px'>Projected</div>" +

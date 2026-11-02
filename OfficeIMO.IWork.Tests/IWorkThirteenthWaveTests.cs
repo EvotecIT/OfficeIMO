@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Title", slideName: "Named");
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 5 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 5 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 
@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("T", 1, 1, 42d)
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 5 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 5 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: "X",
             includePreview: false, textBoxDrawable: Message(StringField(4, "https://example.test")));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 1 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             bodyText: "A\u2028B\u2028C");
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 3 });
+            new IWorkReadOptions { MaxProjectedTextItems = 3 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 

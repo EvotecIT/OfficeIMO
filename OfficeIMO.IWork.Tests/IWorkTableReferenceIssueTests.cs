@@ -182,7 +182,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(2, 999), ReferenceField(4, 998), ReferenceField(6, 997)));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 2 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 2 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 
@@ -191,7 +191,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(2, 999), ReferenceField(4, 998)), repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 2 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceReferenceIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal(2, projection.SourceReferenceIssues.Count);
         AssertMissingReference(projection.SourceReferenceIssues[0], 11, "4/2", 999);

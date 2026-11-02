@@ -161,7 +161,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
         string html = "<table><tr><th>Term</th><th>Standard</th></tr>" + rows
             + "</table><p>Content after the limited table</p>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
@@ -180,7 +180,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
     public void PowerPointHtml_TableLimitDoesNotAppendAnEmptyContinuationSlide() {
         string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
             $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(

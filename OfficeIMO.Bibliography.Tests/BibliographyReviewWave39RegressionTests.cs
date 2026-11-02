@@ -18,7 +18,7 @@ public sealed class BibliographyReviewWave39RegressionTests {
     [Fact]
     public void EndNote_custom_root_detection_enforces_the_configured_nesting_limit() {
         const string source = "<library><extension><one><two/></one></extension><records/></library>";
-        var options = new BibliographyReadOptions { MaximumNestingDepth = 2 };
+        var options = new BibliographyReadOptions { MaxNestingDepth = 2 };
 
         Assert.Throws<InvalidDataException>(() => BibliographyDocument.Parse(source, options));
     }

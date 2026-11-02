@@ -155,10 +155,10 @@ public sealed class IWorkKeynoteImageWritingTests {
         slide.AddImage(payload, 0, 0, 100, 100); slide.AddImage(payload, 100, 0, 100, 100);
         var limits = new IWorkKeynoteWriteOptions();
         switch (boundary) {
-            case "count": limits.MaximumImages = 1; break;
-            case "encoded": limits.MaximumEncodedImageBytes = payload.Length; break;
-            case "decoded": limits.MaximumDecodedImageBytes = 24 * 16 * 4; break;
-            case "package": limits.MaximumPackageBytes = payload.Length; break;
+            case "count": limits.MaxImages = 1; break;
+            case "encoded": limits.MaxEncodedImageBytes = payload.Length; break;
+            case "decoded": limits.MaxDecodedImageBytes = 24 * 16 * 4; break;
+            case "package": limits.MaxPackageBytes = payload.Length; break;
         }
         byte[] sentinel = { 9, 8, 7 };
         using var stream = new MemoryStream(); stream.Write(sentinel);

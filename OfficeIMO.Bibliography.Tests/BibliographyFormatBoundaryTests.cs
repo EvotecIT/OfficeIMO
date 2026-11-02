@@ -225,7 +225,7 @@ public sealed class BibliographyFormatBoundaryTests {
             "@string{averylongmacroname={A}}",
             "@book{x,averylongfieldname={A}}"
         };
-        var options = new BibliographyReadOptions { MaximumValueLength = 10 };
+        var options = new BibliographyReadOptions { MaxValueLength = 10 };
 
         foreach (string source in sources) {
             BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options);

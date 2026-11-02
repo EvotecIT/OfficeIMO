@@ -88,7 +88,7 @@ public partial class HtmlOfficeAdapters {
     public void OneNoteHtml_OversizedTableLeavesBudgetForFollowingValidTable() {
         const string html = "<table><tr><td>Too</td><td>many</td></tr><tr><td>cells</td><td>here</td></tr></table>"
             + "<table><tr><td>Retained</td></tr></table>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
         limits.MaxTableCells = 3;
 

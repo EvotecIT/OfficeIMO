@@ -17,8 +17,8 @@ public sealed class BibliographyReviewWave21RegressionTests {
             : "@book{x,title={" + new string('x', 128 * 1024) + "}}";
         byte[] source = Encoding.UTF8.GetBytes(text);
         var options = new BibliographyReadOptions {
-            MaximumInputBytes = route == "parse-detected" || route == "path-small" ? 1024 : source.Length + 1,
-            MaximumInputCharacters = route.StartsWith("parse", StringComparison.Ordinal) || route == "path-small" ? 8 : 32
+            MaxInputBytes = route == "parse-detected" || route == "path-small" ? 1024 : source.Length + 1,
+            MaxInputCharacters = route.StartsWith("parse", StringComparison.Ordinal) || route == "path-small" ? 8 : 32
         };
         if (route == "parse-explicit") {
             Assert.Throws<InvalidDataException>(() => BibliographyDocument.Parse(text, BibliographyFormat.BibTex, options));
@@ -51,7 +51,7 @@ public sealed class BibliographyReviewWave21RegressionTests {
     [Fact]
     public void Escaped_CSL_native_strings_use_decoded_value_limits() {
         const string source = "[{\"id\":\"i\",\"type\":\"book\",\"x\":\"\\u0061\\u0061\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 4 };
+        var options = new BibliographyReadOptions { MaxValueLength = 4 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
         BibliographyNativeField field = Assert.Single(Assert.Single(read.Document.Items).NativeFields);
@@ -100,7 +100,7 @@ public sealed class BibliographyReviewWave21RegressionTests {
 #endif
         string value = new string('x', length);
         string source = "TY  - JOUR\nTI  - " + value + "\n      " + value + "\nER  -";
-        var options = new BibliographyReadOptions { MaximumValueLength = value.Length + 1 };
+        var options = new BibliographyReadOptions { MaxValueLength = value.Length + 1 };
 #if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
 #else

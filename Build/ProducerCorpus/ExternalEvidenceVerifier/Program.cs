@@ -46,7 +46,7 @@ static async Task<object[]> VerifyRtfAsync(JsonElement manifest, HttpClient clie
             Require(header.Contains(fragment.GetString()!, StringComparison.Ordinal), id + " header evidence changed");
         }
 
-        RtfReadResult read = RtfDocument.LoadResult(bytes, RtfReadOptions.CreateUntrustedProfile());
+        RtfReadResult read = RtfDocument.LoadResult(bytes, RtfReadOptions.UntrustedDefaults);
         RtfToHtmlResult html = read.Document.ToHtmlResult(RtfToHtmlOptions.CreateWebSafeProfile());
         RtfConversionResult<string> markdown = read.Document.ToMarkdownResult();
         RtfConversionResult<OfficeIMO.Word.WordDocument> word = read.ToWordDocumentResult(sourceUrl);

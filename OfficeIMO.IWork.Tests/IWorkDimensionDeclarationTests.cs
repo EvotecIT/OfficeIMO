@@ -136,7 +136,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: nested ? BytesField(2, fields) : fields);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -145,7 +145,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(BytesField(2, new byte[] { 0x80 }), VarintField(2, 0), BytesField(2, new byte[] { 0x80 })));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 4 });
+            new IWorkReadOptions { MaxTableDimensionEntries = 4 });
         Assert.Contains("dimension entries", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -153,9 +153,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Dimension_declaration_budget_is_cumulative_and_snapshotted() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(BytesField(2, new byte[] { 0x80 }), BytesField(2, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -164,7 +164,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers, repeatTable: true,
             firstRowHeader: DimensionHeader(0, -1));
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
     }

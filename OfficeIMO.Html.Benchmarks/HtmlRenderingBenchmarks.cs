@@ -28,7 +28,7 @@ public class HtmlRenderingStageBenchmarks {
         _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
             _document,
             _options,
-            HtmlConversionLimits.CreateUntrustedProfile());
+            HtmlConversionLimits.UntrustedDefaults);
         _fonts = new OfficeFontFaceCollection();
         _pageRules = new HtmlCssPageRuleSet();
         _resources = new HtmlResourceSession();
@@ -164,7 +164,7 @@ public class HtmlLongDocumentBenchmarks {
         _computedStyles = HtmlComputedStyleEngine.ComputeForRendering(
             _htmlDocument,
             _renderOptions,
-            HtmlConversionLimits.CreateUntrustedProfile());
+            HtmlConversionLimits.UntrustedDefaults);
         _fonts = new OfficeFontFaceCollection();
         _resources = new HtmlResourceSession();
         RequireLongDocumentContract(HtmlRenderEngine.Render(_document, _renderOptions));

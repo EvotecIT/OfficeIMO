@@ -23,7 +23,7 @@ internal static class NativePagesImageWriterSmoke {
         VerifySavedWord(bytes, 180);
         using var unchanged = new MemoryStream(); unchanged.WriteByte(9);
         try {
-            document.Save(unchanged, new() { MaximumImages = 2 });
+            document.Save(unchanged, new() { MaxImages = 2 });
             throw new InvalidOperationException("The Pages image budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.CanWrite && unchanged.ToArray().SequenceEqual(new byte[] { 9 }),

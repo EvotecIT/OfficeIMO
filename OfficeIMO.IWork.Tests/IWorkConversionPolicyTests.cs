@@ -130,7 +130,7 @@ public sealed partial class IWorkBoundaryTests {
         var conversion = new IWorkConversionOptions {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
         };
-        var limits = new IWorkReadOptions { MaximumProjectedTables = 1 };
+        var limits = new IWorkReadOptions { MaxProjectedTables = 1 };
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("One", 1, 1, 1d), new TableSpec("Two", 1, 1, 2d)
         });
