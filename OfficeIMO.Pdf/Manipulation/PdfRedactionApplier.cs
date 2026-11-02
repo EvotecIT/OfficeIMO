@@ -84,7 +84,7 @@ internal static partial class PdfRedactionApplier {
         if (plan.Areas.Any(static area => area.RequiresGlyphRewrite)) {
             // Even the non-evidence Apply route must preserve unselected text for precise plans.
             PdfRedactionVerification.VerifyAppliedPlan(output, plan, new PdfRedactionVerificationOptions {
-                // Whole blocks keep their long-standing tolerance for streams unrelated to the removal.
+                // Whole blocks keep their glyph-check tolerance for unrelated streams; the residue sweep still refuses undecodable ones.
                 RequireCompleteStreamInspection = plan.Areas.Any(static area => area.RequiresGlyphRewrite && area.GlyphSelection!.IsCompleteBlock != true),
                 FailOnUndecodablePdfStreams = plan.Areas.Any(static area => area.RequiresGlyphRewrite && area.GlyphSelection!.IsCompleteBlock != true),
                 CancellationToken = effectiveOptions.CancellationToken

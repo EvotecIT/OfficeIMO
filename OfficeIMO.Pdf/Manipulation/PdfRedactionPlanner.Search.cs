@@ -178,7 +178,10 @@ internal static partial class PdfRedactionPlanner {
             searchPageNumbers: search.PageNumbers.ToArray());
         if ((plan.Preflight.Probe.HasOutlines || plan.Preflight.Probe.HasOpenActions) && !PdfRedactionNavigation.CanPlanNavigation(document, search.CancellationToken))
             return new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-navigation-unsupported", "PDF navigation contains an unsupported action or destination and cannot be preserved safely.") };
-        return PdfRedactionApplier.FindSearchResidue(pdf, plan, document.ReadOptions, search.CancellationToken).Count > 0
+        IReadOnlyList<PdfRedactionVerificationIssue> residue = PdfRedactionApplier.FindSearchResidue(pdf, plan, document.ReadOptions, search.CancellationToken);
+        if (residue.Any(static issue => issue.Marker == "UndecodableStream"))
+            return new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-undecodable-stream", "The PDF holds a stream that cannot be decoded, so searched text cannot be proven absent.") };
+        return residue.Count > 0
             ? new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "redaction-search-unplanned-residue", "The PDF holds searched text outside live search matches. No verified result can be returned.") }
             : new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "redaction-search-no-matches", "No content matched the requested redaction search criteria.") };
     }

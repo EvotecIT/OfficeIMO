@@ -70,8 +70,12 @@ internal static partial class PdfRedactionApplier {
                 // owns that content; the generic sweep still checks its dictionaries and every other holder.
                 if (!plan.IsSearchDriven && inspected is PdfStream selectedStream &&
                     (contentStreams.Contains(item.ObjectNumber) || selectedStream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form")) inspected = selectedStream.Dictionary;
-                if (SearchObjectHolds(current.Objects, inspected, criteria, current.ReadOptions.Limits, visited, excluded,
-                    contentStreams.Contains(item.ObjectNumber), followReferences: false, cancellationToken)) {
+                bool undecodable = false;
+                bool holds = SearchObjectHolds(current.Objects, inspected, criteria, current.ReadOptions.Limits, visited, excluded,
+                    contentStreams.Contains(item.ObjectNumber), followReferences: false, () => undecodable = true, cancellationToken);
+                if (undecodable)
+                    issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "UndecodableStream", "A retained PDF stream cannot be decoded, so searched text cannot be proven absent."));
+                if (holds) {
                     issues.Add(new PdfRedactionVerificationIssue("SearchResidue", historical ? "HistoricalRevision" : "Object:" + item.ObjectNumber.ToString(CultureInfo.InvariantCulture),
                         historical ? "An earlier PDF revision still holds searched text." : "A saved PDF object still holds searched text."));
                 }
@@ -119,18 +123,25 @@ internal static partial class PdfRedactionApplier {
 
     /// <summary>Checks data recursively, resolving references only when explicitly reached, with stream decoding bounded by the reader limits.</summary>
     private static bool SearchObjectHolds(Dictionary<int, PdfIndirectObject> objects, PdfObject? value, PdfRedactionSearchCriteria[] criteria,
-        PdfReadLimits limits, HashSet<PdfObject> visited, HashSet<PdfObject>? excluded = null, bool contentStream = false, bool followReferences = true, CancellationToken cancellationToken = default) {
+        PdfReadLimits limits, HashSet<PdfObject> visited, HashSet<PdfObject>? excluded = null, bool contentStream = false, bool followReferences = true,
+        Action? undecodable = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!followReferences && value is PdfReference) return false;
         value = PdfObjectLookup.Resolve(objects, value);
         if (value is null || excluded?.Contains(value) == true || !visited.Add(value)) return false;
         switch (value) {
             case PdfStringObj text: return SearchTextHolds(text.Value, criteria);
-            case PdfArray array: return array.Items.Any(item => SearchObjectHolds(objects, item, criteria, limits, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences));
-            case PdfDictionary dictionary: return dictionary.Items.Values.Any(item => SearchObjectHolds(objects, item, criteria, limits, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences));
+            case PdfArray array: return array.Items.Any(item => SearchObjectHolds(objects, item, criteria, limits, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences, undecodable: undecodable));
+            case PdfDictionary dictionary: return dictionary.Items.Values.Any(item => SearchObjectHolds(objects, item, criteria, limits, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences, undecodable: undecodable));
             case PdfStream stream:
-                if (SearchObjectHolds(objects, stream.Dictionary, criteria, limits, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences)) return true;
-                if (!StreamDecoder.TryDecode(stream, limits.MaxDecodedStreamBytes, out byte[] data, objects)) return false;
+                if (SearchObjectHolds(objects, stream.Dictionary, criteria, limits, visited, excluded, cancellationToken: cancellationToken, followReferences: followReferences, undecodable: undecodable)) return true;
+                // Binary image payloads are not text-bearing streams. Their string dictionaries were checked above.
+                if (!contentStream && stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") return false;
+                if (!StreamDecoder.TryDecode(stream, limits.MaxDecodedStreamBytes, out byte[] data, objects)) {
+                    // Unread bytes can hold the searched text; only a font program is known not to.
+                    if (!IsFontProgram()) undecodable?.Invoke();
+                    return false;
+                }
                 string content = PdfEncoding.Latin1GetString(data);
                 bool cmap = ContainsOrdinal(content, "begincmap");
                 if (contentStream || stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form" || stream.Dictionary.Items.ContainsKey("PatternType") || cmap) {
@@ -149,13 +160,12 @@ internal static partial class PdfRedactionApplier {
                     }
                     return found;
                 }
-                // Binary image/font payloads are not text-bearing streams. Their string dictionaries were checked above.
-                if (stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Image") return false;
-                bool fontProgram = objects.Values.Any(item => item.Value is PdfDictionary descriptor &&
-                    FontProgramKeys.Any(key => descriptor.Items.TryGetValue(key, out PdfObject? font) && ReferenceEquals(PdfObjectLookup.Resolve(objects, font), stream)));
-                return !fontProgram && (SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken));
+                return !IsFontProgram() && (SearchTextHolds(content, criteria) || PdfRedactionVerification.ContainsSearchedPdfString(data, criteria, cancellationToken));
             default: return false;
         }
+
+        bool IsFontProgram() => objects.Values.Any(item => item.Value is PdfDictionary descriptor &&
+            FontProgramKeys.Any(key => descriptor.Items.TryGetValue(key, out PdfObject? font) && ReferenceEquals(PdfObjectLookup.Resolve(objects, font), value)));
 
         bool OperandHolds(object operand) => operand switch {
             byte[] bytes => SearchTextHolds(PdfEncoding.Latin1GetString(bytes), criteria),
