@@ -62,11 +62,14 @@ internal static partial class HtmlPdfRenderedConverter {
         CancellationToken cancellationToken) {
         if (webFonts.FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
             || !RequiresUnicodeFont(text)
-            || IsPaintable(text, visual, webFonts, createRuns)) return text;
+            || !ContainsEmojiJoinerSequence(text) && IsPaintable(text, visual, webFonts, createRuns)) return text;
         var retained = new StringBuilder(text.Length);
         foreach (string element in OfficeTextElements.Enumerate(text)) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!RequiresUnicodeFont(element) || IsPaintable(element, visual, webFonts, createRuns)) {
+            // The PDF text route can't join a ZWJ sequence, and native saving rejects the attempt.
+            // Color fonts that do join them take the outline route and never reach this point.
+            if (!RequiresUnicodeFont(element)
+                || !ContainsEmojiJoinerSequence(element) && IsPaintable(element, visual, webFonts, createRuns)) {
                 retained.Append(element);
                 continue;
             }
@@ -89,6 +92,17 @@ internal static partial class HtmlPdfRenderedConverter {
             }
         }
         return retained.ToString();
+    }
+
+    private static bool ContainsEmojiJoinerSequence(string text) {
+        int joiner = text.IndexOf('\u200D');
+        while (joiner > 0) {
+            int start = char.IsLowSurrogate(text[joiner - 1]) && joiner > 1 ? joiner - 2 : joiner - 1;
+            if (text[joiner - 1] == '\uFE0F' && start > 0) start = char.IsLowSurrogate(text[start - 1]) && start > 1 ? start - 2 : start - 1;
+            if (CharUnicodeInfo.GetUnicodeCategory(text, start) is UnicodeCategory.OtherSymbol or UnicodeCategory.ModifierSymbol) return true;
+            joiner = text.IndexOf('\u200D', joiner + 1);
+        }
+        return false;
     }
 
     private static readonly string[] UnpaintableTextReplacements = { "\u25A1", "\uFFFD", "?" };

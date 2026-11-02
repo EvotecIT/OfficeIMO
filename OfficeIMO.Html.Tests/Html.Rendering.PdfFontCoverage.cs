@@ -113,6 +113,18 @@ public sealed class HtmlPdfFontCoverageTests {
     }
 
     [Fact]
+    public void HtmlPdf_ZwjEmojiNoFontJoinsSavesThroughThePublicByteRoute() {
+        string sequence = char.ConvertFromUtf32(0x1F469) + "\u200D" + char.ConvertFromUtf32(0x1F4BB);
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x1F469, 0x1F4BB);
+        string html = "<style>@font-face{font-family:Scoped;src:url(data:font/ttf;base64," + Convert.ToBase64String(font)
+            + ")}</style><p style='font-family:Scoped'>" + sequence + "</p>";
+
+        using PdfCore.PdfDocument document = HtmlConversionDocument.Parse(html).ToPdf();
+
+        Assert.Contains(sequence, PdfCore.PdfReadDocument.Open(document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_MarginBoxTextDoesNotTurnInstalledBoldIntoRegular() {
         if (!PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Arial", out PdfCore.PdfEmbeddedFontFamily? arial) || arial?.Bold == null) return;
         const string html = "<style>@page{@bottom-center{content:'Page ' counter(page)}}body{font:12px Helvetica,sans-serif}</style><h1>Heading</h1><p>Body</p>";
