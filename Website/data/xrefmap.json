@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-11-01T21:29:40.9445370Z",
+  "generatedAtUtc": "2026-11-02T00:50:04.7138310Z",
   "sourceCount": 122,
-  "referenceCount": 100461,
+  "referenceCount": 100463,
   "duplicateCount": 0,
   "references": [
     {
@@ -195117,6 +195117,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.SetNamedFormula(System.String,System.String,OfficeIMO.Excel.ExcelSheet,System.Boolean,System.Boolean,OfficeIMO.Excel.ExcelDefinedNameValidationMode)",
+      "name": "ExcelDocument.SetNamedFormula",
+      "href": "/api/excel/officeimo-excel-exceldocument/#method-setnamedformula-string-string-officeimo-excel-excelsheet-boolean-boolean-officeimo-excel-exceldefinednamevalidationmode",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.SetNamedFormula",
+        "OfficeIMO.Excel.ExcelDocument.SetNamedFormula",
+        "OfficeIMO.Excel.ExcelDocument.SetNamedFormula(System.String,System.String,OfficeIMO.Excel.ExcelSheet,System.Boolean,System.Boolean,OfficeIMO.Excel.ExcelDefinedNameValidationMode)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Excel.ExcelDocument.SetNamedRange(System.String,System.String,OfficeIMO.Excel.ExcelSheet,System.Boolean,System.Boolean,OfficeIMO.Excel.ExcelDefinedNameValidationMode)",
       "name": "ExcelDocument.SetNamedRange",
       "href": "/api/excel/officeimo-excel-exceldocument/#method-setnamedrange-string-string-officeimo-excel-excelsheet-boolean-boolean-officeimo-excel-exceldefinednamevalidationmode",
@@ -209634,6 +209644,16 @@
         "global::OfficeIMO.Excel.ExcelSheet.SetMarginsPreset",
         "OfficeIMO.Excel.ExcelSheet.SetMarginsPreset",
         "OfficeIMO.Excel.ExcelSheet.SetMarginsPreset(OfficeIMO.Excel.ExcelMarginPreset)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelSheet.SetNamedFormula(System.String,System.String,System.Boolean,System.Boolean,OfficeIMO.Excel.ExcelDefinedNameValidationMode)",
+      "name": "ExcelSheet.SetNamedFormula",
+      "href": "/api/excel/officeimo-excel-excelsheet/#method-setnamedformula-string-string-boolean-boolean-officeimo-excel-exceldefinednamevalidationmode",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelSheet.SetNamedFormula",
+        "OfficeIMO.Excel.ExcelSheet.SetNamedFormula",
+        "OfficeIMO.Excel.ExcelSheet.SetNamedFormula(System.String,System.String,System.Boolean,System.Boolean,OfficeIMO.Excel.ExcelDefinedNameValidationMode)"
       ]
     },
     {
@@ -967268,7 +967288,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 100442,
-  "referenceDeltaCount": 19,
-  "referenceDeltaPercent": 0.0189
+  "previousReferenceCount": 100461,
+  "referenceDeltaCount": 2,
+  "referenceDeltaPercent": 0.002
 }
