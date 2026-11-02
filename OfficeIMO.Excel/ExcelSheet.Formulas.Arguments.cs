@@ -83,6 +83,12 @@ namespace OfficeIMO.Excel {
         private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value, bool allowScalarExpression = true) {
             string trimmed = token.Trim();
             if (allowScalarExpression) return TryEvaluateFormulaValue(trimmed, out value);
+            // A built-in call is no literal, name or reference unless it selects one.
+            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
+                && !call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)
+                && !call.Name.Equals("INDEX", StringComparison.OrdinalIgnoreCase)) {
+                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
+            }
             if (ExcelFormulaExpressionParser.TryParseTextLiteral(trimmed, out string literalText)) {
                 value = new FormulaArgumentValue(null, literalText);
                 return true;

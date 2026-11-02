@@ -32,6 +32,28 @@ public sealed class ExcelAValueAggregateTests {
     }
 
     [Theory]
+    [InlineData("SUM(A1:A3)", "#N/A")]
+    [InlineData("AVERAGE(A1:A3)", "#N/A")]
+    [InlineData("MIN(A1:A3)", "#N/A")]
+    [InlineData("MAX(A1:A3)", "#N/A")]
+    [InlineData("COUNT(A1:A3)", "2")]
+    [InlineData("SUM(C1:C3)", "0")]
+    [InlineData("MIN(C1:C3)", "0")]
+    [InlineData("COUNT(C1:C3)", "0")]
+    [InlineData("AVERAGE(C1:C3)", "#DIV/0!")]
+    public void Range_aggregates_keep_error_and_empty_range_results(string formula, string expected) {
+        using var document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddSheet("Values");
+        sheet.CellValue(1, 1, 1d);
+        sheet.CellFormula(2, 1, "NA()");
+        sheet.CellValue(3, 1, 2d);
+        sheet.CellFormula(1, 5, formula);
+        document.Calculate();
+        Assert.True(sheet.TryGetCachedFormulaValue(1, 5, out string? cached));
+        Assert.Equal(expected, cached);
+    }
+
+    [Theory]
     [InlineData("AND(TRUE,TRUE)")]
     [InlineData("OR(FALSE,TRUE)")]
     [InlineData("NOT(FALSE)")]

@@ -744,6 +744,7 @@ namespace OfficeIMO.Excel {
             bool withoutFormula, bool unevaluatedFormulaCache) {
             if (withoutFormula && _formulaEvaluationCache != null
                 && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue.AsReferencedValue();
+            if (withoutFormula && TryResolvePlainNumberCell(row, column, out FormulaArgumentValue plainNumber)) return plainNumber;
             var value = GetCellValueSnapshot(row, column);
             if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
                 return FormulaArgumentValue.UnresolvedFormula();
@@ -795,9 +796,24 @@ namespace OfficeIMO.Excel {
                 sourceCellKind: sourceKind, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
         }
 
+        // The dominant operand: a numeric cell needs no typed snapshot, boxed value or error-literal check.
+        private bool TryResolvePlainNumberCell(int row, int column, out FormulaArgumentValue value) {
+            value = default;
+            Cell? cell = TryGetExistingCell(row, column);
+            if (cell == null || (cell.DataType != null && cell.DataType.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number)) return false;
+            string? text = ExcelWorksheetScan.FindValue(cell)?.Text;
+            if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) return false;
+            value = new FormulaArgumentValue(number, text, sourceCellKind: ExcelCellDataKind.Number);
+            return true;
+        }
+
         private static string? NormalizeFormulaCellReference(string? reference) {
             if (string.IsNullOrWhiteSpace(reference)) {
                 return null;
+            }
+
+            if (IsCanonicalCellReference(reference!) && ExcelA1.TryParseCellReferenceFast(reference!, out _, out _)) {
+                return reference;
             }
 
             var cellRef = ExcelA1.ParseCellRef(reference!.Trim().Replace("$", string.Empty));
@@ -809,6 +825,16 @@ namespace OfficeIMO.Excel {
             }
 
             return ExcelA1.CellReference(cellRef.Row, cellRef.Col);
+        }
+
+        private static bool IsCanonicalCellReference(string reference) {
+            int index = 0;
+            while (index < reference.Length && reference[index] >= 'A' && reference[index] <= 'Z') index++;
+            if (index == 0 || index == reference.Length || reference[index] == '0') return false;
+            for (; index < reference.Length; index++) {
+                if (reference[index] < '0' || reference[index] > '9') return false;
+            }
+            return true;
         }
 
         private string GetFormulaEvaluationCacheKey(string reference) {

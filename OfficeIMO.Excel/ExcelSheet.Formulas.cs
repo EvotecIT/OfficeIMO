@@ -326,9 +326,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
             if (result.Number.HasValue) {
-                cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
-                cell.DataType = result.IsBoolean ? DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean
-                    : DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+                ExcelWorksheetScan.SetValueText(cell, InvariantNumberText.Get(result.Number.Value));
+                if (cell.DataType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
+                    cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+                }
                 return;
             }
 
@@ -751,7 +752,8 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryEvaluateSingleReferenceFormulaValue(formula, out result)) {
+            // INDEX and OFFSET, the only calls that yield a reference, returned above.
+            if (functionCall == null && TryEvaluateSingleReferenceFormulaValue(formula, out result)) {
                 return true;
             }
 
@@ -783,6 +785,10 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (IsRangeAggregateFunction(function)) {
+                        bool aggregated = TryEvaluateRangeAggregate(function, args, out result, out error, out bool handled);
+                        if (handled) return aggregated;
+                    }
                     if (function is "INT" or "MOD" or "SQRT" or "SIGN" or "TRUNC" or "ROUNDUP" or "ROUNDDOWN" or "EXP" or "LN" or "LOG" or "LOG10" or "CEILING" or "FLOOR" or "EVEN" or "ODD" or "FACT" or "COMBIN") {
                         if (!TryEvaluateScalarMathValue(function, args, out FormulaArgumentValue value)) return false;
                         if (value.IsError) { error = value; return false; }
