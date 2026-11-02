@@ -69,10 +69,7 @@ if (!dbf.Chunks.Any(chunk => chunk.Tables?.Any(table => table.Rows.Any(row => ro
 RequireText(ReadFixture("reader-book.djvu", ReaderInputKind.DjVu), "Zażółć 😀", "DjVu hidden text");
 RequireText(ReadFixture("Test_Document.xps", ReaderInputKind.Xps), "This is a test XPS file.", "XPS page text");
 RequireText(ReadFixture("svnbook-ms-htmlhelp.chm", ReaderInputKind.Chm), "Subversion", "CHM topic text");
-OfficeDocumentReadResult publisher = ReadFixture("Simple.pub", ReaderInputKind.Publisher);
-if (!publisher.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Text))) {
-    throw new InvalidOperationException("The NativeAOT all-formats reader lost Publisher story text.");
-}
+RequireText(ReadFixture("Simple.pub", ReaderInputKind.Publisher), "0123456789abcdef", "Publisher story text");
 
 Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV, Pages, DBF, DjVu, XPS, CHM and Publisher");
 
