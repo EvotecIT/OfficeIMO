@@ -280,21 +280,29 @@ namespace OfficeIMO.Excel {
             bool shouldCopyBackToFilePath = !shouldCopyBack && !string.IsNullOrEmpty(filePath) && saveOnDispose;
             bool shouldRetainPackageStream = shouldCopyBack || shouldCopyBackToFilePath;
 
-            MemoryStream? normalizedStream = null;
+            Stream? normalizedStream = null;
 
             try {
-                normalizedStream = shouldRetainPackageStream
-                    ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
-                    : new MemoryStream(bytes.Length + StreamBufferSize);
-                normalizedStream.Write(bytes, 0, bytes.Length);
-                normalizedStream.Position = 0;
+                byte[] unchangedPackageBytes;
+                if (!shouldRetainPackageStream && Utilities.ExcelPackageUtilities.TryNormalizeContentTypes(
+                        bytes, effectiveOpenSettings.MaxCharactersInPart, out byte[] normalizedBytes, out _)) {
+                    normalizedStream = new ExcelCopyOnWriteStream(normalizedBytes);
+                    unchangedPackageBytes = normalizedBytes;
+                } else {
+                    var packageStream = shouldRetainPackageStream
+                        ? new NonDisposingMemoryStream(bytes.Length + StreamBufferSize)
+                        : new MemoryStream(bytes.Length + StreamBufferSize);
+                    normalizedStream = packageStream;
+                    packageStream.Write(bytes, 0, bytes.Length);
+                    packageStream.Position = 0;
 
-                bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(
-                    normalizedStream,
-                    leaveOpen: true,
-                    maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
-                normalizedStream.Position = 0;
-                byte[] unchangedPackageBytes = normalizedContentTypes ? normalizedStream.ToArray() : bytes;
+                    bool normalizedContentTypes = Utilities.ExcelPackageUtilities.NormalizeContentTypes(
+                        packageStream,
+                        leaveOpen: true,
+                        maxCharactersInPart: effectiveOpenSettings.MaxCharactersInPart);
+                    packageStream.Position = 0;
+                    unchangedPackageBytes = normalizedContentTypes ? packageStream.ToArray() : bytes;
+                }
 
                 var memDoc = SpreadsheetDocument.Open(normalizedStream, !readOnly, effectiveOpenSettings);
                 ExcelDocument document = CreateDocument(
@@ -308,6 +316,7 @@ namespace OfficeIMO.Excel {
                     packageContentTypesKnownNormalized: true,
                     unchangedPackageBytes: unchangedPackageBytes,
                     persistenceMode: options.PersistenceMode);
+                document._packageCopyOnWriteStream = normalizedStream as ExcelCopyOnWriteStream;
                 document._sourceMaxCharactersInPart = effectiveOpenSettings.MaxCharactersInPart;
                 // The streaming readers apply neither setting, so those loads stay on the SDK route.
                 document._readSnapshotAllowed = effectiveOpenSettings.MaxCharactersInPart == 0

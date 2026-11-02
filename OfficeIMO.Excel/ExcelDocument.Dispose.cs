@@ -42,6 +42,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
+                        _packageCopyOnWriteStream?.Abandon();
                         this._spreadSheetDocument.Dispose();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
@@ -98,6 +99,7 @@ namespace OfficeIMO.Excel {
                             }
                         }
 
+                        _packageCopyOnWriteStream?.Abandon();
                         this._spreadSheetDocument.Dispose();
                     } catch (Exception ex) {
                         persistenceFailure = ex;

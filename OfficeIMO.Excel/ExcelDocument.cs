@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         private const int StreamBufferSize = 4096;
+        private ExcelCopyOnWriteStream? _packageCopyOnWriteStream;
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
 
