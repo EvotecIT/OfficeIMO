@@ -29,9 +29,14 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Sets the cached value of a cell. The typed property walks the schema particle, which allocates per call.</summary>
         internal static void SetValueText(Cell cell, string text) {
-            if (FindValue(cell) is { } value) value.Text = text;
-            else if (cell.FirstChild == null) cell.AppendChild(new CellValue(text));
-            else cell.CellValue = new CellValue(text);
+            if (FindValue(cell) is { } value) {
+                value.Text = text;
+                return;
+            }
+            // The value follows the formula and precedes an inline string or extension list, as the schema orders them.
+            CellFormula? formula = FindFormula(cell);
+            if (formula != null) cell.InsertAfter(new CellValue(text), formula);
+            else cell.PrependChild(new CellValue(text));
         }
 
         /// <summary>Finds the inline string of a cell through sibling links; the typed property allocates per call.</summary>
