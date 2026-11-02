@@ -126,6 +126,8 @@ namespace OfficeIMO.Excel {
                 };
                 bool changed = false;
                 bool allFormulasEvaluated = true;
+                bool passCompleted = false;
+                var recalculatedCells = new List<string>();
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
@@ -156,14 +158,19 @@ namespace OfficeIMO.Excel {
                             if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
                         }
                         ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = false;
-                        _excelDocument.MarkFormulaCellRecalculated(
-                            _worksheetPart,
-                            cell.CellReference?.Value ?? string.Empty,
-                            formulaInputMutationVersion);
+                        recalculatedCells.Add(cell.CellReference?.Value ?? string.Empty);
                         changed = true;
                         count++;
                     }
+                    passCompleted = true;
                 } finally {
+                    // A sheet whose every formula was evaluated is marked as a whole below, which answers each of its
+                    // cells as their own marks would; otherwise, or when the pass stops early, each cell keeps its mark.
+                    if (!passCompleted || !allFormulasEvaluated) {
+                        foreach (string reference in recalculatedCells) {
+                            _excelDocument.MarkFormulaCellRecalculated(_worksheetPart, reference, formulaInputMutationVersion);
+                        }
+                    }
                     _formulaEvaluationCache = previousCache;
                     _formulaCalculationContext = previousCalculationContext;
                     _formulaEvaluationDepthCache = previousDepthCache;
@@ -313,36 +320,36 @@ namespace OfficeIMO.Excel {
         }
 
         private void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
-            cell.ValueMetaIndex = null;
+            // Each write goes through the element's own value and type, which allocate nothing when unchanged; the
+            // typed setters would replace the value element and build a new attribute value on every pass.
+            if (cell.ValueMetaIndex != null) cell.ValueMetaIndex = null;
             if (result.IsError && TryWriteRichFormulaError(cell, result.ErrorCode)) return;
             if (result.IsBoolean) {
-                cell.CellValue = new CellValue(result.Number == 0 ? "0" : "1");
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
+                SetFormulaCachedText(cell, result.Number == 0 ? "0" : "1", DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean);
                 return;
             }
             if (!result.IsError && result.SourceCellKind == ExcelCellDataKind.Text && result.Text != null) {
-                cell.CellValue = new CellValue(result.Text);
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                SetFormulaCachedText(cell, result.Text, DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
                 return;
             }
             if (result.Number.HasValue) {
-                ExcelWorksheetScan.SetValueText(cell, InvariantNumberText.Get(result.Number.Value));
-                if (cell.DataType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
-                    cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
-                }
+                SetFormulaCachedText(cell, InvariantNumberText.Get(result.Number.Value), DocumentFormat.OpenXml.Spreadsheet.CellValues.Number);
                 return;
             }
 
             if (result.IsError) {
-                cell.CellValue = new CellValue(result.ErrorCode ?? "#VALUE!");
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
+                SetFormulaCachedText(cell, result.ErrorCode ?? "#VALUE!", DocumentFormat.OpenXml.Spreadsheet.CellValues.Error);
                 return;
             }
 
             if (result.Text != null) {
-                cell.CellValue = new CellValue(result.Text);
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                SetFormulaCachedText(cell, result.Text, DocumentFormat.OpenXml.Spreadsheet.CellValues.String);
             }
+        }
+
+        private static void SetFormulaCachedText(Cell cell, string text, DocumentFormat.OpenXml.Spreadsheet.CellValues type) {
+            ExcelWorksheetScan.SetValueText(cell, text);
+            if (cell.DataType?.Value != type) cell.DataType = type;
         }
 
         /// <summary>

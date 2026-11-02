@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, ExcelWorksheetScan.FindFormula(cell)!.Text, cached);
             }
 
-            if (ExcelWorksheetScan.FindValue(cell) == null && cell.InlineString == null) {
+            if (ExcelWorksheetScan.FindValue(cell) == null && ExcelWorksheetScan.FindInlineString(cell) == null) {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 

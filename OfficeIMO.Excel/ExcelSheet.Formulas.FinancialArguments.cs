@@ -17,7 +17,11 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFinancialSeries(string token, ref int budget, out List<FormulaArgumentValue> values) {
-            if (TryResolveFormulaRange(token, out values, ref budget, out bool isReference)) return true;
+            if (TryResolveFormulaRange(token, out IReadOnlyList<FormulaArgumentValue> range, ref budget, out bool isReference)) {
+                values = new List<FormulaArgumentValue>(range);
+                return true;
+            }
+            values = null!;
             if (isReference) return false;
             token = token.Trim();
             values = new List<FormulaArgumentValue>();

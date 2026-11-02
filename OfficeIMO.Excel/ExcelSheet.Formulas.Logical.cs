@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                 if (!TryResolveFormulaReferenceArgument(tokens[0], out ExcelSheet referenceSheet, out int referenceRow, out int referenceColumn))
                     return _formulaReferenceError.IsError;
 
-                bool isFormula = referenceSheet.TryGetDomCell(referenceRow, referenceColumn)?.CellFormula != null;
+                bool isFormula = referenceSheet.TryGetDomCell(referenceRow, referenceColumn) is { } formulaCell && ExcelWorksheetScan.FindFormula(formulaCell) != null;
                 result = FormulaArgumentValue.Boolean(isFormula);
                 return true;
             }

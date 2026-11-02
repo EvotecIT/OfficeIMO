@@ -34,6 +34,14 @@ namespace OfficeIMO.Excel {
             else cell.CellValue = new CellValue(text);
         }
 
+        /// <summary>Finds the inline string of a cell through sibling links; the typed property allocates per call.</summary>
+        internal static InlineString? FindInlineString(Cell cell) {
+            for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
+                if (child is InlineString inline) return inline;
+            }
+            return null;
+        }
+
         internal static void RemoveInlineString(Cell cell) {
             for (OpenXmlElement? child = cell.FirstChild; child != null; child = child.NextSibling()) {
                 if (child is InlineString) {

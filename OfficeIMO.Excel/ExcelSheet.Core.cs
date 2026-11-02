@@ -675,7 +675,7 @@ namespace OfficeIMO.Excel {
         internal string GetCellText(Cell cell) {
             // Shared string lookup
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
-                var raw = cell.CellValue?.InnerText;
+                var raw = ExcelWorksheetScan.FindValue(cell)?.InnerText;
                 if (!string.IsNullOrEmpty(raw) && TryParseCellTextSharedStringIndex(raw, out int id)) {
                     return BuildCellTextSharedStringSnapshot().Get(id) ?? string.Empty;
                 }
@@ -685,7 +685,7 @@ namespace OfficeIMO.Excel {
 
             // Inline string
             if (cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
-                var inline = cell.InlineString;
+                var inline = ExcelWorksheetScan.FindInlineString(cell);
                 if (inline != null) {
                     if (inline.Text != null) {
                         return inline.Text.Text ?? string.Empty;
@@ -700,7 +700,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Default: take cell value as-is (numbers, booleans, etc.)
-            return ResolveRichValueError(cell, cell.CellValue?.InnerText) ?? string.Empty;
+            return ResolveRichValueError(cell, ExcelWorksheetScan.FindValue(cell)?.InnerText) ?? string.Empty;
         }
 
         internal SharedStringCache BuildCellTextSharedStringSnapshot() {
