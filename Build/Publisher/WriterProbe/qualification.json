@@ -30963,8 +30963,9 @@
       "publisherAssemblySha256": "9f7dc8e95a6a53f4602798ef327ffc9fce4c6112166228c6b8fa81731ca10f73"
     },
     "nativeBinary": {
-      "version": "16.0.20527.20088",
-      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      "version": null,
+      "sha256": null,
+      "identityStatus": "Executable version/hash were not captured by the original scratch oracle."
     },
     "nativeFonts": [
       {
@@ -31141,7 +31142,15 @@
       "Default unassessed-loss diagnostics remain unchanged; this profile does not qualify public template-free creation or remove the explicit Allow requirement."
     ],
     "canClosePUB00": false,
-    "canClosePUB04": false
+    "canClosePUB04": false,
+    "binaryIdentityCorrection": {
+      "withdrawnAttribution": {
+        "version": "16.0.20527.20088",
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      },
+      "reason": "An earlier executable identity was carried forward without capture in this cohort. The original process/path, geometry, text and PDF observations remain evidence; their exact executable identity is unassessed.",
+      "currentOracle": "nativeOracleLifecycle captures executable version and SHA-256 in each operation receipt and report."
+    }
   },
   "rectangularTableCreation": {
     "scope": "Template-free unmerged borderless rectangular table specimens projected from the final canonical public model; multiple formatting pages share the source writer allocator and index encoding.",
@@ -31157,8 +31166,9 @@
       "OfficeIMO.Publisher/Internal/PublisherQuillStorageWriter.cs": "e19dab72f29f7f1718f88960f6aa2b96958cc1757930fa7283ffe05af3bff59c"
     },
     "nativeBinary": {
-      "version": "16.0.20527.20088",
-      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      "version": null,
+      "sha256": null,
+      "identityStatus": "Executable version/hash were not captured by the original scratch oracle."
     },
     "specimenRange": {
       "rows": [
@@ -31599,7 +31609,15 @@
       "Unassessed source-save diagnostics and explicit Allow requirement remain unchanged."
     ],
     "canClosePUB00": false,
-    "canClosePUB04": false
+    "canClosePUB04": false,
+    "binaryIdentityCorrection": {
+      "withdrawnAttribution": {
+        "version": "16.0.20527.20088",
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      },
+      "reason": "An earlier executable identity was carried forward without capture in this cohort. The original process/path, geometry, text and PDF observations remain evidence; their exact executable identity is unassessed.",
+      "currentOracle": "nativeOracleLifecycle captures executable version and SHA-256 in each operation receipt and report."
+    }
   },
   "sourceTableBounds": {
     "scope": "Public native source-save table movement and proportional fixed-track resizing with shared wrap-relationship admission.",
@@ -31616,8 +31634,9 @@
       "OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs": "b28e37c7f5c6253d009e50068d547a75100073a9cbf5f6f3483ab30a461cadda"
     },
     "nativeBinary": {
-      "version": "16.0.20527.20088",
-      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      "version": null,
+      "sha256": null,
+      "identityStatus": "Executable version/hash were not captured by the original scratch oracle."
     },
     "nativeFonts": {
       "arial.ttf": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
@@ -32090,6 +32109,620 @@
     ],
     "canClosePUB00": false,
     "canClosePUB03": false,
-    "canClosePUB04": false
+    "canClosePUB04": false,
+    "binaryIdentityCorrection": {
+      "withdrawnAttribution": {
+        "version": "16.0.20527.20088",
+        "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+      },
+      "reason": "An earlier executable identity was carried forward without capture in this cohort. The original process/path, geometry, text and PDF observations remain evidence; their exact executable identity is unassessed.",
+      "currentOracle": "nativeOracleLifecycle captures executable version and SHA-256 in each operation receipt and report."
+    }
+  },
+  "nativeOracleLifecycle": {
+    "schema": "officeimo.publisher.native-oracle-lifecycle.v1",
+    "scope": "Maintained comparison controller/worker for read-only inventory and PDF export, independent native authoring and separately requested native edit/save/reopen.",
+    "evidenceDate": "2026-11-02",
+    "baseRevision": "ec07aa22f9c41e26bcba03f943811ddc713b90c5",
+    "sourceFiles": {
+      "Build/Publisher/Invoke-NativePublisherOperation.ps1": "268cd63b18eb4f5147d3d86d7eae599350acfcc4a6f02f87541813a10f237e79",
+      "Build/Publisher/Invoke-NativeComparisonCase.ps1": "695a8f1c766bb968f7162900412502a5886dafdd13400213470cf2cb318d4d5f",
+      "Build/Publisher/New-NativeComparisonCorpus.ps1": "5e4b383c4fff8a8f8f9448bcae72b07fc8c37ae393e9ddec5351817f09fd2a6f",
+      "Build/Publisher/Get-NativeValidationArtifactNames.ps1": "b1252c4e773d1ade1b58f3a1f088d60168a42406484023a6eb506419abd22a72",
+      "Build/Publisher/Get-NativePublisherAutomationProcess.ps1": "c926bd03afa22bf41bea80a17a6343c912f9f45ff8e91dde68d5ef6e1317edb1",
+      "Build/Publisher/Get-NativePublisherProgress.ps1": "1160d6a5a6d7bfc0c4d4a6b568325a05266b4584c45584d0ed924463e5ed7a9c",
+      "Build/Publisher/Get-NativeTableCellInventory.ps1": "95b887c6faeefc5fc8b76585bf49b688a6e231fce13951d730056b03458fc0e7",
+      "Build/Publisher/Get-NativeShapeInventory.ps1": "793ef3a4307dc9c0af3e613ac78ba68144e4451658b061860641377a850df01e",
+      "Build/Publisher/Get-NativeInventory.ps1": "112a9b140cb07e4afa0af51f9392261cf9ac32afadfd247a6f09eabfae9fa6ef"
+    },
+    "sourceFingerprintSha256": "8f2d519e44c9bfc423f2c44548cfc290702888b925a4904972d24ba019d51fac",
+    "runtimes": {
+      "controllers": [
+        "Windows PowerShell 5.1.26100.9711",
+        "PowerShell 7.6.9"
+      ],
+      "nativeWorker": "PowerShell 7.6.9",
+      "policy": "The controller selects installed pwsh.exe from Windows PowerShell; direct native COM operations require PowerShell7.",
+      "productionDependency": "None. Microsoft Publisher and PowerShell7 are opt-in native qualification prerequisites, not engine dependencies."
+    },
+    "stages": {
+      "Inspect": [
+        "ReadOnlyOpen",
+        "InitialInventory"
+      ],
+      "Export": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport"
+      ],
+      "Resave": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory"
+      ],
+      "Full": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "optionalMutation": "NativeEditText in Full: exactly one ordinary unlinked physical text box."
+    },
+    "processContract": [
+      "An empty Publisher baseline precedes COM activation; the sole fresh same-session automation server requires both activation flags, matching start time and executable.",
+      "Available COM windows are checked against the identified server. Validation opens the copied input directly; only Corpus creates a blank publication.",
+      "Early executable version and SHA-256 are recorded. A changed executable fails qualification.",
+      "Increasing phase sequences support bounded inactivity waits within a total operation deadline.",
+      "Controller cleanup checks worker ownership and native PID/start ticks/executable; different or unidentified processes are preserved."
+    ],
+    "cases": [
+      {
+        "case": "first-export",
+        "stage": "Export",
+        "status": "OpenedReadOnlyInventoriedAndExported",
+        "candidateSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": null,
+        "nativeCellCoordinatesObserved": 4,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "4c35dc824cdc3ffcaded6b2365d8cbe31ffd0cf2e01bb1a9cb29611e03ac6836"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "ad230aac44b97ec88690f5d71147beec66b18246034847a55e942210dc66175c"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": false,
+        "nativeClosed": true
+      },
+      {
+        "case": "native-text-full",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeTextMutation",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": 1,
+        "nativeCellCoordinatesObserved": 0,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "9c704d18b331420512691ce4201367e78a1aa5c40bd1513652cdbe8dd140458b"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "6964c42cc9295e639a57c7488acc2c432e5e1038417aec1e5ce9e4be89d309df"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "53707d1a500033e2070d0ebdbd9209bc9f0b1d04971300048f8d0be92994582f"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "5227d1e44ad50245feaa81027d5ae72b6cfaeaaa1bced0535dc9640329cf37cf"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "69e00261e79bd064aeec46e79276de9df54e6a75e9ed76f2c2d89485ba3cb962"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": false,
+        "nativeClosed": true,
+        "nativeTextMutation": {
+          "shapeName": "MinimalText",
+          "before": "Publisher text\r",
+          "requested": "Native writer acceptance control",
+          "observed": "Native writer acceptance control"
+        }
+      },
+      {
+        "case": "generated-text-full",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "eda93a211b98438efc80dabe5dd0297babd45bb938549346525c9e2cf8783292",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeTextMutation",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": 1,
+        "nativeCellCoordinatesObserved": 0,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "eda93a211b98438efc80dabe5dd0297babd45bb938549346525c9e2cf8783292"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "bd51a0c1d65424ae71064b708d9507a554bac8224e804adb7b3d22542abb5d3a"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "122b6e67b4d234b635306e99a14c005d70fb461d55e96f9c3f2b738f3b104769"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "2343cee6abdd5906b662397ce6c540b75bffba39650e55c49bca1589d93699bd"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "b296a624f4cf53cdaf5cf23935d20f7c451514487cf560174c590626d99dca5a"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "ca33f5371865fa3f3645bbd7b621226e8bc8a0a544dc0f79bef3bb377886d978"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": false,
+        "nativeClosed": true,
+        "nativeTextMutation": {
+          "shapeName": "Text Box 1",
+          "before": "Template-free native acceptance\r",
+          "requested": "Edited template-free publication",
+          "observed": "Edited template-free publication"
+        }
+      },
+      {
+        "case": "large-export7",
+        "stage": "Export",
+        "status": "OpenedReadOnlyInventoriedAndExported",
+        "candidateSha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": null,
+        "nativeCellCoordinatesObserved": 96,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "b3b147edc01d02c193f4144122baebfb82e0113cf2e7deaa30edb29f12d61023"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "99cf0135436a0dfb4555df134f8a6a24bbcb7b1fcc4a8289aac926685a72c6ef"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": false,
+        "nativeClosed": true
+      },
+      {
+        "case": "large-export51-routed2",
+        "stage": "Export",
+        "status": "OpenedReadOnlyInventoriedAndExported",
+        "candidateSha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "powershell": "7.6.9",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": null,
+        "nativeCellCoordinatesObserved": 96,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "67efe14a13cf6eaf5fa307945ed0a7d61adf189787b27cbed2fc7fe470b60901"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "6f54f3f015dcb54813b6ca2d829c83ff9d22bde5459b67bcda31d1af51656e77"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": false,
+        "nativeClosed": true
+      },
+      {
+        "case": "newsletter-full",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "13eac7444db9b2d7ccca2c7a9170572a5300836691bd7b636a3ec53698b9d74c",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "powershell": "7.6.9",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory",
+          "ResavedPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 3,
+        "resavedPages": 3,
+        "nativeCellCoordinatesObserved": 4,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "13eac7444db9b2d7ccca2c7a9170572a5300836691bd7b636a3ec53698b9d74c"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "75130655e22f56f71c2e1eb8e3288e84b591af4d3572fc0ee836a2232b18229d"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "66fb4125eea471216efcf9a40837bdd547aaf83e12fb33aab22a35ddee78380d"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "25dc32de4a05f1131987ae65b51fed1fa64fd43a14c9829ccb0ad0361d576204"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "55ac5e8c88e1bc80d212ad3ff5ba98694d57b7848e0019dbf4c6d6c188e3c8c3"
+          },
+          {
+            "name": "native-resaved.pdf",
+            "sha256": "996002b272cb08579fc23d6f2b176073015d57963c09cd2e69e6f069de669ac0"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": true,
+        "nativeClosed": true
+      },
+      {
+        "case": "final-export51",
+        "stage": "Export",
+        "status": "OpenedReadOnlyInventoriedAndExported",
+        "candidateSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "powershell": "7.6.9",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "InitialPdfExport"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": null,
+        "nativeCellCoordinatesObserved": 4,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "7496f37585ecacec22d1be013b9095f4b038a326884b967c2a706462f52a03ae"
+          },
+          {
+            "name": "native-initial.pdf",
+            "sha256": "c38cb05e3426dbb768e0379f5bc6d26580ca9ddefadfef720093bb18cdb6a7e2"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": true,
+        "nativeClosed": true
+      },
+      {
+        "case": "final-inspect",
+        "stage": "Inspect",
+        "status": "OpenedReadOnlyAndInventoried",
+        "candidateSha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "powershell": "7.6.9",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": null,
+        "nativeCellCoordinatesObserved": 4,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "ed1d3b526f5add13e3f259192c4a5a7284a087c8f3f513584d2298c88e6a8863"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "5cbdaead1d553301d74c7dc3a67c799eab44b52284e98cda76cd765179873666"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": true,
+        "nativeClosed": true
+      },
+      {
+        "case": "large-resave",
+        "stage": "Resave",
+        "status": "OpenedResavedAndReopened",
+        "candidateSha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f",
+        "producer": {
+          "name": "Microsoft Publisher",
+          "version": "16.0",
+          "executableVersion": "16.0.20527.20112",
+          "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+          "powershell": "7.6.9",
+          "automationSecurity": 3
+        },
+        "qualifiedOperations": [
+          "ReadOnlyOpen",
+          "InitialInventory",
+          "NativeSaveAs",
+          "ReadOnlyReopen",
+          "ResavedInventory"
+        ],
+        "sourceUnchanged": true,
+        "initialPages": 1,
+        "resavedPages": 1,
+        "nativeCellCoordinatesObserved": 96,
+        "files": [
+          {
+            "name": "candidate-input.pub",
+            "sha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f"
+          },
+          {
+            "name": "native-initial-inventory.json",
+            "sha256": "0a4f5158970fdca5b4cf2a20e6313f14f6b05ed0accc31c07bb9f87ffc2b0c9b"
+          },
+          {
+            "name": "native-resaved.pub",
+            "sha256": "a8f37e53a2d552850d64ec5ef8bae35bfa218166de35c33d1dcfb2ba2d872daa"
+          },
+          {
+            "name": "native-resaved-inventory.json",
+            "sha256": "2291e3a525a59eae17e2e9439c15b31bd77c4a054b8d0ef046cee9bbb85062ae"
+          }
+        ],
+        "earlyExecutableReceiptCaptured": true,
+        "nativeClosed": true
+      }
+    ],
+    "nativeBlankProduction": {
+      "status": "Produced",
+      "producer": {
+        "name": "Microsoft Publisher",
+        "version": "16.0",
+        "executableVersion": "16.0.20527.20112",
+        "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+        "powershell": "7.6.9",
+        "culture": "pl-PL",
+        "textFont": {
+          "family": "Arial",
+          "file": "arial.ttf",
+          "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+        },
+        "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+        "automationSecurity": 3
+      },
+      "files": {
+        "publication": {
+          "name": "native-blank.pub",
+          "sha256": "2b40295701e7eb70a43d46c75d165b9c4de06e7e209eb962d60f25a9f0421e0a"
+        },
+        "reference": {
+          "name": "native-blank.pdf",
+          "sha256": "831065437357b5d6f734e228676a99dc2ba83b82e47710d32a148336abcc8333"
+        }
+      }
+    },
+    "nativeSavePreservation": {
+      "newsletter": {
+        "storiesAndCellTextRetained": true,
+        "tableGeometryRetained": true,
+        "pixelPairs": [
+          {
+            "page": 1,
+            "pixelIdentical": true,
+            "differenceBounds": null
+          },
+          {
+            "page": 2,
+            "pixelIdentical": true,
+            "differenceBounds": null
+          },
+          {
+            "page": 3,
+            "pixelIdentical": true,
+            "differenceBounds": null
+          }
+        ]
+      },
+      "managedReadback": {
+        "publisherAssemblySha256": "4ae8d4a36fecd3916c4e5dcfe07924949a60acc015711d484bf05a8f77ec3581",
+        "cases": [
+          {
+            "kind": "native-text-full",
+            "pages": 1,
+            "stories": 1,
+            "nativeMutationOrPreservationRecovered": true,
+            "sha256": "6964c42cc9295e639a57c7488acc2c432e5e1038417aec1e5ce9e4be89d309df"
+          },
+          {
+            "kind": "generated-text-full",
+            "pages": 1,
+            "stories": 1,
+            "nativeMutationOrPreservationRecovered": true,
+            "sha256": "122b6e67b4d234b635306e99a14c005d70fb461d55e96f9c3f2b738f3b104769"
+          },
+          {
+            "kind": "newsletter-full",
+            "pages": 3,
+            "stories": 6,
+            "nativeMutationOrPreservationRecovered": true,
+            "sha256": "66fb4125eea471216efcf9a40837bdd547aaf83e12fb33aab22a35ddee78380d"
+          },
+          {
+            "kind": "large-resave",
+            "pages": 1,
+            "stories": 2,
+            "nativeMutationOrPreservationRecovered": true,
+            "sha256": "a8f37e53a2d552850d64ec5ef8bae35bfa218166de35c33d1dcfb2ba2d872daa"
+          }
+        ]
+      },
+      "visualInspection": "Native text before/after edit and newsletter initial/resaved pages inspected; text is legible and unclipped. All three newsletter resave pairs are pixel-identical.",
+      "largeTable": {
+        "cells": 96,
+        "allCellTextAndTracksPreservedAcrossNativeResave": true
+      }
+    },
+    "guards": {
+      "existingArtifactRefused": true,
+      "sentinelPreserved": true,
+      "existingPublisherRefusedAndPreserved": true,
+      "ownedNativeClosed": true
+    },
+    "measuredRuntimeFailure": {
+      "runtime": "Direct Windows PowerShell5.1 native worker, before runtime isolation",
+      "inputSha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f",
+      "stage": "InitialPdfExport",
+      "observation": "Read-only open and all 96-cell inventory completed; PDF export made no phase progress for 45 seconds.",
+      "cleanup": "StoppedAfterPhaseTimeout; exact recorded native process stopped; no export acceptance inferred.",
+      "qualifiedRoute": "The same input completes Export using PowerShell7, including when the controller is Windows PowerShell5.1."
+    },
+    "binaryAttributionCorrection": {
+      "affectedEarlierCohorts": [
+        "newsletterSourceSaveLifecycle",
+        "rectangularTableCreation",
+        "sourceTableBounds"
+      ],
+      "status": "Their carried-forward .20088 executable attribution is withdrawn; original geometry/text/PDF observations remain, with exact original runtime identity unassessed.",
+      "currentCapturedRuntime": {
+        "version": "16.0.20527.20112",
+        "sha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+        "createdUtc": "2026-11-02T06:01:13.3398497Z",
+        "writtenUtc": "2026-11-02T06:01:13.4494507Z"
+      },
+      "causality": "Current author/edit/save success occurs on the updated .20112 binary and the changed startup path. No claim attributes the result solely to one change."
+    },
+    "reproduction": [
+      "pwsh ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Export -InputPath ./candidate.pub -OutputDirectory ./native-export -TimeoutSeconds 180 -PhaseTimeoutSeconds 45",
+      "powershell ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Export -InputPath ./candidate.pub -OutputDirectory ./native-export51",
+      "pwsh ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./candidate-text.pub -OutputDirectory ./native-full -NativeEditText \"Edited template-free publication\""
+    ],
+    "limits": [
+      "Native repair status remains unassessed; repair-positive control/recovery-path qualification is still required by PUB00.",
+      "Native text mutation covers one ordinary unlinked text box. Newsletter native save/reopen does not assert native cell/layout edits.",
+      "Read-only Export qualifies only its listed operations. Partial observations from failed stages are not stage completion.",
+      "Native rendering equivalence, broader profiles, earlier-generation lifecycle and Print dispatch remain separate.",
+      "Public source-free native creation remains refused; this record does not promote the experimental codec."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
   }
 }

@@ -684,11 +684,43 @@ isolated byte-identical copy:
     -OutputDirectory ./candidate-native
 ```
 
-`Inspect` stops after open and inventory; `Resave` also saves and reopens;
-`Full` includes both PDF exports. Partial stages prove only their listed
+`Inspect` stops after read-only open and inventory; `Export` also writes the
+initial PDF without opening a writable document; `Resave` saves and reopens;
+`Full` includes both PDF exports. Validation opens the copied candidate directly
+without creating a blank publication. Partial stages prove only their listed
 operations. A completed Full report does not establish that Publisher performed
 no repair: that needs direct native UI evidence or an independently qualified
-repair-path observation. The qualification record's `observations.diagnosticObservation`
+repair-path observation.
+
+The controller runs in Windows PowerShell 5.1 or PowerShell 7 and uses an
+installed PowerShell 7 worker for native COM operations. Direct Windows
+PowerShell COM export stalled in the measured 96-cell case; the controller's
+PowerShell 7 route completes that same export. Each operation has a total
+`TimeoutSeconds` bound and a `PhaseTimeoutSeconds` inactivity bound. Monotonic
+phase receipts record progress. The worker identifies its isolated automation
+server before document work, records the executable version/hash, cross-checks
+available COM windows and detects executable changes during qualification.
+Cleanup targets only its recorded PID, start time and executable.
+
+```powershell
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate `
+    -Stage Export -InputPath ./candidate.pub -OutputDirectory ./native-export `
+    -TimeoutSeconds 180 -PhaseTimeoutSeconds 45
+```
+
+`nativeOracleLifecycle` records fresh observations on Publisher
+16.0.20527.20112: native blank creation; text mutation/save/reopen on an
+independent control and a template-free text specimen; complete story and table
+preservation through newsletter save/reopen; and 96-cell export and native
+save/reopen with every cell text and track retained.
+All three newsletter initial/resaved page pairs are pixel-identical. These
+results qualify their listed operations and profiles. Public template-free
+creation, repair-free acceptance and broader lifecycle coverage remain separate.
+Three recent scratch cohorts carried an earlier executable identity without
+capturing it; their `binaryIdentityCorrection` entries withdraw that attribution
+while retaining the recorded geometry, text and PDF observations.
+
+The qualification record's `observations.diagnosticObservation`
 captures six selected diagnostic/consent sites for the exact combined candidate.
 A native blank preserves its inventories and both 144 dpi page comparisons under
 capture; a one-byte signature-invalid copy produces a severity-4 diagnostic and

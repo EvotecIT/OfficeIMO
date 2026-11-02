@@ -5,7 +5,7 @@ Creates one independent native Publisher comparison case.
 Internal worker for New-NativeComparisonCorpus.ps1. Run the controller instead:
 it supplies the deadline and preserves uncertain processes on startup failures.
 Corpus content is synthetic, fonts/colors are explicit, and macros stay disabled.
-Candidate validation performs only its requested Inspect, Resave or Full stage;
+Candidate validation performs only its requested Inspect, Export, Resave or Full stage;
 inventories are persisted before PDF exports and repair remains unassessed.
 NativeEditText optionally replaces the sole unlinked physical text box before
 native save-as during Validate/Full; it never modifies the original input.
@@ -20,7 +20,7 @@ param(
 
     [string] $InputPath,
 
-    [ValidateSet('Inspect', 'Resave', 'Full')]
+    [ValidateSet('Inspect', 'Export', 'Resave', 'Full')]
     [string] $Stage = 'Full',
 
     [AllowEmptyString()]
@@ -50,6 +50,9 @@ if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full'))
 }
 if ($env:OS -ne 'Windows_NT' -or [Threading.Thread]::CurrentThread.ApartmentState -ne 'STA') {
     throw 'Run the corpus controller on Windows; this worker requires an STA process.'
+}
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw 'Native COM operations require the PowerShell 7 worker selected by the controller.'
 }
 $workerIdentity = Get-CimInstance -ClassName Win32_Process -Filter ('ProcessId=' + $PID) -ErrorAction Stop
 $controllerIdentity = Get-Process -Id $ControllerProcessId -ErrorAction Stop
@@ -114,6 +117,7 @@ $ownedProcess = $null
 $nativeVerified = $false
 $primaryFailure = $false
 $phase = 'ApplicationStartup'
+$phaseSequence = 0
 $objects = [Collections.Generic.List[object]]::new()
 $phaseReceiptFailures = [Collections.Generic.List[string]]::new()
 $expectedShapes = [Collections.Generic.List[object]]::new()
@@ -163,14 +167,20 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeFallbackAlignmentControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeTableGeometry.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativeTableCellInventory.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativeShapeInventory.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativeInventory.ps1')
 . (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativePublisherAutomationProcess.ps1')
 
 function Set-NativePhase {
     param([string] $Value)
     $script:phase = $Value
+    $script:phaseSequence++
     try {
         if ($nativeVerified) {
             $processReceipt.phase = $Value
+            $processReceipt.phaseSequence = $phaseSequence
             Write-NativePublisherPhaseReceipt -Path $ReceiptPath -Value $processReceipt
         } else {
             $startup = [ordered]@{
@@ -178,6 +188,7 @@ function Set-NativePhase {
                 workerProcessId = $PID
                 controllerProcessId = $ControllerProcessId
                 phase = $Value
+                phaseSequence = $phaseSequence
                 nativeProcessIdentified = $false
             }
             [IO.File]::WriteAllText(($ReceiptPath + '.startup.json'), ($startup | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
@@ -208,166 +219,17 @@ function Register-NativeWindowIdentity {
     [uint32]$nativeId = 0
     [void][PublisherCorpusNativeWindow]::GetWindowThreadProcessId([IntPtr]([long]$window.hWnd), [ref]$nativeId)
     $nativeProcess = Get-Process -Id $nativeId -ErrorAction Stop
-    if ($nativeProcess.ProcessName -ne 'MSPUB' -or $nativeProcess.StartTime.ToUniversalTime() -lt $operationStart.AddSeconds(-1)) {
-        throw 'The COM window does not identify a newly started Publisher process; no application shutdown is attempted.'
+    try {
+        if (-not $nativeVerified -or $nativeId -ne $ownedProcess.Id -or
+            $nativeProcess.StartTime.ToUniversalTime().Ticks -ne $ownedProcess.StartTime.ToUniversalTime().Ticks -or
+            $nativeProcess.Path -ine $ownedProcess.Path) {
+            throw 'The COM window does not match the recorded isolated Publisher automation server.'
+        }
+    } finally {
+        $nativeProcess.Dispose()
     }
-    $script:ownedProcess = $nativeProcess
-    $script:nativeVerified = $true
-    $script:processReceipt = [ordered]@{
-        workerProcessId = $PID
-        processId = $nativeId
-        startTimeUtcTicks = $nativeProcess.StartTime.ToUniversalTime().Ticks.ToString([Globalization.CultureInfo]::InvariantCulture)
-        executable = $nativeProcess.Path
-        case = $Case
-        phase = 'ApplicationIdentified'
-        operationSucceeded = $false
-    }
-    [IO.File]::WriteAllText($ReceiptPath, ($processReceipt | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
     $window.Visible = $false
     return $true
-}
-
-function Get-NativeShapeInventory {
-    # Read the same supported shape fields on physical and master pages, so
-    # master markers have independent native geometry and text observations.
-    param($Page)
-    $nativeShapes = [Collections.Generic.List[object]]::new()
-    for ($shapeIndex = 1; $shapeIndex -le $Page.Shapes.Count; $shapeIndex++) {
-        $shape = $Page.Shapes.Item($shapeIndex)
-        $objects.Add($shape)
-        $text = $null
-        $font = $null
-        $languageId = $null
-        $pairKerningThreshold = $null
-        $manualKerning = $null
-        $fontSizePoints = $null
-        $nextLink = $false
-        $previousLink = $false
-        $frameLayout = $null
-        $picture = $null
-        $tableGeometry = $null
-        if ($shape.HasTextFrame -eq -1) {
-            $frame = $shape.TextFrame
-            $range = $frame.TextRange
-            $objects.Add($frame)
-            $objects.Add($range)
-            $text = [string]$range.Text
-            $font = [string]$range.Font.Name
-            $languageId = [int]$range.LanguageID
-            $fontProperties = $range.Font
-            $objects.Add($fontProperties)
-            $pairKerningThreshold = [double]$fontProperties.AutomaticPairKerningThreshold
-            $manualKerning = [double]$fontProperties.Kerning
-            $fontSizePoints = [double]$fontProperties.Size
-            $nextLink = $frame.HasNextLink -eq -1
-            $previousLink = $frame.HasPreviousLink -eq -1
-            $frameLayout = [pscustomobject]@{
-                columns = [int]$frame.Columns; columnSpacing = [double]$frame.ColumnSpacing
-                left = [double]$frame.MarginLeft; top = [double]$frame.MarginTop
-                right = [double]$frame.MarginRight; bottom = [double]$frame.MarginBottom
-                verticalAlignment = [int]$frame.VerticalTextAlignment
-            }
-        }
-        if ($shape.Type -eq 13) {
-            $format = $shape.PictureFormat
-            $objects.Add($format)
-            if ($format.IsEmpty -eq 0) {
-                $picture = [pscustomobject]@{
-                    fileName = [string]$format.FileName
-                    isLinked = $format.IsLinked -ne 0
-                    cropPoints = [pscustomobject]@{
-                        left = [double]$format.CropLeft
-                        top = [double]$format.CropTop
-                        right = [double]$format.CropRight
-                        bottom = [double]$format.CropBottom
-                    }
-                }
-            }
-        }
-        if ($shape.Type -eq 18) { $tableGeometry = Get-NativeTableGeometry $shape }
-        $nativeShapes.Add([pscustomobject]@{
-            name = [string]$shape.Name
-            type = [int]$shape.Type
-            left = [double]$shape.Left
-            top = [double]$shape.Top
-            width = [double]$shape.Width
-            height = [double]$shape.Height
-            text = $text
-            font = $font
-            languageId = $languageId
-            automaticPairKerningThresholdPoints = $pairKerningThreshold
-            manualKerningPoints = $manualKerning
-            fontSizePoints = $fontSizePoints
-            nextLink = $nextLink
-            previousLink = $previousLink
-            frameLayout = $frameLayout
-            picture = $picture
-            tableGeometry = $tableGeometry
-        })
-    }
-    return $nativeShapes.ToArray()
-}
-
-function Get-NativeInventory {
-    param($Publication)
-    $nativePages = [Collections.Generic.List[object]]::new()
-    for ($pageIndex = 1; $pageIndex -le $Publication.Pages.Count; $pageIndex++) {
-        $currentPage = $Publication.Pages.Item($pageIndex)
-        $objects.Add($currentPage)
-        $masterInfo = $null
-        $masterStatus = 'None'
-        $masterError = $null
-        try {
-            $master = $currentPage.Master
-            if ($null -ne $master) {
-                $objects.Add($master)
-                $masterInfo = [pscustomobject]@{ pageId = [int]$master.PageID; name = [string]$master.Name }
-                $masterStatus = 'Observed'
-            }
-        } catch {
-            $masterStatus = 'Unavailable'
-            $masterError = $_.Exception.HResult
-        }
-        $nativePages.Add([pscustomobject]@{
-            index = $pageIndex
-            pageId = [int]$currentPage.PageID
-            pageIndex = [int]$currentPage.PageIndex
-            pageNumber = [string]$currentPage.PageNumber
-            pageType = [int]$currentPage.PageType
-            name = [string]$currentPage.Name
-            masterStatus = $masterStatus
-            master = $masterInfo
-            masterErrorHResult = $masterError
-            ignoreMaster = [bool]$currentPage.IgnoreMaster
-            shapes = @(Get-NativeShapeInventory $currentPage)
-        })
-    }
-    $nativeMasters = [Collections.Generic.List[object]]::new()
-    for ($masterIndex = 1; $masterIndex -le $Publication.MasterPages.Count; $masterIndex++) {
-        $masterPage = $Publication.MasterPages.Item($masterIndex)
-        $objects.Add($masterPage)
-        # Page.Master is intentionally not read on a master: the documented API
-        # rejects it. Native master definitions remain separate from Pages.
-        $nativeMasters.Add([pscustomobject]@{
-            index = $masterIndex
-            pageId = [int]$masterPage.PageID
-            pageIndex = [int]$masterPage.PageIndex
-            pageType = [int]$masterPage.PageType
-            name = [string]$masterPage.Name
-            isTwoPageMaster = [bool]$masterPage.IsTwoPageMaster
-            shapeCount = [int]$masterPage.Shapes.Count
-            shapes = @(Get-NativeShapeInventory $masterPage)
-        })
-    }
-    return [pscustomobject]@{
-        pageCount = [int]$Publication.Pages.Count
-        widthPoints = [double]$Publication.PageSetup.PageWidth
-        heightPoints = [double]$Publication.PageSetup.PageHeight
-        readOnly = [bool]$Publication.ReadOnly
-        defaultTabStopPoints = [double]$Publication.DefaultTabStop
-        pages = $nativePages.ToArray()
-        masterPages = $nativeMasters.ToArray()
-    }
 }
 
 function Add-TextFrame {
@@ -421,13 +283,31 @@ function New-ReferencePicture {
 try {
     Set-NativePhase 'ActivateApplication'
     $application = New-Object -ComObject Publisher.Application
+    Set-NativePhase 'IdentifyAutomationProcess'
+    $ownedProcess = Get-NativePublisherAutomationProcess -StartedAfterUtc $operationStart
+    $processReceipt = [ordered]@{
+        schema = 'officeimo.publisher.native-process.v1'
+        workerProcessId = $PID
+        controllerProcessId = $ControllerProcessId
+        processId = $ownedProcess.Id
+        startTimeUtcTicks = $ownedProcess.StartTime.ToUniversalTime().Ticks.ToString([Globalization.CultureInfo]::InvariantCulture)
+        executable = $ownedProcess.Path
+        executableVersion = (Get-Item -LiteralPath $ownedProcess.Path).VersionInfo.FileVersion
+        executableSha256 = (Get-FileHash -LiteralPath $ownedProcess.Path -Algorithm SHA256).Hash.ToLowerInvariant()
+        case = $Case
+        phase = 'ApplicationIdentified'
+        phaseSequence = $phaseSequence
+        identitySource = 'NewIsolatedAutomationServer'
+        workerPowerShellVersion = $PSVersionTable.PSVersion.ToString()
+        operationSucceeded = $false
+    }
+    Write-NewNativeJson -Path $ReceiptPath -Value $processReceipt
+    $nativeVerified = $true
     Set-NativePhase 'SetAutomationSecurity'
     $application.AutomationSecurity = 3
-    Set-NativePhase 'ObserveWindowBeforeDocument'
-    $identifiedBeforeDocument = Register-NativeWindowIdentity -AllowNoWindow
-    Set-NativePhase 'CreateDocument'
-    $document = $application.NewDocument()
-    if (-not $identifiedBeforeDocument) {
+    if ($Operation -eq 'Corpus') {
+        Set-NativePhase 'CreateDocument'
+        $document = $application.NewDocument()
         Set-NativePhase 'ObserveWindowAfterDocument'
         $null = Register-NativeWindowIdentity
     }
@@ -453,12 +333,12 @@ try {
         if ((Get-FileHash -LiteralPath $snapshot -Algorithm SHA256).Hash.ToLowerInvariant() -ne $candidateHash) {
             throw 'The candidate changed while taking the qualification snapshot.'
         }
-        $document.Close()
-        $document = $null
         Set-NativePhase 'OpenCandidateReadOnly'
         $document = $application.Open($snapshot, $true, $false)
+        Set-NativePhase 'ObserveCandidateWindow'
+        $null = Register-NativeWindowIdentity -AllowNoWindow
         Set-NativePhase 'InitialInventory'
-        $initialInventory = Get-NativeInventory $document
+        $initialInventory = Get-NativeInventory -Publication $document -Objects $objects
         if (-not $initialInventory.readOnly) {
             throw 'Publisher did not open the initial candidate read-only.'
         }
@@ -467,7 +347,9 @@ try {
         $producer = [ordered]@{
             name = 'Microsoft Publisher'
             version = [string]$application.Version
-            executableVersion = (Get-Item -LiteralPath $ownedProcess.Path).VersionInfo.FileVersion
+            executableVersion = $processReceipt.executableVersion
+            executableSha256 = $processReceipt.executableSha256
+            powershell = $PSVersionTable.PSVersion.ToString()
             automationSecurity = 3
         }
         # Persist the observed input before an export can crash the application.
@@ -483,7 +365,7 @@ try {
             repairStatus = $repairStatus
             inventory = $initialInventory
         })
-        if ($Stage -eq 'Full') {
+        if ($Stage -in @('Export', 'Full')) {
             Set-NativePhase 'InitialPdfExport'
             $document.ExportAsFixedFormat(2, $initialPdf)
             $qualifiedOperations.Add('InitialPdfExport')
@@ -496,7 +378,7 @@ try {
         }
         $resavedInventory = $null
         $nativeTextMutation = $null
-        if ($Stage -ne 'Inspect') {
+        if ($Stage -in @('Resave', 'Full')) {
             # Only this task-owned snapshot is opened writable. The original
             # candidate remains outside the native application's mutation path.
             Set-NativePhase 'OpenSnapshotWritable'
@@ -549,7 +431,7 @@ try {
             Set-NativePhase 'ReopenNativeResave'
             $document = $application.Open($resaved, $true, $false)
             Set-NativePhase 'ResavedInventory'
-            $resavedInventory = Get-NativeInventory $document
+            $resavedInventory = Get-NativeInventory -Publication $document -Objects $objects
             if (-not $resavedInventory.readOnly) {
                 throw 'Publisher did not reopen the native resave read-only.'
             }
@@ -597,6 +479,8 @@ try {
         $status = 'OpenedExportedResavedAndReopened'
         if ($Stage -eq 'Inspect') {
             $status = 'OpenedReadOnlyAndInventoried'
+        } elseif ($Stage -eq 'Export') {
+            $status = 'OpenedReadOnlyInventoriedAndExported'
         } elseif ($Stage -eq 'Resave') {
             $status = 'OpenedResavedAndReopened'
         }
@@ -622,7 +506,7 @@ try {
         Set-NativePhase 'Shutdown'
         return
     }
-    $phase = 'AuthorCorpusCase'
+    Set-NativePhase 'AuthorCorpusCase'
     $document.PageSetup.PageWidth = $width
     $document.PageSetup.PageHeight = $height
     $page = $document.Pages.Item(1)
@@ -903,7 +787,7 @@ try {
         throw ('Native page count differs from the declared contract: ' + $document.Pages.Count)
     }
     Set-NativePhase 'InventoryCorpusCase'
-    $inventory = Get-NativeInventory $document
+    $inventory = Get-NativeInventory -Publication $document -Objects $objects
     if ($null -ne $layout) {
         foreach ($assignment in $layout.masterAssignments) {
             $observed = $inventory.pages[$assignment.pageIndex - 1]
@@ -919,7 +803,7 @@ try {
     $document.ExportAsFixedFormat(2, $reference)
     Set-NativePhase 'ObserveCorpusProducer'
     $producerVersion = [string]$application.Version
-    $executableVersion = (Get-Item -LiteralPath $ownedProcess.Path).VersionInfo.FileVersion
+    $executableVersion = $processReceipt.executableVersion
     # Publisher holds an exclusive stream handle until Close. Capture native
     # observations first, then close before hashing the exact output bytes.
     Set-NativePhase 'CloseCorpusCase'
@@ -944,6 +828,7 @@ try {
             name = 'Microsoft Publisher'
             version = $producerVersion
             executableVersion = $executableVersion
+            executableSha256 = $processReceipt.executableSha256
             powershell = $PSVersionTable.PSVersion.ToString()
             culture = [Globalization.CultureInfo]::CurrentCulture.Name
             textFont = $font
@@ -1029,7 +914,7 @@ try {
         $contract.files.sourceImage = [ordered]@{ name = [IO.Path]::GetFileName($sourceImage); sha256 = (Get-FileHash -LiteralPath $sourceImage -Algorithm SHA256).Hash.ToLowerInvariant() }
     }
     Write-NewNativeJson -Path $contractPath -Value $contract
-    $phase = 'Shutdown'
+    Set-NativePhase 'Shutdown'
 } catch {
     $primaryFailure = $true
     $failure = [ordered]@{
@@ -1052,6 +937,16 @@ try {
     [Console]::Error.WriteLine(('Native {0} failed during {1}: {2}' -f $Operation, $phase, $_.Exception.Message))
 } finally {
     $cleanupFailures = [Collections.Generic.List[string]]::new()
+    if ($nativeVerified) {
+        try {
+            $currentBinaryHash = (Get-FileHash -LiteralPath $processReceipt.executable -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($currentBinaryHash -ne $processReceipt.executableSha256) {
+                throw 'The Publisher executable changed during qualification; its runtime attribution is unassessed.'
+            }
+        } catch {
+            $cleanupFailures.Add('Executable identity: ' + $_.Exception.Message)
+        }
+    }
     if ($null -ne $document -and $nativeVerified) {
         try {
             Set-NativePhase 'CloseDocument'

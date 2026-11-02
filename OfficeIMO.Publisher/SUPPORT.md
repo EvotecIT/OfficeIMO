@@ -191,6 +191,20 @@ repair-free opening, general native edit acceptance or opaque semantic preservat
 The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
 records the independently qualified source-edit specimens.
 
+The `nativeOracleLifecycle` record adds native Publisher 16.0.20527.20112
+mutation/save/reopen evidence for an independent text control and a template-free
+text specimen. A three-page generated newsletter retains its complete stories,
+table observations and all three PDF page images across native save/reopen.
+OfficeIMO's public reader recovers the native text mutations and the newsletter's
+complete stories and cells from those resaved files. The comparison controller
+also provides a read-only inventory/PDF stage. The generated 96-cell grid retains
+all cell text and tracks through native save/reopen and public managed reading.
+Native COM operations use PowerShell 7; the controller also runs under Windows
+PowerShell 5.1. This is qualification tooling, not a product runtime requirement.
+Repair-free opening, public template-free creation and broader native edit/resave
+coverage remain unqualified. Recent scratch cohorts whose executable identity
+was not captured are labelled explicitly in their qualification records.
+
 Paragraph counts can increase or decrease from a uniform source: every source
 paragraph has one run, matching projected formatting, byte-identical native
 paragraph definitions and matching body/intermediate-CR definitions. Added

@@ -43,6 +43,8 @@ TableCellTypingEarlyRange isolates ranges captured before text assignment on two
 TableCellParagraphs records first/final/all cell paragraph growth on one page.
 .PARAMETER TimeoutSeconds
 Maximum elapsed time per case, including application startup, save and shutdown.
+.PARAMETER PhaseTimeoutSeconds
+Maximum time without a new worker phase, within the total case deadline.
 .EXAMPLE
 ./Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory D:/Scratch/publisher-controls
 .EXAMPLE
@@ -50,8 +52,9 @@ Maximum elapsed time per case, including application startup, save and shutdown.
 .OUTPUTS
 One summary object per case. corpus-manifest.json records the selected case contracts.
 .NOTES
-Only the worker and a Publisher process identified by its COM window and exact
-start time are eligible for forced cleanup. A startup hang before that identity
+Only the worker and a Publisher process identified as its isolated automation
+server, with an exact start time and executable, are eligible for forced cleanup.
+A startup hang before that identity
 is recorded leaves Publisher ownership uncertain and reports the gap.
 #>
 [CmdletBinding()]
@@ -63,7 +66,10 @@ param(
     [string[]] $Case = @('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement'),
 
     [ValidateRange(10, 600)]
-    [int] $TimeoutSeconds = 90
+    [int] $TimeoutSeconds = 90,
+
+    [ValidateRange(10, 600)]
+    [int] $PhaseTimeoutSeconds = 45
 )
 
 $ErrorActionPreference = 'Stop'
@@ -93,7 +99,7 @@ $controllerPath = Join-Path $PSScriptRoot 'Invoke-NativePublisherOperation.ps1'
 $results = [Collections.Generic.List[object]]::new()
 
 foreach ($selected in $Case) {
-    $contract = & $controllerPath -Operation Corpus -Case $selected -OutputDirectory $output -TimeoutSeconds $TimeoutSeconds
+    $contract = & $controllerPath -Operation Corpus -Case $selected -OutputDirectory $output -TimeoutSeconds $TimeoutSeconds -PhaseTimeoutSeconds $PhaseTimeoutSeconds
     if ($contract.case -ne $selected -or $contract.status -ne 'Produced') {
         throw ('The completed case {0} has no valid producer contract.' -f $selected)
     }

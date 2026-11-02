@@ -3,10 +3,13 @@
 Runs one bounded, isolated native Publisher qualification operation.
 .DESCRIPTION
 Shared process owner for comparison-corpus production and candidate validation.
-The worker disables macros and identifies its own Publisher process through the
-COM window before authoring or opening the candidate. Existing Publisher sessions
+The worker disables macros and identifies its sole newly activated Publisher
+automation server before authoring or opening the candidate, then cross-checks
+any available COM window. Existing Publisher sessions
 are preserved. A failed startup without an identity receipt never authorizes
 stopping a process by its name or start time alone.
+The controller supports Windows PowerShell 5.1 and PowerShell 7; native COM work
+runs in a PowerShell 7 worker. Windows PowerShell locates the installed pwsh.exe.
 .PARAMETER OutputDirectory
 Task-owned directory for generated evidence. Existing evidence is never overwritten.
 .PARAMETER Operation
@@ -18,11 +21,14 @@ Synthetic case selected by New-NativeComparisonCorpus.ps1.
 .PARAMETER InputPath
 OfficeIMO-generated candidate to validate. Required for Validate.
 .PARAMETER Stage
-Inspect performs read-only open and inventory. Resave also saves and reopens a
+Inspect performs read-only open and inventory. Export also writes the initial
+PDF while retaining read-only access. Resave saves and reopens a
 separate PUB without PDF export. Full performs both PDF exports as well. Partial
 stages establish only their listed operations; native repair remains unassessed.
 .PARAMETER TimeoutSeconds
 Bounded worker lifetime, including application startup and shutdown.
+.PARAMETER PhaseTimeoutSeconds
+Maximum time without a new worker phase. The total TimeoutSeconds bound also applies.
 .PARAMETER NativeEditText
 Optional single-line replacement for a candidate with one physical page and one
 unlinked text box. Validate/Full only. The writable snapshot is changed before
@@ -32,6 +38,8 @@ clears the text range.
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath ./candidate.pub -OutputDirectory ./candidate-native
 .EXAMPLE
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Inspect -InputPath ./candidate.pub -OutputDirectory ./candidate-inspect
+.EXAMPLE
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Export -InputPath ./candidate.pub -OutputDirectory ./candidate-export -TimeoutSeconds 180 -PhaseTimeoutSeconds 45
 .OUTPUTS
 The native case or validation report. Native repair status remains unassessed
 unless an independent native UI observation supplies that evidence.
@@ -49,7 +57,7 @@ param(
 
     [string] $InputPath,
 
-    [ValidateSet('Inspect', 'Resave', 'Full')]
+    [ValidateSet('Inspect', 'Export', 'Resave', 'Full')]
     [string] $Stage = 'Full',
 
     [AllowEmptyString()]
@@ -58,12 +66,23 @@ param(
     [string] $NativeEditText,
 
     [ValidateRange(10, 600)]
-    [int] $TimeoutSeconds = 90
+    [int] $TimeoutSeconds = 90,
+
+    [ValidateRange(10, 600)]
+    [int] $PhaseTimeoutSeconds = 45
 )
 
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') {
     throw 'Native qualification requires Microsoft Publisher on Windows.'
+}
+$hostPath = (Get-Process -Id $PID).Path
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    $nativeHost = @(Get-Command pwsh.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1)
+    if ($nativeHost.Count -eq 0) {
+        throw 'Native Publisher work requires PowerShell 7. Run this controller with pwsh, or install PowerShell 7 first.'
+    }
+    $hostPath = $nativeHost[0].Source
 }
 $nativeEditRequested = $PSBoundParameters.ContainsKey('NativeEditText')
 if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
@@ -78,10 +97,11 @@ if ($Operation -eq 'Validate') {
         throw 'Validate accepts a native .pub candidate only.'
     }
 } elseif ($Stage -ne 'Full') {
-    throw 'Inspect and Resave stages apply only to candidate validation.'
+    throw 'Inspect, Export and Resave stages apply only to candidate validation.'
 }
 . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
 . (Join-Path $PSScriptRoot 'Read-NativePublisherReceipt.ps1')
+. (Join-Path $PSScriptRoot 'Get-NativePublisherProgress.ps1')
 $output = [IO.Path]::GetFullPath($OutputDirectory)
 $runDirectory = Join-Path $output '.run'
 $key = $Operation + '-' + $Case
@@ -167,7 +187,6 @@ function ConvertTo-NativePublisherArgument {
 }
 
 $workerPath = Join-Path $PSScriptRoot 'Invoke-NativeComparisonCase.ps1'
-$hostPath = (Get-Process -Id $PID).Path
 $controllerStart = (Get-Process -Id $PID).StartTime.ToUniversalTime().Ticks
 $argumentValues = @(
     '-NoLogo', '-NoProfile', '-NonInteractive', '-STA', '-File', $workerPath,
@@ -195,6 +214,10 @@ $closure = [ordered]@{
     workerTeardown = 'Exited'
     native = 'NotIdentified'
     error = $null
+    timeoutSeconds = $TimeoutSeconds
+    phaseTimeoutSeconds = $PhaseTimeoutSeconds
+    workerHostPath = $hostPath
+    phases = [Collections.Generic.List[object]]::new()
 }
 
 function Get-CompletionReceipt {
@@ -223,6 +246,9 @@ try {
     $elapsed = [Diagnostics.Stopwatch]::StartNew()
     $completion = $null
     $workerExited = $false
+    $lastSequence = 0L
+    $lastProgressSeconds = 0D
+    $lastPhase = 'WorkerStartup'
     while ($elapsed.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
         if ($worker.WaitForExit(200)) {
             $workerExited = $true
@@ -246,6 +272,21 @@ try {
             }
             $workerExited = $true
             break
+        }
+        $progress = Get-NativePublisherProgress -ReceiptPath $receiptPath -WorkerProcessId $worker.Id
+        if ($null -ne $progress -and $progress.sequence -gt $lastSequence) {
+            $lastSequence = $progress.sequence
+            $lastPhase = $progress.phase
+            $lastProgressSeconds = $elapsed.Elapsed.TotalSeconds
+            $closure.phases.Add([pscustomobject]@{
+                sequence = $lastSequence
+                phase = $lastPhase
+                elapsedSeconds = [Math]::Round($lastProgressSeconds, 3)
+            })
+        }
+        if ($elapsed.Elapsed.TotalSeconds - $lastProgressSeconds -ge $PhaseTimeoutSeconds) {
+            $closure.workerTeardown = 'StoppedAfterPhaseTimeout'
+            throw ('Publisher operation {0} made no phase progress for {1} seconds during {2}. See {3}.' -f $key, $PhaseTimeoutSeconds, $lastPhase, $runDirectory)
         }
     }
     if (-not $workerExited) {
@@ -287,7 +328,8 @@ try {
             if ($null -eq $native) {
                 $closure.native = 'Exited'
             } else {
-                if ($native.ProcessName -eq 'MSPUB' -and $native.StartTime.ToUniversalTime().Ticks -eq [long]$receipt.startTimeUtcTicks) {
+                if ($native.ProcessName -eq 'MSPUB' -and $native.StartTime.ToUniversalTime().Ticks -eq [long]$receipt.startTimeUtcTicks -and
+                    $native.Path -ieq [string] $receipt.executable) {
                     if (-not $native.WaitForExit(3000)) {
                         Stop-Process -Id $native.Id -ErrorAction Stop
                         if (-not $native.WaitForExit(10000)) {
