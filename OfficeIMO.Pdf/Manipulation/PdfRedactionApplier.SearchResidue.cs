@@ -52,12 +52,16 @@ internal static partial class PdfRedactionApplier {
                 if (excluded.Contains(item.Value)) continue;
                 PdfObject inspected = item.Value;
                 if (inspected is PdfStream container && container.Dictionary.Get<PdfName>("Type")?.Name == "ObjStm") {
-                    foreach (var member in PdfSyntax.ReadRedactionObjectStreamMembers(container, current.Objects, current.ReadOptions.Limits, containerBudget, cancellationToken)) {
-                        if (current.Objects.TryGetValue(member.Number, out PdfIndirectObject? live) &&
-                            live.SourceOffset == item.SourceOffset && excluded.Contains(live.Value)) continue;
-                        if (SearchObjectHolds(current.Objects, member.Value, criteria, current.ReadOptions.Limits,
-                            new HashSet<PdfObject>(), excluded, followReferences: false, cancellationToken: cancellationToken))
-                            issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedMember", "A retained compressed PDF member still holds searched text."));
+                    try {
+                        foreach (var member in PdfSyntax.ReadRedactionObjectStreamMembers(container, current.Objects, current.ReadOptions.Limits, containerBudget, cancellationToken)) {
+                            if (current.Objects.TryGetValue(member.Number, out PdfIndirectObject? live) &&
+                                live.SourceOffset == item.SourceOffset && excluded.Contains(live.Value)) continue;
+                            if (SearchObjectHolds(current.Objects, member.Value, criteria, current.ReadOptions.Limits,
+                                new HashSet<PdfObject>(), excluded, followReferences: false, cancellationToken: cancellationToken))
+                                issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedMember", "A retained compressed PDF member still holds searched text."));
+                        }
+                    } catch (Exception error) when (error is InvalidDataException or PdfReadLimitException) {
+                        issues.Add(new PdfRedactionVerificationIssue("SearchResidue", "CompressedSource", "Retained compressed source bytes have no proven residue sweep."));
                     }
                     inspected = container.Dictionary;
                 }

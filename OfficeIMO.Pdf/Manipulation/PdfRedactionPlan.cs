@@ -117,6 +117,7 @@ public sealed partial class PdfRedactionPlan {
         Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
         Guard.NotNull(reviewedTextObjectScopes, nameof(reviewedTextObjectScopes));
         IReadOnlyDictionary<int, string> stablePageReferences = CreateStablePageReferenceLabels(document);
+        var tilingSourceIdentities = new Dictionary<PdfPageTilingPatternResource, string>();
         // A cleared field changes on every page its widgets reach, including pages with no area.
         var affectedFields = new HashSet<string>(reviewedAreas.Where(static area => area.SearchCriteria is not null)
             .SelectMany(static area => area.SearchCriteria!.AffectedFields), StringComparer.Ordinal);
@@ -142,7 +143,7 @@ public sealed partial class PdfRedactionPlan {
                 ? reviewedTextObjectScopes[i]
                 : Array.Empty<PdfRedactionTextObjectScope>();
             AppendUnredactedTextIdentity(identity, document, page, pageAreas, pageReviewedTextObjectScopes, drawingEffects, includeEntry);
-            AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects, includeEntry);
+            AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects, tilingSourceIdentities, includeEntry);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects, includeEntry);
             if (includeInteractiveContent) {
                 AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences, affectedFields, removedAnnotations, includeEntry);
@@ -513,7 +514,8 @@ public sealed partial class PdfRedactionPlan {
         PdfReadDocument document,
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas,
-        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects, Func<PdfDictionary, string, bool>? includeEntry = null) {
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects,
+        Dictionary<PdfPageTilingPatternResource, string> tilingSourceIdentities, Func<PdfDictionary, string, bool>? includeEntry = null) {
         IReadOnlyList<PdfPageVisualPrimitive> primitives = page.GetIdentityVisualPrimitives();
         for (int i = 0; i < primitives.Count; i++) {
             PdfPageVisualPrimitive primitive = primitives[i];
@@ -556,8 +558,8 @@ public sealed partial class PdfRedactionPlan {
                     transform.M22, transform.OffsetX, transform.OffsetY });
             }
             PdfRedactionImageIdentity.AppendClip(identity, primitive.ClipPath);
-            AppendIdentityTilingPattern(identity, primitive.FillTilingPattern, document, includeEntry);
-            AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern, document, includeEntry);
+            AppendIdentityTilingPattern(identity, primitive.FillTilingPattern, document, tilingSourceIdentities, includeEntry);
+            AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern, document, tilingSourceIdentities, includeEntry);
             identity.Append(':').Append(primitive.PathCommands.Count);
             for (int commandIndex = 0; commandIndex < primitive.PathCommands.Count; commandIndex++) {
                 OfficeIMO.Drawing.OfficePathCommand command = primitive.PathCommands[commandIndex];
@@ -626,7 +628,8 @@ public sealed partial class PdfRedactionPlan {
 
     private static void AppendIdentityTilingPattern(
         System.Text.StringBuilder identity,
-        PdfPageTilingPatternPaint? pattern, PdfReadDocument document, Func<PdfDictionary, string, bool>? includeEntry = null) {
+        PdfPageTilingPatternPaint? pattern, PdfReadDocument document,
+        Dictionary<PdfPageTilingPatternResource, string> sourceIdentities, Func<PdfDictionary, string, bool>? includeEntry = null) {
         if (pattern is null) {
             identity.Append(":pattern:null");
             return;
@@ -657,11 +660,15 @@ public sealed partial class PdfRedactionPlan {
             .Append(resource.HasMalformedStrictInvocation ? '1' : '0');
         AppendIdentityColor(identity, pattern.Tint);
         identity.Append(':');
-        using var fingerprint = new PdfObjectGraphFingerprint(document.Objects, document.ReadOptions.Limits.MaxObjectNestingDepth,
-            Math.Min(1_000_000, Math.Max(16_384, document.ReadOptions.Limits.MaxIndirectObjects)), includeDictionaryEntry: includeEntry);
-        fingerprint.AppendRoot(resource.SourceStream);
-        fingerprint.AppendRoot(resource.SourceResources);
-        identity.Append(Convert.ToBase64String(fingerprint.Complete()));
+        if (!sourceIdentities.TryGetValue(resource, out string? source)) {
+            using var fingerprint = new PdfObjectGraphFingerprint(document.Objects, document.ReadOptions.Limits.MaxObjectNestingDepth,
+                Math.Min(1_000_000, Math.Max(16_384, document.ReadOptions.Limits.MaxIndirectObjects)), includeDictionaryEntry: includeEntry);
+            fingerprint.AppendRoot(resource.SourceStream);
+            fingerprint.AppendRoot(resource.SourceResources);
+            source = Convert.ToBase64String(fingerprint.Complete());
+            sourceIdentities[resource] = source;
+        }
+        identity.Append(source);
     }
 
     private static void AppendIdentityColor(System.Text.StringBuilder identity, OfficeIMO.OfficeColor? color) {
