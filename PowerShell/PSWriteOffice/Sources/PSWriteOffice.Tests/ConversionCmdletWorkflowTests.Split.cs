@@ -19,9 +19,13 @@ public sealed partial class ConversionCmdletWorkflowTests {
             runspace.SessionStateProxy.SetVariable("source", source);
             runspace.SessionStateProxy.SetVariable("destination", destination);
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            shell.AddScript("Split-OfficeDocument -LiteralPath $source -OutputDirectory $destination -IndexWidth 2 " + selection + " -ErrorAction Stop");
+            var settings = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = 64L * 1024 * 1024 } };
+            runspace.SessionStateProxy.SetVariable("settings", settings);
+            shell.AddScript("Split-OfficeDocument -LiteralPath $source -OutputDirectory $destination -IndexWidth 2 " + selection +
+                " -Options @(@{ Limits = $settings.Limits }, @{ Limits = @{ MaxInputBytes = 16MB } }) -ErrorAction Stop");
             var output = shell.Invoke();
             Assert.Empty(shell.Streams.Error);
+            Assert.Equal(64L * 1024 * 1024, settings.Limits.MaxInputBytes);
             string[] parts = expectedPages.Split('|');
             Assert.Equal(parts.Length, output.Count);
             for (int part = 0; part < parts.Length; part++) {

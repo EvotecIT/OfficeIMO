@@ -13,6 +13,7 @@ internal sealed class OfficeReadConfiguration {
     internal ReaderAllOptions Formats { get; private set; } = new();
     internal bool HasCommonOptions { get; private set; }
     internal bool HasFormatOptions { get; private set; }
+    internal OfficeIMO.Pdf.Ocr.PdfOcrMergeOptions? PdfOcrMergeOptions { get; private set; }
 
     internal static OfficeReadConfiguration Bind(object[]? inputs, ReaderOptions? defaults = null) {
         var result = new OfficeReadConfiguration();
@@ -24,8 +25,20 @@ internal sealed class OfficeReadConfiguration {
             PropertyInfo? property = typeof(ReaderAllOptions).GetProperties().SingleOrDefault(item => item.PropertyType.IsClass && item.PropertyType == value?.GetType());
             if (property != null) { property.SetValue(result.Formats, value); result.HasFormatOptions = true; continue; }
             switch (value) {
+                case Models.Pdf.PdfReadOptions composite:
+                    var captured = composite.Snapshot();
+                    result.Formats.Pdf = Copy(result.Formats.Pdf);
+                    result.Formats.Pdf.LoadOptions = captured.LoadOptions;
+                    result.Formats.Pdf.ReadOptions = captured.LoadOptions;
+                    result.PdfOcrMergeOptions = captured.OcrMergeOptions;
+                    break;
                 case OfficeIMO.Pdf.PdfLoadOptions pdf:
-                    result.Formats.Pdf = Copy(result.Formats.Pdf); result.Formats.Pdf.ReadOptions = pdf; break;
+                    // The canonical PDF policy controls initial admission as well as semantic reconstruction.
+                    var policy = pdf.Clone();
+                    result.Formats.Pdf = Copy(result.Formats.Pdf);
+                    result.Formats.Pdf.LoadOptions = policy;
+                    result.Formats.Pdf.ReadOptions = policy;
+                    break;
                 case OfficeIMO.Markdown.MarkdownLoadOptions markdown:
                     result.Formats.Markdown = Copy(result.Formats.Markdown); result.Formats.Markdown.ParserOptions = markdown; break;
                 case OfficeIMO.Excel.ExcelReaderOptions excel:

@@ -1,0 +1,11 @@
+{
+  "package": "OfficeIMO.Word.GoogleDocs",
+  "extraChanges": [
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "GoogleDocsSaveOptions.Clone()",
+      "reason": "Creates independent native export settings for typed options combined with property overrides, including nested mutable collections. The shell preserves the caller options and reuses native translation and export."
+    }
+  ]
+}

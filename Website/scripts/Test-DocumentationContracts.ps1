@@ -650,6 +650,8 @@ if (-not $codeExamplesPartial.Contains('{{ tab.code | html.escape }}', [StringCo
 }
 
 if ($failures.Count -gt 0) {
+    # The pipeline includes the first stderr line in its failure summary.
+    [Console]::Error.WriteLine("Documentation contract: $($failures -join '; ')")
     throw "Documentation contract validation failed:`n - $($failures -join "`n - ")"
 }
 

@@ -215,18 +215,24 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var validator = new BlockingExternalValidator();
         using var cancellation = new CancellationTokenSource();
 
-        Task<PdfRedactionWorkflowResult> running = runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
+        // The external validator is synchronous. File I/O may also finish synchronously,
+        // so let the cancelling thread remain free even if no await yields before validation.
+        Task<PdfRedactionWorkflowResult> running = Task.Run(() => runner.RunRedactionAsync(new PdfRedactionWorkflowRequest {
             Mode = PdfRedactionWorkflowMode.ApplyAndVerify,
             InputPath = input,
             OutputPath = output,
             Recipe = recipe,
             Decisions = decisions,
             ExternalValidators = { validator }
-        }, cancellationToken: cancellation.Token);
+        }, cancellationToken: cancellation.Token));
 
-        Assert.True(validator.WaitUntilStarted(TimeSpan.FromSeconds(10)), "The independent validator did not start.");
-        cancellation.Cancel();
-        PdfRedactionWorkflowResult result = await running;
+        PdfRedactionWorkflowResult result;
+        try {
+            Assert.True(validator.WaitUntilStarted(TimeSpan.FromSeconds(10)), "The independent validator did not start.");
+        } finally {
+            cancellation.Cancel();
+            result = await running.WaitAsync(TimeSpan.FromSeconds(30));
+        }
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.False(File.Exists(output));

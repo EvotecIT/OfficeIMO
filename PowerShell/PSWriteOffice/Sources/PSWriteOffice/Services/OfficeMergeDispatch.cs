@@ -10,13 +10,14 @@ using OfficeIMO.Excel;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using PSWriteOffice.Foundation;
+using PSWriteOffice.Models.Excel;
 
 namespace PSWriteOffice.Services;
 
 internal enum OfficeMergeFamily { Word, Excel, Pdf }
 
 /// <summary>Owns only shell-loaded input lifetimes and dispatches to native append/merge methods.</summary>
-internal static class OfficeMergeDispatch {
+internal static partial class OfficeMergeDispatch {
     internal static OfficeMergeFamily GetFamily(string extension) {
         if (extension.Equals(".pdf", StringComparison.OrdinalIgnoreCase)) return OfficeMergeFamily.Pdf;
         if (WordFormatCatalog.TryGetByExtension(extension, out var word) && word!.Encoding == OfficeFormatEncoding.OpenXml)
@@ -89,13 +90,7 @@ internal static class OfficeMergeDispatch {
                 if (output != null) OfficeOutput.Write(output, stream => targetWord.Save(stream), noClobber);
             } else {
                 var targetExcel = (ExcelDocument)target;
-                var settings = (ExcelWorkbookMergeOptions)options;
-                // Resolve selected sheets across all appended workbooks before mutating the target.
-                if (settings.SheetNames != null)
-                    for (int index = firstAppend; index < owned.Count; index++)
-                        foreach (string name in settings.SheetNames) ((ExcelDocument)owned[index]).GetSheet(name);
-                for (int index = firstAppend; index < owned.Count; index++)
-                    targetExcel.MergeWorkbookFrom((ExcelDocument)owned[index], settings);
+                MergeExcel(targetExcel, owned, firstAppend, (ExcelMergeOptions)options);
                 if (output != null) OfficeOutput.Write(output, stream => targetExcel.Save(stream), noClobber);
             }
         } catch (Exception error) {

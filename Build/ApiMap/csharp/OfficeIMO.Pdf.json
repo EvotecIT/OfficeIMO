@@ -3120,6 +3120,13 @@
   },
   "extraChanges": [
     {
+      "action": "add",
+      "category": "rendering",
+      "new": "PdfDocument.Render.LayoutDebugOverlayPng(pageNumber, scale, options, layoutOptions, loadOptions)",
+      "reason": "Exports diagnostic overlay pixels through the native PDF element and raster-pixel budgets; PSWriteOffice uses this owner instead of bypassing the budget through generic Drawing rasterization.",
+      "source": "OfficeIMO.Pdf/Core/PdfDocumentRenderer.cs"
+    },
+    {
       "subject": "PdfDocument native output policy",
       "note": "PdfSaveOptions.AllowLoss guards private serialization before file/stream publication. A per-output AsyncLocal diagnostic scope captures nested page options and avoids persistent deduplication bypass on repeated saves.",
       "status": "applied"

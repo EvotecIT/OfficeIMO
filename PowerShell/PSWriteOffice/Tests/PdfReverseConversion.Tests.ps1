@@ -32,9 +32,11 @@ Describe 'PDF reverse conversion workflows' {
         $excelPath = Join-Path $TestDrive 'source.xlsx'
         $powerPointPath = Join-Path $TestDrive 'source.pptx'
 
-        $wordReport = ConvertTo-OfficePdfWord -Path $pdfPath -OutputPath $wordPath -PassThruReport
-        $excelReport = ConvertTo-OfficePdfExcel -Path $pdfPath -OutputPath $excelPath -PassThruReport
-        $powerPointReport = ConvertTo-OfficePdfPowerPoint -Path $pdfPath -OutputPath $powerPointPath -PassThruReport
+        $wordReport = Convert-OfficeDocument -Path $pdfPath -To Word -OutputPath $wordPath -Options (New-OfficePdfWordOptions -NoParagraphs:$false -NoHeadings:$false)
+        $excelReport = Convert-OfficeDocument -Path $pdfPath -To Excel -OutputPath $excelPath -Options (New-OfficePdfExcelOptions -Culture en-US -NoNumericConversion:$false -ContinuationGeometryTolerance '4pt')
+        $powerPointOptions = New-OfficePdfPowerPointOptions -Page 1 -Dpi 96.5
+        $powerPointOptions.Dpi | Should -Be 96.5
+        $powerPointReport = Convert-OfficeDocument -Path $pdfPath -To PowerPoint -OutputPath $powerPointPath -Options $powerPointOptions
 
         $wordReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
         $excelReport.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
@@ -46,6 +48,9 @@ Describe 'PDF reverse conversion workflows' {
         $wordText = (Get-OfficeWordText -Path $wordPath | ForEach-Object Text) -join ' '
         $wordText | Should -Match 'Quarterly results'
         $wordText | Should -Match 'Revenue improved'
+        $wordDocument = [OfficeIMO.Word.WordDocument]::Load($wordPath)
+        try { $wordDocument.Tables[0].Rows[0].RepeatHeaderRowAtTheTopOfEachPage | Should -BeTrue }
+        finally { $wordDocument.Dispose() }
 
         $excelReport.ItemsWritten | Should -BeGreaterThan 0
         $excelSummary = Get-OfficeExcelSummary -Path $excelPath -IncludeSheets
@@ -63,6 +68,24 @@ Describe 'PDF reverse conversion workflows' {
         } finally {
             $presentation | Close-OfficePowerPoint
         }
+    }
+
+    It 'preserves the tables-only profile unless an inverse switch explicitly restores a feature' {
+        $tablesPath = Join-Path $TestDrive 'tables-only.docx'
+        $headingsPath = Join-Path $TestDrive 'tables-and-headings.docx'
+        Convert-OfficeDocument -Path $pdfPath -To Word -OutputPath $tablesPath -Options (New-OfficePdfWordOptions -TablesOnly) | Out-Null
+        Convert-OfficeDocument -Path $pdfPath -To Word -OutputPath $headingsPath -Options (New-OfficePdfWordOptions -TablesOnly -NoHeadings:$false) | Out-Null
+        $tablesText = (Get-OfficeWordText -Path $tablesPath | ForEach-Object Text) -join ' '
+        $tablesDocument = [OfficeIMO.Word.WordDocument]::Load($tablesPath)
+        try {
+            $tablesDocument.Tables.Count | Should -BeGreaterThan 0
+            ($tablesDocument.Tables[0].Rows[1].Cells[0].Paragraphs.Text -join ' ') | Should -Be 'North'
+        } finally { $tablesDocument.Dispose() }
+        $tablesText | Should -Not -Match 'Quarterly results'
+        $tablesText | Should -Not -Match 'Revenue improved'
+        $headingsText = (Get-OfficeWordText -Path $headingsPath | ForEach-Object Text) -join ' '
+        $headingsText | Should -Match 'Quarterly results'
+        $headingsText | Should -Not -Match 'Revenue improved'
     }
 
     It 'honors WhatIf, extension validation, and explicit overwrite' {

@@ -79,7 +79,7 @@ internal static class MarkdownOptionUtilities
             else if (value is IDictionary dictionary)
             {
                 options ??= MarkdownLoadOptions.CreateOfficeIMOProfile();
-                binder.ApplyTo(engine, options, dictionary);
+                options = ((MarkdownLoadOptions)binder.ApplyTo(engine, options, dictionary)).Clone();
             }
             else throw new PSArgumentException("Options accepts Markdown reader settings or a hashtable of native reader properties.");
         }
@@ -152,7 +152,7 @@ internal static class MarkdownOptionUtilities
         return options;
     }
 
-    internal static MarkdownSaveOptions? BuildWriteOptions(IMarkdownWriteOptionSource source)
+    internal static MarkdownSaveOptions? BuildWriteOptions(IMarkdownWriteOptionSource source, MarkdownSaveOptions? defaults = null)
     {
         if (source.WriteOptions != null && source.WriteProfile.HasValue)
         {
@@ -164,7 +164,8 @@ internal static class MarkdownOptionUtilities
             return null;
         }
 
-        var options = source.WriteOptions?.Clone() ?? CreateWriteProfile(source.WriteProfile);
+        var options = source.WriteOptions?.Clone() ?? (source.WriteProfile.HasValue
+            ? CreateWriteProfile(source.WriteProfile) : defaults?.Clone() ?? CreateWriteProfile(null));
 
         if (source.ImageRenderingMode.HasValue)
         {

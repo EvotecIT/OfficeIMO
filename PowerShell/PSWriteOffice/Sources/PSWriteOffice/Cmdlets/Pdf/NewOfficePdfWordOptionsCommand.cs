@@ -1,50 +1,48 @@
 using OfficeIMO.Pdf.Word;
-using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Pdf;
+using PSWriteOffice.Foundation;
 
-namespace PSWriteOffice.Cmdlets.Word;
+namespace PSWriteOffice.Cmdlets.Pdf;
 
 /// <summary>Creates discoverable PDF-to-Word reconstruction settings.</summary>
-/// <example>
-///   <summary>Reconstruct headings, paragraphs, lists, and tables.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$options = New-OfficePdfToWordOptions -ImportHeadings -ImportParagraphs -ImportLists -ImportTables
-/// ConvertTo-OfficePdfWord -Path .\Source.pdf -OutputPath .\Rebuilt.docx -Options $options</code>
-/// </example>
-[Cmdlet(VerbsCommon.New, "OfficePdfToWordOptions")]
-[Alias("New-OfficePdfWordImportOptions")]
+/// <example><summary>Reconstruct editable Word content while omitting images.</summary>
+/// <code>$options = New-OfficePdfWordOptions -NoImages
+/// Convert-OfficeDocument -Path ./Source.pdf -To Word -OutputPath ./Rebuilt.docx -Options $options</code></example>
+/// <example><summary>Import tables without the surrounding paragraphs.</summary>
+/// <code>$options = New-OfficePdfWordOptions -TablesOnly
+/// Convert-OfficeDocument -Path ./Tables.pdf -To Word -OutputPath ./Tables.docx -Options $options</code></example>
+[Cmdlet(VerbsCommon.New, "OfficePdfWordOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordPdfImportOptions))]
-public sealed class NewOfficePdfToWordOptionsCommand : PSCmdlet {
+public sealed class NewOfficePdfWordOptionsCommand : OfficeCmdlet {
     /// <summary>Use the built-in tables-only import profile.</summary>
-    [Parameter] public SwitchParameter TablesOnly { get; set; }
+    [Parameter(ParameterSetName = "Default")] public SwitchParameter TablesOnly { get; set; }
     /// <summary>Copy PDF metadata into Word properties.</summary>
     [Parameter] public SwitchParameter IncludeMetadata { get; set; }
     /// <summary>Represent source pages with Word page breaks.</summary>
     [Parameter] public SwitchParameter PreservePageBreaks { get; set; }
     /// <summary>Represent empty PDF pages.</summary>
     [Parameter] public SwitchParameter IncludeEmptyPages { get; set; }
-    /// <summary>Import detected headings.</summary>
-    [Parameter] public SwitchParameter ImportHeadings { get; set; }
-    /// <summary>Import detected paragraphs.</summary>
-    [Parameter] public SwitchParameter ImportParagraphs { get; set; }
+    /// <summary>Exclude detected headings.</summary>
+    [Parameter] public SwitchParameter NoHeadings { get; set; }
+    /// <summary>Exclude detected paragraphs.</summary>
+    [Parameter] public SwitchParameter NoParagraphs { get; set; }
     /// <summary>Use the crop-, rotation-, and column-aware reading order.</summary>
     [Parameter] public SwitchParameter UseSharedPageReadingOrder { get; set; }
-    /// <summary>Import detected lists.</summary>
-    [Parameter] public SwitchParameter ImportLists { get; set; }
-    /// <summary>Import detected tables.</summary>
-    [Parameter] public SwitchParameter ImportTables { get; set; }
-    /// <summary>Import safe URI links.</summary>
-    [Parameter] public SwitchParameter ImportUriLinks { get; set; }
-    /// <summary>Import supported internal links.</summary>
-    [Parameter] public SwitchParameter ImportInternalLinks { get; set; }
+    /// <summary>Exclude detected lists.</summary>
+    [Parameter] public SwitchParameter NoLists { get; set; }
+    /// <summary>Exclude detected tables.</summary>
+    [Parameter] public SwitchParameter NoTables { get; set; }
+    /// <summary>Exclude safe URI links.</summary>
+    [Parameter] public SwitchParameter NoUriLinks { get; set; }
+    /// <summary>Exclude supported internal links.</summary>
+    [Parameter] public SwitchParameter NoInternalLinks { get; set; }
     /// <summary>Prefix for generated Word bookmarks.</summary>
     [Parameter] public string? BookmarkPrefix { get; set; }
     /// <summary>Allowed absolute hyperlink URI schemes.</summary>
     [Parameter] public string[]? AllowedHyperlinkUriScheme { get; set; }
-    /// <summary>Import supported embedded images.</summary>
-    [Parameter] public SwitchParameter ImportImages { get; set; }
+    /// <summary>Exclude supported embedded images.</summary>
+    [Parameter] public SwitchParameter NoImages { get; set; }
     /// <summary>Preserve detected image placement size.</summary>
     [Parameter] public SwitchParameter PreserveImagePlacementSize { get; set; }
     /// <summary>Use paragraphs when an image cannot be embedded.</summary>
@@ -70,14 +68,14 @@ public sealed class NewOfficePdfToWordOptionsCommand : PSCmdlet {
         Apply(nameof(IncludeMetadata), value => options.IncludeMetadata = value);
         Apply(nameof(PreservePageBreaks), value => options.PreservePageBreaks = value);
         Apply(nameof(IncludeEmptyPages), value => options.IncludeEmptyPages = value);
-        Apply(nameof(ImportHeadings), value => options.ImportHeadings = value);
-        Apply(nameof(ImportParagraphs), value => options.ImportParagraphs = value);
+        Apply(nameof(NoHeadings), value => options.ImportHeadings = !value);
+        Apply(nameof(NoParagraphs), value => options.ImportParagraphs = !value);
         Apply(nameof(UseSharedPageReadingOrder), value => options.UseSharedPageReadingOrder = value);
-        Apply(nameof(ImportLists), value => options.ImportLists = value);
-        Apply(nameof(ImportTables), value => options.ImportTables = value);
-        Apply(nameof(ImportUriLinks), value => options.ImportUriLinks = value);
-        Apply(nameof(ImportInternalLinks), value => options.ImportInternalLinks = value);
-        Apply(nameof(ImportImages), value => options.ImportImages = value);
+        Apply(nameof(NoLists), value => options.ImportLists = !value);
+        Apply(nameof(NoTables), value => options.ImportTables = !value);
+        Apply(nameof(NoUriLinks), value => options.ImportUriLinks = !value);
+        Apply(nameof(NoInternalLinks), value => options.ImportInternalLinks = !value);
+        Apply(nameof(NoImages), value => options.ImportImages = !value);
         Apply(nameof(PreserveImagePlacementSize), value => options.PreserveImagePlacementSize = value);
         Apply(nameof(IncludeImagePlaceholders), value => options.IncludeImagePlaceholders = value);
         Apply(nameof(IncludeFormFieldPlaceholders), value => options.IncludeFormFieldPlaceholders = value);
@@ -96,7 +94,6 @@ public sealed class NewOfficePdfToWordOptionsCommand : PSCmdlet {
     }
 
     private void Apply(string name, System.Action<bool> setter) {
-        if (!MyInvocation.BoundParameters.ContainsKey(name)) return;
-        setter(((SwitchParameter)MyInvocation.BoundParameters[name]).IsPresent);
+        if (BoundSwitch(name) is bool value) setter(value);
     }
 }
