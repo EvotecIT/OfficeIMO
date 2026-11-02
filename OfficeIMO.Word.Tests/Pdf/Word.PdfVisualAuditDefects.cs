@@ -160,6 +160,9 @@ public partial class Word {
             pdf = document.ToPdf();
         }
 
+        // ToPdf wrote and verified these bytes while the source was open; publishing them reads nothing from it.
+        Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(pdf.ToBytes(new PdfSaveOptions { AllowLoss = true }), 0, 4));
+        // Writing the model again needs the source's running stories.
         Exception error = Assert.ThrowsAny<Exception>(() => pdf.ToBytes(new PdfSaveOptions { AllowLoss = true }));
         Assert.True(error is ObjectDisposedException || error.InnerException is ObjectDisposedException, error.ToString());
     }
