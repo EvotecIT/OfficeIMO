@@ -40,8 +40,8 @@ public sealed class DjVuRenderOptions {
 }
 
 /// <summary>A complete selected-page raster and the geometry used to produce it.</summary>
-public sealed class DjVuRenderResult : IOfficeConversionReport {
-    internal DjVuRenderResult(OfficeRasterImage image, int dpi, DjVuRectangle sourceRegion, int rotation, List<OfficeConversionFidelityDiagnostic> diagnostics) {
+public sealed class DjVuRenderResult : OfficeConversionReport {
+    internal DjVuRenderResult(OfficeRasterImage image, int dpi, DjVuRectangle sourceRegion, int rotation, List<OfficeDiagnostic> diagnostics) {
         Image = image; Dpi = dpi; SourceRegion = sourceRegion; Rotation = rotation; FidelityDiagnostics = diagnostics.AsReadOnly();
     }
     /// <summary>Owned top-to-bottom RGBA raster. Caller pixel edits do not affect the source document.</summary>
@@ -53,11 +53,10 @@ public sealed class DjVuRenderResult : IOfficeConversionReport {
     /// <summary>Clockwise rotation applied to the output raster.</summary>
     public int Rotation { get; }
     /// <summary>Explicit preservation qualifications, including non-painted annotations.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    public bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeConversionException("DjVu rendering reported fidelity loss. Inspect FidelityDiagnostics.", this);
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("DjVu rendering reported fidelity loss. Inspect FidelityDiagnostics.", this);
 }

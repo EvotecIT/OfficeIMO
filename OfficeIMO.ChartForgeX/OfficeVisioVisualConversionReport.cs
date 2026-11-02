@@ -6,11 +6,11 @@ using global::ChartForgeX.VisualArtifacts;
 namespace OfficeIMO.ChartForgeX;
 
 /// <summary>Describes semantic fidelity decisions made during native Visio projection.</summary>
-public sealed class OfficeVisioVisualConversionReport : IOfficeConversionReport {
+public sealed class OfficeVisioVisualConversionReport : OfficeConversionReport {
     private readonly List<OfficeVisioVisualDiagnostic> _diagnostics = new List<OfficeVisioVisualDiagnostic>();
-    private readonly List<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+    private readonly List<OfficeDiagnostic> _fidelityDiagnostics = new List<OfficeDiagnostic>();
     private readonly IReadOnlyList<OfficeVisioVisualDiagnostic> _readOnlyDiagnostics;
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _readOnlyFidelityDiagnostics;
+    private readonly IReadOnlyList<OfficeDiagnostic> _readOnlyFidelityDiagnostics;
 
     /// <summary>Creates an empty native Visio projection report.</summary>
     public OfficeVisioVisualConversionReport() {
@@ -46,20 +46,18 @@ public sealed class OfficeVisioVisualConversionReport : IOfficeConversionReport 
     public int AnnotationCount { get; internal set; }
 
     /// <summary>Gets typed fidelity diagnostics.</summary>
-    public IReadOnlyList<OfficeVisioVisualDiagnostic> Diagnostics => _readOnlyDiagnostics;
+    public IReadOnlyList<OfficeVisioVisualDiagnostic> NativeDiagnostics => _readOnlyDiagnostics;
 
     /// <summary>Gets category-preserving native Visio projection diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _readOnlyFidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _readOnlyFidelityDiagnostics;
 
     /// <summary>Gets whether at least one source semantic was approximated or omitted.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when native Visio projection reported possible fidelity loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException(
-            "ChartForgeX native Visio projection reported possible fidelity loss. Inspect FidelityDiagnostics for details.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("ChartForgeX native Visio projection reported possible fidelity loss. Inspect FidelityDiagnostics for details.", this);
 
     /// <summary>Gets human-readable warning messages for logging and interactive display.</summary>
     public IReadOnlyList<string> Warnings => _diagnostics
@@ -91,12 +89,13 @@ public sealed class OfficeVisioVisualConversionReport : IOfficeConversionReport 
         string? feature,
         string message) {
         _diagnostics.Add(new OfficeVisioVisualDiagnostic(code, severity, entityKind, entityId, feature, message));
-        _fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+        _fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
             code.ToString(),
+            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             message,
-            ResolveLossKind(code, severity),
+            ResolveLocation(entityKind, entityId, feature),
             "OfficeIMO.ChartForgeX.Visio",
-            ResolveLocation(entityKind, entityId, feature)));
+            ResolveLossKind(code, severity)));
     }
 
     private static OfficeConversionLossKind ResolveLossKind(

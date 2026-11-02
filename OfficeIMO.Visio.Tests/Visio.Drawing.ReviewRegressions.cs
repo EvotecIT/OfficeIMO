@@ -60,7 +60,7 @@ public sealed class VisioDrawingReviewRegressionTests {
         });
         string text = PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).ExtractText();
         Assert.Equal(!widePdf, text.Contains("AAAAAAAAAA"));
-        Assert.Equal(widePdf, result.FidelityDiagnostics.Any(d => d.Code == "VISIO_DRAWING_TEXT_CLIPPED" && d.LossKind == OfficeConversionLossKind.Omission));
+        Assert.Equal(widePdf, result.Diagnostics.Any(d => d.Code == "VISIO_DRAWING_TEXT_CLIPPED" && d.LossKind == OfficeConversionLossKind.Omission));
     }
 
     [Theory]

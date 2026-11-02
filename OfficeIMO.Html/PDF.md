@@ -177,7 +177,7 @@ In paged output, table cells measure and wrap through the shared layout engine. 
 
 Ordinary rowspans can cross a safe row boundary without moving their whole row group to the next page. Authored cell, row, row-group and nested block keeps remain effective, and a cut must preserve text lines, atomic content and paragraph widows/orphans. The fragments retain the original cell identity and source alignment. Fragment-specific middle/bottom alignment, internal row breaks through spans and width-changing span reflow remain outside this bounded contract; changing geometry retains source layout with `HtmlRenderPagePseudoGeometryPending`.
 
-Rectangular, fully opaque table backgrounds with automatic height continue through unused space after a safe row cut. Tables with `border-collapse: separate` carry their own solid left and right borders through that space; collapsed grid rules stay with their rows. Table paint stays behind row-group, row and cell colors. Row-group and row backgrounds stay beneath cell fills, including cells spanning later rows. Repeated headers retain that table backdrop beneath their own colors. Footer reservations remain inside the continuing backdrop, and the final fragment ends after its footer. Background continuation uses static, untransformed boxes without background images, shadows or additional clipping. When detached repetition cannot preserve ancestor opacity, transforms or paint clipping, the table retains its original header and footer paint instead of repeating it outside that effect. If pagination crosses that table, `HtmlRenderTableHeaderRepeatSuppressed` and `HtmlRenderTableFooterRepeatSuppressed` report the approximation; `RequireNoLoss` rejects it.
+Rectangular, fully opaque table backgrounds with automatic height continue through unused space after a safe row cut. Tables with `border-collapse: separate` carry their own solid left and right borders through that space; collapsed grid rules stay with their rows. Table paint stays behind row-group, row and cell colors. Row-group and row backgrounds stay beneath cell fills, including cells spanning later rows. Repeated headers retain that table backdrop beneath their own colors. Footer reservations remain inside the continuing backdrop, and the final fragment ends after its footer. Background continuation uses static, untransformed boxes without background images, shadows or additional clipping. When detached repetition cannot preserve ancestor opacity, transforms or paint clipping, the table retains its original header and footer paint instead of repeating it outside that effect. If pagination crosses that table, `HtmlRenderTableHeaderRepeatSuppressed` and `HtmlRenderTableFooterRepeatSuppressed` report the approximation; `ThrowIfLoss` rejects it.
 
 ```html
 <table>
@@ -269,17 +269,17 @@ Use strict mode when the input must stay inside the declared static contract, an
 
 ```csharp
 var options = new HtmlToPdfOptions {
-    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+    FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
     PdfCreateOptions = new OfficeIMO.Pdf.PdfCreateOptions()
         .EnableTaggedPdfCatalogMarkers()
 };
 
 var result = HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
-result.RequireNoLoss();
-result.Save("report.pdf").RequireNoLoss();
+result.ThrowIfLoss();
+result.Save("report.pdf").ThrowIfLoss();
 ```
 
-`HtmlRenderResult.RequireNoLoss()` checks retained layout diagnostics. For an explicit PDF request, `HtmlPdfRenderRequestResult.Output` exposes the combined HTML/PDF report, including warnings refreshed during serialization. Use `Output.ToBytesLossless()` for strict byte export, or call `Output.RequireNoLoss()` after serialization. Encoded images carry their own `Diagnostics`; `image.CreateReport().RequireNoLoss()` checks that completed image-export stage.
+`HtmlRenderResult.ThrowIfLoss()` checks retained layout diagnostics. For an explicit PDF request, `HtmlPdfRenderRequestResult.Output` exposes the combined HTML/PDF report, including warnings refreshed during serialization. Use `Output.ToBytes(failOnLoss: true)` for strict byte export, or call `Output.ThrowIfLoss()` after serialization. Encoded images carry their own `Diagnostics`; `image.CreateReport().ThrowIfLoss()` checks that completed image-export stage.
 
 ## Accessibility validation
 
@@ -409,7 +409,7 @@ Font-directed Latin reversed by an explicit bidi override, cursive attachment, d
 
 Shaping uses `TextShapingLanguage` when set, otherwise the computed element language. Measurement and retained painting share that effective language. Eligible horizontal LTR combining-mark runs retain accepted managed glyph positions through painting. Mixed paragraphs retain their separately resolved LTR and RTL slices with the paragraph's direction, selected font and complete source clusters. This directional paint-retention path requires zero letter spacing and word spacing, and its glyph advance must agree with the retained layout width. A CSS bidi override whose pair-positioning context changes that width keeps diagnosed fallback; it cannot claim complete retained shaping. Ineligible complex spacing and non-horizontal paint remain outside that retained-glyph subset; an approximation is reported when the complete provider result cannot be retained, and strict mode rejects it.
 
-Layout-only requests retain the configured default face when `AllowSystemFontFallback` and the resource policy permit it. Visible text measured without a selected program reports `HtmlRenderFontMetricsEstimated`, and `RequireNoLoss()` rejects that approximation. Register the same covering font bytes and disable `AllowSystemFontFallback` when comparing geometry across hosts or routes.
+Layout-only requests retain the configured default face when `AllowSystemFontFallback` and the resource policy permit it. Visible text measured without a selected program reports `HtmlRenderFontMetricsEstimated`, and `ThrowIfLoss()` rejects that approximation. Register the same covering font bytes and disable `AllowSystemFontFallback` when comparing geometry across hosts or routes.
 
 Register the actual bold face when bold appearance matters. If a requested bold style has only a regular face available, font matching can select that nearest regular face; it does not reproduce the browser's synthetic bold weight. Compare native appearance with the same available faces and synthesis policy.
 

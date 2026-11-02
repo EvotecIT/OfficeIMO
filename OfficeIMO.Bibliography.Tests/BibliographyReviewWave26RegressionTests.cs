@@ -14,7 +14,7 @@ public sealed class BibliographyReviewWave26RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         BibliographyNativeField field = Assert.Single(reopened.NativeFields, candidate => candidate.Name == property);
@@ -59,9 +59,9 @@ public sealed class BibliographyReviewWave26RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV242" && diagnostic.Field == "dates.Issued");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV242" && diagnostic.Field == "dates.Issued");
     }
 
 
@@ -71,7 +71,7 @@ public sealed class BibliographyReviewWave26RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         BibliographyDate date = Assert.Single(reopened.Dates);

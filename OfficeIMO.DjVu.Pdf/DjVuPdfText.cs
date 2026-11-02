@@ -17,7 +17,7 @@ internal sealed class DjVuPdfTextBudget {
 
 internal static class DjVuPdfText {
     internal static void AddStored(PdfPageCanvas canvas, DjVuPage page, DjVuTextResult text, DjVuPdfTextBudget budget,
-        List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         var words = Words(text.Zones).Where(w => w.CharacterLength > 0).ToArray();
         bool usable = words.Length != 0;
         int previousEnd = 0;
@@ -44,7 +44,7 @@ internal static class DjVuPdfText {
     }
 
     internal static bool AddOcr(PdfPageCanvas canvas, DjVuPage page, OcrResult result, int imageWidth, int imageHeight,
-        DjVuPdfTextBudget budget, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        DjVuPdfTextBudget budget, List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         var spans = (result.Spans ?? Array.Empty<OcrTextSpan>()).Where(s => s != null).OrderBy(s => s.Sequence).ToArray();
         var selected = spans.Where(s => s.Level == OcrTextSpanLevel.Word).ToArray();
         if (selected.Length == 0) selected = spans.Where(s => s.Level == OcrTextSpanLevel.Line).ToArray();

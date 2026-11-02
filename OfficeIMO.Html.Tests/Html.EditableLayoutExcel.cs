@@ -54,7 +54,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         int creditRow = Assert.NotNull(FindCellText(sheet, "Leading picture credit")).Row;
         Assert.True(firstTextRow < pictures[0].RowIndex);
         Assert.True(pictures[1].RowIndex < creditRow);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("placement=text-before-image", StringComparison.Ordinal) == true);
     }
@@ -87,7 +87,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         int listRow = Assert.NotNull(FindCellText(sheet, "First item")).Row;
         ExcelImage picture = Assert.Single(sheet.Images);
         Assert.True(listRow < picture.RowIndex);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("nested-image-after-aggregate-text", StringComparison.Ordinal) == true);
     }
@@ -249,7 +249,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         ExcelImage picture = Assert.Single(sheet.Images);
         Assert.InRange(picture.Width.ToPixels(), 1, 12);
         Assert.InRange(picture.Height.ToPixels(), 1, 12);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid
             && diagnostic.Source != null
             && diagnostic.Source.Contains("editable layout region width", StringComparison.Ordinal));
@@ -265,7 +265,7 @@ public sealed class HtmlEditableLayoutExcelTests {
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
 
         Assert.True(FindCellText(sheet, "Clamped anchor").HasValue);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("minimumColumn=1", StringComparison.Ordinal));

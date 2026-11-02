@@ -124,7 +124,7 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.Equal("Object link", rtfObject.Result.ToPlainText());
         Assert.Equal("Shape link", Assert.Single(shape.TextBoxParagraphs).ToPlainText());
         Assert.Equal(2, result.RtfDiagnostics.Count(diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected"));
-        Assert.Throws<RtfConversionLossException>(() => result.RtfReport.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.RtfReport.ThrowIfLoss());
     }
 
     [Fact]

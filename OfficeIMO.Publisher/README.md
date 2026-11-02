@@ -23,7 +23,7 @@ foreach (var page in publication.Pages)
 foreach (var story in publication.TextStories)
     Console.WriteLine(story.Text);
 
-foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
+foreach (var diagnostic in publication.ReadReport.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
@@ -129,7 +129,7 @@ recovery; changing the separate page drawing does not update the table model.
 var exported = publication.ToSvgResult(pageIndex: 0);
 File.WriteAllText("page-1.svg", exported.Value);
 
-foreach (var diagnostic in exported.Report.FidelityDiagnostics)
+foreach (var diagnostic in exported.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.LossKind}: {diagnostic.Message}");
 ```
 
@@ -175,7 +175,7 @@ references; delayed decoding results are reused within the operation.
 256 columns within the configured item limit.
 
 Recovery reports distinguish approximation, omission and unassessed content.
-`RequireNoLoss()` rejects any of those categories. Current native recovery
+`ThrowIfLoss()` rejects any of those categories. Current native recovery
 reports unassessed publication features, so a successful load is not a claim of
 complete Publisher fidelity.
 

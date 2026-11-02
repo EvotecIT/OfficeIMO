@@ -51,7 +51,7 @@ namespace OfficeIMO.Pdf.Excel {
             PdfCore.PdfLogicalContentProjection.RequireComplete(document, cancellationToken);
             ExcelDocument workbook = ExcelDocument.Create();
             try {
-                var conversionDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+                var conversionDiagnostics = new List<OfficeDiagnostic>();
                 IReadOnlyList<PdfExcelTableImportEntry> entries = ImportTables(document, workbook, operation, conversionDiagnostics);
                 PdfCore.PdfTableExtractionScopeReport sourceScope = PdfCore.PdfLogicalTableAnalysis.AnalyzeExtractionScope(document);
                 return new PdfExcelTableImportResult(workbook, new PdfExcelTableImportReport(entries, sourceScope, conversionDiagnostics));
@@ -71,7 +71,7 @@ namespace OfficeIMO.Pdf.Excel {
             PdfCore.PdfDocumentReadResult document,
             ExcelDocument workbook,
             ExcelPdfImportOptions options,
-            List<OfficeConversionFidelityDiagnostic> diagnostics) {
+            List<OfficeDiagnostic> diagnostics) {
             options.CancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
                 document,

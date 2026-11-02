@@ -18,6 +18,6 @@ public sealed class LegacyAnchorTests {
         Assert.Contains("chm-topic-2-legacy", ids); Assert.Contains("chm-topic-2-modern", ids); Assert.Contains("chm-topic-2-named-only", ids);
         Assert.DoesNotContain(roots.SelectMany(root => root.Descendants(xhtml + "a")), anchor => anchor.Attribute("name") != null);
         Assert.Contains(roots.SelectMany(root => root.Descendants(xhtml + "a").Attributes("href")), href => href.Value.EndsWith("#chm-topic-2-legacy"));
-        Assert.NotEmpty(converted.Publication.Write().RequireValue());
+        Assert.NotEmpty(converted.Publication.Write().Value);
     }
 }

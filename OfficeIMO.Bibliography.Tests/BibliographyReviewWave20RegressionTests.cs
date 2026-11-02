@@ -10,7 +10,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         item.Keywords.Add(keyword);
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Equal(keyword, Assert.Single(reopened.Keywords));
@@ -22,7 +22,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal(BibliographyItemType.ArticleJournal, reopened.Type);
@@ -81,7 +81,7 @@ public sealed class BibliographyReviewWave20RegressionTests {
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = literal });
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items).Dates);
 
         Assert.Equal(literal, reopened.Literal);

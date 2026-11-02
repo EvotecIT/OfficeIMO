@@ -218,11 +218,11 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.True(provider.Requests.Count >= 2);
         Assert.Contains(result.Report.Warnings, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         var strictProvider = new AcceptOnceThenDeclineTextShapingProvider();
         options.TextShapingProvider = strictProvider;
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         HtmlConversionException strict = Assert.Throws<HtmlConversionException>(() =>
             source.ConvertToPdfWithEvidence(options));
         Assert.True(strictProvider.Requests.Count >= 2);
@@ -462,7 +462,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
                 || double.IsNaN(link.Y2) || double.IsInfinity(link.Y2));
         });
         HtmlRenderDocument scene = HtmlRenderEngine.Render(source, options);
-        scene.RequireNoLoss();
+        scene.ThrowIfLoss();
         HtmlRenderPage page = Assert.Single(scene.Pages);
         HtmlRenderText[] linkedPaint = page.Visuals.OfType<HtmlRenderText>()
             .Where(text => text.LinkUri == "https://example.com/path" && !string.IsNullOrWhiteSpace(text.Text)).ToArray();

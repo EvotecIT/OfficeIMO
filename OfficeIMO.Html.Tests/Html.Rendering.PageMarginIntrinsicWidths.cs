@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("ALPHA BETA", text.Text);
         Assert.Equal(HtmlRenderSemanticGroupRole.Artifact, box.Role);
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -46,7 +46,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedWidth, text.Width, 6);
         Assert.Equal(170D, text.X + text.Width / 2D, 6);
         Assert.Equal("ALPHA BETA", text.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedContentWidth, text.Width, 6);
         Assert.Equal(expectedLines, MarginSizingPaintedText(page, text).Length);
         Assert.Equal(content, text.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(320D, right.X + right.Width, 6);
         Assert.Equal("ALPHA BETA", left.Text);
         Assert.Equal("R", right.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -107,7 +107,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedContentWidth, text.Width, 6);
         Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         Assert.Equal("ALPHA BETA", text.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -123,7 +123,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.StrokeColor == OfficeColor.Red);
         Assert.Empty(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderText>());
         Assert.DoesNotContain(page.Scene.OfType<HtmlRenderSemanticGroup>(), group => group.Source == "@page @bottom-center");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -139,7 +139,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedWidth, text.Width, 6);
         Assert.Equal(expectedLines.Split('|'), MarginSizingPaintedText(page, text).Select(line => line.Text).ToArray());
         Assert.Equal(PageMarginTypographyCompact(expectedLines.Replace("|", "")), PageMarginTypographyCompact(text.Text));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -170,7 +170,7 @@ public sealed partial class HtmlRenderingTests {
         });
         Assert.Equal("ALPHABETA", PageMarginTypographyCompact(string.Concat(fragments.Select(text => text.Text))));
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(80D, current.X + current.Width / 2D, 6);
         });
         Assert.Equal(string.Concat(Enumerable.Repeat("BODY", 10)), PageMarginTypographyCompact(rendered.Text));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -203,10 +203,10 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderMarginSizing(300D,
             "@top-center{content:'ALPHA BETA';width:fit-content(50%)}");
 
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center"
             && diagnostic.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported
             && diagnostic.Detail == "width=fit-content(50%)"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 }

@@ -437,7 +437,7 @@ public partial class Html {
                 diagnostic.Code == HtmlConversionDiagnosticCodes.ExcelPivotReviewApproximated &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
             Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -472,7 +472,7 @@ public partial class Html {
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == HtmlConversionDiagnosticCodes.PowerPointEffectReviewApproximated);
             Assert.True(result.HasLoss);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

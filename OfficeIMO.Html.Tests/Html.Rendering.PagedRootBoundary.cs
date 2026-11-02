@@ -28,7 +28,7 @@ public sealed partial class HtmlRenderingTests {
                 if (body.Contains("page:other", StringComparison.Ordinal))
                     Assert.Equal("other", rendered.Pages[expectedPages - 1].PageName);
                 AssertColumnPageBandTextOnce(rendered, new[] { "ONE", "TWO" });
-                rendered.RequireNoLoss();
+                rendered.ThrowIfLoss();
             }
         }
     }

@@ -18,8 +18,8 @@ public sealed class ConversionTests {
         var markdown = book.ToMarkdownResult();
         Assert.Contains("Café", markdown.Value); Assert.Contains("Second topic", markdown.Value); Assert.Contains("42", markdown.Value);
         Assert.Contains("#chm-topic-2-part", markdown.Value);
-        Assert.Contains(markdown.Report.FidelityDiagnostics, item => item.Code == "CHM_INDEX_METADATA" && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<OfficeConversionException>(() => markdown.RequireNoLoss());
+        Assert.Contains(markdown.Report.Diagnostics, item => item.Code == "CHM_INDEX_METADATA" && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<OfficeConversionException>(() => markdown.ThrowIfLoss());
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class ConversionTests {
         Assert.Equal("chm-topic-1-column", projection.Value.Document.QuerySelector("td")!.GetAttribute("headers"));
         Assert.Equal("chm-topic-1-description", projection.Value.Document.QuerySelector("table")!.GetAttribute("aria-describedby"));
         var epub = book.ToEpubPublicationResult(); Assert.True(epub.Succeeded);
-        Assert.NotEmpty(epub.Publication.Write().RequireValue());
+        Assert.NotEmpty(epub.Publication.Write().Value);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class ConversionTests {
     public async Task EpubReopensWithHierarchyAndEmbeddedResources() {
         ChmDocument book = ChmDocument.Load(ChmFixture.Book());
         EpubManuscriptResult imported = await book.ToEpubPublicationResultAsync();
-        Assert.True(imported.Succeeded, string.Join("\n", imported.Report.FidelityDiagnostics.Select(item => item.Code + ": " + item.Message)));
+        Assert.True(imported.Succeeded, string.Join("\n", imported.Report.Diagnostics.Select(item => item.Code + ": " + item.Message)));
         var result = book.ToEpubBytesResult(writeOptions: new EpubWriteOptions { ModifiedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) });
         using var stream = new MemoryStream(result.Value); EpubDocument reopened = EpubDocument.Load(stream);
         Assert.Contains(reopened.Chapters, chapter => chapter.Text.Contains("Café"));
@@ -70,7 +70,7 @@ public sealed class ConversionTests {
         Assert.Equal(2, read.Pages.Count); string text = read.ExtractText();
         Assert.Contains("Café", text); Assert.Contains("Second topic", text); Assert.Contains("42", text);
         Assert.NotEmpty(read.Pages[0].GetImages());
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "CHM_PDF_TOPIC_LINKS");
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "CHM_PDF_TOPIC_LINKS");
     }
 
     [Fact]
@@ -110,7 +110,7 @@ public sealed class ConversionTests {
         }));
         var projection = book.ToHtmlDocumentResult();
         Assert.DoesNotContain("danger()", projection.Value.SourceHtml); Assert.DoesNotContain("onclick", projection.Value.SourceHtml);
-        Assert.Contains(projection.Report.FidelityDiagnostics, item => item.Code == "CHM_ACTIVE_CONTENT_OMITTED");
+        Assert.Contains(projection.Report.Diagnostics, item => item.Code == "CHM_ACTIVE_CONTENT_OMITTED");
         Assert.Contains("danger()", book.Topics[0].ReadHtml());
     }
 }

@@ -3345,7 +3345,7 @@ public partial class PdfPageImageRendererTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.ColorSpaceId);
         Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
             OfficeImageExportFormat.Png,
-            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
     }
 
     [Fact]
@@ -3643,7 +3643,7 @@ public partial class PdfPageImageRendererTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.IccColorSpaceId);
         Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
             OfficeImageExportFormat.Png,
-            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
     }
 
     [Fact]
@@ -3659,7 +3659,7 @@ public partial class PdfPageImageRendererTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedShadingId);
         Assert.Throws<OfficeImageExportPolicyException>(() => page.ExportImage(
             OfficeImageExportFormat.Png,
-            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+            new PdfImageExportOptions { Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
     }
 
     [Fact]

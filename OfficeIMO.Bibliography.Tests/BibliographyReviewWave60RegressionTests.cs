@@ -57,7 +57,7 @@ public sealed class BibliographyReviewWave60RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains("{ \"a\" : 1 }", written.Content, StringComparison.Ordinal);
         Assert.Equal("{ \"a\" : 1 }", Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].NativeFields).RawValue);

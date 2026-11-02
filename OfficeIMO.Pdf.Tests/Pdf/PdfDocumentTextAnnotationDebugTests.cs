@@ -327,7 +327,7 @@ public partial class PdfDocumentVisualQualityTests {
                 item.LossKind == OfficeConversionLossKind.Approximation);
 
         var strict = new PdfImageExportOptions {
-            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
         OfficeImageExportPolicyException exception =
             Assert.Throws<OfficeImageExportPolicyException>(

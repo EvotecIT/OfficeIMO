@@ -9,7 +9,7 @@ public static partial class EpubManuscript {
         "script", "iframe", "object", "embed", "form", "input", "button", "select", "textarea", "base", "link", "meta", "style"
     }, StringComparer.OrdinalIgnoreCase);
 
-    private static XElement? ConvertElement(IElement source, List<OfficeConversionFidelityDiagnostic> diagnostics,
+    private static XElement? ConvertElement(IElement source, List<OfficeDiagnostic> diagnostics,
         HtmlConversionDocument manuscript, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         string name = source.LocalName;
@@ -72,7 +72,7 @@ public static partial class EpubManuscript {
         return element;
     }
 
-    private static void PreserveLegacyNamedAnchors(XElement body, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+    private static void PreserveLegacyNamedAnchors(XElement body, List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         // Reserve only destinations retained in the converted body, including
         // IDs after named anchors. Omitted controls and head elements cannot collide.
         var anchorIds = EpubContentIdentifiers.Collect(body, "HTML manuscript", rejectDuplicates: false, token);

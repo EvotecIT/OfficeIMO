@@ -31,9 +31,9 @@ public sealed class PdfConversionReportTests {
             PdfConversionWarningSeverity.Warning,
             OfficeConversionLossKind.Omission);
 
-        OfficeConversionFidelityDiagnostic diagnostic = warning.ToFidelityDiagnostic();
+        OfficeDiagnostic diagnostic = warning.ToFidelityDiagnostic();
 
-        Assert.Equal("OfficeIMO.Tests", diagnostic.Source);
+        Assert.Equal("OfficeIMO.Tests", diagnostic.Format);
         Assert.Equal("page:1", diagnostic.Location);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.False(string.IsNullOrWhiteSpace(diagnostic.Message));
@@ -310,7 +310,7 @@ public sealed class PdfConversionReportTests {
 
         PdfConversionProofReport observed = result.AssessProof();
         PdfConversionProofReport required = result.AssessProof(
-            new PdfConversionProofOptions().RequireNoLoss());
+            new PdfConversionProofOptions { RequireLosslessConversion = true });
 
         Assert.True(observed.IsSatisfied, observed.Summary);
         Assert.True(observed.HasLoss);
@@ -337,7 +337,7 @@ public sealed class PdfConversionReportTests {
             .WithSourceConversionReport(new LossySourceConversionReport());
 
         Assert.Collection(
-            result.FidelityDiagnostics,
+            result.Diagnostics,
             diagnostic => {
                 Assert.Equal("TEST_SOURCE_OMISSION", diagnostic.Code);
                 Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
@@ -356,7 +356,7 @@ public sealed class PdfConversionReportTests {
             .WithSourceConversionReport(new LossySourceConversionReport());
         using var destination = new MemoryStream();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.SaveLossless(destination));
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.Save(destination, failOnLoss: true));
 
         Assert.Contains("source stage is lossy", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0L, destination.Length);
@@ -371,8 +371,9 @@ public sealed class PdfConversionReportTests {
             report);
         var proofOptions = new PdfConversionProofOptions {
             RequireReadablePdf = false,
-            IncludeArtifactHash = false
-        }.RequireNoLoss();
+            IncludeArtifactHash = false,
+            RequireLosslessConversion = true
+        };
 
         PdfConversionProofReport proof = result.AssessProof(proofOptions);
 
@@ -391,7 +392,7 @@ public sealed class PdfConversionReportTests {
         PdfDocumentConversionResult result = CreateSerializationLossResult();
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            result.SaveLossless(destination));
+            result.Save(destination, failOnLoss: true));
 
         Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(original, destination.ToArray());
@@ -406,7 +407,7 @@ public sealed class PdfConversionReportTests {
             PdfDocumentConversionResult result = CreateSerializationLossResult();
 
             InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                result.SaveLosslessAsync(path));
+                result.SaveAsync(path, failOnLoss: true));
 
             Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(original, File.ReadAllBytes(path));
@@ -419,7 +420,7 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_StrictByteOutputRejectsSerializationLoss() {
         PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.ToBytesLossless());
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.ToBytes(failOnLoss: true));
 
         Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
@@ -875,19 +876,19 @@ public sealed class PdfConversionReportTests {
         Assert.Throws<InvalidOperationException>(() => result.AssertProof(new PdfConversionProofOptions().RequireTextMarkers("Missing proof text")));
     }
 
-    private sealed class LossySourceConversionReport : IOfficeConversionReport {
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; } = new[] {
-            new OfficeConversionFidelityDiagnostic(
+    private sealed class LossySourceConversionReport : OfficeConversionReport {
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; } = new[] {
+            new global::OfficeIMO.OfficeDiagnostic(
                 "TEST_SOURCE_OMISSION",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "The test source omitted content.",
-                OfficeConversionLossKind.Omission,
-                "OfficeIMO.Pdf.Tests")
+                null,
+                "OfficeIMO.Pdf.Tests",
+                OfficeConversionLossKind.Omission)
         };
 
-        public bool HasLoss => true;
+        public override bool HasLoss => true;
 
-        public void RequireNoLoss() {
-            throw new InvalidOperationException("The test source stage is lossy.");
-        }
     }
 }

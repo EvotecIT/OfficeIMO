@@ -22,7 +22,7 @@ public sealed class EmailContentSourceTests {
         Assert.NotEmpty(bytes);
         Assert.True(result.HasErrors);
         Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
-        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Theory]

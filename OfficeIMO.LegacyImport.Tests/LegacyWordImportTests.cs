@@ -129,7 +129,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal(OfficeLegacyImportQuality.Structured, imported.Report.Quality);
         Assert.Empty(imported.Content.Paragraphs);
         Assert.Equal(string.Empty, imported.PlainText);
-        imported.Report.RequireNoLoss();
+        imported.Report.ThrowIfLoss();
         Assert.Single(imported.Value.Paragraphs);
     }
 
@@ -148,7 +148,7 @@ public sealed class LegacyWordImportTests {
             Assert.Equal(string.Empty, paragraph.Text);
             Assert.True(paragraph.Alignment == WordParagraphAlignment.Center || paragraph.StyleName == "Body Text");
             Assert.Single(imported.Value.Paragraphs);
-            imported.Report.RequireNoLoss();
+            imported.Report.ThrowIfLoss();
         }
     }
 
@@ -168,7 +168,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal(2, textRuns.Length);
         Assert.All(textRuns, run => Assert.NotNull(run.RunProperties?.Bold));
         Assert.Single(body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>());
-        imported.Report.RequireNoLoss();
+        imported.Report.ThrowIfLoss();
 
         using LegacyWordImportResult formattingOnly = LegacyWordImporter.Import(
             Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n<+!>\n<-!>\n"),
@@ -177,7 +177,7 @@ public sealed class LegacyWordImportTests {
             .MainDocumentPart?.Document?.Body;
         Assert.NotNull(formattingOnlyBody);
         Assert.Single(formattingOnlyBody!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>());
-        formattingOnly.Report.RequireNoLoss();
+        formattingOnly.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -189,7 +189,7 @@ public sealed class LegacyWordImportTests {
         Assert.Empty(imported.Content.Notes);
         Assert.Equal("4", imported.Metadata["WordStarEmptyNoteCount"]);
         Assert.Single(imported.Report.Findings, finding => finding.Code == "wordstar-note-empty-omitted");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public sealed class LegacyWordImportTests {
 
             Assert.Equal("Visible", imported.PlainText);
             Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-inline-tag-malformed");
-            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
             using var docx = new MemoryStream();
             imported.Value.Save(docx);
             Assert.True(docx.Length > 0);
@@ -234,7 +234,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal(OfficeTheme.Default.TypeScale.Body.ToHalfPoints().ToString(System.Globalization.CultureInfo.InvariantCulture),
             properties.FontSize!.Val!.Value);
         Assert.Equal("auto", properties.Color!.Val!.Value);
-        imported.Report.RequireNoLoss();
+        imported.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -246,7 +246,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal("Visible", imported.PlainText);
         Assert.Equal("1", imported.Metadata["AmiProDocumentDirectiveCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-document-directive-unsupported");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal("0x10", imported.Metadata["AmiProUnsupportedStyleFlags.Spacing"]);
         Assert.Equal("0x2", imported.Metadata["AmiProUnsupportedStyleFlags.Break"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-style-flags-unsupported");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class LegacyWordImportTests {
             Assert.Empty(imported.Content.Styles);
             Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
             Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-style-block-malformed");
-            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
         }
     }
 
@@ -305,7 +305,7 @@ public sealed class LegacyWordImportTests {
 
         Assert.Equal(3, imported.Content.Paragraphs.Count(paragraph => paragraph.PageBreakBefore));
         Assert.True(imported.Content.Paragraphs[^1].PageBreakBefore);
-        imported.Report.RequireNoLoss();
+        imported.Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -337,7 +337,7 @@ public sealed class LegacyWordImportTests {
         Assert.Single(imported.Report.Findings, finding => finding.Code == "amipro-inline-tag-malformed");
         Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
         Assert.Equal("2", imported.Metadata["AmiProMalformedInlineTagCount"]);
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -360,7 +360,7 @@ public sealed class LegacyWordImportTests {
         Assert.Null(run.ColorHex);
         Assert.Null(paragraph.LineSpacing);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-inline-tag-malformed");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -389,7 +389,7 @@ public sealed class LegacyWordImportTests {
 
         Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-style-block-malformed");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -404,7 +404,7 @@ public sealed class LegacyWordImportTests {
         Assert.Empty(imported.Content.Styles);
         Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-style-block-malformed");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Theory]
@@ -435,7 +435,7 @@ public sealed class LegacyWordImportTests {
             Assert.Equal("Visible", imported.PlainText);
             Assert.DoesNotContain(imported.Content.Paragraphs, paragraph => paragraph.PageBreakBefore);
             Assert.Contains(imported.Report.Findings, finding => finding.Code == "wordstar-dot-command");
-            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
         }
     }
 
@@ -464,7 +464,7 @@ public sealed class LegacyWordImportTests {
             new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
         Assert.Equal("1", imported.Metadata["AmiProDuplicateStyleCount"]);
         Assert.Single(imported.Report.Findings, finding => finding.Code == "amipro-style-duplicate");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -480,7 +480,7 @@ public sealed class LegacyWordImportTests {
 
         Assert.Equal("Visible", imported.PlainText);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "amipro-inline-tag-malformed");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -713,7 +713,7 @@ public sealed class LegacyWordImportTests {
         Assert.Equal("1", imported.Metadata["WordStarUnsupportedControl.0x07Count"]);
         Assert.Single(imported.Report.Findings, finding => finding.Code == "wordstar-header-footer-metadata-only");
         Assert.Single(imported.Report.Findings, finding => finding.Code == "wordstar-control-unsupported");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
     }
 
     [Fact]

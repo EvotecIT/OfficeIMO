@@ -24,7 +24,7 @@ public sealed class HtmlFontUsageTests {
     public async Task UnavailableFaceLossDependsOnTextRequest(string families, string additionalHtml, bool expectedLoss) {
         HtmlRenderDocument rendered = await RenderAsync("p{font-family:" + families + "}", "<p>Visible text</p>" + additionalHtml);
         Assert.Equal(expectedLoss, rendered.HasLoss);
-        HtmlDiagnostic unavailable = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        HtmlDiagnostic unavailable = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
         Assert.Equal(expectedLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None, unavailable.LossKind);
         Assert.Equal(expectedLoss ? HtmlDiagnosticSeverity.Warning : HtmlDiagnosticSeverity.Info, unavailable.Severity);
     }
@@ -54,7 +54,7 @@ public sealed class HtmlFontUsageTests {
     public async Task ControlOnlyGraphemesDoNotRequestUnavailableSubset(string text) {
         var rendered = await RenderAsync("p{font-family:Missing,Good}", "<p>" + text + "</p>",
             "@font-face{font-family:Missing;unicode-range:U+0370-03FF;src:url('https://font.example/missing.ttf')}", missingFamily: null);
-        var unavailable = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        var unavailable = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
         Assert.Equal(HtmlDiagnosticSeverity.Info, unavailable.Severity);
         Assert.Equal(OfficeConversionLossKind.None, unavailable.LossKind);
     }
@@ -74,7 +74,7 @@ public sealed class HtmlFontUsageTests {
         HtmlRenderDocument rendered = await RenderAsync("p{font-family:" + family + "}", "<p>Visible text</p>",
             "@font-face{font-family:Broken;src:url('data:font/ttf;base64,AAECAw==')}", missingFamily: null);
         Assert.Equal(expectedLoss, rendered.HasLoss);
-        HtmlDiagnostic unsupported = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
+        HtmlDiagnostic unsupported = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
         Assert.Equal(expectedLoss ? HtmlDiagnosticSeverity.Warning : HtmlDiagnosticSeverity.Info, unsupported.Severity);
     }
 
@@ -90,7 +90,7 @@ public sealed class HtmlFontUsageTests {
     public async Task FrameFontUseDoesNotPromoteUnusedParentDeclaration() {
         string child = System.Net.WebUtility.HtmlEncode("<style>@font-face{font-family:Missing;src:url('https://font.example/missing.ttf')}p{font-family:Missing}</style><p>Frame text</p>");
         HtmlRenderDocument rendered = await RenderAsync("p{font-family:Good}", "<p>Parent text</p><iframe srcdoc=\"" + child + "\"></iframe>");
-        HtmlDiagnostic[] unavailable = rendered.Diagnostics.Where(x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).ToArray();
+        HtmlDiagnostic[] unavailable = rendered.NativeDiagnostics.Where(x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).ToArray();
         Assert.Equal(2, unavailable.Length);
         Assert.Equal(HtmlDiagnosticSeverity.Info, unavailable[0].Severity);
         Assert.Equal(HtmlDiagnosticSeverity.Warning, unavailable[1].Severity);
@@ -118,7 +118,7 @@ public sealed class HtmlFontUsageTests {
         options.Mode = HtmlRenderMode.Paged;
         options.Margins = HtmlRenderMargins.All(40);
         var rendered = await HtmlRenderEngine.RenderAsync(HtmlConversionDocument.Parse(Style("p{font-family:Good}@page{@top-center{content:'Header';font-family:Missing}}") + "<p>Body</p>"), options);
-        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
     }
 
     [Theory]
@@ -133,10 +133,10 @@ public sealed class HtmlFontUsageTests {
             "p{font-family:Good}@page{@top-center{content:'AAAA';font-family:Missing;font-size:0;line-height:20px;width:1px;"
             + height + "}}") + "<p>Body</p>"), options);
 
-        HtmlDiagnostic unavailable = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        HtmlDiagnostic unavailable = Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
         Assert.Equal(HtmlDiagnosticSeverity.Info, unavailable.Severity);
         Assert.Equal(OfficeConversionLossKind.None, unavailable.LossKind);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -145,7 +145,7 @@ public sealed class HtmlFontUsageTests {
     public async Task InputTextAttributesUnavailableUnicodeSubset(string attributes, string css) {
         var rendered = await RenderAsync(css, "<input " + attributes + ">",
             "@font-face{font-family:Missing;unicode-range:U+0370-03FF;src:url('https://font.example/missing.ttf')}", missingFamily: null);
-        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
     }
 
     [Fact]
@@ -156,7 +156,7 @@ public sealed class HtmlFontUsageTests {
             + "@font-face{font-family:Missing;src:url('https://font.example/missing.ttf')}"
             + "p{font-family:Good,Missing}</style><p>e\u0301</p>");
         var rendered = await HtmlRenderEngine.RenderAsync(source, CreateOptions());
-        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
     }
 
     [Fact]

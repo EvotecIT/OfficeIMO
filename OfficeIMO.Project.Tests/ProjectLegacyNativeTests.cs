@@ -5,7 +5,7 @@ namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectLegacyNativeTests {
     private static ProjectSaveOptions Native(ProjectFileFormat format, bool allow = false) => new ProjectSaveOptions {
-        Format = format, LossPolicy = allow ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block
+        Format = format, AllowLoss = allow
     };
 
     [Fact]
@@ -18,7 +18,7 @@ public sealed class ProjectLegacyNativeTests {
         using var updated = new MemoryStream(); editing.Save(updated, Native(ProjectFileFormat.Mpp9, true));
         using var reopened = ProjectDocument.Load(new MemoryStream(updated.ToArray()));
         Assert.Null(reopened.Settings.CurrencyCode);
-        Assert.Contains(reopened.AssessSave(Native(ProjectFileFormat.Xml)).Diagnostics,
+        Assert.Contains(reopened.AssessSave(Native(ProjectFileFormat.Xml)).NativeDiagnostics,
             d => d.Code == "PROJECT_CURRENCY_CODE" && d.Severity == ProjectDiagnosticSeverity.Error);
         reopened.Settings.CurrencyCode = "PLN";
         Assert.DoesNotContain(reopened.AssessSave(Native(ProjectFileFormat.Xml)).Diagnostics, d => d.Code == "PROJECT_CURRENCY_CODE");
@@ -126,8 +126,8 @@ public sealed class ProjectLegacyNativeTests {
         using var document = ProjectNativeAuthoringTests.Create();
         document.Tasks.GetByUid(2).IsManual = true; document.Tasks.GetByUid(2).IsActive = false;
         var assessment = document.AssessSave(Native(ProjectFileFormat.Mpp12));
-        Assert.Contains(assessment.Diagnostics, d => d.RepresentsLoss && d.Location.EndsWith("/IsManual", StringComparison.Ordinal));
-        Assert.Contains(assessment.Diagnostics, d => d.RepresentsLoss && d.Location.EndsWith("/IsActive", StringComparison.Ordinal));
+        Assert.Contains(assessment.NativeDiagnostics, d => d.RepresentsLoss && d.Location.EndsWith("/IsManual", StringComparison.Ordinal));
+        Assert.Contains(assessment.NativeDiagnostics, d => d.RepresentsLoss && d.Location.EndsWith("/IsActive", StringComparison.Ordinal));
         using var output = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => document.Save(output, Native(ProjectFileFormat.Mpp12)));
         Assert.Empty(output.ToArray());
         document.Save(output, Native(ProjectFileFormat.Mpp12, true));

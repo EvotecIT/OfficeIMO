@@ -122,7 +122,7 @@ external converter is a runtime dependency.
 using OfficeIMO.Visio;
 
 var imported = VisioDocument.LoadLegacyXml("workflow.vdx");
-foreach (var diagnostic in imported.Report.FidelityDiagnostics)
+foreach (var diagnostic in imported.Report.Diagnostics)
     Console.WriteLine(diagnostic.Message);
 
 VisioDocument document = imported.Value;
@@ -130,7 +130,7 @@ document.Pages[0].Shapes[0].Text = "Reviewed";
 document.Save("workflow.vsdx");
 
 var legacy = document.ToLegacyXmlResult();
-foreach (var diagnostic in legacy.Report.FidelityDiagnostics)
+foreach (var diagnostic in legacy.Report.Diagnostics)
     Console.WriteLine(diagnostic.Message);
 // After accepting these specific omissions, write the inspected payload.
 File.WriteAllBytes("workflow-reviewed.vdx", legacy.Value);
@@ -400,7 +400,7 @@ for (int index = 0; index < projected.Value.Count; index++) {
     File.WriteAllText($"page-{index + 1}.svg",
         OfficeDrawingSvgExporter.ToSvg(page, 1, OfficeSvgSizeUnit.Point));
 }
-foreach (var diagnostic in projected.Report.FidelityDiagnostics)
+foreach (var diagnostic in projected.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
 ```
 
@@ -436,7 +436,7 @@ Cached outline and shape text-frame reflections follow the placement contract ab
 fitting reduces text to fit its cached frame and reports an omission
 when the selected fonts still cannot retain all content. Native
 font placement and fitting, themes, data graphics and arbitrary ShapeSheet
-recalculation are not qualified. `RequireNoLoss` rejects reported loss before
+recalculation are not qualified. `ThrowIfLoss` rejects reported loss before
 returning scenes. The [PDF diagram-page mode](../OfficeIMO.Visio.Pdf/README.md#diagram-pages)
 uses this same owner and preserves its report in the PDF result.
 

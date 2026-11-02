@@ -187,7 +187,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     }
 
     private static void EnforceFidelity(OfficeVisioVisualConversionReport report, OfficeVisioVisualOptions options) {
-        if (report.Diagnostics.Any(item => options.RejectedDiagnostics.Contains(item.Code) ||
+        if (report.NativeDiagnostics.Any(item => options.RejectedDiagnostics.Contains(item.Code) ||
             options.RequireLossless && item.Severity == OfficeVisioVisualDiagnosticSeverity.Warning)) {
             throw new OfficeVisioVisualFidelityException(report);
         }

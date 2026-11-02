@@ -112,8 +112,8 @@ public class RtfHtmlOptionsTests {
         Assert.Contains("<th", html, StringComparison.Ordinal);
         Assert.Contains("State", html, StringComparison.Ordinal);
         Assert.Contains("--officeimo-accent:#1D4ED8", html, StringComparison.Ordinal);
-        Assert.DoesNotContain(import.Report.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
-        Assert.DoesNotContain(export.Report.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(import.Report.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(export.Report.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]

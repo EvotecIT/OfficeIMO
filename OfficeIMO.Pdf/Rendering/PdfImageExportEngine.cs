@@ -313,9 +313,9 @@ internal static class PdfImageExportEngine {
                 string.IsNullOrWhiteSpace(warning.Source) ? warning.Converter : warning.Source,
                 warning.LossKind));
         }
-        foreach (IOfficeConversionReport report in conversion.SourceConversionReports) {
+        foreach (OfficeConversionReport report in conversion.SourceConversionReports) {
             bool hasTypedLoss = false;
-            foreach (OfficeConversionFidelityDiagnostic diagnostic in report.FidelityDiagnostics) {
+            foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
                 hasTypedLoss |= diagnostic.LossKind != OfficeConversionLossKind.None;
                 diagnostics.Add(new OfficeImageExportDiagnostic(
                     diagnostic.LossKind == OfficeConversionLossKind.Failure
@@ -325,9 +325,9 @@ internal static class PdfImageExportEngine {
                             : OfficeImageExportDiagnosticSeverity.Warning,
                     diagnostic.Code,
                     diagnostic.Message,
-                    diagnostic.Location ?? diagnostic.Source,
+                    diagnostic.Location ?? diagnostic.Format,
                     diagnostic.LossKind,
-                    diagnostic.Source,
+                    diagnostic.Format,
                     diagnostic.Location));
             }
             if (report.HasLoss && !hasTypedLoss) {

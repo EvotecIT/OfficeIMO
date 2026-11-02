@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
                 && diagnostic.LossKind != OfficeConversionLossKind.None);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -97,11 +97,11 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(
             HtmlConversionDocument.Parse("<p style='font:20px Arial'>A</p>"), options);
 
-        HtmlDiagnostic rejected = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic rejected = Assert.Single(rendered.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
         Assert.Equal(OfficeConversionLossKind.Approximation, rejected.LossKind);
         Assert.Empty(rendered.Fonts.Faces);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]

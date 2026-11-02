@@ -1,8 +1,8 @@
 namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectNativeAuthoringTests {
-    private static ProjectSaveOptions Native(ProjectFileFormat format = ProjectFileFormat.Mpp14, OfficeConversionLossPolicy policy = OfficeConversionLossPolicy.Block) =>
-        new ProjectSaveOptions { Format = format, LossPolicy = policy };
+    private static ProjectSaveOptions Native(ProjectFileFormat format = ProjectFileFormat.Mpp14, bool allowLoss = false) =>
+        new ProjectSaveOptions { Format = format, AllowLoss = allowLoss };
 
     [Fact]
     public void NewNativeDocumentNeedsNoSourceAndRetainsItsMappedModel() {
@@ -29,13 +29,13 @@ public sealed class ProjectNativeAuthoringTests {
         foreach (var task in source.AllTasks.Where(item => item.Duration.HasValue && !item.RemainingDuration.HasValue)) task.RemainingDuration = task.Duration;
         string xml = source.ToXml();
         using var parsed = ProjectDocument.Parse(xml);
-        using var output = new MemoryStream(); parsed.Save(output, Native(policy: OfficeConversionLossPolicy.Allow));
+        using var output = new MemoryStream(); parsed.Save(output, Native(allowLoss: true));
         using var native = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         var report = native.AssessSave(Native(ProjectFileFormat.Xml));
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_PRESENTATION_LOSS");
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_CURVE_LOSS");
         Assert.Throws<InvalidOperationException>(() => native.ToXml());
-        using var converted = ProjectDocument.Parse(native.ToXml(Native(ProjectFileFormat.Xml, OfficeConversionLossPolicy.Allow)));
+        using var converted = ProjectDocument.Parse(native.ToXml(Native(ProjectFileFormat.Xml, true)));
         Assert.Equal("Design café / Łódź / 日本語", converted.Tasks.GetByUid(2).Name);
         Assert.Equal(800m, converted.Tasks.GetByUid(2).Baselines.Single().Cost);
     }
@@ -63,7 +63,7 @@ public sealed class ProjectNativeAuthoringTests {
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_FIELD_LOSS" && d.Location.EndsWith("/Notes", StringComparison.Ordinal));
         using var output = new MemoryStream();
         Assert.Throws<InvalidOperationException>(() => document.Save(output, Native()));
-        document.Save(output, Native(policy: OfficeConversionLossPolicy.Allow));
+        document.Save(output, Native(allowLoss: true));
         Assert.True(document.AssessSave(Native()).HasLoss);
         using var second = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => document.Save(second, Native()));
         document.Tasks.GetByUid(2).Notes = null;
@@ -85,7 +85,7 @@ public sealed class ProjectNativeAuthoringTests {
     [Fact]
     public void NativeAssessmentBoundsFindingsAndReportsInvalidCreationValues() {
         using var document = Create(); document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 1);
-        Assert.Contains(document.AssessSave(Native()).Diagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Contains(document.AssessSave(Native()).NativeDiagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error);
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
         document.Title = "Invalid\0title";
         Assert.Contains(document.AssessSave(Native()).Diagnostics, d => d.Code == "PROJECT_NATIVE_METADATA_VALUE");
@@ -125,7 +125,7 @@ public sealed class ProjectNativeAuthoringTests {
         Assert.False(report.HasErrors);
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_FIELD_LOSS" && d.Location.EndsWith("/TotalSlackMinutes", StringComparison.Ordinal));
         using var output = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => document.Save(output, Native()));
-        document.Save(output, Native(policy: OfficeConversionLossPolicy.Allow));
+        document.Save(output, Native(allowLoss: true));
         using var loaded = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(document.Tasks.GetByUid(2).Finish, loaded.Tasks.GetByUid(2).Finish);
     }
@@ -138,7 +138,7 @@ public sealed class ProjectNativeAuthoringTests {
         foreach (string field in new[] { "PercentWorkComplete", "ActualStart", "ActualFinish" })
             Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_FIELD_LOSS" && d.Location.EndsWith("/" + field, StringComparison.Ordinal));
         using var output = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => document.Save(output, Native()));
-        document.Save(output, Native(policy: OfficeConversionLossPolicy.Allow));
+        document.Save(output, Native(allowLoss: true));
     }
 
     internal static ProjectDocument Create() {

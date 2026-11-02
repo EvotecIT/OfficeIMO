@@ -100,7 +100,7 @@ public sealed class ConvertFromOfficeImageCommand : AsyncPSCmdlet
             foreach (string diagnostic in page.Diagnostics) WriteWarning(diagnostic);
         }
         if (result.ConversionReport != null)
-            foreach (var diagnostic in result.ConversionReport.FidelityDiagnostics) WriteWarning(diagnostic.Message);
+            foreach (var diagnostic in result.ConversionReport.Diagnostics) WriteWarning(diagnostic.Message);
         if (extension == ".csv" && result.TableScope?.HasOmittedPageContent == true)
             WriteWarning("CSV contains the detected table. Content outside that table is recorded in the PassThru TableScope report.");
         WriteObject(PassThru.IsPresent ? result : (object)result.File);

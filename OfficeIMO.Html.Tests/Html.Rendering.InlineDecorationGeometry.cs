@@ -29,7 +29,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(144D, Shape(rendered, "div#following").Y, 6);
         if (alignment == "top") Assert.InRange(owner.Y, 4D, 5D);
         else Assert.Equal(fill.Y + fill.Height - face.Ascent - 8D, owner.Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -43,7 +43,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(Face(options).Height + 16D, Shape(rendered, "span#owner").Height, 6);
         Assert.Equal(120D, Shape(rendered, "span#fill").Height, 6);
         Assert.Equal(120D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(8D, inner.X - outer.X, 6);
         Assert.Equal(3D, inner.Y - outer.Y, 6);
         Assert.Equal(13D, Shape(rendered, "span#fill").X, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -84,7 +84,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(8D, Shape(rendered, "span#first").X, 6);
         Assert.Equal(secondX, Shape(rendered, "span#second").X, 6);
         Assert.Equal(180D, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(Shape(plain, "span#owner").Width, Shape(floated, "span#owner").Width, 6);
         Assert.Equal(19D + 16D, Shape(floated, "span#owner").Height, 6);
         Assert.Equal(120D, Shape(floated, "span#float").Height, 6);
-        floated.RequireNoLoss();
+        floated.ThrowIfLoss();
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(controlPositioned.X, positioned.X, 6);
         Assert.Equal(controlPositioned.Y, positioned.Y, 6);
         Assert.Equal(Shape(control, "div#following").Y, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -167,7 +167,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
             Assert.Equal(face.Height + 16D, Shape(rendered, "span#empty-owner").Height, 6);
         }
         Assert.Equal(Shape(control, "div#following").Y, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -233,7 +233,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
             Assert.Equal(controlText.X, text.X, 6);
             Assert.Equal(controlText.Y, text.Y, 6);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -257,7 +257,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => Enumerate(page.Scene)), visual =>
             visual.Source?.Contains(":content-leader", StringComparison.Ordinal) == true);
         Assert.Equal(Shape(hidden, "div#following").Y, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -287,7 +287,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
                 HtmlRenderEncoder.Pdf, options: options)).ToBytes());
         Assert.Empty(pdf.ExtractText());
         Assert.Empty(pdf.Pages.SelectMany(page => page.GetLinkAnnotations()));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -306,7 +306,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Equal(Text(control).Y, text.Y, 6);
         Assert.Equal("https://example.com/visible", text.LinkUri);
         Assert.Equal(Shape(control, "div#following").Y, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -340,7 +340,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.Empty(rendered.Pages.SelectMany(page => Enumerate(page.Scene)).OfType<HtmlRenderImage>());
         Assert.Equal(Shape(visibleChild, "div#following").Y, Shape(rendered, "div#following").Y, 6);
         Assert.Equal(Shape(hiddenOwner, "div#following").Y, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -364,7 +364,7 @@ public sealed class HtmlInlineDecorationGeometryTests {
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => Enumerate(page.Scene)), visual =>
             visual.Source?.Contains(":content-leader", StringComparison.Ordinal) == true);
         Assert.Equal(Shape(control, "div#following").Y, Shape(rendered, "div#following").Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string VisibilitySource(double lineHeight, bool ownerVisible, bool childVisible) =>

@@ -54,7 +54,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("stacking=appended-after-semantic-content", StringComparison.Ordinal));
@@ -305,7 +305,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported
             && diagnostic.Detail == "shadowLayers=1; nativeShadowParameters=approximated");
     }

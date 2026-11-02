@@ -69,10 +69,10 @@ public class PdfTextShapingProviderTests {
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
 
         Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
-        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
         Assert.Contains("/ActualText", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
     }
 
@@ -99,10 +99,10 @@ public class PdfTextShapingProviderTests {
 
         Assert.Contains(provider.Requests, request => request.Direction == OfficeTextDirection.TopToBottom);
         Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -129,10 +129,10 @@ public class PdfTextShapingProviderTests {
         byte[] pdf = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -169,9 +169,9 @@ public class PdfTextShapingProviderTests {
 
         Assert.Equal(evidence.Text, PdfReadDocument.Open(pdf).ExtractText());
         Assert.InRange(bounds.Y, 10, 12);
-        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+        Assert.DoesNotContain(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]
@@ -203,9 +203,9 @@ public class PdfTextShapingProviderTests {
         Assert.Contains("/ca " + pdfOpacity + " /CA 1", raw, StringComparison.Ordinal);
         Assert.Contains("/GS1 gs", raw, StringComparison.Ordinal);
         Assert.Contains(evidence.Text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+        Assert.DoesNotContain(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
@@ -237,10 +237,10 @@ public class PdfTextShapingProviderTests {
         Assert.Contains(provider.Requests, request =>
             request.Direction == OfficeTextDirection.TopToBottom && request.IsOpenTypeCff);
         Assert.Contains(value, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
-        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -269,10 +269,10 @@ public class PdfTextShapingProviderTests {
 
         byte[] bytes = PdfDocument.Create(options).Drawing(drawing).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
-        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
         Assert.Contains(evidence.Text, PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
 
@@ -416,7 +416,7 @@ public class PdfTextShapingProviderTests {
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping"
             && warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -454,7 +454,7 @@ public class PdfTextShapingProviderTests {
         Assert.True(report.HasLoss);
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping"
             && warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -482,7 +482,7 @@ public class PdfTextShapingProviderTests {
 
         Assert.Contains(text, PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code is "unsupported-mark-positioning-or-joiner-shaping" or "unsupported-complex-script-shaping");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
@@ -552,7 +552,7 @@ public class PdfTextShapingProviderTests {
         Assert.Equal(text, extracted.Trim());
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]

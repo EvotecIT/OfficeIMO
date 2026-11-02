@@ -27,9 +27,9 @@ public sealed partial class IWorkBoundaryTests {
             reconstructedItemCount: 1);
 
         Assert.True(report.HasLoss);
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
             reconstructedItemCount: 1);
 
         Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(report.FidelityDiagnostics).LossKind);
+            Assert.Single(report.Diagnostics).LossKind);
     }
 
     [Theory]
@@ -75,8 +75,8 @@ public sealed partial class IWorkBoundaryTests {
             preservedRecordCount: 0,
             reconstructedItemCount: 0);
 
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-            report.FidelityDiagnostics,
+        OfficeDiagnostic diagnostic = Assert.Single(
+            report.Diagnostics,
             item => item.Code == "IWORK_VISUAL_FALLBACK");
         Assert.Equal(expected, diagnostic.LossKind);
     }
@@ -687,9 +687,9 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(report.TotalRecordCount, report.PreservedRecordCount);
         Assert.Equal(source.Records.Count, report.PreservedRecords.Count);
         Assert.Equal(source.Records.Count, report.UnassessedRecordCount);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
-        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]

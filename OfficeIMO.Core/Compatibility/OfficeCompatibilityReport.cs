@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO;
 
 /// <summary>Immutable feature-level fidelity report for one Office conversion assessment.</summary>
-public sealed class OfficeCompatibilityReport : IOfficeConversionReport {
+public sealed class OfficeCompatibilityReport : OfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeCompatibilityFinding> _findings;
 
     /// <summary>Creates a compatibility report.</summary>
@@ -38,12 +38,13 @@ public sealed class OfficeCompatibilityReport : IOfficeConversionReport {
     public IReadOnlyList<OfficeCompatibilityFinding> Findings => _findings;
 
     /// <summary>Gets category-preserving compatibility diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
         Array.AsReadOnly(_findings.Select(finding =>
             OfficeConversionFidelityDiagnostics.From(finding, "OfficeIMO.Compatibility")).ToArray());
 
     /// <summary>Gets whether any finding reports approximation, omission, or failure.</summary>
-    public bool HasLoss => _findings.Any(static finding => finding.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => _findings.Any(static finding => finding.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Gets whether any feature blocks artifact creation.</summary>
     public bool HasBlockedFeatures => _findings.Any(finding => finding.State == OfficeCompatibilityState.Blocked);
@@ -66,9 +67,4 @@ public sealed class OfficeCompatibilityReport : IOfficeConversionReport {
         return Array.AsReadOnly(_findings.Where(finding => (finding.Impact & impact) != 0).ToArray());
     }
 
-    /// <summary>Throws when the report contains loss or a blocked feature.</summary>
-    public void RequireNoLoss() {
-        if (HasBlockedFeatures) throw new InvalidOperationException("Office conversion contains one or more blocked features.");
-        if (HasLoss) throw new InvalidOperationException("Office conversion contains one or more lossy feature mappings.");
-    }
 }

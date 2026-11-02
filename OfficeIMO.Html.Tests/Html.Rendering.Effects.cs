@@ -85,8 +85,8 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(.8D, Assert.Single(groups, group => group.Source == "div#block").Transform.M11, 3);
         Assert.Equal(.5D, Assert.Single(groups, group => group.Source == "span#inline").Transform.M11, 3);
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#block");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#inline");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#block");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#inline");
     }
 
     [Fact]
@@ -329,11 +329,11 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#invalid-inline-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "span#invalid-inline-effect");
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "span#invalid-inline-effect");
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported && item.Source == "span#invalid-inline-effect");
         Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.OpacityValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TransformValueUnsupported, out _));
@@ -412,7 +412,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportHeight = 90D,
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent,
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -447,7 +447,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 30D,
             ViewportHeight = 70D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -479,7 +479,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -522,7 +522,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -586,7 +586,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("CollinearMarker", pdfText, StringComparison.Ordinal);
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,0 0,0 0))"));
         Assert.Empty(rendered.Diagnostics);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -597,7 +597,7 @@ public sealed partial class HtmlRenderingTests {
             + "<a style='font-size:8px;line-height:10px' href='https://example.com/outside'>Outside</a></div>";
         var options = new HtmlToPdfOptions {
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
@@ -616,7 +616,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportWidth = 30D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
@@ -654,7 +654,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 50D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
 
         IReadOnlyList<HtmlRenderPathClipGroup> clips = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderPathClipGroup>().ToList();
@@ -682,7 +682,7 @@ public sealed partial class HtmlRenderingTests {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / 96D), global::OfficeIMO.OfficeLength.Inches(50D / 96D)),
             HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
         HtmlConversionException error = Assert.Throws<HtmlConversionException>(() => (HtmlConversionDocument.Parse(
             "<div style='width:100px;height:30px;margin:0;clip-path:ellipse(50% 45% at center);font-size:10px'>ClipPathPdfMarker</div>")
@@ -699,7 +699,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D),
             FontFamily = SvgPaintedText.CreatePinnedFamily(),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         };
 
         byte[] pdf = (HtmlConversionDocument.Parse(supported).ToPdf(options)).ToBytes();
@@ -707,12 +707,12 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("ClipPathPdfMarker", extracted, StringComparison.Ordinal);
 
         HtmlRenderDocument fallback = HtmlRenderTestDriver.Render("<div style='clip-path:url(#missing)'>Fallback</div>");
-        HtmlDiagnostic diagnostic = Assert.Single(fallback.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(fallback.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.ClipPathValueUnsupported);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.True(fallback.HasLoss);
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(
             "<div style='clip-path:path(\"M 0 0 L 1 1\")'>Fallback</div>",
-            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss }));
+            new HtmlRenderOptions { FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss }));
         Assert.Contains(HtmlRenderDiagnosticCodes.ClipPathValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.ClipPathValueUnsupported, out _));
         Assert.True(HtmlComputedStyleEngine.IsApplicableSupports("(clip-path:polygon(0 0,100% 0,0 100%))"));

@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && issue.LossKind == OfficeConversionLossKind.Unassessed);
         IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
         Assert.Equal(12ul, issue.Owner.RecordIdentifier);

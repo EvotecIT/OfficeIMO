@@ -80,7 +80,7 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.Code == "pdf-attachments-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["AttachmentCount"] == "1");
-            Assert.Throws<InvalidOperationException>(() => word.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => word.ThrowIfLoss());
         }
 
         PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
@@ -88,7 +88,7 @@ public sealed class PdfReverseAttachmentLossTests {
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PdfAttachmentsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => html.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => html.ThrowIfLoss());
 
         byte[] visualSource = PdfDocument.Create()
             .AttachFile("invoice.xml", Encoding.UTF8.GetBytes("<invoice />"), "application/xml")
@@ -156,7 +156,7 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.Code == "pdf-attachments-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["Count"] == "1");
-            Assert.Throws<InvalidOperationException>(() => visual.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => visual.ThrowIfLoss());
         }
     }
 
@@ -331,6 +331,6 @@ public sealed class PdfReverseAttachmentLossTests {
         Assert.True(omitted.HasLoss);
         Assert.Contains(omitted.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PdfMetadataOmitted && warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => omitted.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => omitted.ThrowIfLoss());
     }
 }

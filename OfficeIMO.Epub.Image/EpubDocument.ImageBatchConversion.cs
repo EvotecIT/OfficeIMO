@@ -16,7 +16,7 @@ public static partial class EpubImageExportExtensions {
         var timer = Stopwatch.StartNew();
         EpubImageExportOptions resolved = options?.CloneEpub() ?? new EpubImageExportOptions();
         OfficeImageExportBatchSaveResult saved = CreateEpubDocumentImageBatchOperation(document, resolved).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("EPUB", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("EPUB", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -28,7 +28,7 @@ public static partial class EpubImageExportExtensions {
         EpubImageExportOptions resolved = options?.CloneEpub() ?? new EpubImageExportOptions();
         OfficeImageExportBatchSaveResult saved = await CreateEpubDocumentImageBatchOperation(document, resolved)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("EPUB", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("EPUB", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 

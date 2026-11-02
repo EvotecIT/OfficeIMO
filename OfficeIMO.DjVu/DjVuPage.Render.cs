@@ -24,16 +24,13 @@ public sealed partial class DjVuPage {
         int width = (int)outputWidth, height = (int)outputHeight;
         budget.WorkingBytes((long)region.Width * region.Height * 4);
         var chunks = Document.PageChunks(Component, cancellationToken).ToList();
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var diagnostics = new List<OfficeDiagnostic>();
         if (chunks.Any(c => c.Id == "ANTa" || c.Id == "ANTz"))
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("djvu.render.annotation-omitted",
-                "DjVu annotations and viewer settings are not painted.", OfficeConversionLossKind.Omission, "OfficeIMO.DjVu", "page " + Number));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("djvu.render.annotation-omitted", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "DjVu annotations and viewer settings are not painted.", "page " + Number, "OfficeIMO.DjVu", OfficeConversionLossKind.Omission));
         if (chunks.Any(c => (c.Id == "BG44" || c.Id == "FG44" || c.Id == "PM44" || c.Id == "BM44") &&
             c.Length >= 9 && c.Source[c.Offset] == 0 &&
             ((c.Source[c.Offset + 4] << 8 | c.Source[c.Offset + 5]) < 32 || (c.Source[c.Offset + 6] << 8 | c.Source[c.Offset + 7]) < 32)))
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic("djvu.render.short-iw44-edge",
-                "Short IW44 image edges can differ from native decoder fixed-point reconstruction. See the qualified raster profile in SUPPORT.md.",
-                OfficeConversionLossKind.Approximation, "OfficeIMO.DjVu", "page " + Number));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("djvu.render.short-iw44-edge", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Short IW44 image edges can differ from native decoder fixed-point reconstruction. See the qualified raster profile in SUPPORT.md.", "page " + Number, "OfficeIMO.DjVu", OfficeConversionLossKind.Approximation));
         OfficeRasterImage image = Compose(region, chunks, settings, budget);
         if (image.Width != width || image.Height != height) {
             bool simple = settings.Resampling == OfficeRasterResamplingMode.NearestNeighbor || settings.Resampling == OfficeRasterResamplingMode.Bilinear;

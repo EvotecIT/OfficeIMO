@@ -20,7 +20,7 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
         var options = new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages,
             SourceName = "source.vdx",
-            DrawingOptions = new VisioDrawingOptions { RequireNoLoss = true }
+            DrawingOptions = new VisioDrawingOptions { FailOnLoss = true }
         };
         byte[] sentinel = { 1, 2, 3 };
         string path = Path.Combine(Path.GetTempPath(), "visio-pdf-failure-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -44,7 +44,7 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
             var report = Assert.IsType<VisioDrawingConversionReport>(result.ConversionReports[0]);
             Assert.Same(exception.Report, report);
             Assert.Equal("source.vdx", report.SourceName);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.ConversionDiagnostics, diagnostic =>
                 diagnostic.Code == "VISIO_DRAWING_METADATA" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission &&
                 diagnostic.Location!.StartsWith("page:1:Page:shape:"));

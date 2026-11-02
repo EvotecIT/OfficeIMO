@@ -62,7 +62,7 @@ internal static partial class Html {
         foreach (var warning in pdf.Diagnostics) conversionNotes.Add("PDF: " + warning.Code + ": " + warning.Message);
         foreach (OfficeDiagnostic diagnostic in wordReport.Diagnostics)
             conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
-        foreach (HtmlDiagnostic diagnostic in excelResult.Report.Diagnostics)
+        foreach (HtmlDiagnostic diagnostic in excelResult.Report.NativeDiagnostics)
             conversionNotes.Add(diagnostic.Component + ": " + diagnostic.Code + ": " + diagnostic.Message);
         foreach (string extension in new[] { ".html", ".pdf", ".docx", ".xlsx" })
             index.Add("- [" + extension.TrimStart('.').ToUpperInvariant() + "](" + Uri.EscapeDataString(name + extension) + ")");
@@ -105,7 +105,7 @@ internal static partial class Html {
 
         Console.WriteLine($"Report outputs: {outputFolder}");
         Console.WriteLine($"PDF pages: {pdf.ItemsWritten}; Excel sheets: {excelResult.Sheets}; typed import cells: {excelResult.Cells}");
-        foreach (HtmlDiagnostic diagnostic in excelResult.Report.Diagnostics) {
+        foreach (HtmlDiagnostic diagnostic in excelResult.Report.NativeDiagnostics) {
             Console.WriteLine($"{diagnostic.Component}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Source}] {diagnostic.Detail}");
         }
     }

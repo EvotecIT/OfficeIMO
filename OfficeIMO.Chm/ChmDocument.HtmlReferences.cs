@@ -10,7 +10,7 @@ namespace OfficeIMO.Chm {
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
 
         private void EmbedImages(HtmlElement element, ChmConversionOptions options, string sourcePath, ref long bytes,
-            List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+            List<OfficeDiagnostic> diagnostics, CancellationToken token) {
             foreach (string name in ImageUrlAttributes) {
                 token.ThrowIfCancellationRequested();
                 string? source = element.GetAttribute(name);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Chm {
         }
 
         private string? EmbedImageReference(string source, ChmConversionOptions options, string sourcePath, ref long bytes,
-            List<OfficeConversionFidelityDiagnostic> diagnostics) {
+            List<OfficeDiagnostic> diagnostics) {
             ChmEntry? entry;
             string fragment = string.Empty;
             if (Uri.TryCreate(source, UriKind.Absolute, out Uri? uri)) {
@@ -47,7 +47,7 @@ namespace OfficeIMO.Chm {
                 if (hash >= 0) fragment = source.Substring(hash);
             }
             if (entry == null || entry.IsSystem || entry.IsDirectory) {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_IMAGE_MISSING", "An image reference has no embedded resource.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", sourcePath));
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_IMAGE_MISSING", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "An image reference has no embedded resource.", sourcePath, "OfficeIMO.Chm", OfficeConversionLossKind.Omission));
                 return null;
             }
             if (entry.Length > options.MaxEmbeddedImageBytes || entry.Length > options.MaxTotalEmbeddedImageBytes - bytes)
@@ -57,7 +57,7 @@ namespace OfficeIMO.Chm {
         }
 
         private void RewriteSvgReferences(HtmlElement element, string prefix, string sourcePath, Dictionary<string, string> anchors,
-            ChmConversionOptions options, ref long embeddedBytes, List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+            ChmConversionOptions options, ref long embeddedBytes, List<OfficeDiagnostic> diagnostics, CancellationToken token) {
             if (element.NamespaceUri != "http://www.w3.org/2000/svg") return;
             foreach (HtmlAttribute attribute in element.Attributes.ToArray()) {
                 token.ThrowIfCancellationRequested();
@@ -66,7 +66,7 @@ namespace OfficeIMO.Chm {
                     if (element.LocalName == "a" || IsSameTopicFragment(value, sourcePath)) {
                         value = RewriteBookLink(value, sourcePath, anchors);
                         if (value == null)
-                            diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_LINK_OMITTED", "An SVG link targets a missing or unselected help topic.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", sourcePath));
+                            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_LINK_OMITTED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "An SVG link targets a missing or unselected help topic.", sourcePath, "OfficeIMO.Chm", OfficeConversionLossKind.Omission));
                     } else if (options.EmbedImages && (element.LocalName == "image" || element.LocalName == "feImage"))
                         value = EmbedImageReference(value, options, sourcePath, ref embeddedBytes, diagnostics);
                     // Other SVG hrefs address resources, such as external <use>

@@ -43,7 +43,7 @@ internal static class OfficeImageExporter
             throw new InvalidOperationException("No tables were detected. Review the recognition settings or export the recognized content as Word, text or JSON.");
         if (extension == ".csv" && document.Tables.Count != 1)
             throw new InvalidOperationException("CSV requires exactly one detected table. Use Excel or JSON to preserve multiple tables.");
-        IOfficeConversionReport? report = null;
+        OfficeConversionReport? report = null;
         OfficeFileOutput.Write(outputPath, overwrite, temporaryPath =>
         {
             cancellationToken.ThrowIfCancellationRequested();

@@ -22,7 +22,7 @@ public sealed class RtfAuthoredNotePolicyRoundTripTests {
                 break;
             case "empty-append":
                 source = RtfDocument.Create();
-                source.AppendDocument(original).Report.RequireNoLoss();
+                source.AppendDocument(original).Report.ThrowIfLoss();
                 break;
             default:
                 source = original;

@@ -201,7 +201,7 @@ using OfficeIMO.Workflows;
 var imported = await BookManuscriptImporter.ImportFileAsync("manuscript.md",
     new EpubManuscriptOptions { ChapterHeadingLevel = 1 });
 BookProject project = BookProject.FromImport(imported);
-imported.Report.RequireNoLoss();
+imported.Report.ThrowIfLoss();
 project.RenameChapter(0, "Opening chapter");
 project.SetStylesheet(EpubTypography.CreateStylesheet(EpubTypographyProfile.Prose));
 await File.WriteAllBytesAsync("book.oibook", project.ToProjectBytes());

@@ -117,7 +117,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
         using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"),
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
-        Assert.Throws<InvalidOperationException>(() => converted.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => converted.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {

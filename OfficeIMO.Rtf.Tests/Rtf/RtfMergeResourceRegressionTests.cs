@@ -75,7 +75,7 @@ public class RtfMergeResourceRegressionTests {
         source.AddParagraph("Source default");
 
         RtfDocumentMergeResult result = destination.AppendDocument(source);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         RtfParagraph imported = destination.Paragraphs[1];
         Assert.NotEqual(6, imported.StyleId);
         Assert.NotEqual(3, imported.ListId);
@@ -113,7 +113,7 @@ public class RtfMergeResourceRegressionTests {
         paragraph.Runs[0].ForegroundColorIndex = red;
         source.AddBlock(paragraph);
 
-        destination.AppendDocument(source).Report.RequireNoLoss();
+        destination.AppendDocument(source).Report.ThrowIfLoss();
         Assert.Same(Assert.IsType<RtfObject>(destination.Blocks[0]).Result, destination.Blocks[1]);
         Assert.Equal(2, destination.Paragraphs[0].Runs[0].ForegroundColorIndex);
         Assert.Equal(2, destination.Fonts.Count);

@@ -36,7 +36,7 @@ Use strict fidelity when diagnosed simplification must stop conversion:
 ```csharp
 var options = new HtmlRenderOptions {
     ViewportWidth = 720,
-    FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+    FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
 };
 
 var result = source.ExportImage(

@@ -51,12 +51,12 @@ public sealed class OpenDocumentPdfStrictFailureSiblingTests {
             OdfConversionLossException loss = Assert.IsType<OdfConversionLossException>(result.Exception);
             Assert.True(result.HasLoss);
             Assert.Collection(result.ConversionReports,
-                report => Assert.Equal(loss.Report.FidelityDiagnostics.Select(d => (d.Code, d.LossKind, d.Source, d.Location)),
-                    Assert.IsType<OdfConversionReport>(report).FidelityDiagnostics.Select(d => (d.Code, d.LossKind, d.Source, d.Location))),
+                report => Assert.Equal(loss.Report.Diagnostics.Select(d => (d.Code, d.LossKind, d.Format, d.Location)),
+                    Assert.IsType<OdfConversionReport>(report).Diagnostics.Select(d => (d.Code, d.LossKind, d.Format, d.Location))),
                 report => Assert.Same(result.Report, Assert.IsType<PdfConversionReport>(report)));
             Assert.Contains(loss.Report.Mappings, mapping => mapping.Feature == expectedFeature &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic => diagnostic.Location == expectedFeature &&
+            Assert.Contains(result.ConversionDiagnostics, diagnostic => diagnostic.Location == expectedFeature &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(0L, result.BytesWritten);
             Assert.Equal(original, path ? File.ReadAllBytes(outputPath) : output.ToArray());

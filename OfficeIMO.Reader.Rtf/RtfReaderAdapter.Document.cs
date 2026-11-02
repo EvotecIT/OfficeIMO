@@ -299,7 +299,7 @@ internal static partial class RtfReaderAdapter {
     }
 
     private static IEnumerable<OfficeDocumentDiagnostic> MapReaderRtfConversionDiagnostics(RtfConversionReport report, string path) {
-        foreach (RtfConversionDiagnostic diagnostic in report.Diagnostics) {
+        foreach (RtfConversionDiagnostic diagnostic in report.NativeDiagnostics) {
             if (!IsReaderConversionDiagnostic(diagnostic)) continue;
             yield return new OfficeDocumentDiagnostic {
                 Severity = diagnostic.Severity == RtfConversionSeverity.Error

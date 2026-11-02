@@ -95,7 +95,7 @@ public class XmlContracts {
         document.Tasks.Add("New task");
         Assert.True(document.AssessSave().HasLoss);
         Assert.Throws<InvalidOperationException>(() => document.ToXml());
-        Assert.Contains("FutureField", document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        Assert.Contains("FutureField", document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
     }
 
     [Fact]

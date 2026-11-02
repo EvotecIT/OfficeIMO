@@ -15,7 +15,7 @@ public sealed class ReaderRtfModularTests {
         var result = RtfReaderAdapter.ReadResult(document);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfStyleReferenceMissing");
         Assert.Contains(result.Value[0].Warnings!, item => item.StartsWith("RtfStyleReferenceMissing:", StringComparison.Ordinal));
-        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
         var rich = RtfReaderAdapter.ReadDocument(document);
         Assert.Contains(rich.Diagnostics, item => item.Code == "RtfStyleReferenceMissing");
     }
@@ -255,8 +255,8 @@ public sealed class ReaderRtfModularTests {
 
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Object text", StringComparison.Ordinal));
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Shape text", StringComparison.Ordinal));
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
         Assert.Contains(chunks[0].Warnings!, warning => warning.StartsWith("ReaderRtfObjectFlattened:", StringComparison.Ordinal));
         OfficeDocumentReadResult rich = RtfReaderAdapter.ReadDocument(document, rtfOptions: options);
         Assert.Contains(rich.Diagnostics, diagnostic =>

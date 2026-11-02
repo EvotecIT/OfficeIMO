@@ -20,7 +20,7 @@ public partial class Word {
         OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() =>
             source.Save(destination, new WordSaveOptions { Format = WordFileFormat.Doc }));
         Assert.Equal(new byte[] { 123 }, destination.ToArray());
-        Assert.Contains(failure.Report.FidelityDiagnostics,
+        Assert.Contains(failure.Report.Diagnostics,
             diagnostic => diagnostic.Code == "word-doc-color-approximated" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
@@ -61,7 +61,7 @@ public partial class Word {
         }
         OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() =>
             source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }));
-        var finding = Assert.Single(failure.Report.FidelityDiagnostics);
+        var finding = Assert.Single(failure.Report.Diagnostics);
         Assert.Equal("word-doc-color-approximated", finding.Code);
         Assert.Equal(OfficeConversionLossKind.Approximation, finding.LossKind);
         Assert.Contains("#336699", finding.Message);
@@ -98,7 +98,7 @@ public partial class Word {
             Assert.Equal(expectedOutput, result.Succeeded);
             Assert.Equal(expectedOutput, File.Exists(output));
             Assert.True(result.Report.HasLoss);
-            Assert.Contains(result.Report.Diagnostics, finding => finding.Code == "word-doc-color-approximated" &&
+            Assert.Contains(result.Report.NativeDiagnostics, finding => finding.Code == "word-doc-color-approximated" &&
                 finding.CompatibilityState == (expectedOutput ? OfficeCompatibilityState.Approximated : OfficeCompatibilityState.Blocked));
             Assert.DoesNotContain(result.Report.Diagnostics, finding => finding.Code == "word-legacy-writer-visual-fallback");
             if (expectedOutput) {

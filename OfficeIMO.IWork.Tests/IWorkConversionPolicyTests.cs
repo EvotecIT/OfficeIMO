@@ -89,10 +89,10 @@ public sealed partial class IWorkBoundaryTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(diagnostic => diagnostic.ToString())));
-        IWorkDiagnostic precision = Assert.Single(result.Report.Diagnostics, diagnostic =>
+        IWorkDiagnostic precision = Assert.Single(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         Assert.Equal(global::OfficeIMO.OfficeConversionLossKind.Approximation, precision.LossKind);
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == precision.Code && diagnostic.LossKind == precision.LossKind);
     }
 

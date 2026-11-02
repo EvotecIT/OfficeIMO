@@ -93,7 +93,7 @@ public static partial class HtmlOneNoteConverterExtensions {
             Tables = sectionResult.Tables,
             Images = sectionResult.Images
         };
-        foreach (HtmlDiagnostic diagnostic in sectionResult.Report.Diagnostics) result.AddImportDiagnostic(diagnostic);
+        foreach (HtmlDiagnostic diagnostic in sectionResult.Report.NativeDiagnostics) result.AddImportDiagnostic(diagnostic);
         return result;
     }
 
@@ -357,7 +357,7 @@ public static partial class HtmlOneNoteConverterExtensions {
 
     private static T Require<T>(HtmlConversionResult<T> result) where T : class {
         if (result.Succeeded) return result.Value;
-        throw new HtmlConversionException(result.Report.Diagnostics);
+        throw new HtmlConversionException(result.Report.NativeDiagnostics);
     }
 
     private static string CleanName(string? value, string fallback) {

@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expected, text.Sum(item => item.TextAdvanceWidth ?? 0D), 6);
             Assert.Contains(provider.Requests, request => request.Language == languages[index]);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -48,7 +48,7 @@ public sealed partial class HtmlRenderingTests {
         }
         Assert.NotEmpty(provider.Requests);
         Assert.All(provider.Requests, request => Assert.Equal(language, request.Language));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("بب", string.Concat(text.OrderBy(item => item.Y).Select(item => item.Text)).Replace(" ", string.Empty));
         Assert.Contains(provider.Requests, request => request.Text == "ب" && request.Language == "ar");
         Assert.Contains(provider.Requests, request => request.Text == "ب" && request.Language == "fa");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlRenderText[] LanguageCacheText(IEnumerable<HtmlRenderVisual> visuals, int index) =>

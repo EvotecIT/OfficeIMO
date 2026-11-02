@@ -91,7 +91,7 @@ public partial class DrawingTests {
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Equal("IMAGE_METADATA_XMP_LOST", diagnostic.Code);
         Assert.Equal("Xmp", diagnostic.Location);
-        Assert.Throws<InvalidOperationException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     // Metadata-carrier fixtures start from untagged RGBA samples so each test

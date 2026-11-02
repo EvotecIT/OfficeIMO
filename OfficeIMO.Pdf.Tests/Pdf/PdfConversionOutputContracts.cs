@@ -93,7 +93,7 @@ public sealed class PdfConversionOutputContracts {
     public void SharedOutputGuardRejectsFailureAndReverseSaveRetainsTypedEvidence() {
         var failure = OfficeOutputResult<PdfConversionReport>.FromFailure(null, new IOException("Write failed"));
         Assert.False(((IOfficeResult)failure).Succeeded);
-        Assert.Throws<InvalidOperationException>(() => failure.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => failure.ThrowIfLoss());
 
         PdfDocument pdf = PdfDocument.Create();
         pdf.Content.Paragraph(p => p.Text("HTML output"));

@@ -111,7 +111,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
         HtmlBrowserPdfResult capture = await _browserRenderer.CaptureAsync(browserRequest, cancellationToken).ConfigureAwait(false);
         PdfDocumentConversionResult bridge = capture.ToPdfDocumentResult();
         HtmlBrowserPdfCaptureReport report = bridge.SourceConversionReports.OfType<HtmlBrowserPdfCaptureReport>().Single();
-        if (settings.StrictFidelity) report.RequireNoLoss();
+        if (settings.StrictFidelity) report.ThrowIfLoss();
 
         var diagnostics = new List<HtmlPdfWorkbenchDiagnostic>();
         foreach (string warning in capture.Diagnostics.Warnings) {
@@ -153,7 +153,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
             HonorCssPageRules = settings.HonorCssPageSize,
             InteractiveFormControls = settings.InteractiveForms,
             FidelityPolicy = settings.StrictFidelity
-                ? HtmlRenderFidelityPolicy.RequireNoLoss
+                ? HtmlRenderFidelityPolicy.FailOnLoss
                 : HtmlRenderFidelityPolicy.AllowDiagnosedLoss,
             MaxInputCharacters = MaximumInputCharacters
         };

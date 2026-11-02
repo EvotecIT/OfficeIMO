@@ -24,7 +24,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             warning.Code == "pdf-text-not-reconstructed" &&
             warning.Details.TryGetValue("Disposition", out string? disposition) &&
             disposition == "Omitted");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -94,7 +94,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.Mode);
         Assert.True(result.HasLoss);
         Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -153,7 +153,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
 
         Assert.True(result.HasLoss);
         Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -182,7 +182,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             warning.Code == "pdf-forms-not-reconstructed" &&
             warning.Details.TryGetValue("Disposition", out string? disposition) &&
             disposition == "Omitted");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         result.Value.Dispose();
     }
 

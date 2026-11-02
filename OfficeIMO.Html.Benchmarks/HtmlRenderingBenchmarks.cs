@@ -267,7 +267,7 @@ public class HtmlStaticStandardsBenchmarks {
     }
 
     private static HtmlRenderDocument RequireStandardsContract(HtmlRenderDocument rendered) {
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         if (rendered.Pages.Count != 2
             || !rendered.Text.Contains("Static standards packet", StringComparison.Ordinal)
             || !rendered.Text.Contains("Second-page evidence", StringComparison.Ordinal)) {
@@ -297,7 +297,7 @@ internal static class HtmlBenchmarkCorpus {
         PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
         Margins = HtmlRenderMargins.All(32D),
         BackgroundColor = OfficeColor.White,
-        FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+        FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
     };
 
     internal static string BuildReport(int rowCount, bool includeUnicodeText = false) {

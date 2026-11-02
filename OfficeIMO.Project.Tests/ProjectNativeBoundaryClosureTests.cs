@@ -16,15 +16,15 @@ public sealed class ProjectNativeBoundaryClosureTests {
         week.FromDate = new DateTime(2026, 10, 12); week.ToDate = new DateTime(2026, 10, 16, 23, 59, 0);
 
         ProjectReport report = document.AssessSave(new ProjectSaveOptions { Format = format });
-        ProjectDiagnostic[] omissions = report.Diagnostics.Where(item =>
+        ProjectDiagnostic[] omissions = report.NativeDiagnostics.Where(item =>
             item.Code == "PROJECT_NATIVE_WORK_WEEK_FLATTENED").ToArray();
         Assert.NotEmpty(omissions);
         Assert.Contains(omissions, item => item.Location == "/Calendar[UID=" + document.Calendar.Uid + "]");
         Assert.All(omissions, item => Assert.Equal(OfficeConversionLossKind.Omission, item.LossKind));
-        Assert.All(report.FidelityDiagnostics.Where(item => item.Code == "PROJECT_NATIVE_WORK_WEEK_FLATTENED"),
+        Assert.All(report.Diagnostics.Where(item => item.Code == "PROJECT_NATIVE_WORK_WEEK_FLATTENED"),
             item => Assert.Equal(OfficeConversionLossKind.Omission, item.LossKind));
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(),
-            new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Block }));
+            new ProjectSaveOptions { Format = format, AllowLoss = false }));
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.True(document.Tasks.Remove(document.Tasks.GetByUid(0)));
         var report = document.AssessSave(Native(format));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_PROJECT_SUMMARY_REQUIRED"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_PROJECT_SUMMARY_REQUIRED"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
@@ -173,7 +173,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.True(document.Resources.Remove(document.Resources.GetByUid(0)));
         var report = document.AssessSave(Native(format));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESERVED_RESOURCE_REQUIRED"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESERVED_RESOURCE_REQUIRED"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
@@ -189,7 +189,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var inferredBase = document.Calendars.AddStandardWorkingWeek("Alternate"); inferredBase.IsBaseCalendar = null;
         Assert.NotNull(derived.BaseCalendar); derived.IsBaseCalendar = null;
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
-        Assert.Equal(2, report.Diagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_KIND_DEFAULT"
+        Assert.Equal(2, report.NativeDiagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_KIND_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal)));
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
@@ -208,7 +208,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectNativeAuthoringTests.Create(); var exception = document.Calendar!.Exceptions[0];
         exception.Name = null; exception.ToDate = exception.FromDate!.Value.AddDays(1).AddHours(23).AddMinutes(59);
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_EXCEPTION_SPLIT"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_EXCEPTION_SPLIT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Exception[0]", StringComparison.Ordinal));
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
@@ -227,7 +227,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var resourceBaseline = document.Resources.GetByUid(1).Baselines.Add(); resourceBaseline.Number = 0;
         var assignmentBaseline = document.Assignments.Single().Baselines.Add(); assignmentBaseline.Number = 0;
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
-        Assert.Equal(3, report.Diagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_BASELINE_EMPTY" && diagnostic.RepresentsLoss));
+        Assert.Equal(3, report.NativeDiagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_BASELINE_EMPTY" && diagnostic.RepresentsLoss));
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
@@ -245,7 +245,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var resource = document.Resources.AddWork("Untyped resource"); resource.Type = null;
         var options = Native(format);
         var report = document.AssessSave(options);
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESOURCE_TYPE"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESOURCE_TYPE"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         using var output = new MemoryStream(); Assert.Throws<InvalidDataException>(() => document.Save(output, options));
         Assert.Empty(output.ToArray()); Assert.Null(resource.Type);
@@ -269,9 +269,9 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.NotNull(task.Duration); Assert.NotNull(assignment.Work); Assert.Null(assignment.RemainingWork);
 
         var report = document.AssessSave(Native(format));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsManual", StringComparison.Ordinal));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal)
             && diagnostic.Message.EndsWith("to active.", StringComparison.Ordinal));
         using var output = new MemoryStream(); document.Save(output, Native(format));
@@ -298,9 +298,9 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var task = document.Tasks.GetByUid(2); task.IsManual = null; task.IsActive = null;
         var strict = new ProjectSaveOptions { Format = format };
         var report = document.AssessSave(strict);
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsManual", StringComparison.Ordinal));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_TASK_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal)
             && diagnostic.Message.EndsWith(format == ProjectFileFormat.Mpp14 || format == ProjectFileFormat.Mpt14
                 ? "to inactive." : "to active.", StringComparison.Ordinal));
@@ -329,9 +329,9 @@ public sealed class ProjectNativeBoundaryClosureTests {
         exception.ToDate = exception.FromDate.Value.AddHours(4);
 
         var report = document.AssessSave(Native(format));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/FromDate", StringComparison.Ordinal));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_DATE_NORMALIZATION"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/ToDate", StringComparison.Ordinal));
 
         using var output = new MemoryStream(); document.Save(output, Native(format));
@@ -365,7 +365,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
             bool normalizes = field.EndsWith("IsNull", StringComparison.Ordinal) || !legacy8;
             string location = field == "TaskIsNull" || field == "ResourceIsNull" ? "/IsNull" : "/" + field;
             var report = document.AssessSave(new ProjectSaveOptions { Format = format });
-            Assert.Equal(normalizes, report.Diagnostics.Any(d => d.RepresentsLoss && d.Location.EndsWith(location, StringComparison.Ordinal)));
+            Assert.Equal(normalizes, report.NativeDiagnostics.Any(d => d.RepresentsLoss && d.Location.EndsWith(location, StringComparison.Ordinal)));
 
             using var output = new MemoryStream(); document.Save(output, Native(format));
             using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
@@ -390,7 +390,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var calendar = document.Resources.First(item => item.Uid > 0).Calendar!;
         calendar.BaseCalendar = null; calendar.IsBaseCalendar = null;
         var report = document.AssessSave(Native(format));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESOURCE_CALENDAR"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_RESOURCE_CALENDAR"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
@@ -403,7 +403,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
     public void CrossProjectDependenciesAreRejectedBeforeNativeSerialization(ProjectFileFormat format) {
         using var document = ProjectDocument.Load(ProjectResourceCapacityTests.Fixture("external-consumer"));
         var report = document.AssessSave(Native(format));
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CROSS_PROJECT_DEPENDENCY"
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CROSS_PROJECT_DEPENDENCY"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), Native(format)));
     }
@@ -418,7 +418,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var predecessor = document.Tasks.GetByUid(2); var successor = document.Tasks.Add("Successor");
         var dependency = document.Dependencies.Add(predecessor, successor); dependency.Type = null; dependency.Lag = null;
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
-        Assert.Equal(2, report.Diagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_DEPENDENCY_DEFAULT"
+        Assert.Equal(2, report.NativeDiagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_DEPENDENCY_DEFAULT"
             && diagnostic.RepresentsLoss));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
@@ -436,7 +436,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectNativeAuthoringTests.Create(); var task = document.Tasks.GetByUid(2);
         var value = task.CustomFields.Add(); value.FieldId = "188743783"; value.Value = "PT1H0M0S";
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
-        var diagnostic = Assert.Single(report.Diagnostics, item => item.Code == "PROJECT_NATIVE_CUSTOM_DURATION_DEFAULT");
+        var diagnostic = Assert.Single(report.NativeDiagnostics, item => item.Code == "PROJECT_NATIVE_CUSTOM_DURATION_DEFAULT");
         Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/DurationFormat", diagnostic.Location);
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
@@ -505,7 +505,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
     [InlineData(ProjectFileFormat.Mpt9)]
     public void ExplicitlyEmptyLegacyExceptionLabelsReportTheirLoss(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create(); document.Calendar!.Exceptions[0].Name = string.Empty;
-        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = format }).Diagnostics,
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = format }).NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_EXCEPTION_LABEL_LOSS" && item.RepresentsLoss);
     }
 
@@ -534,7 +534,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         if (!withValue) {
             var fields = document.Tasks.GetByUid(2).CustomFields; fields.Remove(fields.Single());
         }
-        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 }).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 }).NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_DEFINITION_NAME_DEFAULT");
         Assert.True(diagnostic.RepresentsLoss);
         using var output = new MemoryStream(); document.Save(output, Native(ProjectFileFormat.Mpp14));
@@ -577,7 +577,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         fields = resource ? document.Resources.GetByUid(1).CustomFields : document.Tasks.GetByUid(2).CustomFields;
         if (addFirst) { var value = fields.Add(); value.FieldId = fieldId; value.Value = "After"; }
         else fields.Remove(fields.Single(item => item.FieldId == fieldId));
-        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = format }).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = format }).NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_DEFINITION_NAME_DEFAULT" && item.Location.EndsWith("/FieldName", StringComparison.Ordinal));
         Assert.True(diagnostic.RepresentsLoss);
         using var changed = new MemoryStream(); document.Save(changed, Native(format));
@@ -591,7 +591,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
     public void Project98ReportsDefinitionLossEvenWhenAliasIsAbsent(ProjectFileFormat format) {
         using var document = ProjectNativeAuthoringTests.Create();
         document.CustomFields.Single().Alias = null;
-        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = format }).Diagnostics,
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = format }).NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_DEFINITION_LOSS" && item.RepresentsLoss);
     }
 
@@ -619,7 +619,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectDocument.Load(new MemoryStream(corrupt));
         Assert.Empty(document.Assignments); Assert.NotEmpty(document.AllTasks); Assert.NotEmpty(document.Resources);
         using var xml = new MemoryStream();
-        document.Save(xml, new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow });
+        document.Save(xml, new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true });
         using var reopened = ProjectDocument.Load(new MemoryStream(xml.ToArray())); Assert.Empty(reopened.Assignments);
     }
 
@@ -645,7 +645,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         byte[] corrupt = RewriteFixedUid(source.ToArray(), "Cons", 0x18, 0x0e400000);
         using var document = ProjectDocument.Load(new MemoryStream(corrupt)); Assert.Empty(document.Dependencies);
         using var xml = new MemoryStream();
-        document.Save(xml, new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow });
+        document.Save(xml, new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true });
         using var reopened = ProjectDocument.Load(new MemoryStream(xml.ToArray())); Assert.Empty(reopened.Dependencies);
     }
 
@@ -668,7 +668,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectDocument.Load(new MemoryStream(source));
         Assert.Null(document.Settings.ScheduleFromStart);
         Assert.DoesNotContain("ScheduleFromStart", document.ToXml(new ProjectSaveOptions {
-            Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow
+            Format = ProjectFileFormat.Xml, AllowLoss = true
         }));
         document.Tasks.First(task => task.Uid > 0).Name = "Edited without direction";
         using var output = new MemoryStream(); document.Save(output, Native(ProjectFileFormat.Mpp14));
@@ -689,7 +689,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         using var document = ProjectDocument.Load(new MemoryStream(source));
         Assert.Null(document.Settings.DefaultStartTime);
         Assert.Null(document.Settings.DefaultFinishTime);
-        string xml = document.ToXml(new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow });
+        string xml = document.ToXml(new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true });
         Assert.DoesNotContain("DefaultStartTime", xml);
         Assert.DoesNotContain("DefaultFinishTime", xml);
         document.Tasks.First(task => task.Uid > 0).Name = "Edited without default clocks";
@@ -716,7 +716,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
     }
 
     private static ProjectSaveOptions Native(ProjectFileFormat format) => new() {
-        Format = format, LossPolicy = OfficeConversionLossPolicy.Allow
+        Format = format, AllowLoss = true
     };
 
     private static ProjectDocument ExplicitSummary() {

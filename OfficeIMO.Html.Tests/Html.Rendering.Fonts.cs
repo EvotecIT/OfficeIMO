@@ -26,11 +26,11 @@ public sealed partial class HtmlRenderingTests {
             warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailablePrivateUseGlyphOmitted);
         Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
         Assert.Equal("U+F42B", omission.Details["CodePoint"]);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
 
         HtmlConversionException strictFailure = Assert.Throws<HtmlConversionException>(() =>
             (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
-                FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+                FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
                 ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
             })).ToBytes());
         Assert.Contains(strictFailure.Diagnostics,
@@ -163,7 +163,7 @@ public sealed partial class HtmlRenderingTests {
             origin => Assert.Equal(0D, origin - group.X, 6),
             origin => Assert.Equal(8D, origin - group.X, 6),
             origin => Assert.Equal(16D, origin - group.X, 6));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -223,7 +223,7 @@ public sealed partial class HtmlRenderingTests {
             byte[] expected = run.Font.FamilyName == "Emoji Demo" ? emojiFont : hebrewFont;
             Assert.Equal(OfficeTrueTypeFont.TryLoad(expected)!.Fingerprint, face!.Program.Fingerprint);
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static bool FontFallbackRunHasInk(OfficeRasterImage image, HtmlRenderText run) {
@@ -325,7 +325,7 @@ public sealed partial class HtmlRenderingTests {
             options);
 
         Assert.Single(rendered.Fonts.Faces);
-        HtmlDiagnostic missingAlternate = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic missingAlternate = Assert.Single(rendered.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.Equal("https://assets.example.test/demo.woff", missingAlternate.Source);
         Assert.Equal(OfficeConversionLossKind.None, missingAlternate.LossKind);
@@ -343,10 +343,10 @@ public sealed partial class HtmlRenderingTests {
             "<style>@font-face{font-family:Missing;src:url('https://assets.example.test/missing.ttf') format('truetype')}p{font-family:Missing}</style><p>Sample</p>",
             options);
 
-        HtmlDiagnostic missingSource = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic missingSource = Assert.Single(rendered.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
         Assert.Equal(OfficeConversionLossKind.None, missingSource.LossKind);
-        HtmlDiagnostic unavailableFace = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic unavailableFace = Assert.Single(rendered.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
         Assert.Equal(OfficeConversionLossKind.Approximation, unavailableFace.LossKind);
         Assert.True(rendered.HasLoss);
@@ -504,7 +504,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Empty(rendered.Fonts.Faces);
         HtmlDiagnostic diagnostic = Assert.Single(
-            rendered.Diagnostics,
+            rendered.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
         Assert.NotNull(diagnostic.Source);
         Assert.True(diagnostic.Source!.Length < 256);

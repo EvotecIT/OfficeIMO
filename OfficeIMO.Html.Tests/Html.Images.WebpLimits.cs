@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
                 using var doc = conversion.Value;
                 Assert.Empty(doc.Images);
                 Assert.Contains(doc.Paragraphs, p => p.Text.Contains("Retained description"));
-                Assert.Contains(conversion.Report.Diagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));
+                Assert.Contains(conversion.Report.NativeDiagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));
                 options.MaxDecodedImagePixels = pixels;
                 using var accepted = (await HtmlConversionDocument.Parse("<img src='" + source + "'>",
                     HtmlConversionDocumentOptions.CreateTrustedProfile()).ToWordAsync(options)).Value;
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                 .ConvertToWordWithEvidence(WordHtmlImportOptions.UntrustedDefaults);
             using var doc = result.Value;
             Assert.Empty(doc.Images);
-            Assert.Contains(result.Report.Diagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));
+            Assert.Contains(result.Report.NativeDiagnostics, d => (d.Detail ?? "").Contains("decoded-pixel"));
         }
     }
 }

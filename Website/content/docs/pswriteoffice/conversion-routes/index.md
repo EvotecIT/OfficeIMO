@@ -46,7 +46,7 @@ Get-ChildItem ./reviews -Filter *.pdf |
     ConvertTo-OfficeDocument -OutputDirectory ./editable -TargetExtension docx -ItemResults
 ```
 
-Existing destinations are preserved by default. Set `-ConflictPolicy Rename` or `Replace` explicitly when appropriate. Use `New-OfficeConversionOptions` for renderer settings, `-RequireNoLoss` to reject reported reductions, and `-CheckpointDirectory` with directory jobs that need resumable state. Route registration does not guarantee that an individual file, optional provider or credential will satisfy the operation.
+Existing destinations are preserved by default. Set `-ConflictPolicy Rename` or `Replace` explicitly when appropriate. Use `New-OfficeConversionOptions` for renderer settings, `-ThrowIfLoss` to reject reported reductions, and `-CheckpointDirectory` with directory jobs that need resumable state. Route registration does not guarantee that an individual file, optional provider or credential will satisfy the operation.
 
 ## Check the result
 

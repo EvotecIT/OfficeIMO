@@ -112,7 +112,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(clip.ClipVertical);
         Assert.True(margin.Height > clip.ClipHeight);
         Assert.Equal("Report Created Today With More Words Than Fit", margin.Text);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && diagnostic.Source == "@page @bottom-left" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 }

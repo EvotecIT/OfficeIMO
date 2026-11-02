@@ -32,7 +32,7 @@ Use `ToRtfResult()` when a semantic save must account for source content that th
 
 ```csharp
 RtfConversionResult<string> normalized = read.Document.ToRtfResult();
-string acceptedRtf = normalized.RequireNoLoss();
+string acceptedRtf = normalized.ThrowIfLoss();
 ```
 
 The report belongs to that write operation. A lossless copy preserves the original source; it does not apply semantic edits.
@@ -46,7 +46,7 @@ RtfConversionResult<string> nativeOutput = document.ToRtfResult(new RtfWriteOpti
 File.WriteAllText("native-output.rtf", nativeOutput.Value);
 ```
 
-This mode writes the effective formatting supported by the semantic model across body paragraphs, tables, headers, notes, and field results. It leaves the source model unchanged. When it materializes inherited or default values, the result reports `RtfNormalizationFormattingInheritanceMaterialized`: reopening the output treats those values as direct formatting, and `RequireNoLoss()` rejects that loss of editing information. Set `MaterializeStyleFormatting = false` to retain editable inheritance in semantic output; native readers may then display inherited formatting differently. Full character effects and effective table-style formatting remain outside this mode's coverage.
+This mode writes the effective formatting supported by the semantic model across body paragraphs, tables, headers, notes, and field results. It leaves the source model unchanged. When it materializes inherited or default values, the result reports `RtfNormalizationFormattingInheritanceMaterialized`: reopening the output treats those values as direct formatting, and `ThrowIfLoss()` rejects that loss of editing information. Set `MaterializeStyleFormatting = false` to retain editable inheritance in semantic output; native readers may then display inherited formatting differently. Full character effects and effective table-style formatting remain outside this mode's coverage.
 
 `AddFootnote`, `AddEndnote`, and `AddNoteReference` attach notes to their reference runs. Freshly authored documents use mixed-note mode (`\fet2`) unless `Settings.NoteMode` is set explicitly; endnotes are written as `\footnote\ftnalt`. Semantic writing records the authored policy even before the document contains notes, so a footnote added after saving and rereading remains a footnote. An explicitly empty final footnote or endnote paragraph and its paragraph formatting survive semantic save/read cycles without adding another empty paragraph.
 
@@ -140,10 +140,10 @@ report.AddReadDiagnostics(read.Diagnostics, "upload.rtf");
 
 // Merge an adapter's report here.
 report.Merge(adapterReport);
-report.RequireNoLoss();
+report.ThrowIfLoss();
 ```
 
-`RequireNoLoss()` throws `RtfConversionLossException` whenever a conversion flattened, omitted, blocked, or failed content. For permissive workflows, inspect `report.Diagnostics` and accept only the actions appropriate for that destination.
+`ThrowIfLoss()` throws `RtfConversionLossException` whenever a conversion flattened, omitted, blocked, or failed content. For permissive workflows, inspect `report.Diagnostics` and accept only the actions appropriate for that destination.
 
 ## Semantic editing
 
@@ -159,7 +159,7 @@ document.ReplaceBookmarkText("CustomerName", "Contoso Europe");
 
 RtfDocument independentCopy = document.Clone();
 RtfDocumentMergeResult merge = document.AppendDocument(otherDocument);
-merge.Report.RequireNoLoss();
+merge.Report.ThrowIfLoss();
 ```
 
 `AppendDocument` imports fonts, colors, paragraph and character styles, list definitions and overrides, revision authors, blocks, tables, and notes. List resources are discovered through notes, fields, object fallbacks, and text boxes as well as body and table content. Imported resource IDs are remapped, and style inheritance and numbering remain attached to the imported content. File references, XML namespaces, document variables, custom properties, and document information are retained. Conflicting document metadata keeps the destination value and produces an omission diagnostic. Appending into the destination's layout reports source document/section layout and header/footer omission.
@@ -171,7 +171,7 @@ To retain the source's page setup, columns, and header/footer stories, use secti
 ```csharp
 RtfDocumentMergeResult merge = document.AppendDocument(otherDocument,
     new RtfDocumentMergeOptions { PreserveSections = true });
-merge.Report.RequireNoLoss();
+merge.Report.ThrowIfLoss();
 ```
 
 An appended document starts with its own header/footer stories and page defaults. `GetEffectivePageSetup(section)` resolves document defaults beneath a section's explicit settings. `ToRtfResult()` reports when mixed page orientation requires materializing a document-wide landscape default as section settings.

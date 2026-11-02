@@ -3,7 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Provides a compact inventory of a binary PowerPoint import.</summary>
-    internal sealed class LegacyPptImportReport : IOfficeConversionReport {
+    internal sealed class LegacyPptImportReport : OfficeConversionReport {
         internal LegacyPptImportReport(LegacyPptDocument presentation) {
             SlideCount = presentation.Slides.Count;
             ShapeCount = presentation.Slides.Sum(slide => slide.Shapes.Count);
@@ -138,23 +138,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             EncryptionKeySizeBits = presentation.EncryptionKeySizeBits;
             EncryptedDocumentProperties =
                 presentation.EncryptedDocumentProperties;
-            List<OfficeConversionFidelityDiagnostic> fidelityDiagnostics = presentation.Diagnostics
-                .Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+            List<OfficeDiagnostic> fidelityDiagnostics = presentation.Diagnostics
+                .Select(diagnostic => new global::OfficeIMO.OfficeDiagnostic(
                     diagnostic.Code,
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     diagnostic.Message,
-                    GetLossKind(diagnostic),
-                    "OfficeIMO.PowerPoint.LegacyPpt.Reader",
                     diagnostic.StreamOffset.HasValue
                         ? $"PowerPoint Document+0x{diagnostic.StreamOffset.Value:X}"
-                        : null))
+                        : null,
+                    "OfficeIMO.PowerPoint.LegacyPpt.Reader",
+                    GetLossKind(diagnostic)))
                 .ToList();
             if (UnsupportedShapeCount > 0) {
-                fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                fidelityDiagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                     "ppt-unsupported-shapes",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     $"{UnsupportedShapeCount} preserve-only shape(s) cannot be projected to editable PowerPoint content.",
-                    OfficeConversionLossKind.Omission,
+                    "shapes",
                     "OfficeIMO.PowerPoint.LegacyPpt.Reader",
-                    "shapes"));
+                    OfficeConversionLossKind.Omission));
             }
             FidelityDiagnostics = Array.AsReadOnly(fidelityDiagnostics.ToArray());
         }
@@ -380,17 +382,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public bool HasConversionLoss => HasLoss;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
         /// <inheritdoc />
-        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+        public override bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidDataException(
-                "The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source diagnostics for details.");
-        }
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source diagnostics for details.", this);
 
         private static int CountSpecialMasterShapes(LegacyPptSpecialMaster? master) =>
             master?.Shapes.Count ?? 0;

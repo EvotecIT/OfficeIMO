@@ -66,7 +66,7 @@ public partial class Word {
                     var warning = Assert.Single(result.Warnings, item => item.Code == "native-footnote-placement-approximated");
                     Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
                     Assert.True(result.HasLoss);
-                    Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+                    Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
                 } else {
                     Assert.All(pdf.GetPages(), page => Assert.Contains("ACTIVEHEADER", page.Text, StringComparison.Ordinal));
                     Assert.DoesNotContain(result.Warnings, warning =>

@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("SUM('" + target.Replace("'", "''") + "'!" + address + ")", result.Value.Sheets[0].GetFormulaText(1, 1));
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Theory]

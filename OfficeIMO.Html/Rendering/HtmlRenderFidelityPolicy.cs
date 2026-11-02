@@ -6,5 +6,5 @@ public enum HtmlRenderFidelityPolicy {
     AllowDiagnosedLoss,
 
     /// <summary>Throws when rendering emits a warning or error instead of silently accepting a fallback.</summary>
-    RequireNoLoss
+    FailOnLoss
 }

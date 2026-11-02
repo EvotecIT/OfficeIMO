@@ -96,7 +96,7 @@ public sealed class HtmlEditableLayoutRtfTests {
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
         Assert.Contains("Ambiguous frame", rtf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
@@ -139,7 +139,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         string rtf = result.Value.ToRtf();
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Detail == "mixedInlinePictures=true");
     }
 

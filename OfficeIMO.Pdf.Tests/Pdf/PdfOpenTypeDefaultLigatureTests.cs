@@ -546,7 +546,7 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Equal("office e\u0301", PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-mark-positioning"
             || warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]

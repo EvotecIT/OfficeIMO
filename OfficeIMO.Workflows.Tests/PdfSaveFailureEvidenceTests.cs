@@ -43,7 +43,7 @@ public sealed class PdfSaveFailureEvidenceTests {
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             const string encodingCode = "unsupported-text-glyph";
-            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == encodingCode);
+            Assert.Contains(evidence.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Contains(result.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Equal(source, File.ReadAllBytes(input));
             Assert.Equal(destination, File.ReadAllBytes(output));

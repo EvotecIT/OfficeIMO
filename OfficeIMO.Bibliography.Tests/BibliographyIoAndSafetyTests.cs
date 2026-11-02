@@ -120,11 +120,11 @@ public sealed class BibliographyIoAndSafetyTests {
         var document = new BibliographyDocument(BibliographyFormat.CslJson);
         document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "invalid\u0001xml" });
 
-        BibliographyConversionLossException xml = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException xml = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.EndNoteXml, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         Assert.Contains(xml.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV210");
 
         document.Items[0].Title = "unbalanced { brace";
-        BibliographyConversionLossException bib = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException bib = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         Assert.Contains(bib.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV211");
     }
 

@@ -13,13 +13,13 @@ public class RtfConversionReportTests {
         report.Add(RtfConversionSeverity.Warning, code, "Content omitted.", RtfConversionAction.Omitted, "body/0");
 
         Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
-        OfficeConversionFidelityDiagnostic typed = Assert.Single(
+        OfficeDiagnostic typed = Assert.Single(
             OfficeConversionFidelityDiagnostics.Flatten(new[] { report }));
         Assert.Equal("RTF_DIAGNOSTIC_UNSPECIFIED", typed.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, typed.LossKind);
         Assert.Equal("body/0", typed.Location);
         Assert.True(report.HasLoss);
-        Assert.Throws<RtfConversionLossException>(report.RequireNoLoss);
+        Assert.Throws<RtfConversionLossException>(report.ThrowIfLoss);
     }
 
     [Fact]
@@ -28,11 +28,11 @@ public class RtfConversionReportTests {
         report.Add(RtfConversionSeverity.Information, "Preserved", "Preserved.", RtfConversionAction.Preserved);
         report.Add(RtfConversionSeverity.Warning, "Substituted", "Substituted.", RtfConversionAction.Substituted);
 
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
 
         Assert.False(report.HasLoss);
         Assert.Equal(2, report.Diagnostics.Count);
-        Assert.All(report.FidelityDiagnostics, diagnostic => Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind));
+        Assert.All(report.Diagnostics, diagnostic => Assert.Equal(OfficeConversionLossKind.None, diagnostic.LossKind));
     }
 
     [Theory]
@@ -45,15 +45,15 @@ public class RtfConversionReportTests {
         var report = new RtfConversionReport();
         report.Add(RtfConversionSeverity.Warning, "Loss", "Loss occurred.", action, "Body/0", "feature", 2, "detail");
 
-        RtfConversionLossException exception = Assert.Throws<RtfConversionLossException>(() => report.RequireNoLoss());
+        RtfConversionLossException exception = Assert.Throws<RtfConversionLossException>(() => report.ThrowIfLoss());
 
         Assert.Same(report, exception.Report);
-        RtfConversionDiagnostic diagnostic = Assert.Single(report.Diagnostics);
+        RtfConversionDiagnostic diagnostic = Assert.Single(report.NativeDiagnostics);
         Assert.Equal("Body/0", diagnostic.SourcePath);
         Assert.Equal("feature", diagnostic.Feature);
         Assert.Equal(2, diagnostic.Count);
         Assert.Equal("detail", diagnostic.Detail);
-        Assert.Equal(expectedLossKind, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.Equal(expectedLossKind, Assert.Single(report.Diagnostics).LossKind);
     }
 
     [Fact]
@@ -64,7 +64,8 @@ public class RtfConversionReportTests {
         Assert.True(result.Succeeded);
         Assert.False(result.HasLoss);
         Assert.Equal("value", result.RequireValue());
-        Assert.Equal("value", result.RequireNoLoss());
+        result.ThrowIfLoss();
+        Assert.Equal("value", result.Value);
     }
 
     [Fact]
@@ -76,7 +77,7 @@ public class RtfConversionReportTests {
         Assert.True(result.Succeeded);
         Assert.True(result.HasLoss);
         Assert.Equal("value", result.RequireValue());
-        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
     }
 
     [Theory]
@@ -95,8 +96,8 @@ public class RtfConversionReportTests {
 
         report.AddReadDiagnostics(new[] { new RtfDiagnostic(severity, code, "Read diagnostic.", 7) }, "fixture.rtf");
 
-        Assert.Equal(expectedAction, Assert.Single(report.Diagnostics).Action);
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(expectedAction, Assert.Single(report.NativeDiagnostics).Action);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
         Assert.Equal(expectedLossKind, diagnostic.LossKind);
         Assert.Equal("fixture.rtf", diagnostic.Location);
     }

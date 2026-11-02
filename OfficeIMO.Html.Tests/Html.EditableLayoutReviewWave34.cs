@@ -68,10 +68,10 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
 
-        Assert.Contains(wordResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
-        Assert.Contains(rtfResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
-        Assert.Contains(excelResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
-        Assert.Contains(powerPointResult.Report.Diagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(wordResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(rtfResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(excelResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
+        Assert.Contains(powerPointResult.Report.NativeDiagnostics, IsUnsupportedPositionedImageDiagnostic);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class HtmlEditableLayoutReviewWave34Tests {
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
 
         Assert.DoesNotContain(result.Value.Paragraphs, paragraph => paragraph.Frame.HasAnyValue);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "unrenderedRegionImage=true; semanticFlow=true");
     }

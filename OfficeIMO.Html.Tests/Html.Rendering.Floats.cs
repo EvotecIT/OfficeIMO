@@ -1104,7 +1104,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
         Assert.Equal("span#invalid-float", diagnostic.Source);
         Assert.Contains("float=up", diagnostic.Detail);
         Assert.Contains("clear=around", diagnostic.Detail);

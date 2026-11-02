@@ -39,7 +39,7 @@ public sealed class SaveOfficeAccessCommand : PSCmdlet {
         var options = new AccessSaveOptions {
             FileConflictPolicy = Force.IsPresent ? OfficeConversionFileConflictPolicy.Replace : OfficeConversionFileConflictPolicy.FailIfExists
         };
-        Document.AssessSave(path, options).RequireNoLoss();
+        Document.AssessSave(path, options).ThrowIfLoss();
         Document.Save(path, options);
         if (PassThru.IsPresent) WriteObject(Document);
     }

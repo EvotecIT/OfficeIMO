@@ -41,7 +41,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100,
             LayoutMode = OfficeVisioVisualLayoutMode.Preserve });
         Assert.True(result.Report.AllProjectedObjectsEditable);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
 
         void Check(VisioPage page) {
             var fill = page.Shapes[0];

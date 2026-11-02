@@ -77,11 +77,11 @@ RtfConversionResult<string> conversion =
 var report = new RtfConversionReport();
 report.AddReadDiagnostics(read.Diagnostics, "input.rtf");
 report.Merge(conversion.Report);
-report.RequireNoLoss();
+report.ThrowIfLoss();
 
 File.WriteAllText("output.md", conversion.Value);
 ```
 
-Use `RequireNoLoss()` for strict archival or compliance workflows. In permissive workflows, inspect each diagnostic and accept only the tradeoffs appropriate for the destination.
+Use `ThrowIfLoss()` for strict archival or compliance workflows. In permissive workflows, inspect each diagnostic and accept only the tradeoffs appropriate for the destination.
 
 See the [RTF support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.rtf-support-matrix.md) and the [content publishing patterns](/docs/workflows/content-publishing/).

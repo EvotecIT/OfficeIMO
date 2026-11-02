@@ -162,7 +162,7 @@ public sealed class EpubWriterPackagePreservationContracts {
         EpubWriteResult result = book.Write(new EpubWriteOptions { RemoveInvalidatedSignatures = true });
         using var archive = new ZipArchive(new MemoryStream(result.Bytes));
         Assert.Null(archive.GetEntry("META-INF/signatures.xml"));
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_WRITE_SIGNATURE_REMOVED");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "EPUB_WRITE_SIGNATURE_REMOVED");
         Assert.True(result.HasLoss);
     }
 

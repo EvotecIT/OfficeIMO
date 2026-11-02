@@ -49,7 +49,7 @@ internal static class DjVuPdfConversionEngine {
         settings.PdfOptions.ReportDiagnosticsTo(pdfReport, "OfficeIMO.DjVu.Pdf");
         var pdf = PdfDocument.CreateForImportedLayout(settings.PdfOptions);
         var pageReports = new List<DjVuPdfPageReport>();
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var diagnostics = new List<OfficeDiagnostic>();
         var textBudget = new DjVuPdfTextBudget(settings);
         var navigation = DjVuPdfNavigation.Project(document, pages, diagnostics, token);
         var assets = (ocr?.Document.Assets ?? Array.Empty<OfficeDocumentAsset>()).Where(a => a.Location.Page.HasValue)
@@ -73,7 +73,7 @@ internal static class DjVuPdfConversionEngine {
                 payload = OfficeRasterImageEncoder.Encode(rendered.Image, OfficeImageExportFormat.Png, null,
                     Math.Min(settings.MaxImageBytesPerPage, remaining), token);
                 imageWidth = rendered.Image.Width; imageHeight = rendered.Image.Height;
-                diagnostics.AddRange(rendered.FidelityDiagnostics);
+                diagnostics.AddRange(rendered.Diagnostics);
             }
             if (payload.LongLength > settings.MaxTotalImageBytes - imageBytes)
                 throw new DjVuResourceLimitException(nameof(DjVuToPdfOptions.MaxTotalImageBytes));
@@ -116,6 +116,6 @@ internal static class DjVuPdfConversionEngine {
             new DjVuPdfConversionReport(document.SourceSha256, pageReports, diagnostics, ocr?.Report));
     }
 
-    internal static void Add(List<OfficeConversionFidelityDiagnostic> diagnostics, string code, string message, OfficeConversionLossKind kind, int? page) =>
-        diagnostics.Add(new OfficeConversionFidelityDiagnostic(code, message, kind, "OfficeIMO.DjVu.Pdf", page.HasValue ? "page " + page.Value : null));
+    internal static void Add(List<OfficeDiagnostic> diagnostics, string code, string message, OfficeConversionLossKind kind, int? page) =>
+        diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(code, kind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, message, page.HasValue ? "page " + page.Value : null, "OfficeIMO.DjVu.Pdf", kind));
 }

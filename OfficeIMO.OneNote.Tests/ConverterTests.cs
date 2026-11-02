@@ -157,16 +157,16 @@ public sealed class ConverterTests {
 
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_CANVAS_FLATTENED");
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
-        Assert.Contains(projection.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(projection.Diagnostics, diagnostic =>
             diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Code.StartsWith("ONENOTE_MARKDOWN_", StringComparison.Ordinal));
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -181,17 +181,17 @@ public sealed class ConverterTests {
 
         Assert.True(markdown.HasLoss);
         Assert.Contains(markdown.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
-        Assert.Contains(markdown.Report.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(markdown.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(pdf.HasLoss);
         OneNoteMarkdownConversionReport projection = Assert.IsType<OneNoteMarkdownConversionReport>(
             Assert.Single(pdf.SourceConversionReports));
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER");
-        Assert.Contains(pdf.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(pdf.Diagnostics, diagnostic =>
             diagnostic.Code == "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" &&
             diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => pdf.ThrowIfLoss());
     }
 
     [Fact]
@@ -216,11 +216,11 @@ public sealed class ConverterTests {
 
         OneNoteMarkdownConversionResult result = notebook.ToMarkdownDocumentResult();
 
-        Assert.Equal(3, result.Report.FidelityDiagnostics.Count(diagnostic =>
+        Assert.Equal(3, result.Report.Diagnostics.Count(diagnostic =>
             diagnostic.LossKind == OfficeConversionLossKind.Omission));
-        Assert.DoesNotContain(result.Report.FidelityDiagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Theory]

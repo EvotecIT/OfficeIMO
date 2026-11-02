@@ -16,7 +16,7 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
         Assert.Equal(2, destination.Sections.Count);
         Assert.Null(destination.Properties.NumberOfPages);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfMergeStatisticsInvalidated");
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
         var result = destination.AppendDocument(source);
         Assert.False(destination.IsHtmlEncapsulationCurrent);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfMergeHtmlEncapsulationOmitted");
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -40,7 +40,7 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
         source.Settings.ReadOnlyProtection = true;
         source.AddParagraph("Imported\tcontent");
         RtfDocument empty = RtfDocument.Create();
-        empty.AppendDocument(source).Report.RequireNoLoss();
+        empty.AppendDocument(source).Report.ThrowIfLoss();
         Assert.Equal(360, empty.Settings.DefaultTabWidthTwips);
         Assert.True(empty.Settings.FacingPages);
         Assert.True(empty.Settings.ReadOnlyProtection);
@@ -51,9 +51,9 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
         destination.Settings.ReadOnlyProtection = false;
         destination.AddParagraph("Destination");
         var result = destination.AppendDocument(source, new RtfDocumentMergeOptions { PreserveSections = true });
-        var loss = Assert.Single(result.Report.Diagnostics, item => item.Code == "RtfMergeDocumentSettingsFlattened");
+        var loss = Assert.Single(result.Report.NativeDiagnostics, item => item.Code == "RtfMergeDocumentSettingsFlattened");
         Assert.Equal(3, loss.Count);
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
         Assert.Equal(720, destination.Settings.DefaultTabWidthTwips);
         Assert.False(destination.Settings.FacingPages);
         Assert.False(destination.Settings.ReadOnlyProtection);
@@ -88,8 +88,8 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
         RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Alternate</p>}\htmlrtf1 Body\par}").Document;
         source.PageSetup.MarginLeftTwips = 2880;
         var result = RtfDocument.Create().AppendDocument(source);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfMergeDocumentPageSetupOmitted" && item.Action == RtfConversionAction.Omitted);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfMergeHtmlEncapsulationOmitted" && item.Action == RtfConversionAction.Omitted);
-        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == "RtfMergeDocumentPageSetupOmitted" && item.Action == RtfConversionAction.Omitted);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == "RtfMergeHtmlEncapsulationOmitted" && item.Action == RtfConversionAction.Omitted);
+        Assert.Throws<RtfConversionLossException>(() => result.Report.ThrowIfLoss());
     }
 }

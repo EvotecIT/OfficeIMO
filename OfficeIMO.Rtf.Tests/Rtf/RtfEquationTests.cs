@@ -20,10 +20,10 @@ public sealed class RtfEquationTests {
         Assert.True(field.IsEquation);
         Assert.Equal("(a)/(b)", field.ToPlainText());
         Assert.Contains("\\f(a,b)", field.Instruction, StringComparison.Ordinal);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfEquationsMappedToEqFields" &&
             diagnostic.Action == RtfConversionAction.Substituted);
-        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfElementOmitted" && diagnostic.Feature == nameof(WordEquation));
 
         string rtf = conversion.Value.ToRtf();

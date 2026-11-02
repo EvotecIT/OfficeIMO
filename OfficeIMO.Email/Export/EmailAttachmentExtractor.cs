@@ -110,7 +110,7 @@ public static class EmailAttachmentExtractor {
                                         maxNestedMessageDepth: remainingDepth, maxOutputBytes: maximum));
                                     EmailConversionReport conversion = preflightWriter.AnalyzeConversion(attachment.EmbeddedDocument);
                                     if (!conversion.CanWrite) {
-                                        itemDiagnostics.AddRange(conversion.Diagnostics);
+                                        itemDiagnostics.AddRange(conversion.NativeDiagnostics);
                                         throw new InvalidDataException("Embedded message serialization was blocked; see its diagnostics.");
                                     }
                                     using var staging = await EmailAttachmentStaging.CreateAsync(attachment.EmbeddedDocument, maximum,

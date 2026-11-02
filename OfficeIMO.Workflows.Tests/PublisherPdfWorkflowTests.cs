@@ -39,7 +39,7 @@ public sealed class PublisherPdfWorkflowTests {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("PUB", evidence.Facts["sourceFormat"]);
             Assert.Equal("2", evidence.Facts["sourcePages"]);
-            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
+            Assert.Contains(evidence.Diagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
             Assert.Contains(result.Diagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
         } finally { Directory.Delete(root, true); }
     }
@@ -66,7 +66,7 @@ public sealed class PublisherPdfWorkflowTests {
             Assert.Contains("This is some text", pdf.ExtractText());
             OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("PUB", evidence.Facts["sourceFormat"]); Assert.Equal("2", evidence.Facts["sourcePages"]);
-            Assert.All(source.ReadReport.FidelityDiagnostics, finding => Assert.Contains(evidence.FidelityDiagnostics,
+            Assert.All(source.ReadReport.Diagnostics, finding => Assert.Contains(evidence.Diagnostics,
                 retained => retained.Code == finding.Code && retained.LossKind == finding.LossKind && retained.Location == finding.Location));
             Assert.Contains(result.Diagnostics, finding => finding.Code == "conversion-output-reopened");
             Assert.Equal(before, File.ReadAllBytes(input));
@@ -113,7 +113,7 @@ public sealed class PublisherPdfWorkflowTests {
             if (limit is "strict" or "output") {
                 var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
                 Assert.True(evidence.HasLoss); Assert.Equal("2", evidence.Facts["sourcePages"]);
-                Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
+                Assert.Contains(evidence.Diagnostics, finding => finding.Code.StartsWith("PUB_", StringComparison.Ordinal));
             }
         } finally { Directory.Delete(root, true); }
     }

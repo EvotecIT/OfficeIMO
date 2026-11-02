@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape atom = TableGeometryShape(rendered, "span#a");
         Assert.Equal(20D, atom.X, 3);
         Assert.True(atom.Y >= 40D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]

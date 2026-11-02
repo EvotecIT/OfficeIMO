@@ -33,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(1, issue.ReferenceIndex);
         Assert.Equal(30ul, issue.TargetIdentifier);
         Assert.Equal(IWorkSourceReferenceIssueKind.UnexpectedTargetType, issue.Kind);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             item => item.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 

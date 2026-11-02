@@ -9,7 +9,7 @@ internal static class NativeLifecycleProof {
         Directory.CreateDirectory(output);
         void Save(string name, Action<ProjectDocument> edit, string extension = ".mpp") {
             using var document = ProjectDocument.Load(input); edit(document);
-            var options = new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow };
+            var options = new ProjectSaveOptions { AllowLoss = true };
             var path = Path.Combine(output, name + extension);
             var report = document.AssessSave(path, options); report.ThrowIfErrors();
             document.Save(path, options);

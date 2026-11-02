@@ -65,13 +65,19 @@ public sealed class MarkdownToLatexOptions {
 }
 
 /// <summary>Markdown result from LaTeX.</summary>
-public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDocument, LatexToMarkdownReport> {
+public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new LatexToMarkdownReport Report => (LatexToMarkdownReport)base.Report;
+
     internal LatexToMarkdownResult(MarkdownDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
         : base(value, new LatexToMarkdownReport(diagnostics)) { }
 }
 
 /// <summary>Canonical LaTeX result from Markdown.</summary>
-public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument, MarkdownToLatexReport> {
+public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new MarkdownToLatexReport Report => (MarkdownToLatexReport)base.Report;
+
     internal MarkdownToLatexResult(string source, LatexDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
         : base(value, new MarkdownToLatexReport(diagnostics)) {
         Source = source ?? throw new ArgumentNullException(nameof(source));
@@ -81,51 +87,50 @@ public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument
 }
 
 /// <summary>LaTeX-to-Markdown conversion diagnostics captured for one operation.</summary>
-public sealed class LatexToMarkdownReport : IOfficeConversionReport {
+public sealed class LatexToMarkdownReport : OfficeConversionReport {
     internal LatexToMarkdownReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
-        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-        FidelityDiagnostics = CreateFidelityDiagnostics(Diagnostics, "OfficeIMO.Latex.Markdown");
+        NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = CreateFidelityDiagnostics(NativeDiagnostics, "OfficeIMO.Latex.Markdown");
     }
     /// <summary>Loss, fallback, and omission diagnostics.</summary>
-    public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<LatexMarkdownConversionDiagnostic> NativeDiagnostics { get; }
     /// <summary>Category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <summary>True when at least one feature was not converted exactly.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
+    public override bool HasLoss => NativeDiagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
     /// <summary>Throws when the conversion reported a lossy mapping.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("LaTeX-to-Markdown conversion reported one or more lossy mappings.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("LaTeX-to-Markdown conversion reported one or more lossy mappings.", this);
 
-    internal static IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics(
+    internal static IReadOnlyList<OfficeDiagnostic> CreateFidelityDiagnostics(
         IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics,
         string source) => Array.AsReadOnly(diagnostics.Select(diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
+                diagnostic.LatexSpan?.ToString() ?? diagnostic.MarkdownSpan?.ToString(),
+                source,
                 diagnostic.Outcome switch {
                     LatexMarkdownConversionOutcome.Converted => OfficeConversionLossKind.None,
                     LatexMarkdownConversionOutcome.Omitted => OfficeConversionLossKind.Omission,
                     _ => OfficeConversionLossKind.Approximation
-                },
-                source,
-                diagnostic.LatexSpan?.ToString() ?? diagnostic.MarkdownSpan?.ToString())).ToArray());
+                })).ToArray());
 }
 
 /// <summary>Markdown-to-LaTeX conversion diagnostics captured for one operation.</summary>
-public sealed class MarkdownToLatexReport : IOfficeConversionReport {
+public sealed class MarkdownToLatexReport : OfficeConversionReport {
     internal MarkdownToLatexReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
-        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-        FidelityDiagnostics = LatexToMarkdownReport.CreateFidelityDiagnostics(Diagnostics, "OfficeIMO.Latex.Markdown");
+        NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = LatexToMarkdownReport.CreateFidelityDiagnostics(NativeDiagnostics, "OfficeIMO.Latex.Markdown");
     }
     /// <summary>Loss, fallback, and omission diagnostics.</summary>
-    public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<LatexMarkdownConversionDiagnostic> NativeDiagnostics { get; }
     /// <summary>Category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <summary>True when at least one feature was not converted exactly.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
+    public override bool HasLoss => NativeDiagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
     /// <summary>Throws when the conversion reported a lossy mapping.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("Markdown-to-LaTeX conversion reported one or more lossy mappings.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Markdown-to-LaTeX conversion reported one or more lossy mappings.", this);
 }

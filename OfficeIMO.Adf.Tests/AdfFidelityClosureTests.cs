@@ -18,7 +18,7 @@ public sealed class AdfFidelityClosureTests {
         Assert.Throws<NotSupportedException>(() => ((IList<AdfConversionDiagnostic>)report.Diagnostics)[0] = source[0]);
         Assert.True(report.HasErrors);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Theory]
@@ -74,8 +74,8 @@ public sealed class AdfFidelityClosureTests {
         var result = AdfConverter.ToMarkdown(document);
         Assert.Contains("Visible", result.Value);
         Assert.False(result.Report.IsLossless);
-        Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_NODE_PROPERTIES_DROPPED" && issue.Path == "$.content[0]");
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.Contains(result.Report.NativeDiagnostics, issue => issue.Code == "ADF_NODE_PROPERTIES_DROPPED" && issue.Path == "$.content[0]");
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         Assert.Equal("p1", Assert.Single(AdfDocument.Parse(document.ToJson()).Content).GetStringAttribute("localId"));
     }
 

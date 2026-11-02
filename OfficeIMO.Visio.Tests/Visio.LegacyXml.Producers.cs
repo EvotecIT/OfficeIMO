@@ -23,7 +23,7 @@ public class VisioLegacyProducerTests {
         var document = result.Value;
         Assert.Equal(family, document.PackageType); Assert.Equal(masterCount, document.Masters.Count);
         if (original.Root!.Name.NamespaceName == Namespace2002)
-            Assert.Contains(result.Report.FidelityDiagnostics, d => d.Code == "VDX_2002_INPUT");
+            Assert.Contains(result.Report.Diagnostics, d => d.Code == "VDX_2002_INPUT");
         var unedited = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         Assert.Equal(MasterPageSheets(original), MasterPageSheets(unedited));
         Assert.Equal(original.Descendants(original.Root.Name.Namespace + "Masters").Descendants(original.Root.Name.Namespace + "Text").Select(e => e.Value),

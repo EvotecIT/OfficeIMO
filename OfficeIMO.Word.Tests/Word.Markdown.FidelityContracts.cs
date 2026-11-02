@@ -13,10 +13,10 @@ public sealed class WordMarkdownFidelityContracts {
                 OfficeConversionLossKind.Omission)
         });
 
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
         Assert.Equal(string.Empty, diagnostic.Message);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.True(report.HasLoss);
-        Assert.Throws<WordMarkdownConversionException>(() => report.RequireNoLoss());
+        Assert.Throws<WordMarkdownConversionException>(() => report.ThrowIfLoss());
     }
 }

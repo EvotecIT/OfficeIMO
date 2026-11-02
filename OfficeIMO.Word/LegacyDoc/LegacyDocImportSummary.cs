@@ -1,6 +1,6 @@
 namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>Provides the compact, user-facing outcome of a legacy DOC import.</summary>
-    internal sealed class LegacyDocImportSummary : IOfficeConversionReport {
+    internal sealed class LegacyDocImportSummary : OfficeConversionReport {
         internal LegacyDocImportSummary(LegacyDocLoadResult result) {
             ParagraphCount = result.LegacyDocument.Paragraphs.Count;
             DiagnosticCount = result.Diagnostics.Count;
@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc {
             PreservedFeatureCount = result.PreservedFeatures.Count;
             CompoundFeatureCount = result.CompoundFeatures.Count;
             HasImportErrors = result.HasImportErrors;
-            FidelityDiagnostics = Array.AsReadOnly(result.FidelityDiagnostics.ToArray());
+            FidelityDiagnostics = Array.AsReadOnly(result.Diagnostics.ToArray());
         }
 
         /// <summary>Gets the decoded paragraph count.</summary>
@@ -33,16 +33,14 @@ namespace OfficeIMO.Word.LegacyDoc {
         public bool HasConversionLoss => HasLoss;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
         /// <inheritdoc />
-        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+        public override bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidDataException(
-                "The legacy DOC import summary reported content loss. Inspect FidelityDiagnostics for details.");
-        }
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy DOC import summary reported content loss. Inspect FidelityDiagnostics for details.", this);
     }
 }

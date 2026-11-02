@@ -43,7 +43,7 @@ public static partial class OfficeOcrConversionExtensions {
 
     private static OfficeConversionReport CompleteHtml(PdfHtmlConversionResult result, PdfToHtmlOptions? options,
         TimeSpan elapsed, string? path = null) {
-        OfficeConversionReport report = PdfConversionEvidence.CreateReport("Pdf", new IOfficeConversionReport[] { result.Report },
+        OfficeConversionReport report = PdfConversionEvidence.CreateReport("Pdf", new OfficeConversionReport[] { result.Report },
             path == null ? null : Path.GetFullPath(path), elapsed, result.Summary.RenderedPageCount, "Html");
         if (options?.FailOnLoss == true) report.ThrowIfLoss();
         return report;

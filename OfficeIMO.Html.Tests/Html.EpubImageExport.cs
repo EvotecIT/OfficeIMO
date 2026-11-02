@@ -326,7 +326,7 @@ public sealed class HtmlEpubImageExportTests {
         using var package = new MemoryStream(CreateEpub());
         EpubDocument book = EpubDocument.Load(package);
         var options = new EpubImageExportOptions {
-            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
 
         Assert.Throws<OfficeImageExportPolicyException>(() =>

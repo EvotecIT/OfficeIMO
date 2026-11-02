@@ -25,7 +25,7 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         // their whitespace. Every original NFD source cluster remains once.
         string extracted = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Equal("A\u0301A\u0301", new string(extracted.Where(character => !char.IsWhiteSpace(character)).ToArray()));
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         byte[] bytes = document.ToBytes();
         Assert.NotEmpty(bytes);
         Assert.Equal(source, PdfReadDocument.Open(bytes).ExtractText().Trim());
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]
@@ -55,7 +55,7 @@ public sealed class PdfNormalizedCoverageInteractionTests {
         // The primary must retain the original A+acute cluster while B uses
         // the real fallback; a whole-primary bypass cannot satisfy this case.
         Assert.Equal(source, PdfReadDocument.Open(bytes).ExtractText().Trim());
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Theory]

@@ -63,11 +63,11 @@ BibliographyWriteResult csl = read.Document.Write(
     new BibliographyWriteOptions {
         Format = BibliographyFormat.CslJson,
         Mode = BibliographyWriterMode.Canonical,
-        RequireNoLoss = true
+        FailOnLoss = true
     });
 ```
 
-`RequireNoLoss` throws `BibliographyConversionLossException` when the destination would approximate, omit, or fail to preserve data. For permissive conversion, leave it disabled and inspect `csl.Report.Diagnostics`. The report also implements `IOfficeConversionReport`; use `FidelityDiagnostics` when composing bibliography output with another OfficeIMO conversion stage and the policy must retain the exact `None`, `Approximation`, `Omission`, or `Failure` category.
+`ThrowIfLoss` throws `BibliographyConversionLossException` when the destination would approximate, omit, or fail to preserve data. For permissive conversion, leave it disabled and inspect `csl.Report.Diagnostics`. The report also implements `OfficeConversionReport`; use `Diagnostics` when composing bibliography output with another OfficeIMO conversion stage and the policy must retain the exact `None`, `Approximation`, `Omission`, or `Failure` category.
 
 ## File, stream, text, and async APIs
 

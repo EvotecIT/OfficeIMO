@@ -26,7 +26,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
 
         Assert.Empty(document.TextBoxes);
         Assert.NotEmpty(document.Find("First-page region", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "forcedPageBreakAfter=true; semanticFlow=true");
     }
@@ -48,7 +48,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         Assert.True(pageBreakIndex >= 0);
         Assert.True(regionIndex > pageBreakIndex);
         Assert.False(region.Frame.HasAnyValue);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "forcedPageBreakBefore=true; semanticFlow=true");
     }
@@ -147,7 +147,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         Assert.Empty(document.TextBoxes);
         WordImage image = Assert.Single(document.Images);
         Assert.Equal("Remote region", image.Description);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "unrenderedRegionImage=true; semanticFlow=true");
     }

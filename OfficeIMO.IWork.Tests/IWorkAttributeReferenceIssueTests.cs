@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertMissingReference(Assert.Single(report.SourceReferenceIssues), kind == IWorkDocumentKind.Pages ? 2ul : 11ul,
             field + "/1[1]/2", 999);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == 999);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 

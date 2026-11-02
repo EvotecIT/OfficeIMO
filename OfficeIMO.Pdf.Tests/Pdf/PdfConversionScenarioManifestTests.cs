@@ -1923,7 +1923,7 @@ public sealed class PdfConversionScenarioManifestTests {
             warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted);
         Assert.StartsWith("1 ", warning.Message, StringComparison.Ordinal);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -1952,7 +1952,7 @@ public sealed class PdfConversionScenarioManifestTests {
             warning.Code == OfficeDiagnosticCodes.PdfOutlinesOmitted);
         Assert.StartsWith("1 PDF outline ", warning.Message, StringComparison.Ordinal);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -2003,7 +2003,7 @@ public sealed class PdfConversionScenarioManifestTests {
             warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]

@@ -206,13 +206,13 @@ public sealed partial class OfficeWorkflowRunner {
 
     private static void AddConversionDiagnostics(OfficeWorkflowConversionEvidence evidence, List<OfficeWorkflowDiagnostic> diagnostics,
         ISet<string>? importDiagnosticSources = null) {
-        foreach (OfficeConversionFidelityDiagnostic finding in evidence.FidelityDiagnostics) {
-            var details = new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() };
+        foreach (OfficeDiagnostic finding in evidence.Diagnostics) {
+            var details = new Dictionary<string, string> { ["source"] = finding.Format ?? string.Empty, ["lossKind"] = finding.LossKind.ToString() };
             if (finding.Location != null) details["location"] = finding.Location;
             diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
                 finding.LossKind == OfficeConversionLossKind.Failure ? OfficeWorkflowDiagnosticSeverity.Error
                     : finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
-                importDiagnosticSources?.Contains(finding.Source) == true ? "import" : "convert", details));
+                importDiagnosticSources?.Contains(finding.Format ?? string.Empty) == true ? "import" : "convert", details));
         }
     }
 

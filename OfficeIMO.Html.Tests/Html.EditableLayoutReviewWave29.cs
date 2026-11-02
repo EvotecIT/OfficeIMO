@@ -24,7 +24,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
 
             Assert.Empty(word.TextBoxes);
             Assert.NotEmpty(word.Find("Element styled anchor", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
         } finally {

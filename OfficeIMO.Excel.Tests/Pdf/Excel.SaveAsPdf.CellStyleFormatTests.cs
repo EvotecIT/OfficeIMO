@@ -164,7 +164,7 @@ public partial class Excel {
             item => item.Code == "font-family-substitution" && item.Details["fontFamily"] == unavailableFamily);
         Assert.Equal("Fonts", warning.Source);
         Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
     }
 
     [Fact]

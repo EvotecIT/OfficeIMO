@@ -457,7 +457,7 @@ internal static partial class VisioReaderAdapter {
     }
 
     internal sealed class SourceMetadata {
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics { get; set; } = Array.Empty<OfficeConversionFidelityDiagnostic>();
+        public IReadOnlyList<OfficeDiagnostic> ImportDiagnostics { get; set; } = Array.Empty<OfficeDiagnostic>();
         public string? Path { get; set; }
         public string? SourceId { get; set; }
         public string? SourceHash { get; set; }

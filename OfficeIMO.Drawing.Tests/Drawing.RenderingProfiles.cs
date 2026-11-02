@@ -13,7 +13,7 @@ public sealed class DrawingRenderingProfileTests {
         var options = new OfficeImageExportOptions {
             TextShapingProvider = originalProvider,
             TextShapingLanguage = "pl",
-            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
 
         OfficeImageExportOptions returned = options.UseRenderingProfile(OfficeRenderingProfile.Managed);
@@ -21,7 +21,7 @@ public sealed class DrawingRenderingProfileTests {
         Assert.Same(options, returned);
         Assert.Same(OfficeManagedTextShapingProvider.Instance, options.TextShapingProvider);
         Assert.Null(options.TextShapingLanguage);
-        Assert.False(options.Policy.RequireNoLoss);
+        Assert.False(options.Policy.FailOnLoss);
         Assert.NotSame(OfficeRenderingProfile.Managed.Fonts, options.Fonts);
     }
 
@@ -96,15 +96,15 @@ public sealed class DrawingRenderingProfileTests {
 
     [Fact]
     public void ProfileOwnsDefensiveFontAndPolicySnapshots() {
-        var policy = new OfficeImageExportPolicy { RequireNoLoss = true };
+        var policy = new OfficeImageExportPolicy { FailOnLoss = true };
         var profile = new OfficeRenderingProfile(" deterministic ", policy: policy);
 
-        policy.RequireNoLoss = false;
+        policy.FailOnLoss = false;
         OfficeImageExportPolicy first = profile.Policy;
-        first.RequireNoLoss = false;
+        first.FailOnLoss = false;
 
         Assert.Equal("deterministic", profile.Name);
-        Assert.True(profile.Policy.RequireNoLoss);
+        Assert.True(profile.Policy.FailOnLoss);
         Assert.NotSame(profile.Fonts, profile.Fonts);
     }
 

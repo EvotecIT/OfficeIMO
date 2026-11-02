@@ -73,7 +73,7 @@ public sealed partial class EpubPublication {
         entries.Remove(oldPath);
         long delta = entries.Values.Sum(value => value.LongLength) - _retainedBytes;
         EnsurePackageBudget(package, delta);
-        ValidatePublication(package, entries, new List<OfficeConversionFidelityDiagnostic>(), cancellationToken, changed: true);
+        ValidatePublication(package, entries, new List<OfficeDiagnostic>(), cancellationToken, changed: true);
         EnsurePackageBudget(package, delta);
         cancellationToken.ThrowIfCancellationRequested();
         if (_entryOrigins.TryGetValue(oldPath, out string? origin)) {

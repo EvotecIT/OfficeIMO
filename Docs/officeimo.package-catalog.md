@@ -882,7 +882,7 @@ _Dependency footprint:_ the first-party HTML/PDF, Reader.All, and Markup exporte
 
 - [x] Semantic RTF to Markdown and Markdown to RTF conversion
 - [x] Rich inline formatting, lists, tables, links, images, footnotes, and endnotes
-- [x] Visible flattening/omission diagnostics and `RequireNoLoss()` workflows
+- [x] Visible flattening/omission diagnostics and `ThrowIfLoss()` workflows
 
 _Dependency footprint:_ only OfficeIMO RTF, Markdown, and Drawing packages.
 

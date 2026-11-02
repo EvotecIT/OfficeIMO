@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual);
         AssertMissingReference(Assert.Single(report.SourceReferenceIssues), 10, field.ToString(), 999);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == 999);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 

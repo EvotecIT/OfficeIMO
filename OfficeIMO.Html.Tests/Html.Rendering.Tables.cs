@@ -709,7 +709,7 @@ public sealed partial class HtmlRenderingTests {
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
         HtmlRenderText caption = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Caption");
         HtmlRenderText cell = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Cell");
 

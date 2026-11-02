@@ -116,7 +116,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
             cancellationToken,
             renderOptions);
         cancellationToken.ThrowIfCancellationRequested();
-        var result = new HtmlCapabilityGalleryResult(options.Scenario, artifacts, rendered.Diagnostics);
+        var result = new HtmlCapabilityGalleryResult(options.Scenario, artifacts, rendered.NativeDiagnostics);
         var manifest = new HtmlCapabilityGalleryManifest(
             result,
             document.ProfileContract.Profile,

@@ -2,9 +2,9 @@ using System;
 
 namespace OfficeIMO;
 
-/// <summary>A converted value and its report, returned together by asynchronous conversions.</summary>
+/// <summary>A converted value and its report. Format-owned results derive from it and narrow <see cref="Report"/>.</summary>
 /// <typeparam name="T">The target document, text, artifact or other converted value.</typeparam>
-public sealed class OfficeConversionResult<T> {
+public class OfficeConversionResult<T> {
     /// <summary>Creates a result containing a non-null converted value and its report.</summary>
     public OfficeConversionResult(T value, OfficeConversionReport report) {
         if (value is null) throw new ArgumentNullException(nameof(value));
@@ -21,11 +21,27 @@ public sealed class OfficeConversionResult<T> {
     /// <summary>Gets whether the report describes possible fidelity loss.</summary>
     public bool HasLoss => Report.HasLoss;
 
+    /// <summary>Throws the report's <see cref="OfficeConversionException"/> when it describes possible fidelity loss.</summary>
+    public void ThrowIfLoss() => Report.ThrowIfLoss();
+
     /// <summary>Deconstructs the result into its converted value and report.</summary>
     public void Deconstruct(out T value, out OfficeConversionReport report) {
         value = Value;
         report = Report;
     }
+}
+
+/// <summary>A converted value with its format-owned report, for operations that return typed evidence without a dedicated result type.</summary>
+/// <typeparam name="T">The converted value.</typeparam>
+/// <typeparam name="TReport">The format-owned report.</typeparam>
+public sealed class OfficeConversionResult<T, TReport> : OfficeConversionResult<T> where TReport : OfficeConversionReport {
+    /// <summary>Creates a result containing a non-null converted value and its typed report.</summary>
+    public OfficeConversionResult(T value, TReport report) : base(value, report) {
+        Report = report;
+    }
+
+    /// <summary>Gets the typed conversion report.</summary>
+    public new TReport Report { get; }
 }
 
 /// <summary>Describes whether an OfficeIMO operation completed successfully.</summary>
@@ -44,76 +60,15 @@ public interface IOfficeResult<out TValue> : IOfficeResult where TValue : class 
     TValue RequireValue();
 }
 
-/// <summary>
-/// Describes the common value-and-report surface returned by OfficeIMO document conversions.
-/// </summary>
-/// <typeparam name="TValue">Native target document, text, artifact, or reference type.</typeparam>
-/// <typeparam name="TReport">Typed fidelity report produced by the conversion.</typeparam>
-public interface IOfficeConversionResult<out TValue, out TReport> : IOfficeResult<TValue>
-    where TValue : class
-    where TReport : class, IOfficeConversionReport {
-    /// <summary>Gets the typed conversion report.</summary>
-    TReport Report { get; }
-
-    /// <summary>Gets whether the conversion reported possible fidelity loss.</summary>
-    bool HasLoss { get; }
-
-    /// <summary>Returns the produced value only when conversion completed without reported loss.</summary>
-    TValue RequireNoLoss();
-}
-
-/// <summary>
-/// Common implementation for conversions that return a native value together with a typed fidelity report.
-/// </summary>
-/// <typeparam name="TValue">Native target document, text, artifact, or reference type.</typeparam>
-/// <typeparam name="TReport">Typed fidelity report produced by the conversion.</typeparam>
-public class OfficeConversionResult<TValue, TReport> : IOfficeConversionResult<TValue, TReport>
-    where TValue : class
-    where TReport : class, IOfficeConversionReport {
-    /// <summary>Creates a conversion result.</summary>
-    public OfficeConversionResult(TValue value, TReport report)
-    {
-        Value = value ?? throw new ArgumentNullException(nameof(value));
-        Report = report ?? throw new ArgumentNullException(nameof(report));
-    }
-
-    /// <inheritdoc />
-    public TValue Value { get; }
-
-    /// <inheritdoc />
-    public TReport Report { get; }
-
-    /// <inheritdoc />
-    public virtual bool Succeeded => true;
-
-    /// <inheritdoc />
-    public virtual bool HasLoss => Report.HasLoss;
-
-    /// <inheritdoc />
-    public virtual TValue RequireValue() {
-        if (!Succeeded) {
-            throw new OfficeConversionException("The conversion did not produce a usable value.", Report);
-        }
-
-        return Value;
-    }
-
-    /// <inheritdoc />
-    public virtual TValue RequireNoLoss() {
-        TValue value = RequireValue();
-        Report.RequireNoLoss();
-        return value;
-    }
-}
-
-/// <summary>Raised when a structured OfficeIMO conversion result has no usable value.</summary>
-public sealed class OfficeConversionException : InvalidOperationException {
-    /// <summary>Creates an exception for a failed conversion report.</summary>
-    public OfficeConversionException(string message, IOfficeConversionReport report, Exception? innerException = null)
+/// <summary>Raised when a conversion reports loss that the caller does not accept, or produces no usable value.</summary>
+/// <remarks>Format-owned exceptions derive from this type and carry their typed failure evidence.</remarks>
+public class OfficeConversionException : InvalidOperationException {
+    /// <summary>Creates an exception carrying the completed report.</summary>
+    public OfficeConversionException(string message, OfficeConversionReport report, Exception? innerException = null)
         : base(message, innerException) {
         Report = report ?? throw new ArgumentNullException(nameof(report));
     }
 
-    /// <summary>Gets the report produced before conversion failed.</summary>
-    public IOfficeConversionReport Report { get; }
+    /// <summary>Gets the report produced before the operation stopped.</summary>
+    public OfficeConversionReport Report { get; }
 }

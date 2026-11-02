@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
                     "/BaseFont /" + SanitizeExpectedPdfFontName(fontFamily),
                     content,
                     StringComparison.Ordinal));
-            result.Report.RequireNoLoss();
+            result.Report.ThrowIfLoss();
         }
 
         [Fact]
@@ -300,7 +300,7 @@ namespace OfficeIMO.Tests {
                         item.Details.TryGetValue("fontFamily", out string? family) &&
                         family == unavailableFamily);
             Assert.Equal(unavailableFamily, warning.Details["fontFamily"]);
-            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         }
 
         [Fact]

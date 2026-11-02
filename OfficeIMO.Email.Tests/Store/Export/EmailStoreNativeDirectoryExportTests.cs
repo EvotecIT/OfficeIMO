@@ -21,7 +21,7 @@ public sealed class EmailStoreNativeDirectoryExportTests {
                 reopened.ReadSummary(reference).Subject ?? string.Empty).OrderBy(value => value).ToArray();
 
             Assert.False(report.HasErrors, string.Join(Environment.NewLine,
-                report.Diagnostics.Concat(report.Entries.SelectMany(entry => entry.Diagnostics))
+                report.NativeDiagnostics.Concat(report.Entries.SelectMany(entry => entry.Diagnostics))
                     .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
             Assert.False(report.WasTruncated);
             Assert.Equal(2, report.SucceededCount);

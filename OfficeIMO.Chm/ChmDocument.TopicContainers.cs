@@ -29,7 +29,7 @@ public sealed partial class ChmDocument {
     // HTML and body containers are replaced by inert divs, retaining their global
     // attributes and anchors without introducing nested HTML/body elements.
     private static HtmlElement PreserveTopicContainer(HtmlDocument output, HtmlElement parent, HtmlElement? source,
-        string topicPath, List<OfficeConversionFidelityDiagnostic> diagnostics, ref int nodes, ChmConversionOptions options) {
+        string topicPath, List<OfficeDiagnostic> diagnostics, ref int nodes, ChmConversionOptions options) {
         if (source == null) return parent;
         HtmlElement? container = null;
         foreach (HtmlAttribute attribute in source.Attributes) {
@@ -48,9 +48,7 @@ public sealed partial class ChmDocument {
                     if (!container.HasAttribute("lang")) container.SetAttribute("lang", attribute.Value);
                 } else container.SetAttribute(attribute.Name, attribute.Value);
             } else if (name != "xmlns") {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_CONTAINER_ATTRIBUTE_OMITTED",
-                    "A topic container attribute cannot be applied to its reflowable wrapper: " + attribute.Name + ".",
-                    OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topicPath));
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_CONTAINER_ATTRIBUTE_OMITTED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "A topic container attribute cannot be applied to its reflowable wrapper: " + attribute.Name + ".", topicPath, "OfficeIMO.Chm", OfficeConversionLossKind.Omission));
             }
         }
         return container ?? parent;

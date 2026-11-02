@@ -125,8 +125,8 @@ public sealed partial class HtmlRenderingTests {
         // Retained outlines and embedded text operators must paint the same glyphs.
         Assert.Equal(new[] { 3 }, ObservePaintedTrueTypeGlyphs(enabledScene, enabledText).Select(glyph => glyph.GlyphId));
         Assert.Equal(new[] { 1, 2 }, ObservePaintedTrueTypeGlyphs(disabledScene, disabledText).Select(glyph => glyph.GlyphId));
-        enabledScene.RequireNoLoss();
-        disabledScene.RequireNoLoss();
+        enabledScene.ThrowIfLoss();
+        disabledScene.ThrowIfLoss();
         OfficeImageExportResult enabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
             enabledRead, OfficeImageExportFormat.Png));
         OfficeImageExportResult disabledSavedImage = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(

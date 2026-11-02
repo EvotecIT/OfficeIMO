@@ -14,7 +14,7 @@ public static partial class HtmlMarkdownConverterExtensions {
     public static MarkdownDocument ToMarkdown(this HtmlConversionDocument document, MarkdownHtmlImportOptions? options, out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         var timer = Stopwatch.StartNew();
         var result = ConvertToMarkdownWithEvidence(document, options?.Clone() ?? new MarkdownHtmlImportOptions(), cancellationToken);
-        report = HtmlConversionEvidence.CreateReport("Html", "Markdown", result.Report.Diagnostics, timer.Elapsed);
+        report = HtmlConversionEvidence.CreateReport("Html", "Markdown", result.Report.NativeDiagnostics, timer.Elapsed);
         if (options?.FailOnLoss == true && report.HasLoss) { result.Value.Dispose(); report.ThrowIfLoss(); }
         return result.RequireValue();
     }

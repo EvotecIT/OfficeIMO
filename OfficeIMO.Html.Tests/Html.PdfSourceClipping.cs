@@ -11,7 +11,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(true)]
     public void HtmlPdf_SourceClippingDoesNotExemptAdditionalPdfContentFromLossChecks(bool nestedUnderSourceClip) {
         var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
         void AddTargetClip(PdfCore.PdfPageCanvas canvas) => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(1D), global::OfficeIMO.OfficeLength.Points(1D), clipped =>
             clipped.Text("Clipped target content", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
@@ -26,13 +26,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(saved.Succeeded);
         Assert.Contains(saved.Report.Warnings, warning => warning.Code == "canvas-text-canvas-clip-paint-clipped"
             && warning.LossKind != OfficeConversionLossKind.None);
-        Assert.Throws<InvalidOperationException>(() => saved.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => saved.Report.ThrowIfLoss());
     }
 
     [Fact]
     public void HtmlPdf_SourceClipDoesNotExemptAdditionalTargetTextFrameLoss() {
         var result = HtmlConversionDocument.Parse("<p>Source content</p>").ConvertToPdfWithEvidence(new HtmlToPdfOptions {
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
         result.Value.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)).Margin(global::OfficeIMO.OfficeLength.Points(0D)).Canvas(canvas =>
             canvas.SourceClip(0D, 0D, 100D, 100D, sourcePaint =>
@@ -44,6 +44,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(saved.Succeeded);
         Assert.Contains(saved.Report.Warnings, warning => warning.Code == "canvas-text-content-clipped"
             && warning.LossKind != OfficeConversionLossKind.None);
-        Assert.Throws<InvalidOperationException>(() => saved.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => saved.Report.ThrowIfLoss());
     }
 }

@@ -31,10 +31,10 @@ public sealed class EmailStoreRecoveryAndSplitTests {
             Assert.Contains(report.Entries.Single(entry => entry.Reference.Id == "orphan-bad").Diagnostics,
                 diagnostic => diagnostic.Code == "EMAIL_STORE_EXPORT_ITEM_FAILED");
             Assert.True(report.HasLoss);
-            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_RECOVERY_ITEMS_OMITTED" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
         } finally {
             DeleteDirectory(root);
         }
@@ -55,7 +55,7 @@ public sealed class EmailStoreRecoveryAndSplitTests {
             var options = new EmailStorePstSplitOptions(
                 query,
                 maxEstimatedBytesPerPart: 1,
-                failOnDataLoss: true,
+                failOnLoss: true,
                 includeSearchFolders: false);
 
             EmailStorePstSplitPlan plan = session.PlanPstSplit(
@@ -73,10 +73,10 @@ public sealed class EmailStoreRecoveryAndSplitTests {
             Assert.True(report.IsSuccessful);
             Assert.Equal(2, report.WrittenItems);
             Assert.False(report.HasLoss);
-            report.RequireNoLoss();
+            report.ThrowIfLoss();
             Assert.All(report.Parts, part => {
                 Assert.False(part.HasLoss);
-                part.RequireNoLoss();
+                part.ThrowIfLoss();
                 Assert.True(File.Exists(part.WriteReport.DestinationPath));
                 Assert.True(part.Verification.IsSuccessful);
                 Assert.Equal(1, part.Verification.MatchedItems);

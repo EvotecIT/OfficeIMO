@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(source, options);
 
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         Assert.DoesNotContain(rendered.Fonts.Faces,
             face => string.Equals(face.FamilyName, "Arial", StringComparison.OrdinalIgnoreCase));
         using var output = new MemoryStream();
@@ -132,7 +132,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(
             "<p style=\"font-family:'Supplied, body',Arial\">AB</p>"), options);
 
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         Assert.DoesNotContain(rendered.Fonts.Faces,
             face => string.Equals(face.FamilyName, "Arial", StringComparison.OrdinalIgnoreCase));
     }

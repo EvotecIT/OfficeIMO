@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
                 MaxSourceDeclarationIssues = 1 });
         AssertListDeclaration(Assert.Single(report.SourceDeclarationIssues), "16", 2);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

@@ -54,7 +54,7 @@ public sealed class OpenDocumentPdfConversionContracts {
             mapping.Feature == "source-tracked-changes" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.True(result.HasLoss);
-        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.RequireNoLoss());
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.ThrowIfLoss());
         Assert.Same(projection, loss.Report);
         Assert.DoesNotContain(result.Warnings, warning =>
             warning.Code.StartsWith("ODF_", StringComparison.Ordinal));
@@ -104,7 +104,7 @@ public sealed class OpenDocumentPdfConversionContracts {
             mapping.Feature == "source-presentation-animations" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.True(result.HasLoss);
-        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.RequireNoLoss());
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => result.ThrowIfLoss());
         Assert.Same(projection, loss.Report);
     }
 
@@ -120,12 +120,12 @@ public sealed class OpenDocumentPdfConversionContracts {
         Assert.True(save.Succeeded, save.Exception?.Message);
         Assert.True(stream.Length > 0);
         Assert.True(save.HasLoss);
-        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => save.RequireNoLoss());
+        OdfConversionLossException loss = Assert.Throws<OdfConversionLossException>(() => save.ThrowIfLoss());
         Assert.IsType<OdfConversionReport>(loss.Report);
         Assert.Collection(
             save.ConversionReports,
             report => Assert.IsType<OdfConversionReport>(report),
             report => Assert.IsType<PdfConversionReport>(report));
-        Assert.All(save.ConversionReports, report => Assert.IsAssignableFrom<IOfficeConversionReport>(report));
+        Assert.All(save.ConversionReports, report => Assert.IsAssignableFrom<OfficeConversionReport>(report));
     }
 }

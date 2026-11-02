@@ -426,10 +426,10 @@ public static class HtmlRenderEngine {
         return createEngine(HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits)).Render();
     }
 
-    private static HtmlRenderDocument CompleteRender(HtmlRenderDocument rendered, HtmlRenderOptions options) =>
-        options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
-            ? rendered.RequireNoLoss()
-            : rendered;
+    private static HtmlRenderDocument CompleteRender(HtmlRenderDocument rendered, HtmlRenderOptions options) {
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss) rendered.ThrowIfLoss();
+        return rendered;
+    }
 
     internal static T ExecuteWithDeadline<T>(
         HtmlRenderOptions options,

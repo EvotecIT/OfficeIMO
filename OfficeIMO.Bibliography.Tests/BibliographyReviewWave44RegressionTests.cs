@@ -12,7 +12,7 @@ public sealed class BibliographyReviewWave44RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
 
         XElement record = Assert.Single(XDocument.Parse(written.Content).Root!.Element("records")!.Elements());
@@ -37,7 +37,7 @@ public sealed class BibliographyReviewWave44RegressionTests {
         Assert.Equal(expectedOrder, item.NativeFields.Select(field => field.Name + "=" + field.Value));
         item.Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal(expectedOrder, reopened.NativeFields.Select(field => field.Name + "=" + field.Value));

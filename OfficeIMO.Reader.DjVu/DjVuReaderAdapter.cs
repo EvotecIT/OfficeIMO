@@ -111,7 +111,7 @@ internal static class DjVuReaderAdapter {
                     PayloadHash = OfficeDocumentAssetHash.ComputeSha256Hex(payload), Location = location,
                     Region = new OfficeDocumentRegion { Width = page.DisplayWidth * 72.0 / page.Dpi, Height = page.DisplayHeight * 72.0 / page.Dpi } };
                 assets.Add(asset);
-                foreach (var diagnostic in rendered.FidelityDiagnostics) diagnostics.Add(new OfficeDocumentDiagnostic { Code = diagnostic.Code, Message = diagnostic.Message,
+                foreach (var diagnostic in rendered.Diagnostics) diagnostics.Add(new OfficeDocumentDiagnostic { Code = diagnostic.Code, Message = diagnostic.Message,
                     Severity = OfficeDocumentDiagnosticSeverity.Warning, Category = OfficeDocumentDiagnosticCategory.Content, Source = "OfficeIMO.DjVu", IsRecoverable = true, Location = location });
             }
             OfficeDocumentOcrCandidate? candidate = null;

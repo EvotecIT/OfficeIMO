@@ -22,7 +22,7 @@ public partial class Word {
         PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "native-bookmark-target-unprojected");
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         byte[] bytes = result.ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         string text = string.Concat(pdf.GetPages().Select(page => page.Text));

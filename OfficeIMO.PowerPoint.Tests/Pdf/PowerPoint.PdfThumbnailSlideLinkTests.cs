@@ -71,7 +71,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
             link => Assert.Single(pdf.NamedDestinations, d => d.Name == link.DestinationName));
         Assert.Contains(pdf.LinkAnnotations, link => link.Uri == "https://example.com/slide");
         Assert.Contains(pdf.LinkAnnotations, link => link.Uri == "https://example.com/table");
-        Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code == "internal-slide-target-omitted"
+        Assert.Contains(conversion.Report.Diagnostics, d => d.Code == "internal-slide-target-omitted"
             && d.LossKind == OfficeConversionLossKind.Omission);
         if (Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_OUTPUT") is { Length: > 0 } output) {
             Directory.CreateDirectory(output);

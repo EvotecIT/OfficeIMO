@@ -138,11 +138,11 @@ public partial class Word {
         var options = new WordPdfImportOptions();
 
         PdfWordConversionResult first = LoadSemanticPdf(imagePdf).ConvertToWordWithEvidence(options);
-        using OfficeWordDocument firstDocument = first.RequireValue();
+        using OfficeWordDocument firstDocument = first.Value;
         Assert.Contains(first.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
 
         PdfWordConversionResult second = LoadSemanticPdf(textPdf).ConvertToWordWithEvidence(options);
-        using OfficeWordDocument secondDocument = second.RequireValue();
+        using OfficeWordDocument secondDocument = second.Value;
 
         Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
         Assert.Contains(first.Report.Warnings, warning => warning.Code == "pdf-image-embedded");
@@ -272,7 +272,7 @@ public partial class Word {
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
         Assert.True(conversion.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => conversion.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -394,7 +394,7 @@ public partial class Word {
             warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
             int.Parse(count, System.Globalization.CultureInfo.InvariantCulture) > 0);
         Assert.True(conversion.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => conversion.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => conversion.Report.ThrowIfLoss());
     }
 
     [Fact]
@@ -573,7 +573,7 @@ public partial class Word {
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.Equal(expectedActionCount.ToString(System.Globalization.CultureInfo.InvariantCulture), warning.Details["ActionCount"]);
         Assert.True(conversion.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => conversion.ThrowIfLoss());
     }
 
     [Fact]
@@ -664,7 +664,7 @@ public partial class Word {
             warning.LossKind == OfficeConversionLossKind.Omission &&
             warning.Details.TryGetValue("MaskKind", out string? maskKind) &&
             maskKind == "soft-mask");
-        Assert.Throws<InvalidOperationException>(() => conversion.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => conversion.ThrowIfLoss());
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-placeholder");
         Assert.DoesNotContain(conversion.Report.Warnings, warning => warning.Code == "pdf-image-embedding-skipped");
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);

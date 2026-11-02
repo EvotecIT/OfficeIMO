@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;

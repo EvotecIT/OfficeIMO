@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
         Assert.Empty(report.SourceCellIssues);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

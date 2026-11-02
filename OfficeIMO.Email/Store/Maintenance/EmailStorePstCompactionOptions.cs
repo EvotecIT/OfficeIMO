@@ -7,7 +7,7 @@ public sealed class EmailStorePstCompactionOptions {
     /// <summary>Creates compaction options.</summary>
     public EmailStorePstCompactionOptions(
         bool overwriteExisting = false,
-        bool failOnDataLoss = true,
+        bool failOnLoss = true,
         bool continueOnItemError = false,
         bool includeAssociatedItems = true,
         bool includeOrphanedItems = true,
@@ -27,7 +27,7 @@ public sealed class EmailStorePstCompactionOptions {
         if (fixedPstOverheadBytes < 0) throw new ArgumentOutOfRangeException(nameof(fixedPstOverheadBytes));
         if (maxVerificationIssues <= 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationIssues));
         OverwriteExisting = overwriteExisting;
-        FailOnDataLoss = failOnDataLoss;
+        FailOnLoss = failOnLoss;
         ContinueOnItemError = continueOnItemError;
         IncludeAssociatedItems = includeAssociatedItems;
         IncludeOrphanedItems = includeOrphanedItems;
@@ -45,7 +45,7 @@ public sealed class EmailStorePstCompactionOptions {
     /// <summary>Whether an existing distinct destination may be atomically replaced after verification.</summary>
     public bool OverwriteExisting { get; }
     /// <summary>Whether any fidelity warning/error blocks destination commit.</summary>
-    public bool FailOnDataLoss { get; }
+    public bool FailOnLoss { get; }
     /// <summary>Whether an unreadable item is reported and skipped.</summary>
     public bool ContinueOnItemError { get; }
     /// <summary>Whether folder-associated information items are retained.</summary>

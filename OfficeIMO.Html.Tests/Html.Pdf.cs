@@ -1579,7 +1579,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.Contains("does not render or fill XFA", warning.Message, StringComparison.Ordinal);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -1596,7 +1596,7 @@ public sealed class HtmlPdfTests {
             warning.Code == OfficeDiagnosticCodes.PdfFormWidgetsFlattened &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -1611,7 +1611,7 @@ public sealed class HtmlPdfTests {
             warning.Code == "pdf-optional-content-groups-flattened" &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -1628,7 +1628,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
         Assert.True(imageResult.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => imageResult.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => imageResult.ThrowIfLoss());
 
         using var output = new MemoryStream();
         PdfCore.PdfConversionReport saveReport = PdfCore.PdfDocumentReadResult.Load(imagePdf).SaveAsHtml(output, options).RequireSuccess().Report!;
@@ -1964,7 +1964,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains(result.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("https://example.com/submit", result.Value, StringComparison.OrdinalIgnoreCase);
@@ -1987,7 +1987,7 @@ public sealed class HtmlPdfTests {
             warning.Code == OfficeDiagnosticCodes.PdfDocumentActionsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]
@@ -2020,7 +2020,7 @@ public sealed class HtmlPdfTests {
         Assert.StartsWith("2 ", warning.Message, StringComparison.Ordinal);
         Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.DoesNotContain("app.alert", result.Value, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tool.exe", result.Value, StringComparison.OrdinalIgnoreCase);
     }

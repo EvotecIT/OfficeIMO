@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         Assert.True(report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => report.RequireCompleteEditableReconstruction());
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code.EndsWith("TABLE_VISIBILITY_OMITTED", StringComparison.Ordinal)
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code.EndsWith("TABLE_VISIBILITY_OMITTED", StringComparison.Ordinal)
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 

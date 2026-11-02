@@ -114,7 +114,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderTableIntrinsic(html, options);
 
         Assert.Equal(expected, TableIntrinsicGroup(rendered, "td#cell").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         if (content == "blocks") {
             HtmlRenderText[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Where(text => text.Text == "AAAAA").ToArray();
             Assert.Equal(2, lines.Length);

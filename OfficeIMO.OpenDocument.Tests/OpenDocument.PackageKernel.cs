@@ -242,8 +242,7 @@ public class OpenDocumentPackageKernelTests {
         OdfSaveResult result = await document.SaveAsync(destination);
 
         Assert.Equal(result.Value, destination.ToArray());
-        Assert.Equal(result.Value, result.RequireNoLoss());
-        Assert.NotSame(result.Value, result.RequireNoLoss());
+        result.ThrowIfLoss();
         Assert.Contains("meta.xml", result.Report.RewrittenEntries);
     }
 

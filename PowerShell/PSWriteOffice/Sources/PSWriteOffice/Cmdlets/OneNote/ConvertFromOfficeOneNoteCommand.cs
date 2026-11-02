@@ -123,7 +123,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
             OneNoteNotebook notebook => notebook.ToMarkdownDocumentResult(ProjectionOptions),
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
+        if (FailOnLoss.IsPresent) result.ThrowIfLoss();
         OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(result.Value.ToMarkdown()), Force.IsPresent);
         return result.Report;
     }
@@ -136,7 +136,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
             OneNoteNotebook notebook => notebook.ToHtmlDocumentResult(ProjectionOptions, HtmlOptions),
             _ => throw new InvalidOperationException("Unsupported OneNote source model.")
         };
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
+        if (FailOnLoss.IsPresent) result.Report.ThrowIfLoss();
         OfficeFileOutput.Write(output, new UTF8Encoding(false).GetBytes(result.Value), Force.IsPresent);
         return result.Report;
     }
@@ -153,7 +153,7 @@ public sealed class ConvertFromOfficeOneNoteCommand : PSCmdlet
         OfficeFileOutput.Write(output, Force.IsPresent, temporaryPath =>
         {
             result.Save(temporaryPath).RequireSuccess();
-            if (FailOnLoss.IsPresent) result.RequireNoLoss();
+            if (FailOnLoss.IsPresent) result.ThrowIfLoss();
         });
         return result;
     }

@@ -38,7 +38,7 @@ public static partial class OfficeWorkflow {
                     : new OfficeWorkflowRunner(null, null, conversions: new[] { Registration });
                 OfficeWorkflowResult result = await runner.RunAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
                 OfficeConversionReport report = PdfConversionEvidence.CreateReport(options.SourceName!,
-                    result.ConversionEvidence == null ? Array.Empty<IOfficeConversionReport>() : new IOfficeConversionReport[] { result.ConversionEvidence },
+                    result.ConversionEvidence == null ? Array.Empty<OfficeConversionReport>() : new OfficeConversionReport[] { result.ConversionEvidence },
                     elapsed: result.Duration, itemsWritten: result.Succeeded ? 1 : 0, target: options.TargetName!);
                 var additional = result.Diagnostics.Where(d => d.Details.ContainsKey("lossKind") &&
                     !report.Diagnostics.Any(existing => existing.Code == d.Code && existing.Message == d.Message)).Select(d =>

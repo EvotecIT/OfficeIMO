@@ -116,8 +116,8 @@ public class RtfPictureLayoutRegressionTests {
         }
         RtfDocument invalid = CreatePicture();
         Assert.IsType<RtfImage>(invalid.Blocks[0]).CropLeftTwips = 2000;
-        Assert.Contains(invalid.ToHtmlResult(RtfToHtmlOptions.CreateRoundTripProfile()).RtfReport.Diagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
+        Assert.Contains(invalid.ToHtmlResult(RtfToHtmlOptions.CreateRoundTripProfile()).RtfReport.NativeDiagnostics, item => item.Code == "RtfHtmlImageLayoutInvalid" && item.Action == RtfConversionAction.Blocked);
         Assert.Contains(invalid.ConvertToPdfWithEvidence().Warnings, item => item.Code == "ImageLayoutInvalid");
-        Assert.Contains(invalid.ToWordDocumentResult().Report.Diagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
+        Assert.Contains(invalid.ToWordDocumentResult().Report.NativeDiagnostics, item => item.Code == "RtfWordImagesOmitted" && item.Action == RtfConversionAction.Omitted);
     }
 }

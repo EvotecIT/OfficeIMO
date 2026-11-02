@@ -97,7 +97,9 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
         Require(document.Validate().IsValid, id + " failed OfficeIMO validation");
         using var savedStream = new MemoryStream();
         OdfSaveResult saved = document.Save(savedStream);
-        byte[] savedBytes = saved.RequireNoLoss();
+        var savedBytesResult = saved;
+        savedBytesResult.ThrowIfLoss();
+        byte[] savedBytes = savedBytesResult.Value;
         using var reopenedStream = new MemoryStream(savedBytes, writable: false);
         OdfDocument reopened = OdfDocument.Load(reopenedStream, loadOptions);
         Require(reopened.Validate().IsValid, id + " failed OfficeIMO save/reopen validation");
@@ -113,7 +115,7 @@ static async Task<object[]> VerifyOdfAsync(JsonElement manifest, HttpClient clie
             semanticTextSha256 = semanticHash,
             savedBytes = savedBytes.Length,
             savedWithoutLoss = !saved.HasLoss,
-            productPaths = new[] { "OdfDocument.Load(bounded)", "Validate", "Save(RequireNoLoss)", "Load(saved)" }
+            productPaths = new[] { "OdfDocument.Load(bounded)", "Validate", "Save(ThrowIfLoss)", "Load(saved)" }
         });
     }
     return output.ToArray();

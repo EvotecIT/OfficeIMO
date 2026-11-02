@@ -93,7 +93,7 @@ public sealed class HtmlDeclarationPreservationTests {
                 requested.Add(request.Uri.AbsoluteUri);
                 return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(png, "image/png"));
             },
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss,
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss,
             Margins = HtmlRenderMargins.All(0D)
         };
 

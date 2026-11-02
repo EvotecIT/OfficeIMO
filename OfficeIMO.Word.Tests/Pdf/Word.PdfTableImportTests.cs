@@ -44,7 +44,7 @@ public partial class Word {
         Assert.Contains(result.Report.Warnings, warning =>
             warning.Code == "pdf-editable-layout-reconstructed" &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -96,7 +96,7 @@ public partial class Word {
         }
         Assert.True(result.Report.HasLoss);
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "pdf-table-truncated");
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
 
         using (WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(package).ToList());

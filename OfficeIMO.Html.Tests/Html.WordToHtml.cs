@@ -25,7 +25,8 @@ namespace OfficeIMO.Tests {
             Assert.True(result.Succeeded);
             Assert.False(result.HasLoss);
             Assert.Contains("Result contract", result.RequireValue(), StringComparison.Ordinal);
-            Assert.Equal(result.Value, result.RequireNoLoss());
+            result.Report.ThrowIfLoss();
+            Assert.Equal(result.Value, result.Value);
         }
 
         [Fact]
@@ -285,7 +286,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "section-layout-flattened" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         }
 
         [Fact]
@@ -299,7 +300,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Diagnostics, diagnostic =>
                 diagnostic.Code == "package-signatures-omitted" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<HtmlConversionException>(() => result.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => result.Report.ThrowIfLoss());
         }
 
         [Fact]

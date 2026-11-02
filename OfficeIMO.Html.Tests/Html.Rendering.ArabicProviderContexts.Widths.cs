@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(plain.Text, colored.Text);
         Assert.All(text, item => Assert.Equal("https://example.com/arabic", item.LinkUri));
         Assert.Contains(provider.Requests, request => request.Text.Contains(ArabicContextWord, StringComparison.Ordinal));
-        colored.RequireNoLoss();
+        colored.ThrowIfLoss();
     }
 
     [Theory]
@@ -62,7 +62,7 @@ public sealed partial class HtmlRenderingTests {
         if (firstLine) Assert.All(text, item => Assert.Equal(OfficeColor.Green, item.Color));
         Assert.Equal(plain.Text, colored.Text);
         if (width == "25px") Assert.Equal("Z " + ArabicContextWord, colored.Text.Trim());
-        colored.RequireNoLoss();
+        colored.ThrowIfLoss();
     }
 
     [Theory]
@@ -84,7 +84,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(ArabicContextWord, OfficeArabicTextShaper.ToLogicalText(rendered.Text)
             .Replace(" ", string.Empty).Replace("\u200C", string.Empty)
             .Replace("\r", string.Empty).Replace("\n", string.Empty).Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]

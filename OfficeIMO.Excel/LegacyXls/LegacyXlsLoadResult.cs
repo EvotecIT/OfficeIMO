@@ -5,11 +5,11 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy XLS import report produced from the same parse.
     /// </summary>
-    internal sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
+    internal sealed class LegacyXlsLoadResult : OfficeConversionReport, IDisposable {
         private readonly ExcelDocument? _document;
         private readonly Lazy<LegacyXlsImportReport> _importReport;
         private readonly Lazy<LegacyXlsImportSummary> _summary;
-        private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
+        private readonly Lazy<IReadOnlyList<OfficeDiagnostic>> _fidelityDiagnostics;
 
         internal LegacyXlsLoadResult(ExcelDocument? document, LegacyXlsWorkbook workbook, Exception? projectionException = null) {
             _document = document;
@@ -17,13 +17,13 @@ namespace OfficeIMO.Excel.LegacyXls {
             ProjectionException = projectionException;
             _importReport = new Lazy<LegacyXlsImportReport>(() => Workbook.CreateImportReport());
             _summary = new Lazy<LegacyXlsImportSummary>(() => new LegacyXlsImportSummary(this));
-            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
+            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>
         /// Gets the normal OfficeIMO Excel document projected from supported legacy XLS content.
         /// </summary>
-        public ExcelDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Excel document was projected from the legacy XLS workbook. Inspect AdvancedWorkbook, Diagnostics, CreateImportReport(), and ProjectionException for import details.", ProjectionException);
+        public ExcelDocument Document => _document ?? throw new InvalidOperationException("No OfficeIMO Excel document was projected from the legacy XLS workbook. Inspect AdvancedWorkbook, NativeDiagnostics, CreateImportReport(), and ProjectionException for import details.", ProjectionException);
 
         /// <summary>
         /// Gets whether supported legacy XLS content was projected into a normal OfficeIMO Excel document.
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets diagnostics produced while reading the legacy workbook.
         /// </summary>
-        public IReadOnlyList<LegacyXlsImportDiagnostic> Diagnostics => Workbook.Diagnostics;
+        public IReadOnlyList<LegacyXlsImportDiagnostic> NativeDiagnostics => Workbook.Diagnostics;
 
         /// <summary>
         /// Gets unsupported or preserve-only features discovered during import.
@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// Gets whether the legacy XLS import produced error diagnostics.
         /// </summary>
         public bool HasImportErrors => ProjectionException != null ||
-            Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            NativeDiagnostics.Any(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
 
         /// <summary>
         /// Gets whether the legacy XLS import discovered unsupported or preserve-only features.
@@ -91,17 +91,15 @@ namespace OfficeIMO.Excel.LegacyXls {
         public bool HasConversionLoss => HasLoss;
 
         /// <inheritdoc />
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
 
         /// <inheritdoc />
-        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+        public override bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidDataException(
-                "The legacy XLS import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.");
-        }
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy XLS import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.", this);
 
         /// <summary>
         /// Throws when the legacy XLS import produced error diagnostics.
@@ -113,7 +111,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                     ProjectionException);
             }
             if (HasImportErrors) {
-                throw new InvalidOperationException("Legacy XLS import produced errors: " + FormatDiagnostics(Diagnostics.Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)));
+                throw new InvalidOperationException("Legacy XLS import produced errors: " + FormatDiagnostics(NativeDiagnostics.Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)));
             }
 
             return this;
@@ -168,41 +166,55 @@ namespace OfficeIMO.Excel.LegacyXls {
             return string.Join("; ", unsupported.Concat(preserved).Distinct(StringComparer.Ordinal).Take(8));
         }
 
-        private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
-            var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        private IReadOnlyList<OfficeDiagnostic> CreateFidelityDiagnostics() {
+            var diagnostics = new List<OfficeDiagnostic>();
             if (ProjectionException != null) {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                     "xls-projection-failed",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     ProjectionException.Message,
-                    OfficeConversionLossKind.Failure,
+                    ProjectionException.GetType().FullName,
                     "OfficeIMO.Excel.LegacyXls.Projection",
-                    ProjectionException.GetType().FullName));
+                    OfficeConversionLossKind.Failure));
             }
-            diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+            diagnostics.AddRange(NativeDiagnostics.Select(diagnostic => new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                ClassifyLoss(diagnostic),
+                FormatLocation(diagnostic.SheetName, diagnostic.RecordOffset),
                 "OfficeIMO.Excel.LegacyXls.Reader",
-                FormatLocation(diagnostic.SheetName, diagnostic.RecordOffset))));
-            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
-                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
-                "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
-            diagnostics.AddRange(PreservedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
-                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
-                "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
-            diagnostics.AddRange(UnsupportedSheets.Select(sheet => new OfficeConversionFidelityDiagnostic(
-                "xls-unsupported-sheet", $"Sheet '{sheet.Name}' is not projected as an editable worksheet.",
-                OfficeConversionLossKind.Omission, "OfficeIMO.Excel.LegacyXls.Reader",
-                FormatLocation(sheet.Name, sheet.StreamOffset))));
+                ClassifyLoss(diagnostic))));
+            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new global::OfficeIMO.OfficeDiagnostic(
+                feature.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                feature.Description,
+                FormatLocation(feature.SheetName, feature.RecordOffset),
+                "OfficeIMO.Excel.LegacyXls.Reader",
+                OfficeConversionLossKind.Omission)));
+            diagnostics.AddRange(PreservedFeatures.Select(feature => new global::OfficeIMO.OfficeDiagnostic(
+                feature.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                feature.Description,
+                FormatLocation(feature.SheetName, feature.RecordOffset),
+                "OfficeIMO.Excel.LegacyXls.Reader",
+                OfficeConversionLossKind.Omission)));
+            diagnostics.AddRange(UnsupportedSheets.Select(sheet => new global::OfficeIMO.OfficeDiagnostic(
+                "xls-unsupported-sheet",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
+                $"Sheet '{sheet.Name}' is not projected as an editable worksheet.",
+                FormatLocation(sheet.Name, sheet.StreamOffset),
+                "OfficeIMO.Excel.LegacyXls.Reader",
+                OfficeConversionLossKind.Omission)));
             diagnostics.AddRange(CompoundFeatures
                 .Where(feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
                     || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject)
-                .Select(feature => new OfficeConversionFidelityDiagnostic(
+                .Select(feature => new global::OfficeIMO.OfficeDiagnostic(
                     "XLS-COMPOUND-" + feature.Kind.ToString().ToUpperInvariant(),
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     $"The {feature.Kind} compound feature is preserved but not projected to XLSX.",
-                    OfficeConversionLossKind.Omission,
+                    feature.Entries.FirstOrDefault(),
                     "OfficeIMO.Excel.LegacyXls.Reader",
-                    feature.Entries.FirstOrDefault())));
+                    OfficeConversionLossKind.Omission)));
             return Array.AsReadOnly(diagnostics.ToArray());
         }
 

@@ -47,7 +47,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.NotEqual(regularFace.Program.Fingerprint, boldFace.Program.Fingerprint);
             Assert.NotEqual(regularFace.Program.Fingerprint, italicFace.Program.Fingerprint);
             Assert.NotEqual(boldFace.Program.Fingerprint, italicFace.Program.Fingerprint);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
 
             OfficeFontFace Resolve(HtmlRenderText run) {
                 Assert.True(rendered.Fonts.TryResolveFaceForText(run.Text, run.Font.FamilyName,

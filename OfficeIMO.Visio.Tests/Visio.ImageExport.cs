@@ -847,7 +847,7 @@ public class VisioImageExport {
         shape.TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Definitely Missing" };
         var options = new VisioImageExportOptions {
             Supersampling = 1,
-            Policy = new OfficeImageExportPolicy { RequireNoLoss = true }
+            Policy = new OfficeImageExportPolicy { FailOnLoss = true }
         };
 
         OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(

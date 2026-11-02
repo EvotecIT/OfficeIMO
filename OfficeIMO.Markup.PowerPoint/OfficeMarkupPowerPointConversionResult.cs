@@ -3,19 +3,20 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.Markup.PowerPoint;
 
 /// <summary>Immutable markup diagnostics and native PowerPoint preflight evidence.</summary>
-public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionReport {
+public sealed class OfficeMarkupPowerPointConversionReport : OfficeConversionReport {
     internal OfficeMarkupPowerPointConversionReport(
         IEnumerable<OfficeMarkupDiagnostic> diagnostics,
         PowerPointDeckPreflightReport preflightReport) {
         Markup = new OfficeMarkupConversionReport(diagnostics);
         Preflight = preflightReport ?? throw new ArgumentNullException(nameof(preflightReport));
-        FidelityDiagnostics = Array.AsReadOnly(Markup.FidelityDiagnostics
-            .Concat(Preflight.Findings.Select(static finding => new OfficeConversionFidelityDiagnostic(
+        FidelityDiagnostics = Array.AsReadOnly(Markup.Diagnostics
+            .Concat(Preflight.Findings.Select(static finding => new global::OfficeIMO.OfficeDiagnostic(
                 finding.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 finding.Message,
-                GetPreflightLossKind(finding.Severity),
+                GetPreflightLocation(finding),
                 "OfficeIMO.Markup.PowerPoint.Preflight",
-                GetPreflightLocation(finding))))
+                GetPreflightLossKind(finding.Severity))))
             .ToArray());
     }
 
@@ -26,26 +27,22 @@ public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionRe
     public PowerPointDeckPreflightReport Preflight { get; }
 
     /// <summary>Markup mapping diagnostics in emission order.</summary>
-    public IReadOnlyList<OfficeMarkupDiagnostic> Diagnostics => Markup.Diagnostics;
+    public IReadOnlyList<OfficeMarkupDiagnostic> NativeDiagnostics => Markup.NativeDiagnostics;
 
     /// <summary>Category-preserving markup and native PowerPoint preflight diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Whether markup conversion completed without an error diagnostic.</summary>
     public bool Succeeded => Markup.Succeeded;
 
     /// <summary>Whether markup conversion or native PowerPoint preflight reported possible content loss.</summary>
-    public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when markup conversion failed.</summary>
     public void RequireSuccess() => Markup.RequireSuccess();
 
-    /// <summary>Throws when markup conversion or native PowerPoint preflight reported possible content loss.</summary>
-    public void RequireNoLoss() {
-        Markup.RequireNoLoss();
-        Preflight.ThrowIfFindings(PowerPointDeckPreflightSeverity.Warning);
-    }
 
     private static OfficeConversionLossKind GetPreflightLossKind(PowerPointDeckPreflightSeverity severity) => severity switch {
         PowerPointDeckPreflightSeverity.Error => OfficeConversionLossKind.Failure,
@@ -62,7 +59,10 @@ public sealed class OfficeMarkupPowerPointConversionReport : IOfficeConversionRe
 }
 
 /// <summary>An editable PowerPoint presentation with mapping diagnostics and native preflight evidence.</summary>
-public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionResult<PowerPointDocument, OfficeMarkupPowerPointConversionReport> {
+public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionResult<PowerPointDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new OfficeMarkupPowerPointConversionReport Report => (OfficeMarkupPowerPointConversionReport)base.Report;
+
     internal OfficeMarkupPowerPointConversionResult(
         PowerPointDocument value,
         IEnumerable<OfficeMarkupDiagnostic> diagnostics,
@@ -70,10 +70,10 @@ public sealed class OfficeMarkupPowerPointConversionResult : OfficeConversionRes
         : base(value, new OfficeMarkupPowerPointConversionReport(diagnostics, preflightReport)) { }
 
     /// <summary>Whether markup conversion completed without an error diagnostic.</summary>
-    public override bool Succeeded => Report.Succeeded;
+    public bool Succeeded => Report.Succeeded;
 
     /// <summary>Returns the presentation or throws the markup-specific exception when conversion failed.</summary>
-    public override PowerPointDocument RequireValue() {
+    public PowerPointDocument RequireValue() {
         Report.RequireSuccess();
         return Value;
     }

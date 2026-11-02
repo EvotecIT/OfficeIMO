@@ -19,7 +19,7 @@ public static class ChmEpubConverterExtensions {
         conversion.Title = conversion.Title ?? document.Title ?? "Compiled help";
         conversion.ResourceResolver = document.CreateResourceResolver();
         EpubManuscriptResult result = await EpubManuscript.ImportHtmlAsync(projected.Value, conversion, cancellationToken).ConfigureAwait(false);
-        var diagnostics = projected.Report.FidelityDiagnostics.ToList();
+        var diagnostics = projected.Report.Diagnostics.ToList();
         if (result.Succeeded) diagnostics.AddRange(RestoreNavigation(document, projected.Value, result.Publication, cancellationToken));
         return result.WithSourceReports(new ChmConversionReport(projected.Report.TopicPaths, diagnostics));
     }
@@ -38,11 +38,11 @@ public static class ChmEpubConverterExtensions {
         var written = imported.RequireValue().Write(writing, cancellationToken);
         ChmDocument.EnforceOutput(written.Value.LongLength, configured);
         return new ChmConversionResult<byte[]>(written.Value, new ChmConversionReport(document.SelectTopics(configured).Select(topic => topic.Path),
-            imported.Report.FidelityDiagnostics.Concat(written.Report.FidelityDiagnostics)));
+            imported.Report.Diagnostics.Concat(written.Report.Diagnostics)));
     }
 
-    private static IReadOnlyList<OfficeConversionFidelityDiagnostic> RestoreNavigation(ChmDocument source, HtmlConversionDocument projection, EpubPublication publication, CancellationToken token) {
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+    private static IReadOnlyList<OfficeDiagnostic> RestoreNavigation(ChmDocument source, HtmlConversionDocument projection, EpubPublication publication, CancellationToken token) {
+        var diagnostics = new List<OfficeDiagnostic>();
         var targets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var anchorTargets = new Dictionary<string, string>(StringComparer.Ordinal);
         // Only direct book sections are generated topic boundaries. Retained authored
@@ -72,11 +72,11 @@ public static class ChmEpubConverterExtensions {
                 string anchor = fragment < 0 ? sectionAnchor : sectionAnchor + "-" + Uri.UnescapeDataString(link.Target.Substring(fragment + 1));
                 if (!anchorTargets.TryGetValue(anchor, out string? resolved)) {
                     resolved = topicTarget;
-                    diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_EPUB_NAVIGATION_FRAGMENT", "A contents fragment is absent from the projected topic; navigation uses the topic heading.", OfficeConversionLossKind.Approximation, "OfficeIMO.Chm.Epub", link.Target));
+                    diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_EPUB_NAVIGATION_FRAGMENT", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "A contents fragment is absent from the projected topic; navigation uses the topic heading.", link.Target, "OfficeIMO.Chm.Epub", OfficeConversionLossKind.Approximation));
                 }
                 target = resolved; break;
             }
-            if (item.Links.Count > 1) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_EPUB_NAVIGATION_TARGETS", "EPUB contents use one destination for a help contents item with several targets.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm.Epub", item.Name));
+            if (item.Links.Count > 1) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_EPUB_NAVIGATION_TARGETS", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "EPUB contents use one destination for a help contents item with several targets.", item.Name, "OfficeIMO.Chm.Epub", OfficeConversionLossKind.Omission));
             target = target ?? children.FirstOrDefault()?.Target;
             return target == null ? null : new EpubNavigationEntry(item.Name, target, children);
         }

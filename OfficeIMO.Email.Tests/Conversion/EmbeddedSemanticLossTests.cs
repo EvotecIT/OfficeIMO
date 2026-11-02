@@ -54,7 +54,7 @@ public sealed class EmbeddedSemanticLossTests {
         Assert.True(writer.AnalyzeConversion(document, EmailFileFormat.Eml).CanWrite);
         Assert.False(writer.AnalyzeConversion(document, EmailFileFormat.Eml).HasPotentialDataLoss);
         byte[] bytes = writer.ToBytes(document, EmailFileFormat.Eml, out EmailWriteResult result);
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         Assert.Equal(source, bytes);
     }
 

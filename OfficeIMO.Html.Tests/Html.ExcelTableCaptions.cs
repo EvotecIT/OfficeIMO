@@ -45,12 +45,12 @@ public sealed class HtmlExcelTableCaptionTests {
         Assert.Equal("Fluoride", table.CellAt(2, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableCaption, table.CellAt(4, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && diagnostic.Detail?.Contains("originalLength=" + RegulatoryTableCaption.Length,
                 StringComparison.Ordinal) == true);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted
             && diagnostic.Message.Contains("caption", StringComparison.OrdinalIgnoreCase));
     }

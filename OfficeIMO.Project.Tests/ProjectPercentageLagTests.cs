@@ -51,7 +51,7 @@ public sealed class ProjectPercentageLagTests {
             using var copy = ProjectDocument.Load(output); var copied = Assert.Single(copy.Dependencies);
             Assert.Equal(link.LagPercentIsElapsed, copied.LagPercentIsElapsed); Assert.Equal(link.LagPercentIsEstimated, copied.LagPercentIsEstimated);
             copied.LagPercent = -25;
-            options.LossPolicy = OfficeConversionLossPolicy.Allow; // Native dependency edits retain opaque presentation references.
+            options.AllowLoss = true; // Native dependency edits retain opaque presentation references.
             using var changed = new MemoryStream(); copy.Save(changed, options); changed.Position = 0;
             using var reopened = ProjectDocument.Load(changed); var repeated = Assert.Single(reopened.Dependencies);
             Assert.Equal(-25m, repeated.LagPercent); Assert.Equal(link.LagPercentIsElapsed, repeated.LagPercentIsElapsed);

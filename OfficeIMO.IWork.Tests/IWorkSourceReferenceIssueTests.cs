@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(kind == IWorkDocumentKind.Pages ? "1" : kind == IWorkDocumentKind.Numbers ? "2" : "6", issue.FieldPath);
         });
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier is 999 or 99);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
     }
 

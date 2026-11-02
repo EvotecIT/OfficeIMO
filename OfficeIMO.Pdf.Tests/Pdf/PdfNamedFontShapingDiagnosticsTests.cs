@@ -33,7 +33,7 @@ public sealed class PdfNamedFontShapingDiagnosticsTests {
             Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
             Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
         } else {
-            report.RequireNoLoss();
+            report.ThrowIfLoss();
         }
     }
 

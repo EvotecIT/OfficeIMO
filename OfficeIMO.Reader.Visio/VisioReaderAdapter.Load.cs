@@ -28,13 +28,13 @@ internal static partial class VisioReaderAdapter {
             if (options?.Limits.MaxInputBytes is long budget) binaryOptions.Limits.MaxInputBytes = (int)Math.Min(binaryOptions.Limits.MaxInputBytes, budget);
             VisioPackageType family = extension == ".vss" ? VisioPackageType.Stencil : extension == ".vst" ? VisioPackageType.Template : VisioPackageType.Drawing;
             var result = VisioDocument.LoadLegacyBinary(stream, family, binaryOptions, cancellationToken);
-            source.ImportDiagnostics = result.Report.FidelityDiagnostics;
+            source.ImportDiagnostics = result.Report.Diagnostics;
             return result.Value;
         }
         if (extension != ".vdx" && extension != ".vsx" && extension != ".vtx") return VisioDocument.Load(stream, options);
         VisioPackageType type = extension == ".vsx" ? VisioPackageType.Stencil : extension == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing;
         var imported = VisioDocument.LoadLegacyXml(stream, type, options, cancellationToken);
-        source.ImportDiagnostics = imported.Report.FidelityDiagnostics;
+        source.ImportDiagnostics = imported.Report.Diagnostics;
         return imported.Value;
     }
 }

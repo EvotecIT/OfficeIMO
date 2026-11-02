@@ -24,10 +24,10 @@ public sealed class EmlxMetadataPreservationTests {
             conversionLossPolicy: EmailConversionLossPolicy.Warn)).Write(original, portable);
         Assert.Equal(EmailConversionLossDisposition.Accepted, portableResult.LossDisposition);
         Assert.Contains(portableResult.Diagnostics, item => item.Code == "EMAIL_EMLX_METADATA_NOT_REPRESENTED");
-        Assert.Throws<InvalidDataException>(() => portableResult.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => portableResult.ThrowIfLoss());
         using var output = new MemoryStream();
         EmailWriteResult result = new EmailStoreEmlxWriter().Write(original, output);
-        result.RequireNoLoss();
+        result.ThrowIfLoss();
         EmailDocument rewritten = new EmailStoreReader().Read(output, "rewritten.emlx").Store.Folders.Single().Items.Single().Document;
 
         IReadOnlyDictionary<string, object?> values = Metadata(rewritten);
@@ -59,7 +59,7 @@ public sealed class EmlxMetadataPreservationTests {
         exact.Remove("flags");
         document.Properties["Emlx:Metadata"] = exact;
         using var output = new MemoryStream();
-        new EmailStoreEmlxWriter().Write(document, output).RequireNoLoss();
+        new EmailStoreEmlxWriter().Write(document, output).ThrowIfLoss();
         EmailDocument rewritten = new EmailStoreReader().Read(output, "edited.emlx")
             .Store.Folders.Single().Items.Single().Document;
         Assert.Equal("new", Metadata(rewritten)["vendor"]);
@@ -81,7 +81,7 @@ public sealed class EmlxMetadataPreservationTests {
         EmailWriteResult result = writer.Write(document, output);
 
         Assert.Contains(result.Diagnostics, item => item.Code == "EMAIL_EMLX_METADATA_OPAQUE");
-        Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         if (policy == EmailConversionLossPolicy.Block) {
             Assert.Equal(EmailConversionLossDisposition.Blocked, result.LossDisposition);
             Assert.Equal(new byte[] { 123 }, output.ToArray());
@@ -103,7 +103,7 @@ public sealed class EmlxMetadataPreservationTests {
         EmailDocument original = Read(binary, out EmailStoreReadResult result);
         Assert.Empty(result.Diagnostics);
         using var output = new MemoryStream();
-        new EmailStoreEmlxWriter().Write(original, output).RequireNoLoss();
+        new EmailStoreEmlxWriter().Write(original, output).ThrowIfLoss();
         EmailDocument rewritten = new EmailStoreReader().Read(output, "integers.emlx").Store.Folders.Single().Items.Single().Document;
         foreach (long value in new[] { 128L, 255L, 32768L, 65535L, 2147483648L, 4294967295L, -1L, -2L }) {
             string key = value.ToString(System.Globalization.CultureInfo.InvariantCulture);

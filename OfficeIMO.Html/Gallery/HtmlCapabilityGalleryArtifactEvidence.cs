@@ -1,7 +1,7 @@
 namespace OfficeIMO.Html;
 
 /// <summary>Observed geometry, diagnostics, and executed checks for one hash-bound gallery artifact.</summary>
-public sealed class HtmlCapabilityGalleryArtifactEvidence : IOfficeConversionReport {
+public sealed class HtmlCapabilityGalleryArtifactEvidence : OfficeConversionReport {
     /// <summary>Creates an immutable snapshot of observations from the artifact's producing operation.</summary>
     public HtmlCapabilityGalleryArtifactEvidence(
         int pageCount,
@@ -20,9 +20,9 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence : IOfficeConversionRep
         Width = width;
         Height = height;
         DimensionUnit = dimensionUnit ?? throw new ArgumentNullException(nameof(dimensionUnit));
-        Diagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToList().AsReadOnly();
+        NativeDiagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToList().AsReadOnly();
         Checks = (checks ?? throw new ArgumentNullException(nameof(checks))).ToList().AsReadOnly();
-        FidelityDiagnostics = Diagnostics.Select(diagnostic =>
+        FidelityDiagnostics = NativeDiagnostics.Select(diagnostic =>
             HtmlFidelityProjection.From(diagnostic)).ToList().AsReadOnly();
     }
 
@@ -36,19 +36,17 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence : IOfficeConversionRep
     public double? Height { get; }
     /// <summary>Unit used for width and height, such as px or pt.</summary>
     public string DimensionUnit { get; }
-    /// <summary>Diagnostics collected by this artifact's layout and encoding operation.</summary>
-    public IReadOnlyList<HtmlDiagnostic> Diagnostics { get; }
+    /// <summary>NativeDiagnostics collected by this artifact's layout and encoding operation.</summary>
+    public IReadOnlyList<HtmlDiagnostic> NativeDiagnostics { get; }
     /// <summary>Checks that actually ran; caller-declared expectations are recorded separately.</summary>
     public IReadOnlyList<HtmlCapabilityGalleryCheck> Checks { get; }
     /// <summary>Whether this artifact's producing operation reported fidelity loss.</summary>
-    public bool HasLoss => Diagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => NativeDiagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException(
-            "The HTML capability artifact reported fidelity loss. Inspect FidelityDiagnostics for details.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The HTML capability artifact reported fidelity loss. Inspect FidelityDiagnostics for details.", this);
 }
 
 /// <summary>Result of an executed check, rather than an unexecuted capability expectation.</summary>

@@ -108,7 +108,7 @@ public sealed class SynthesizedTaskPayloadTests {
         EmailDocument original = Request();
         original.TaskCommunication!.EmbeddedTask!.Attachments.Add(new EmailAttachment { FileName = "old.bin", Content = new byte[4096], Length = 4096 });
         byte[] artifact = new EmailDocumentWriter().ToBytes(original, format, out EmailWriteResult initial);
-        initial.RequireNoLoss();
+        initial.ThrowIfLoss();
         EmailDocument root = new EmailDocumentReader().Read(artifact).Document;
         OutlookTaskCommunication communication = root.TaskCommunication!;
         EmailDocument discarded = communication.EmbeddedTask!;

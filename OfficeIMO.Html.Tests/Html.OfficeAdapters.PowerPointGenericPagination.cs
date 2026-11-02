@@ -26,7 +26,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using var document = result.RequireValue();
         Assert.True(result.Tables > 1);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Detail?.Contains("projection=paginatedText") == true);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Detail?.Contains("projection=paginatedText") == true);
         using var stream = new MemoryStream();
         document.Save(stream);
         stream.Position = 0;
@@ -165,7 +165,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         Assert.True(presentation.Slides.Count > 1);
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
             box => box.Text.Contains("Measurement 25", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("block=List; projection=paginatedText", StringComparison.Ordinal) == true);
         Assert.DoesNotContain(presentation.InspectPreflight(new PowerPointDeckPreflightOptions {
@@ -240,10 +240,10 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
             box.Text.Contains("Gallery entry with a description", StringComparison.Ordinal));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "After gallery");
-        Assert.Contains(result.Report.Diagnostics, item =>
+        Assert.Contains(result.Report.NativeDiagnostics, item =>
             item.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && item.Detail?.Contains("projection=paginatedText", StringComparison.Ordinal) == true);
-        Assert.Contains(result.Report.Diagnostics, item =>
+        Assert.Contains(result.Report.NativeDiagnostics, item =>
             item.Code == HtmlConversionDiagnosticCodes.ContentOmitted
             && item.Detail?.Contains("hyperlinkRuns=", StringComparison.Ordinal) == true);
     }

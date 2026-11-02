@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("14", issue.FieldPath);
         Assert.Equal(1, issue.DeclaredValueCount);
         Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_VISIBILITY_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_VISIBILITY_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

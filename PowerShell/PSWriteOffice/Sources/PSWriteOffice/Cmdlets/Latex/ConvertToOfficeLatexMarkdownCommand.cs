@@ -48,7 +48,7 @@ public sealed class ConvertToOfficeLatexMarkdownCommand : PSCmdlet
             document = parsed.Document;
         }
         var result = document.ToMarkdownDocumentResult(Options);
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
+        if (FailOnLoss.IsPresent) result.ThrowIfLoss();
         if (!string.IsNullOrWhiteSpace(OutputPath))
         {
             var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);

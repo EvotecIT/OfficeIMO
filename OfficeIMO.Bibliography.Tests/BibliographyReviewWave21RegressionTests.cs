@@ -70,7 +70,7 @@ public sealed class BibliographyReviewWave21RegressionTests {
         item.Notes.Add(note);
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal(note, Assert.Single(reopened.Notes));
@@ -122,7 +122,7 @@ public sealed class BibliographyReviewWave21RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
         Assert.Equal(BibliographyItemType.Chapter, Assert.Single(document.Items).Type);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
         Assert.Equal(BibliographyItemType.Chapter, reopened.Type);
         Assert.Contains(reopened.NativeFields, field => field.Name == "PT" && field.Value == "Book Chapter");
@@ -136,7 +136,7 @@ public sealed class BibliographyReviewWave21RegressionTests {
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Year = 2020 });
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
 
         Assert.Equal(new[] { BibliographyDateRole.Accessed, BibliographyDateRole.Issued }, reopened.Dates.Select(date => date.Role));

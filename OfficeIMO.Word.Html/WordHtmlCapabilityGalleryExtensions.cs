@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.Html {
                 options.Title,
                 "Word HTML",
                 "Validates HTML import, DOCX package validity, round-trip HTML export, form controls, tables, resources, and diagnostics.");
-            var diagnostics = new List<HtmlDiagnostic>(importResult.Report.Diagnostics);
+            var diagnostics = new List<HtmlDiagnostic>(importResult.Report.NativeDiagnostics);
             AppendOpenXmlValidationDiagnostics(diagnostics, packageStream);
             var result = new HtmlCapabilityGalleryResult(
                 scenario,

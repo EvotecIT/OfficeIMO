@@ -104,7 +104,7 @@ public sealed class PstWriterTests {
                 report = writer.Complete();
             }
 
-            Assert.Contains(report.Diagnostics, diagnostic =>
+            Assert.Contains(report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_PST_WRITE_NAMED_PROPERTY_PLACEHOLDER" &&
                 diagnostic.Severity == EmailStoreDiagnosticSeverity.Warning);
             using EmailStoreSession session = EmailStoreSession.Open(path);
@@ -395,7 +395,7 @@ public sealed class PstWriterTests {
             Assert.Throws<InvalidOperationException>(() => source.ExportToPst(destinationPath,
                 new EmailStorePstConversionOptions(
                     overwriteExisting: true,
-                    failOnDataLoss: true,
+                    failOnLoss: true,
                     verificationOptions: new EmailSemanticComparisonOptions(
                         digestKey: key, maxAttachmentBytes: 1),
                     verificationManifestPath: manifestPath)));

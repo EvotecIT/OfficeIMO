@@ -32,7 +32,7 @@ namespace OfficeIMO.Access.Verification {
                     ["Identifier"] = Guid.Parse("01234567-89ab-cdef-0123-456789abcdef"), ["Ratio"] = -1.25d, ["SingleValue"] = 1.5f, ["Small"] = (short)-32768, ["Octet"] = (byte)255
                 });
                 string path = Path.Combine(root, "created" + extension);
-                document.AssessSave(path).RequireNoLoss(); document.Save(path);
+                document.AssessSave(path).ThrowIfLoss(); document.Save(path);
                 using AccessDocument decoded = AccessDocument.Load(path);
                 if (decoded.Tables["Contacts"].RowCount != 5000 || decoded.Relationships.Count != 1) throw new InvalidDataException("Native schema/row count verification failed.");
                 using AccessDataReader reader = decoded.Tables["Contacts"].OpenDataReader(); if (!reader.Read() || (int)reader["Id"] != 1 || (decimal)reader["Precise"] != 1234567890123456789.123456789m || (string)reader["Notes"] != notes || !((byte[])reader["Payload"]).SequenceEqual(payload)) throw new InvalidDataException("Native scalar/long-value verification failed.");

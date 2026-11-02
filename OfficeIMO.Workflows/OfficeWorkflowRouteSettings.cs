@@ -33,7 +33,7 @@ public sealed class OfficeWorkflowRouteSettings : IOfficeConversionSettings {
 
     internal OfficeWorkflowRenderingOptions Capture(bool failOnLoss) => new OfficeWorkflowRenderingOptions {
         Rtf = Rtf, Draw = Draw, Visio = Visio, PublisherRead = PublisherRead, PublisherPdf = PublisherPdf,
-        Xps = Xps, DjVu = DjVu, Chm = Chm, Html = ChmHtml, RequireNoLoss = failOnLoss
+        Xps = Xps, DjVu = DjVu, Chm = Chm, Html = ChmHtml, FailOnLoss = failOnLoss
     }.Clone();
 
     /// <inheritdoc />

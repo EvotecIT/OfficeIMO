@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Blue, pixels.GetPixel((int)x + 3, (int)y + 3));
         Assert.Equal(OfficeColor.White, pixels.GetPixel((int)x - 1, (int)y + 3));
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -49,10 +49,10 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         AssertSideCornerMarginRectangle(SideCornerMarginFill(page, OfficeColor.Blue), x, 200D, width, 20D);
         if (clipped) {
-            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Detail == "margin-page-bounds"
+            Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Detail == "margin-page-bounds"
                 && diagnostic.Source == "@page @" + position && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
-        } else rendered.RequireNoLoss();
+            Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
+        } else rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
             + "{content:'';width:40px;height:20px;background:blue;" + margins + "}");
         AssertSideCornerMarginRectangle(SideCornerMarginFill(Assert.Single(rendered.Pages), OfficeColor.Blue),
             x, 200D, 40D, 20D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderSideCornerMargins("@" + position + "{content:'A';background:blue}");
         AssertSideCornerMarginRectangle(SideCornerMarginFill(Assert.Single(rendered.Pages), OfficeColor.Blue),
             x, 60D, width, 300D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(60D, top.Y, 6);
         Assert.Equal(360D, bottom.Y + bottom.Height, 6);
         Assert.Equal("A\nB\nC", PageMarginTypographyText(page, side + "-top").Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -123,7 +123,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(80D, top.Height, 6);
         Assert.Equal(140D, bottom.Y, 6);
         Assert.Equal(220D, bottom.Height, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -144,7 +144,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(40D, middle.Height, 6);
         Assert.Equal(340D, bottom.Y, 6);
         Assert.Equal(20D, bottom.Height, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape fill = SideCornerMarginFill(Assert.Single(rendered.Pages), OfficeColor.Blue);
         Assert.Equal(60D, fill.Y, 6);
         Assert.Equal(height, fill.Height, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -176,7 +176,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderSideCornerMargins("@" + position
             + "{content:'A';width:40px;height:40px;background:blue}");
         Assert.Equal(textY, PageMarginTypographyText(Assert.Single(rendered.Pages), position).LayoutY, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -189,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderSideCornerMargins("@" + position
             + "{content:'A';width:40px;height:40px;background:blue;vertical-align:" + alignment + "}");
         Assert.Equal(textY, PageMarginTypographyText(Assert.Single(rendered.Pages), position).LayoutY, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -206,7 +206,7 @@ public sealed partial class HtmlRenderingTests {
         // Initial/unset select baseline in this independent cell, without peer displacement.
         // Revert restores the positional middle alignment.
         Assert.Equal(textY, PageMarginTypographyText(page, "left-middle").LayoutY, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -223,7 +223,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText text = PageMarginTypographyText(Assert.Single(rendered.Pages), position);
         Assert.Equal(expected, text.Alignment);
         Assert.Equal("A", text.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -236,7 +236,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderSideCornerMargins("@" + position + "{content:'';background:blue}");
         AssertSideCornerMarginRectangle(SideCornerMarginFill(Assert.Single(rendered.Pages), OfficeColor.Blue),
             x, y, width, height);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -250,7 +250,7 @@ public sealed partial class HtmlRenderingTests {
             + "{content:'';width:40px;height:20px;margin:" + margin + ";background:blue}");
         AssertSideCornerMarginRectangle(SideCornerMarginFill(Assert.Single(rendered.Pages), OfficeColor.Blue),
             x, y, 40D, 20D);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -268,7 +268,7 @@ public sealed partial class HtmlRenderingTests {
             .Where(shape => shape.Shape.FillColor == OfficeColor.Blue).ToArray();
         Assert.Equal(painted ? 1 : 0, fills.Length);
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -283,7 +283,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("2/2", PageMarginTypographyText(rendered.Pages[1], position).Text);
         Assert.Equal("FIRSTSECOND", PageMarginTypographyCompact(rendered.Text));
         Assert.All(rendered.Pages, page => Assert.Equal(40D, SideCornerMarginFill(page, OfficeColor.Blue).Width, 6));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -302,7 +302,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape fill = SideCornerMarginFill(page, OfficeColor.Blue);
         OfficeRasterImage pixels = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
         Assert.Equal(allowed ? OfficeColor.Red : OfficeColor.Blue, pixels.GetPixel((int)fill.X + 2, (int)fill.Y + 2));
-        if (allowed) rendered.RequireNoLoss();
+        if (allowed) rendered.ThrowIfLoss();
         else Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "image-resource-rejected-by-policy");
     }
 
@@ -316,9 +316,9 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderSideCornerMargins("@" + position
             + "{content:'';width:40px;height:20px;background-image:url(data:image/png;base64," + data
             + ");background-size:1px 1px}", options: options);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded
             && diagnostic.Source == "@page @" + position && diagnostic.LossKind != OfficeConversionLossKind.None);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -334,7 +334,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(),
             text => text.Source == "@page @left-top");
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -347,7 +347,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(60D, SideCornerMarginFill(page, OfficeColor.Blue).Height, 6);
         Assert.Equal(120D, SideCornerMarginFill(page, OfficeColor.Green).Height, 6);
         Assert.DoesNotContain(EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>(), text => text.Source == "@page @left-top");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -363,7 +363,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage pixels = OfficeDrawingRasterRenderer.Render(Assert.Single(rendered.Pages).CreateDrawing());
         Assert.Equal(OfficeColor.Red, pixels.GetPixel(x, y));
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlRenderDocument RenderSideCornerMargins(string boxes, string body = "<p>BODY</p>",

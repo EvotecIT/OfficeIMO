@@ -21,7 +21,7 @@ public sealed partial class OfficeWorkflowRunner {
         try {
             conversion = document.ToPdfDocumentResult(options, token);
             var (bytes, evidence) = SerializePdfConversion(conversion, request.Limits.MaximumOutputBytes, token, facts);
-            if (settings.RequireNoLoss) evidence.RequireNoLoss();
+            if (settings.FailOnLoss) evidence.ThrowIfLoss();
             return (bytes, evidence);
         } catch (Exception exception) when (conversion != null && exception is not WorkflowConversionFailureException and not OperationCanceledException
             and not OutOfMemoryException and not StackOverflowException) {

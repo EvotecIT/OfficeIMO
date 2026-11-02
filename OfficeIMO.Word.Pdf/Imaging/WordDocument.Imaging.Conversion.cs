@@ -82,7 +82,7 @@ public static partial class WordImageExportExtensions {
         var timer = Stopwatch.StartNew();
         WordImageExportOptions resolved = NormalizeImageExportOptions(options);
         OfficeImageExportBatchSaveResult saved = CreateImageExportBatchOperation(document, resolved, resolved.Format).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("Word", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Word", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -94,7 +94,7 @@ public static partial class WordImageExportExtensions {
         WordImageExportOptions resolved = NormalizeImageExportOptions(options);
         OfficeImageExportBatchSaveResult saved = await CreateImageExportBatchOperation(document, resolved, resolved.Format)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("Word", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Word", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 }

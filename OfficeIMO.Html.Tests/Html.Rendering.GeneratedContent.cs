@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(secondArrow.Y - firstArrow.Y, 29D, 31D);
         Assert.InRange(second.Y - first.Y, 29D, 31D);
         Assert.InRange(following.Y - first.Y, 59D, 61D);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Source == "li::after" && diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
     }
 
@@ -189,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.FromRgb(255, 0, 255), raster.GetPixel(20, 20));
         Assert.Equal(OfficeColor.Lime, raster.GetPixel(20, 60));
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
             && (diagnostic.Source == "div#before::before" || diagnostic.Source == "div#after::after"));
     }
@@ -447,7 +447,7 @@ public sealed partial class HtmlRenderingTests {
             .Where(text => text.Source == "p.image::before").Select(text => text.Text).ToArray());
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.quote::after" && text.Text == "\u201c");
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.flex::before" && text.Text == "FlexFallback");
-        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending && diagnostic.Source == "p.flex::before");
+        Assert.Single(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending && diagnostic.Source == "p.flex::before");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedContentUnsupported, out _));
     }

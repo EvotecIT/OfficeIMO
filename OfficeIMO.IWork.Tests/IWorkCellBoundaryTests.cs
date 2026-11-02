@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(IWorkFormulaCacheStatus.Unassessed, status.CacheStatus);
                 Assert.Equal(1, report.FormulaSummary.UnassessedCacheCount);
             } else Assert.Empty(report.FormulaCells);
-            Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_SOURCE_CELLS_UNDECODED"
+            Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_SOURCE_CELLS_UNDECODED"
                 && d.LossKind == OfficeConversionLossKind.Unassessed);
         }
     }

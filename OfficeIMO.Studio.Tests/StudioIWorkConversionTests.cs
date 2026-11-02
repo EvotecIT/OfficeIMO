@@ -44,7 +44,7 @@ public sealed partial class StudioIWorkConversionTests {
                 Assert.False(job.HasOutput);
                 job.AllowPartialEditableReconstruction = true;
                 await queue.RetryFailedCommand.ExecuteAsync(null);
-                Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics,
+                Assert.Contains(job.ConversionEvidence!.Diagnostics,
                     diagnostic => diagnostic.Code == (route == "keynote-pptx"
                         ? "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED" : "IWORK_NUMBERS_CELL_PADDING_OMITTED"));
             }
@@ -137,7 +137,7 @@ public sealed partial class StudioIWorkConversionTests {
                 await queue.RetryFailedCommand.ExecuteAsync(null);
                 Assert.Equal(ConversionJobState.Completed, job.State);
                 Assert.Equal("VisualFallback", job.ConversionEvidence!.Facts["projectionKind"]);
-                Assert.Contains(job.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+                Assert.Contains(job.ConversionEvidence.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
                 Assert.True(view.FindControl<StackPanel>("ConversionEvidencePanel")!.IsEffectivelyVisible);
                 Assert.Equal(job.SourceFingerprint, view.FindControl<TextBox>("SourceFingerprintText")!.Text);
                 Assert.Contains("incomplete", job.ConversionEvidenceSummary, StringComparison.OrdinalIgnoreCase);

@@ -434,7 +434,7 @@ Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
 `Managed` selects the shared dependency-light provider for its
 [horizontal static-font Arabic/Hebrew/Latin profile](../OfficeIMO.Core/README.md#managed-multilingual-shaping),
 including supported mark attachment and required Arabic ligatures. A declined run
-reports approximation loss, so `RequireNoLoss()` rejects its fallback. Supply a
+reports approximation loss, so `ThrowIfLoss()` rejects its fallback. Supply a
 profile containing your embedded font family, fallbacks, language and shaping
 provider when the document requires broader scripts or reproducible font selection.
 
@@ -512,7 +512,7 @@ text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns
 extraction. The writer preserves shaped glyph substitutions and X/Y offsets,
 marks the original text for extraction, and clips paint to the drawing text
 box. Without that font/provider contract it retains searchable stacked text and
-reports `vertical-text-stacked-fallback`; `PdfConversionReport.RequireNoLoss()`
+reports `vertical-text-stacked-fallback`; `PdfConversionReport.ThrowIfLoss()`
 rejects that approximation. The [vertical PDF reference gate](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Vertical/SOURCE.md)
 records the tested CJK scope and independent render/extraction checks.
 

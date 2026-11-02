@@ -128,20 +128,20 @@ public sealed class OutlookRecurrenceIcsConverterTests {
         Assert.False(warning.Report.IsLossless);
         OutlookRecurrenceIcsIssue warningIssue = Assert.Single(warning.Report.Issues,
             issue => issue.Code == "ICAL_RRULE_PART_UNSUPPORTED");
-        IOfficeConversionReport warningReport = warning.Report;
+        OfficeConversionReport warningReport = warning.Report;
         Assert.Equal(OfficeConversionLossKind.Omission, warningIssue.LossKind);
         Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(warningReport.FidelityDiagnostics,
+            Assert.Single(warningReport.Diagnostics,
                 diagnostic => diagnostic.Code == "ICAL_RRULE_PART_UNSUPPORTED").LossKind);
         Assert.True(warningReport.HasLoss);
-        Assert.Throws<InvalidOperationException>(warningReport.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(warningReport.ThrowIfLoss);
         Assert.Null(error.Recurrence);
         Assert.False(error.Report.Succeeded);
         OutlookRecurrenceIcsIssue errorIssue = Assert.Single(error.Report.Issues,
             issue => issue.Code == "ICAL_DAILY_FILTER_UNSUPPORTED");
         Assert.Equal(OfficeConversionLossKind.Failure, errorIssue.LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure,
-            Assert.Single(error.Report.FidelityDiagnostics,
+            Assert.Single(error.Report.Diagnostics,
                 diagnostic => diagnostic.Code == "ICAL_DAILY_FILTER_UNSUPPORTED").LossKind);
     }
 

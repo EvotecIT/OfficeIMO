@@ -83,7 +83,7 @@ public class WordRtfWorkflowTests {
 
         RtfWordWorkflowResult<int> result = read.FindAndReplaceResult("Hello", "Hi");
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.SourcePath == "source");
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "RTF101" && diagnostic.SourcePath == "source");
         Assert.Contains("Hi", PlainText(result.Document), StringComparison.Ordinal);
     }
 

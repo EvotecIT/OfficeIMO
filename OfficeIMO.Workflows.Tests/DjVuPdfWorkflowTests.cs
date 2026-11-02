@@ -27,9 +27,9 @@ public sealed class DjVuPdfWorkflowTests {
             Assert.Equal((23.04D, 30.72D), pdf.Pages[1].GetPageSize());
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("4", evidence.Facts["sourcePages"]);
-            Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
-            foreach (var finding in evidence.FidelityDiagnostics)
-                Assert.Equal(evidence.FidelityDiagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message),
+            Assert.Contains(evidence.Diagnostics, d => d.Code == "djvu.pdf.stored-text-corrupt");
+            foreach (var finding in evidence.Diagnostics)
+                Assert.Equal(evidence.Diagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message),
                     result.Diagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message));
             Assert.Equal(source, File.ReadAllBytes(input));
         } finally { Directory.Delete(root, true); }
@@ -55,7 +55,7 @@ public sealed class DjVuPdfWorkflowTests {
             };
             var result = await new OfficeWorkflowRunner().RunAsync(request);
             Assert.False(result.Succeeded);
-            Assert.Contains(result.ConversionEvidence!.FidelityDiagnostics, d => d.Code == "djvu.render.short-iw44-edge");
+            Assert.Contains(result.ConversionEvidence!.Diagnostics, d => d.Code == "djvu.render.short-iw44-edge");
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             request.ConversionOptions.FailOnLoss = false;
             ((OfficeIMO.Workflows.OfficeWorkflowRouteSettings)(request.ConversionOptions).RegisteredSettings!).DjVu!.MaxPdfBytes = 128;

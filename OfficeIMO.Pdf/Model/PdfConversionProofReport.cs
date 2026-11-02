@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Reusable proof snapshot for a source-document to PDF conversion result.
 /// </summary>
-public sealed class PdfConversionProofReport : IOfficeConversionReport {
+public sealed class PdfConversionProofReport : OfficeConversionReport {
     internal PdfConversionProofReport(
         PdfDocumentInfo? documentInfo,
         PdfDocumentReadResult? logicalDocument,
@@ -13,7 +13,7 @@ public sealed class PdfConversionProofReport : IOfficeConversionReport {
         string artifactSha256,
         PdfConversionReportSummary warningSummary,
         bool hasLoss,
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> fidelityDiagnostics,
+        IReadOnlyList<OfficeDiagnostic> fidelityDiagnostics,
         IReadOnlyList<PdfConversionProofIssue> issues) {
         DocumentInfo = documentInfo;
         LogicalDocument = logicalDocument;
@@ -49,10 +49,11 @@ public sealed class PdfConversionProofReport : IOfficeConversionReport {
     public PdfConversionReportSummary WarningSummary { get; }
 
     /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
-    public bool HasLoss { get; }
+    public override bool HasLoss { get; }
 
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Missing or failed proof items.</summary>
     public IReadOnlyList<PdfConversionProofIssue> Issues { get; }
@@ -81,8 +82,5 @@ public sealed class PdfConversionProofReport : IOfficeConversionReport {
     }
 
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException(
-            "The PDF conversion proof includes conversion-stage fidelity loss. Inspect FidelityDiagnostics for details.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The PDF conversion proof includes conversion-stage fidelity loss. Inspect FidelityDiagnostics for details.", this);
 }

@@ -27,14 +27,14 @@ namespace OfficeIMO.Tests {
                 parsed.LegacyDocument,
                 new InvalidDataException("Projection failed."));
 
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                failed.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                failed.Diagnostics,
                 item => item.Code == "doc-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
             Assert.True(failed.HasImportErrors);
-            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(failed.ThrowIfLoss);
             Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
         }
 
@@ -372,14 +372,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["doc-merged-table-cells-present"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|doc-merged-table-cells-present|PAPX:sprmTDefTable"]);
             Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "doc-merged-table-cells-present");
-            IOfficeConversionReport commonResult = result;
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                commonResult.FidelityDiagnostics,
+            OfficeConversionReport commonResult = result;
+            OfficeDiagnostic diagnostic = Assert.Single(
+                commonResult.Diagnostics,
                 item => item.Code == feature.Code && item.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal("PAPX:sprmTDefTable", diagnostic.Location);
             Assert.True(result.Summary.HasLoss);
-            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
-            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonResult.ThrowIfLoss);
+            Assert.ThrowsAny<OfficeConversionException>(result.Summary.ThrowIfLoss);
 
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
@@ -1434,7 +1434,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasDocument);
             Assert.True(result.HasImportErrors);
-            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.NativeDiagnostics);
             Assert.Equal("doc-worddocument-missing", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
         }
@@ -1447,7 +1447,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasDocument);
             Assert.True(result.HasImportErrors);
-            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.NativeDiagnostics);
             Assert.Equal("doc-fib-invalid", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Error, diagnostic.Severity);
             Assert.Contains("Unsupported Word FIB version 0x0065", diagnostic.Message);
@@ -1600,7 +1600,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(result.ImportReport.UnsupportedFeatures);
             Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
             Assert.False(result.ImportReport.UnsupportedFeaturesByKind.ContainsKey(LegacyDocUnsupportedFeatureKind.FastSave));
-            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+            LegacyDocImportDiagnostic diagnostic = Assert.Single(result.NativeDiagnostics);
             Assert.Equal("doc-quick-save-history-present", diagnostic.Code);
             Assert.Equal(LegacyDocDiagnosticSeverity.Warning, diagnostic.Severity);
             Assert.Contains("3 quick-save revision", diagnostic.Message);
@@ -1937,13 +1937,13 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == code);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Summary.Diagnostics, diagnostic =>
                 diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Empty(endnote ? result.Document.EndNotes : result.Document.FootNotes);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
-            Assert.Throws<InvalidDataException>(() => result.Summary.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Summary.ThrowIfLoss());
         }
 
         [Fact]
@@ -1955,9 +1955,9 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Empty(result.LegacyDocument.Comments);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "doc-comment-plc-invalid" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
 
         [Theory]
@@ -1972,10 +1972,10 @@ namespace OfficeIMO.Tests {
                 new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
             Assert.True(result.HasDocument);
             Assert.Equal("Retained text", result.Document.Sections[0].Paragraphs[0].Text);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(result.Diagnostics, diagnostic =>
                 diagnostic.Code == "doc-ole-properties-unreadable"
                 && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         }
 
         [Fact]
@@ -6854,7 +6854,7 @@ namespace OfficeIMO.Tests {
 
                 OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                Assert.Contains(exception.Report.Diagnostics, finding =>
                     finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
@@ -6933,7 +6933,7 @@ namespace OfficeIMO.Tests {
 
                 OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                Assert.Contains(exception.Report.Diagnostics, finding =>
                     finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
@@ -9189,7 +9189,7 @@ namespace OfficeIMO.Tests {
 
                 OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                Assert.Contains(exception.Report.Diagnostics, finding =>
                     finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
@@ -10151,7 +10151,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
                 OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
-                Assert.Contains(failure.Report.FidelityDiagnostics, finding => finding.Code == "word-doc-color-approximated");
+                Assert.Contains(failure.Report.Diagnostics, finding => finding.Code == "word-doc-color-approximated");
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

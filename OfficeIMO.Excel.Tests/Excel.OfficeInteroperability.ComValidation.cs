@@ -57,7 +57,7 @@ public partial class Excel {
             string generatedBinary = Path.Combine(outputDirectory, "officeimo-modern-to-binary" + extension);
             ExcelDocument.Convert(generatedModern, generatedBinary, new ExcelDocumentConversionOptions {
                 FileConflictPolicy = OfficeConversionFileConflictPolicy.Replace
-            }).RequireNoLoss();
+            }).ThrowIfLoss();
             convertedPaths.Add(generatedBinary);
         }
 

@@ -143,7 +143,7 @@ public sealed partial class EmailStoreSession {
             CommitSplitSet(staged, plan.Options.OverwriteExisting);
             var reports = staged.Select(item => item.ToCommittedReport()).ToArray();
             return new EmailStorePstSplitReport(plan, reports,
-                plan.Diagnostics.Concat(reports.SelectMany(report => report.Diagnostics)).ToArray());
+                plan.Diagnostics.Concat(reports.SelectMany(report => report.NativeDiagnostics)).ToArray());
         } finally {
             foreach (StagedSplitPart part in staged) {
                 OfficeFileCommit.DeleteIfExists(part.StagingPath);
@@ -165,7 +165,7 @@ public sealed partial class EmailStoreSession {
         int skipped = 0;
         var conversionOptions = new EmailStorePstConversionOptions(
             overwriteExisting: false,
-            failOnDataLoss: options.FailOnDataLoss,
+            failOnLoss: options.FailOnLoss,
             continueOnItemError: options.ContinueOnItemError,
             includeAssociatedItems: true,
             includeOrphanedItems: true,
@@ -180,7 +180,7 @@ public sealed partial class EmailStoreSession {
         var writerOptions = new EmailStorePstWriterOptions(
             conversionOptions.DisplayName,
             overwriteExisting: false,
-            failOnDataLoss: options.FailOnDataLoss,
+            failOnLoss: options.FailOnLoss,
             maxFolderCount: Math.Max(1, Folders.Count + 8),
             maxItemCount: Math.Max(1, part.Items.Count),
             maxNestedMessageDepth: options.MaxNestedMessageDepth);
@@ -243,13 +243,13 @@ public sealed partial class EmailStoreSession {
                 if (written == 0) throw new InvalidDataException(
                     "A planned split part did not contain any writable selected items.");
                 writeReport = writer.Complete(cancellationToken);
-                diagnostics.AddRange(writeReport.Diagnostics);
+                diagnostics.AddRange(writeReport.NativeDiagnostics);
                 verification = VerifyPstConversion(stagingPath, mappings,
                     conversionOptions, diagnostics, manifestStagingPath: null, cancellationToken);
             }
             if (!verification.IsSuccessful) throw new InvalidDataException(
                 "A staged PST split part failed semantic verification and was not committed.");
-            if (options.FailOnDataLoss && diagnostics.Any(diagnostic =>
+            if (options.FailOnLoss && diagnostics.Any(diagnostic =>
                 diagnostic.Severity != EmailStoreDiagnosticSeverity.Information)) {
                 throw new InvalidDataException(
                     "A staged PST split part emitted a fidelity diagnostic and was not committed.");
@@ -376,7 +376,7 @@ public sealed partial class EmailStoreSession {
                 WriteReport.FolderCount,
                 WriteReport.ItemCount,
                 new FileInfo(Plan.DestinationPath).Length,
-                WriteReport.Diagnostics,
+                WriteReport.NativeDiagnostics,
                 WriteReport.DiagnosticsTruncated);
             return new EmailStorePstSplitPartReport(Plan, report, Verification,
                 SkippedItems, Diagnostics);

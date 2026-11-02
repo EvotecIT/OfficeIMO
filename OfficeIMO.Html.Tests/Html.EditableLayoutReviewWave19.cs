@@ -28,8 +28,8 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
 
         Assert.Empty(Assert.Single(workbook.Sheets).Images);
         Assert.Empty(Assert.Single(presentation.Slides).Pictures);
-        Assert.Contains(excelResult.Report.Diagnostics, IsRejectedImageDiagnostic);
-        Assert.Contains(powerPointResult.Report.Diagnostics, IsRejectedImageDiagnostic);
+        Assert.Contains(excelResult.Report.NativeDiagnostics, IsRejectedImageDiagnostic);
+        Assert.Contains(powerPointResult.Report.NativeDiagnostics, IsRejectedImageDiagnostic);
     }
 
     [Fact]

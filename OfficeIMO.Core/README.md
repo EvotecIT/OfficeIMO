@@ -510,12 +510,12 @@ IOfficeResult<MyDocument> documentResult = result;
 MyDocument document = documentResult.RequireValue();
 
 IOfficeConversionResult<MyDocument, MyConversionReport> conversion = result;
-MyDocument losslessDocument = conversion.RequireNoLoss();
+MyDocument losslessDocument = conversion.ThrowIfLoss();
 ```
 
 `IOfficeResult<T>` standardizes `Succeeded`, `Value`, and `RequireValue()`.
 `IOfficeConversionResult<TValue, TReport>` also exposes `Report`, `HasLoss`, and
-`RequireNoLoss()`. Concrete results continue to expose format-specific diagnostics, warnings,
+`ThrowIfLoss()`. Concrete results continue to expose format-specific diagnostics, warnings,
 or exceptions; the shared interface does not reduce them to an untyped error string.
 
 ### Portable AES for restricted hosts

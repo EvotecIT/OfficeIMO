@@ -14,7 +14,7 @@ public static class AdfConverter {
         options ??= new AdfConversionOptions();
         MarkdownDocument value = MarkdownDocument.Parse(result.Value, new MarkdownLoadOptions { MaxInputCharacters = options.MaxOutputCharacters, MaxNestingDepth = options.MaxDepth });
         options.CancellationToken.ThrowIfCancellationRequested();
-        return new AdfConversionResult<MarkdownDocument>(value, result.Report.Diagnostics);
+        return new AdfConversionResult<MarkdownDocument>(value, result.Report.NativeDiagnostics);
     }
 
     /// <summary>Converts an ADF document to Markdown text.</summary>
@@ -37,7 +37,7 @@ public static class AdfConverter {
         MarkdownHtmlExportOptions? htmlOptions = null,
         AdfConversionOptions? options = null) {
         AdfConversionResult<MarkdownDocument> result = ToMarkdownDocument(document, options);
-        var diagnostics = result.Report.Diagnostics.ToList();
+        var diagnostics = result.Report.NativeDiagnostics.ToList();
         diagnostics.Add(new AdfConversionDiagnostic(
             "ADF_TO_HTML_VIA_MARKDOWN",
             "$",
@@ -99,7 +99,7 @@ public static class AdfConverter {
         AdfGraphGuard.Input(html, adfOptions);
         MarkdownDocument markdown = HtmlConversionDocument.Parse(html).ToMarkdown(options);
         AdfConversionResult<AdfDocument> result = FromMarkdown(markdown, adfOptions);
-        var diagnostics = result.Report.Diagnostics.ToList();
+        var diagnostics = result.Report.NativeDiagnostics.ToList();
         diagnostics.Insert(0, new AdfConversionDiagnostic(
             "ADF_HTML_VIA_MARKDOWN",
             "$",

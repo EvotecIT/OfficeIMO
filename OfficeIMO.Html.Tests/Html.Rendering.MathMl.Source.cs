@@ -88,7 +88,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("http://www.w3.org/1998/Math/MathML", xml.Name.NamespaceName);
         Assert.Equal(expected, xml.Descendants().Single(element => element.Name.LocalName == "mi").Value);
         Assert.DoesNotContain("outside", source.MathMl);
-        HtmlDiagnostic normalized = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceNormalized);
+        HtmlDiagnostic normalized = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceNormalized);
         // Presentation MathML in HTML syntax renders completely; the normalized source is not a loss.
         Assert.Equal(HtmlDiagnosticSeverity.Info, normalized.Severity);
         Assert.Equal(OfficeConversionLossKind.None, normalized.LossKind);

@@ -25,7 +25,7 @@ public sealed class IWorkDirectoryWorkflowTests {
         Assert.NotNull(result.ConversionEvidence);
         if (kind == "key") {
             Assert.Equal("True", result.ConversionEvidence!.Facts["partialEditableReconstruction"]);
-            Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
+            Assert.Contains(result.ConversionEvidence.Diagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED");
         }
         Assert.True(result.InputBytes > Directory.GetFiles(bundle.Input, "*", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length));
     }

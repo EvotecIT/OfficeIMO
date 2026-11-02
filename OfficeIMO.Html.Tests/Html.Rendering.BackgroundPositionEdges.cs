@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedX + 20, expectedY + 1));
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedX + 1, expectedY - 1));
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedX + 1, expectedY + 12));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -76,6 +76,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedX + 20, expectedY + 1));
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedX + 1, expectedY - 1));
         Assert.Equal(OfficeColor.White, raster.GetPixel(expectedX + 1, expectedY + 10));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

@@ -20,7 +20,7 @@ public sealed partial class IWorkBoundaryTests {
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5[1]/2", 1,
             IWorkSourceDeclarationIssueKind.InvalidValue);
         Assert.Empty(report.SourceCellIssues);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(report.SourceCellIssues);
         Assert.Empty(report.FormulaCells);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_STORAGE_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

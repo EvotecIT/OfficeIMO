@@ -73,7 +73,7 @@ public sealed class HtmlEditableLayoutReviewWave17Tests {
 
         Assert.Empty(word.TextBoxes);
         Assert.NotEmpty(word.Find("Page owned", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("maximumPageHeight", StringComparison.Ordinal));

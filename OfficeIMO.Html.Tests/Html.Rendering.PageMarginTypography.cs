@@ -111,7 +111,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(8D, margin.LineHeight, 6);
         // Short leading advances the lines without shrinking their glyph-paint frames.
         Assert.True(margin.Height > 4D * margin.LineHeight);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Source == "@page @bottom-left"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         HtmlRenderSemanticGroup artifact = Assert.Single(page.Scene.OfType<HtmlRenderSemanticGroup>(),
@@ -189,7 +189,7 @@ public sealed partial class HtmlRenderingTests {
             + footer + "';font:10px/0 Pinned}}body,p{margin:0}</style><p>B</p>";
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html),
             PageMarginTypographyOptions());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @bottom-center"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @bottom-center"
             && diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }

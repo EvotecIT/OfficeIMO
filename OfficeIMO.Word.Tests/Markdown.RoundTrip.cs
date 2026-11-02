@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests
             cell._tableCell.TableCellProperties!.TableCellBorders = new TableCellBorders();
             WordToMarkdownResult emptyBorders = document.ConvertToMarkdownWithEvidence();
             Assert.False(emptyBorders.Report.HasLoss);
-            emptyBorders.Report.RequireNoLoss();
+            emptyBorders.Report.ThrowIfLoss();
             cell._tableCell.TableCellProperties.TableCellBorders.Append(new TopBorder { Val = BorderValues.None });
             WordToMarkdownResult authoredBorder = document.ConvertToMarkdownWithEvidence();
             Assert.Contains(authoredBorder.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("table borders", StringComparison.Ordinal));

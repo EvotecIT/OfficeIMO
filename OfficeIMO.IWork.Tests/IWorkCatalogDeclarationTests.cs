@@ -192,7 +192,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(1, issue.DeclaredValueCount);
         });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED");
+        Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED");
     }
 
     [Fact]

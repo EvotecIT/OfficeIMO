@@ -151,7 +151,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<div id='clip' style='position:absolute;left:10px;top:10px;width:80px;height:40px;clip:" + value
             + "'><input id='child' name='child' value='Field' style='width:60px;height:20px'></div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.FormFieldTransformStaticFallback);
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions(LegacyClipOptions()))).ToBytes();
 
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene), visual => visual is HtmlRenderFormField);
         Assert.Empty(PdfCore.PdfDocumentReadResult.Load(pdf).FormFields);
         HtmlRenderOptions strict = LegacyClipOptions();
-        strict.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        strict.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, strict));
     }
 
@@ -172,14 +172,14 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlLegacyClip_UnsupportedApplicableValuesProduceTypedLoss(string value) {
         string html = "<div id='unsupported' style='position:absolute;width:40px;height:30px;clip:" + value + "'>Visible</div>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, LegacyClipOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.ClipValueUnsupported);
 
         Assert.Equal("div#unsupported", diagnostic.Source);
         Assert.True(rendered.HasLoss);
         Assert.False(HtmlComputedStyleEngine.IsApplicableSupports("(clip:" + value + ")"));
         HtmlRenderOptions strict = LegacyClipOptions();
-        strict.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        strict.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, strict));
     }
 

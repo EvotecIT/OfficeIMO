@@ -46,7 +46,7 @@ public sealed class SaveOfficeEpubCommand : PSCmdlet {
             RemoveInvalidatedSignatures = RemoveInvalidatedSignatures.IsPresent,
             MaxOutputBytes = MaxOutputBytes
         });
-        if (!AllowLoss) result.Report.RequireNoLoss();
+        if (!AllowLoss) result.Report.ThrowIfLoss();
         OfficeFileOutput.Write(path, result.Bytes, true);
         Document.FilePath = path;
         if (PassThru) WriteObject(result.Report);

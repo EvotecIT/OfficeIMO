@@ -64,7 +64,7 @@ public static partial class IWorkWorkflow {
         IWorkConversionReport source, IWorkSourceDocument captured, Stream output, CancellationToken token) {
         var facts = Evidence(source, captured).Facts.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
         facts["conversionStages"] = "iwork-editable,pdf";
-        IReadOnlyList<IOfficeConversionReport> reports = new IOfficeConversionReport[] { source };
+        IReadOnlyList<OfficeConversionReport> reports = new OfficeConversionReport[] { source };
         try {
             PdfDocumentConversionResult pdf = createPdf().WithSourceConversionReport(source);
             reports = pdf.ConversionReports;

@@ -140,7 +140,7 @@ public sealed class IWorkCorpusTests {
         Assert.True(report.TotalRecordCount >= report.PreservedRecords.Count);
         Assert.NotEmpty(report.PreservedRecords);
         Assert.True(report.HasLoss);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+        Assert.Contains(report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }

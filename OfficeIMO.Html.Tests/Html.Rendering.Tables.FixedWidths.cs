@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(100D, inner.Width, 3);
         Assert.Equal(inner.Width, outer.Width, 3);
         Assert.Equal(inner.X + inner.Width, next.X, 3);
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable
             && diagnostic.Severity == HtmlDiagnosticSeverity.Info);
     }
 
@@ -238,9 +238,9 @@ public sealed partial class HtmlRenderingTests {
             Mode = paged ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous,
             UserAgentStyles = HtmlRenderUserAgentStyleMode.Browser,
             ViewportWidth = 300D, ViewportHeight = 100D, Margins = HtmlRenderMargins.All(0D),
-            AllowSystemFontFallback = false, FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            AllowSystemFontFallback = false, FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         Assert.Empty(rendered.Text);
         Assert.Empty(rendered.Fonts.Faces);
         return rendered;

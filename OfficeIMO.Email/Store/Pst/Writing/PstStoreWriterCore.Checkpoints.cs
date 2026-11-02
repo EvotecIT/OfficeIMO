@@ -136,7 +136,7 @@ internal sealed partial class PstStoreWriterCore {
         writer.Write(_temporaryPath);
         writer.Write(_options.DisplayName);
         writer.Write(_options.OverwriteExisting);
-        writer.Write(_options.FailOnDataLoss);
+        writer.Write(_options.FailOnLoss);
         writer.Write(_options.MaxFolderCount);
         writer.Write(_options.MaxItemCount);
         writer.Write(_options.MaxNestedMessageDepth);
@@ -250,7 +250,7 @@ internal sealed partial class PstStoreWriterCore {
             TemporaryPath = Path.GetFullPath(reader.ReadString()),
             DisplayName = reader.ReadString(),
             OverwriteExisting = reader.ReadBoolean(),
-            FailOnDataLoss = reader.ReadBoolean(),
+            FailOnLoss = reader.ReadBoolean(),
             MaxFolderCount = reader.ReadInt32(),
             MaxItemCount = reader.ReadInt32(),
             MaxNestedMessageDepth = reader.ReadInt32(),
@@ -473,7 +473,7 @@ internal sealed partial class PstStoreWriterCore {
         internal string TemporaryPath { get; set; } = string.Empty;
         internal string DisplayName { get; set; } = string.Empty;
         internal bool OverwriteExisting { get; set; }
-        internal bool FailOnDataLoss { get; set; }
+        internal bool FailOnLoss { get; set; }
         internal int MaxFolderCount { get; set; }
         internal int MaxItemCount { get; set; }
         internal int MaxNestedMessageDepth { get; set; }

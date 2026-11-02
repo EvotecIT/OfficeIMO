@@ -77,7 +77,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.Equal(1, result.Images);
         Assert.Single(workbook.Sheets[0].Images);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
                 && diagnostic.Detail == "mediaType=image/heic");
     }
@@ -99,7 +99,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
         Assert.Equal("Accepted", image.Description);
         Assert.Equal(1, result.Images);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported
                 && diagnostic.Detail == "mediaType=image/heic");
     }
@@ -281,7 +281,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(1, result.Cells);
         Assert.True(workbook.Sheets[1].TryGetCellText(1, 1, out string text));
         Assert.Equal("value", text);
-        Assert.DoesNotContain(result.Report.Diagnostics,
+        Assert.DoesNotContain(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
                 && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
     }
@@ -304,7 +304,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(2, result.Sheets);
         Assert.Contains(workbook.Sheets,
             sheet => Enumerable.Range(1, 4).Any(row => sheet.CellAt(row, 1).GetValue<string>() == "Narrative retained"));
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
                 && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
     }
@@ -481,7 +481,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.Equal(0, result.Charts);
         Assert.Empty(Assert.Single(presentation.Slides).Charts);
-        Assert.Contains(result.Report.Diagnostics,
+        Assert.Contains(result.Report.NativeDiagnostics,
             diagnostic =>
                 diagnostic.Code ==
                     HtmlConversionDiagnosticCodes.TargetLimitExceeded &&

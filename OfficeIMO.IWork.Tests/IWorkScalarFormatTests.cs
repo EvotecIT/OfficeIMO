@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(report.SourceCellIssues);
             AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 12),
                 "5[1]/6", 1, IWorkSourceDeclarationIssueKind.UnsupportedField);
-            Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
+            Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
                 && d.LossKind == OfficeConversionLossKind.Unassessed);
         }
         package.Position = 0;
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(customSettings ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.None,
             selected.UnsupportedFeatures);
         Assert.Equal(customSettings ? (IWorkNumberFormatKind?)null : IWorkNumberFormatKind.Text, selected.NumberFormat?.Kind);
-        Assert.DoesNotContain(result.Report.FidelityDiagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
+        Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal(!customSettings, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode == "@");

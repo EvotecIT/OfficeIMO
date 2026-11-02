@@ -16,7 +16,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = "World Health Organization" }));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyContributor reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Contributors);
 
         Assert.Equal("World Health Organization", reopened.Name.Literal);
@@ -34,9 +34,9 @@ public sealed class BibliographyRoundTripIntegrityTests {
         string source = $"TY  - BOOK\nID  - x\n{firstTag}  - First\n{secondTag}  - Second\nER  -\n";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
 
-        BibliographyWriteResult first = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult first = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(first.Content, BibliographyFormat.Ris).Document;
-        BibliographyWriteResult second = reopened.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult second = reopened.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains(reopened.Items[0].NativeFields, field => field.Name == secondTag && field.Value == "Second");
         Assert.Equal(first.Content, second.Content);
@@ -47,7 +47,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         const string source = "TY  - BOOK\nID  - x\nUR  - https://first.example\nL1  - https://second.example/path\n      continued\nER  -\n";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
 
         Assert.Equal("https://first.example", reopened.Url);
@@ -59,7 +59,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         const string source = "PMID- 12345\nTI  - First\nTI  - Second\n";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
 
         Assert.Equal("First", reopened.Title);
@@ -74,10 +74,10 @@ public sealed class BibliographyRoundTripIntegrityTests {
         document.Items.Add(item);
 
         BibliographyWriteResult canonical = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
-        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("arxiv =", canonical.Content, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV129" && diagnostic.Field == "identifiers.arXiv");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV129" && diagnostic.Field == "identifiers.arXiv");
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         item.Identifiers.Add(new BibliographyIdentifier(scheme, "catalogue-value (print)"));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyIdentifier reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].Identifiers);
 
         Assert.Contains($"type=\"{scheme}\"", written.Content, StringComparison.Ordinal);
@@ -108,7 +108,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         Assert.Equal("catalogue-value (print)", reopened.Value);
 
         BibliographyDocument reopenedDocument = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
-        BibliographyWriteResult second = reopenedDocument.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult second = reopenedDocument.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         Assert.Equal(written.Content, second.Content);
     }
 
@@ -165,7 +165,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.BibLatex, kind, value, name));
 
         BibliographyWriteResult canonical = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
-        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("injected", canonical.Content, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV118");
@@ -180,7 +180,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         Assert.Equal("visible", item.Key);
         Assert.Single(document.NativeEntries);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
         Assert.Equal("visible", Assert.Single(reopened.Items).Key);
     }
@@ -210,9 +210,9 @@ public sealed class BibliographyRoundTripIntegrityTests {
         const string source = "@book{x,title={First},title={Second},year={2024},year={2025}}";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex).Document;
 
-        BibliographyWriteResult first = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult first = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(first.Content, BibliographyFormat.BibLatex).Document;
-        BibliographyWriteResult second = reopened.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult second = reopened.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Equal("First", reopened.Items[0].Title);
         Assert.Equal(2, reopened.Items[0].NativeFields.Count);
@@ -226,7 +226,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
     public void Duplicate_known_CSL_properties_are_retained_and_block_lossless_canonical_output(string source) {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV120" || diagnostic.Code == "BIBCONV124" || diagnostic.Code == "BIBCONV125");
     }
@@ -238,7 +238,7 @@ public sealed class BibliographyRoundTripIntegrityTests {
         string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type>" + repeatedContent + "</record></records></xml>";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV123");
     }

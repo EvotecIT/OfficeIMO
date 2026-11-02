@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
             : IWorkSourceDeclarationIssueKind.MalformedMessage, issue.Kind);
         Assert.Empty(report.SourceReferenceIssues);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == 999);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED").LossKind);
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkSourceDeclarationIssue>)report.SourceDeclarationIssues).Clear());
     }
@@ -190,7 +190,7 @@ public sealed partial class IWorkBoundaryTests {
             IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
         Assert.Empty(report.PreservedRecords);
         Assert.Equal(15ul, Assert.Single(report.SourceDeclarationIssues).Owner.RecordIdentifier);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

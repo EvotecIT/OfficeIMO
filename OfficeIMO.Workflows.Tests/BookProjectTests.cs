@@ -167,7 +167,7 @@ public sealed class BookProjectTests {
         project.Publication.SetContentXml("chapter", content);
         project.SetStylesheet("p{color:blue}");
         Assert.Contains("custom%20style.css", project.Publication.GetContentXml("chapter").ToString());
-        project.Export().Report.RequireNoLoss();
+        project.Export().Report.ThrowIfLoss();
         var foreign = BookProject.Create("Other");
         foreign.Publication.AddResource("book-project-style", "EPUB/data.bin", "application/octet-stream", [1, 2, 3]);
         byte[] before = foreign.Export().Bytes;
@@ -246,7 +246,7 @@ public sealed class BookProjectTests {
         Assert.Contains(reopened.Resources, item => (item.Properties ?? string.Empty).Split(' ').Contains("cover-image"));
         Assert.Contains(restored.Publication.Manifest, item => item.Id == "book-project-style");
         Assert.All(restored.Publication.Spine, chapter => Assert.Contains("project.css", restored.Publication.GetContentXml(chapter.ManifestId).ToString()));
-        restored.Export().Report.RequireNoLoss();
+        restored.Export().Report.ThrowIfLoss();
     }
 
     [Fact]

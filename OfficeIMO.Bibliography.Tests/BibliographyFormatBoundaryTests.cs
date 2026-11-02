@@ -9,7 +9,7 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Equal(BibliographyItemType.Article, Assert.Single(document.Items).Type);
         document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Contains("\"type\": \"article\"", written.Content, StringComparison.Ordinal);
@@ -27,9 +27,9 @@ public sealed class BibliographyFormatBoundaryTests {
         document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Article, Title = "Generic article" });
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
     }
 
     [Fact]
@@ -40,9 +40,9 @@ public sealed class BibliographyFormatBoundaryTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV228" && diagnostic.Field == "identifiers.info:doi");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV228" && diagnostic.Field == "identifiers.info:doi");
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Equal("10-20", Assert.Single(document.Items).Pages);
         document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
 
         Assert.Equal("10-20", reopened.Pages);
@@ -71,9 +71,9 @@ public sealed class BibliographyFormatBoundaryTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV229" && diagnostic.Field == "contributors");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV229" && diagnostic.Field == "contributors");
     }
 
     [Fact]
@@ -85,10 +85,10 @@ public sealed class BibliographyFormatBoundaryTests {
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("urldate", written.Content, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV202" && diagnostic.Field == "dates.Accessed");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV202" && diagnostic.Field == "dates.Accessed");
     }
 
 
@@ -105,7 +105,7 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Contains("urn:extension", native.RawValue, StringComparison.Ordinal);
         item.Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Contains("urn:extension", written.Content, StringComparison.Ordinal);
@@ -122,7 +122,7 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Equal("Secondary", item.ContainerTitle);
         Assert.Single(item.NativeFields, field => field.Name == "periodical" && field.Value.Trim() == "Periodical");
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal("Secondary", reopened.ContainerTitle);
@@ -134,7 +134,7 @@ public sealed class BibliographyFormatBoundaryTests {
         const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><periodical><full-title>Periodical</full-title></periodical></record></records></xml>";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
         Assert.Equal("Periodical", reopened.ContainerTitle);
@@ -155,7 +155,7 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Empty(item.Contributors);
         Assert.Single(item.NativeFields, field => field.Name == "author");
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Empty(reopened.Contributors);
@@ -182,9 +182,9 @@ public sealed class BibliographyFormatBoundaryTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV230" && diagnostic.Field == "contributors");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV230" && diagnostic.Field == "contributors");
     }
 
     [Fact]
@@ -197,9 +197,9 @@ public sealed class BibliographyFormatBoundaryTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV230" && diagnostic.Field == "contributors");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV230" && diagnostic.Field == "contributors");
     }
 
     [Theory]
@@ -213,9 +213,9 @@ public sealed class BibliographyFormatBoundaryTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV209" && diagnostic.Field == "native.ZZ");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV209" && diagnostic.Field == "native.ZZ");
     }
 
     [Fact]
@@ -243,11 +243,11 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Equal("Containing Work", item.ContainerTitle);
         Assert.Equal("Collection", item.CollectionTitle);
 
-        BibliographyWriteResult csl = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult csl = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         Assert.Contains("\"container-title\": \"Containing Work\"", csl.Content, StringComparison.Ordinal);
         Assert.Contains("\"collection-title\": \"Collection\"", csl.Content, StringComparison.Ordinal);
 
-        BibliographyWriteResult bib = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult bib = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibLatex, Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         Assert.Contains("booktitle = {Containing Work}", bib.Content, StringComparison.Ordinal);
         Assert.Contains("series = {Collection}", bib.Content, StringComparison.Ordinal);
     }

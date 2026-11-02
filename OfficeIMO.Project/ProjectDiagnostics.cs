@@ -42,36 +42,32 @@ public sealed class ProjectDiagnostic {
 }
 
 /// <summary>A snapshot of validation/fidelity findings for one model revision.</summary>
-public sealed class ProjectReport : IOfficeConversionReport {
+public sealed class ProjectReport : OfficeConversionReport {
     internal ProjectReport(long revision, IEnumerable<ProjectDiagnostic> diagnostics) {
-        ModelRevision = revision; Diagnostics = new ReadOnlyCollection<ProjectDiagnostic>(diagnostics.ToArray());
-        FidelityDiagnostics = new ReadOnlyCollection<OfficeConversionFidelityDiagnostic>(Diagnostics.Select(static diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+        ModelRevision = revision; NativeDiagnostics = new ReadOnlyCollection<ProjectDiagnostic>(diagnostics.ToArray());
+        FidelityDiagnostics = new ReadOnlyCollection<OfficeDiagnostic>(NativeDiagnostics.Select(static diagnostic =>
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                diagnostic.LossKind,
+                diagnostic.Location,
                 "OfficeIMO.Project",
-                diagnostic.Location)).ToArray());
+                diagnostic.LossKind)).ToArray());
     }
     /// <summary>The model revision assessed, not a promise about future mutations.</summary>
     public long ModelRevision { get; }
     /// <summary>Immutable findings.</summary>
-    public IReadOnlyList<ProjectDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<ProjectDiagnostic> NativeDiagnostics { get; }
     /// <summary>Category-preserving project diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <summary>True when any finding prevents save.</summary>
-    public bool HasErrors => Diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error);
+    public bool HasErrors => NativeDiagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error);
     /// <inheritdoc />
-    public bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
     /// <summary>Throws with the first validation error when the model is inconsistent.</summary>
     public void ThrowIfErrors() {
-        var error = Diagnostics.FirstOrDefault(d => d.Severity == ProjectDiagnosticSeverity.Error);
+        var error = NativeDiagnostics.FirstOrDefault(d => d.Severity == ProjectDiagnosticSeverity.Error);
         if (error != null) throw new InvalidDataException(error.Code + " at " + error.Location + ": " + error.Message);
-    }
-    /// <inheritdoc />
-    public void RequireNoLoss() {
-        ThrowIfErrors();
-        var loss = Diagnostics.FirstOrDefault(d => d.RepresentsLoss);
-        if (loss != null) throw new InvalidOperationException(loss.Code + " at " + loss.Location + ": " + loss.Message);
     }
 }

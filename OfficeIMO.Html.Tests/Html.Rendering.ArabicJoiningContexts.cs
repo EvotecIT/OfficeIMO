@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(meem.X > remainder.Max(item => item.X));
         Assert.NotNull(meem.LogicalTextOrder);
         Assert.All(remainder, item => Assert.True(item.LogicalTextOrder.GetValueOrDefault() > meem.LogicalTextOrder.GetValueOrDefault()));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(ArabicContextGlyphIds(new string(ArabicContextForms.Reverse().ToArray())),
             ArabicContextPaintedGlyphIds(ArabicContextText(rendered)));
         if (firstLine) Assert.All(ArabicContextText(rendered), item => Assert.Equal(OfficeColor.Green, item.Color));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -71,7 +71,7 @@ public sealed partial class HtmlRenderingTests {
         if (expectedLines == 1) Assert.Equal(54D, text.Sum(item => item.TextAdvanceWidth ?? 0D), 6);
         else Assert.Contains(text, item => item.Y > firstY && item.Color == OfficeColor.Blue);
         Assert.Equal(ArabicContextWord + (expectedLines == 1 ? " " : "\n") + ArabicContextWord, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -94,8 +94,8 @@ public sealed partial class HtmlRenderingTests {
             text.Where(item => item.Color == OfficeColor.Blue).Sum(item => item.TextAdvanceWidth ?? 0D), 6);
         Assert.Equal(ArabicContextWord, OfficeArabicTextShaper.ToLogicalText(rendered.Text)
             .Replace(" ", string.Empty).Replace("\u200C", string.Empty).Replace("\r", string.Empty).Replace("\n", string.Empty).Trim());
-        Assert.True(!rendered.HasLoss, string.Join(" | ", rendered.Diagnostics.Select(item => item.Source + ":" + item.Detail)));
-        rendered.RequireNoLoss();
+        Assert.True(!rendered.HasLoss, string.Join(" | ", rendered.NativeDiagnostics.Select(item => item.Source + ":" + item.Detail)));
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     private static HtmlRenderDocument RenderArabicContext(string content, string width = "300px", string extraCss = "",

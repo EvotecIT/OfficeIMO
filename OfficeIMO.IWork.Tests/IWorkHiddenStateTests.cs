@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
         Assert.Equal(11ul, issue.Owner.RecordIdentifier);
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HIDDEN_STATES_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HIDDEN_STATES_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

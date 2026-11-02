@@ -17,7 +17,7 @@ public sealed class EpubTypographyContracts {
         var copy = options.Clone();
         options.TypographyProfile = EpubTypographyProfile.Basic;
         var result = EpubManuscript.ImportHtml(input, copy);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         var book = EpubPublication.Load(new MemoryStream(result.Publication.Write().Bytes));
         string css = Encoding.UTF8.GetString(book.GetResourceBytes("manuscript-defaults"));
         Assert.Contains(expectedDeclaration, css);

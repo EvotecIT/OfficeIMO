@@ -11,7 +11,7 @@ meta.social_card_metrics: "79|Package owners|package;1434|Operation outcomes|che
 
 The safest conversion is not always the one that produces a file at any cost. OfficeIMO lets an application choose whether it requires native representation, accepts an editable approximation, prefers visual fidelity, permits a documented best-effort result, or retains the complete source for recovery.
 
-Use `AnalyzeConversion(...)` before writing when a service needs an approval gate. The returned report identifies the affected feature, source location when available, chosen fallback, and fidelity dimensions at risk. `RequireNoLoss()` turns any known loss or blocked feature into a failed operation.
+Use `AnalyzeConversion(...)` before writing when a service needs an approval gate. The returned report identifies the affected feature, source location when available, chosen fallback, and fidelity dimensions at risk. `ThrowIfLoss()` turns any known loss or blocked feature into a failed operation.
 
 Evidence is grouped by concrete format contract. Excel XLS and XLSB have separate rows and counts because BIFF8 and binary Open XML do not share the same implementation or fidelity boundary.
 

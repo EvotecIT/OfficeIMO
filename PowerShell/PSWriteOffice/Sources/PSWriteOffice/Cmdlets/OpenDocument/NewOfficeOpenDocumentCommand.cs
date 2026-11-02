@@ -53,7 +53,7 @@ public sealed class NewOfficeOpenDocumentCommand : OfficeNewLifecycleCmdlet<OdfD
             path => OdfDocument.Create(kind.Value, path),
             (document, path, allowLoss) => {
                 OdfSaveResult result = document.Save(path);
-                if (!allowLoss) result.Report.RequireNoLoss();
+                if (!allowLoss) result.Report.ThrowIfLoss();
                 return null;
             });
     }

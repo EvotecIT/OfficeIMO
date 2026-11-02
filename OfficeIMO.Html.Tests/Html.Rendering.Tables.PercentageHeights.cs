@@ -395,12 +395,12 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td id='span' rowspan='2' style='height:50%;padding:0;background:lime'>Span</td><td style='padding:0'>First</td></tr>"
             + "<tr><td style='padding:0'>Second</td></tr><tr><td colspan='2' style='padding:0'>Third</td></tr></table>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
 
         Assert.Equal("td#span", diagnostic.Source);
         Assert.Contains("height=50%", diagnostic.Detail);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         Assert.Equal(new[] { "Span", "First", "Second", "Third" }, rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(item => item.Text));
     }
 
@@ -411,13 +411,13 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td id='detail' style='height:75%;padding:0;background:lime'>Detail</td></tr></table>"
             + "<div id='next' style='height:20px;background:red'>Next</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic[] diagnostics = rendered.Diagnostics.Where(item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported).ToArray();
+        HtmlDiagnostic[] diagnostics = rendered.NativeDiagnostics.Where(item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported).ToArray();
 
         Assert.Equal(new[] { "td#summary", "td#detail" }, diagnostics.Select(item => item.Source));
         Assert.All(diagnostics, item => Assert.Equal(OfficeConversionLossKind.Approximation, item.LossKind));
         Assert.All(diagnostics, item => Assert.Contains("height=75%", item.Detail));
         Assert.Equal(200D, TableGeometryShape(rendered, "div#next").Y, 3);
         Assert.Equal(new[] { "Summary", "Detail", "Next" }, rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(item => item.Text));
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 }

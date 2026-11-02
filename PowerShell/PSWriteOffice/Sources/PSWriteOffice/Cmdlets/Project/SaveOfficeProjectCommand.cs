@@ -50,7 +50,7 @@ public sealed class SaveOfficeProjectCommand : PSCmdlet {
         if (!ShouldProcess(path, "Save project")) return;
         var options = new ProjectSaveOptions {
             Format = Format,
-            LossPolicy = AllowLoss.IsPresent ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
+            AllowLoss = AllowLoss.IsPresent,
             FileConflictPolicy = Force.IsPresent ? OfficeConversionFileConflictPolicy.Replace : OfficeConversionFileConflictPolicy.FailIfExists
         };
         var report = Document.AssessSave(path, options);

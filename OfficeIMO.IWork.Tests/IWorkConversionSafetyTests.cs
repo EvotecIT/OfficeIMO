@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         Assert.Equal(IWorkProjectionKind.VisualFallback, report.ProjectionKind);
         Assert.False(report.HasCompleteVisualCoverage);
-        Assert.Contains(report.FidelityDiagnostics, d => d.Code == "IWORK_VISUAL_FALLBACK"
+        Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_VISUAL_FALLBACK"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
     }
 

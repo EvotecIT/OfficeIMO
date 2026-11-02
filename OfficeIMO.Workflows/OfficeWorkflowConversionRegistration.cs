@@ -100,16 +100,16 @@ public sealed class OfficeWorkflowConversionRegistration {
 }
 
 /// <summary>Immutable conversion evidence retained independently of the destination document lifetime.</summary>
-public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
+public sealed class OfficeWorkflowConversionEvidence : OfficeConversionReport {
     /// <summary>Copies typed fidelity diagnostics and compact source/projection facts from the owning converter.</summary>
-    public OfficeWorkflowConversionEvidence(IOfficeConversionReport report, IReadOnlyDictionary<string, string>? facts = null) {
+    public OfficeWorkflowConversionEvidence(OfficeConversionReport report, IReadOnlyDictionary<string, string>? facts = null) {
         if (report == null) throw new ArgumentNullException(nameof(report));
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten([report]);
         Facts = new ReadOnlyDictionary<string, string>((facts ?? new Dictionary<string, string>()).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
     }
 
     /// <summary>Copies evidence from ordered conversion stages after their output operations have completed.</summary>
-    public OfficeWorkflowConversionEvidence(IReadOnlyList<IOfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
+    public OfficeWorkflowConversionEvidence(IReadOnlyList<OfficeConversionReport> reports, IReadOnlyDictionary<string, string> facts) {
         if (reports == null) throw new ArgumentNullException(nameof(reports));
         if (facts == null) throw new ArgumentNullException(nameof(facts));
         FidelityDiagnostics = OfficeConversionFidelityDiagnostics.Flatten(reports);
@@ -117,13 +117,12 @@ public sealed class OfficeWorkflowConversionEvidence : IOfficeConversionReport {
     }
 
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Compact producer, projection, coverage, and reconstruction evidence. These facts do not establish visual equivalence.</summary>
     public IReadOnlyDictionary<string, string> Facts { get; }
     /// <inheritdoc />
-    public bool HasLoss => FidelityDiagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidOperationException("The workflow conversion reported fidelity loss or unassessed content.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The workflow conversion reported fidelity loss or unassessed content.", this);
 }

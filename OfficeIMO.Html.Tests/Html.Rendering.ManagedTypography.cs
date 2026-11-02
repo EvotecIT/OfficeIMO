@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
 
         Assert.Equal(text, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         HtmlRenderText[] runs = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>()
             .Where(run => !string.IsNullOrWhiteSpace(run.Text)).ToArray();
         Assert.NotEmpty(runs);
@@ -46,16 +46,16 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         PdfCore.PdfReadDocument saved = PdfCore.PdfReadDocument.Open(bytes);
         Assert.Equal(text, Assert.Single(saved.Pages).ExtractText().Trim());
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(
             saved, OfficeImageExportFormat.Png, new PdfCore.PdfImageExportOptions { Scale = 96D / 72D }));
-        png.CreateReport().RequireNoLoss();
-        svg.CreateReport().RequireNoLoss();
-        replay.CreateReport().RequireNoLoss();
+        png.CreateReport().ThrowIfLoss();
+        svg.CreateReport().ThrowIfLoss();
+        replay.CreateReport().ThrowIfLoss();
         Assert.Equal(replay.Bytes, png.Bytes);
     }
 
@@ -72,7 +72,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
 
         Assert.Equal("مرحبا", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         HtmlRenderText[] runs = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>().ToArray();
         Assert.Contains(runs, run => run.Color == OfficeColor.Red && run.PreparedShaping != null);
         Assert.Contains(runs, run => run.Color == OfficeColor.Blue && run.PreparedShaping != null);
@@ -90,7 +90,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
 
         Assert.Equal(source, rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         HtmlRenderText[] marked = Assert.Single(rendered.Pages).Visuals.OfType<HtmlRenderText>()
             .Where(run => OfficeTextElements.ContainsCombiningMark(run.Text)).ToArray();
         Assert.NotEmpty(marked);
@@ -113,7 +113,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(source, rendered.Text.Trim());
         Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
 }

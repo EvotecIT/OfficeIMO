@@ -20,7 +20,7 @@ public sealed class DrawPdfDateTimeFieldTests {
         Assert.Equal(2, read.Pages.Count);
         foreach (var page in read.Pages) { Assert.Contains("2024-02-29", page.ExtractText()); Assert.DoesNotContain("stale", page.ExtractText()); }
         Assert.Equal(before, source.ToBytes());
-        Assert.Contains(result.FidelityDiagnostics, diagnostic => diagnostic.Location!.StartsWith("page:2:", StringComparison.Ordinal) && diagnostic.Location.EndsWith(":field-date-time-value", StringComparison.Ordinal));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Location!.StartsWith("page:2:", StringComparison.Ordinal) && diagnostic.Location.EndsWith(":field-date-time-value", StringComparison.Ordinal));
         Assert.Contains("stale", PdfDocument.Load(new System.IO.MemoryStream(source.ToPdfBytes())).ExtractText());
     }
 
@@ -32,7 +32,7 @@ public sealed class DrawPdfDateTimeFieldTests {
         byte[] original = { 1, 2, 3 }; using var output = new MemoryStream(original.ToArray(), writable: true);
         var result = source.SaveAsPdfResult(output, options);
         Assert.False(result.Succeeded); Assert.Equal(original, output.ToArray()); Assert.True(output.CanWrite);
-        Assert.Contains(result.FidelityDiagnostics, diagnostic => diagnostic.Location!.EndsWith(":field-date-time-format", StringComparison.Ordinal));
+        Assert.Contains(result.ConversionDiagnostics, diagnostic => diagnostic.Location!.EndsWith(":field-date-time-format", StringComparison.Ordinal));
         options.DateTimeFields.RefreshTimestamp = null;
         Assert.Throws<ArgumentException>(() => source.ToPdfDocumentResult(options));
     }

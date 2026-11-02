@@ -10,7 +10,7 @@ using OfficeIMO.Pdf;
 AsciiDocDocument document = AsciiDocDocument.Load("guide.adoc");
 PdfSaveResult result = document.SaveAsPdf("guide.pdf");
 
-result.Report.RequireNoLoss(); // optional strict conversion gate
+result.Report.ThrowIfLoss(); // optional strict conversion gate
 result.Pipeline.RequireSuccess(); // exact output pipeline gate
 ```
 

@@ -20,7 +20,7 @@ public sealed partial class CslProcessor {
         _options = CopyOptions(options ?? new CslRenderOptions());
         if (document.Items.Any(item => string.IsNullOrWhiteSpace(item.Key)) || document.Items.Select(item => item.Key).Distinct(StringComparer.Ordinal).Count() != document.Items.Count)
             throw new ArgumentException("CSL rendering requires nonempty, unique bibliography keys.", nameof(document));
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = _options.RequireNoDataLoss }, cancellationToken);
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, FailOnLoss = _options.RequireNoDataLoss }, cancellationToken);
         DataConversionReport = written.Report;
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement[] data = json.RootElement.ValueKind == JsonValueKind.Array ? json.RootElement.EnumerateArray().ToArray() : new[] { json.RootElement };

@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Projection.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED"
             && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]

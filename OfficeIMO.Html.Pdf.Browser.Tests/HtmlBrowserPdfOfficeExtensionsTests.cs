@@ -57,8 +57,8 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
 
         Assert.True(report.Tagged);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.True(result.Value.Analyze().Preflight.CanExtractText);
     }
 

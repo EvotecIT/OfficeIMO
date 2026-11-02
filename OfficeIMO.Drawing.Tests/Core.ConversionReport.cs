@@ -31,13 +31,13 @@ public class OfficeConversionReportTests {
         var report = new OfficeConversionReport("Word", "Pdf", diagnostics: new[] { finding });
         Assert.True(report.HasLoss);
         Assert.Same(report, Assert.Throws<OfficeConversionException>(report.ThrowIfLoss).Report);
-        IOfficeConversionReport legacy = report;
-        Assert.Equal(kind, Assert.Single(legacy.FidelityDiagnostics).LossKind);
-        Assert.Throws<OfficeConversionException>(legacy.RequireNoLoss);
+        OfficeConversionReport legacy = report;
+        Assert.Equal(kind, Assert.Single(legacy.Diagnostics).LossKind);
+        Assert.Throws<OfficeConversionException>(legacy.ThrowIfLoss);
         var result = new OfficeConversionResult<string, OfficeConversionReport>("text", report);
         Assert.True(result.HasLoss);
-        Assert.Equal("text", result.RequireValue());
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Equal("text", result.Value);
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Theory]
@@ -47,8 +47,8 @@ public class OfficeConversionReportTests {
     public void MissingFormatMetadataFallsBackToTheReportSource(string? format) {
         var diagnostic = new OfficeDiagnostic("feature-affected", OfficeDiagnosticSeverity.Information,
             "Content affected.", format: format, lossKind: OfficeConversionLossKind.Omission);
-        IOfficeConversionReport report = new OfficeConversionReport("Word", "Pdf", diagnostics: new[] { diagnostic });
-        Assert.Equal("Word", Assert.Single(report.FidelityDiagnostics).Source);
+        OfficeConversionReport report = new OfficeConversionReport("Word", "Pdf", diagnostics: new[] { diagnostic });
+        Assert.Equal("Word", Assert.Single(report.Diagnostics).Format);
         Assert.True(report.HasLoss);
     }
 

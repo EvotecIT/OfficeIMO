@@ -1,7 +1,7 @@
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed class PublisherParseContext {
-    private readonly List<OfficeConversionFidelityDiagnostic> _diagnostics = new();
+    private readonly List<OfficeDiagnostic> _diagnostics = new();
     private readonly HashSet<string> _diagnosticKeys = new(StringComparer.Ordinal);
     internal PublisherParseContext(PublisherReadOptions options, CancellationToken token) { Options = options; Token = token; }
     internal PublisherReadOptions Options { get; }
@@ -16,7 +16,7 @@ internal sealed class PublisherParseContext {
     private int _imageStoreEntries;
     private long _tableModelItems, _tableModelCharacters;
     private long _parsedGradientStops;
-    internal IReadOnlyList<OfficeConversionFidelityDiagnostic> Diagnostics => _diagnostics;
+    internal IReadOnlyList<OfficeDiagnostic> Diagnostics => _diagnostics;
     internal void Record() {
         Token.ThrowIfCancellationRequested();
         if (Records >= Options.Limits.MaxRecords) throw new InvalidDataException("Publisher native record limit exceeded.");
@@ -106,6 +106,6 @@ internal sealed class PublisherParseContext {
     }
     internal void Add(string code, string message, OfficeConversionLossKind kind, string? location = null) {
         if (_diagnosticKeys.Add(code + "\n" + location))
-            _diagnostics.Add(new OfficeConversionFidelityDiagnostic(code, message, kind, "OfficeIMO.Publisher", location));
+            _diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(code, kind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Publisher", kind));
     }
 }

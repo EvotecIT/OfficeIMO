@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
 
             foreach (string fixture in expectedFixtures) {
                 using LegacyXlsLoadResult result = LoadApachePoiFixture(fixture);
-                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
-                Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+                Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+                Assert.DoesNotContain(result.NativeDiagnostics, diagnostic =>
                     diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning
                     && diagnostic.Code != "xls-biff-lbl-empty-name");
                 Assert.Equal(0, result.ImportReport.UnsupportedProjectionGapCount);
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(8, result.ImportReport.CompoundVbaModuleCount);
             Assert.Equal(7664, result.ImportReport.CompoundVbaModuleByteCount);
             Assert.Equal(1, result.ImportReport.CompoundVbaModulesByPath["_VBA_PROJECT_CUR/VBA/ThisWorkbook"]);
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Equal(1, result.ImportReport.ExternalReferencesByTarget["external-source.xls"]);
             Assert.Equal(1, result.ImportReport.ExternalSheetNamesByTarget["external-source.xls!Data"]);
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["Picture"] >= 1);
             Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["Button"] >= 1);
             Assert.True(result.ImportReport.DrawingRecordsByObjectTypeName["Checkbox"] >= 1);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(4, result.ImportReport.AutoFilterCriteriaCount);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["Blanks"]);
             Assert.Equal(1, result.ImportReport.AutoFilterCriteriaByKind["NonBlanks"]);
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(9, result.ImportReport.DataValidationCount);
             Assert.Equal(1, result.ImportReport.DataValidationCollectionRecordCount);
             Assert.Equal(1, result.ImportReport.DataValidationCollectionsBySheet["Validation"]);
@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Equal(8, result.ImportReport.ConditionalFormattingCount);
             Assert.Equal(7, result.ImportReport.ConditionalFormattingsByType["CellIs"]);
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Workbook.UnsupportedSheets, sheet => sheet.Name == "RevenueChart");
             LegacyXlsChartSheet chartSheet = Assert.Single(result.Workbook.ChartSheets, sheet => sheet.Name == "RevenueChart");
             Assert.Equal(0x02, chartSheet.SheetType);
@@ -622,7 +622,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide);
             Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.PhoneticGuide, result.ImportReport.UnsupportedFeaturesByKind.Keys);
 
@@ -654,7 +654,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-formula-tokens-unsupported");
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-formula-shared-unresolved");
             Assert.Empty(result.ImportReport.FormulaTokenBlockers);
@@ -719,7 +719,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Empty(result.ImportReport.FormulaTokenBlockers);
 
@@ -772,7 +772,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-formula-tokens-unsupported");
             Assert.Equal(0, result.ImportReport.FutureFunctionAliasCount);
             Assert.Equal(2, result.Workbook.DefinedNames.Count);
@@ -827,7 +827,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "xls-biff-filepass-unsupported");
             Assert.Contains("PtgMul", result.ImportReport.FormulaTokensByName.Keys);
 

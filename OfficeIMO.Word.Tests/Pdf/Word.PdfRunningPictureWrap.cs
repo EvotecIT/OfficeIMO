@@ -125,7 +125,7 @@ public sealed class WordPdfRunningPictureWrapTests {
         PdfConversionWarning warning = Assert.Single(result.Warnings,
             item => item.Code == "native-anchored-image-wrap-approximated");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var page = Assert.Single(pdf.GetPages());
         Assert.Single(page.GetImages());
@@ -142,7 +142,7 @@ public sealed class WordPdfRunningPictureWrapTests {
             PdfConversionWarning repeatedWarning = Assert.Single(repeated.Warnings,
                 item => item.Code == "native-anchored-image-wrap-approximated");
             Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, repeatedWarning.LossKind);
-            Assert.Throws<InvalidOperationException>(() => repeated.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => repeated.ThrowIfLoss());
             using var repeatedPdf = PdfPigDocument.Open(repeated.ToBytes());
             var repeatedPage = Assert.Single(repeatedPdf.GetPages());
             Assert.Single(repeatedPage.GetImages());
@@ -215,7 +215,7 @@ public sealed class WordPdfRunningPictureWrapTests {
         PdfConversionWarning warning = Assert.Single(result.Warnings,
             item => item.Code == "native-anchored-image-clipped");
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         AssertNoPictureWrapFallback(result);
         using var pdf = PdfPigDocument.Open(result.ToBytes());
         var page = Assert.Single(pdf.GetPages());

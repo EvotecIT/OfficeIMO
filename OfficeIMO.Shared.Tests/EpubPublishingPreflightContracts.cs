@@ -83,8 +83,9 @@ public sealed class EpubPublishingPreflightContracts {
         var html = HtmlConversionDocument.Parse("<title>Book</title><h1>First</h1><p id='description'>Description</p>" +
             "<h1>Second</h1><section " + attribute + "='description'><p>Content</p></section><h1>Independent</h1><p>Last</p>");
         var split = EpubManuscript.ImportHtml(html);
-        byte[] bytes = split.RequireNoLoss().Write().Bytes;
-        Assert.Contains(split.Report.FidelityDiagnostics, item => item.Code == "EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED" && item.LossKind == OfficeConversionLossKind.None);
+        split.ThrowIfLoss();
+        byte[] bytes = split.Value.Write().Bytes;
+        Assert.Contains(split.Report.Diagnostics, item => item.Code == "EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED" && item.LossKind == OfficeConversionLossKind.None);
         var reopened = EpubPublication.Load(new MemoryStream(bytes));
         Assert.Equal(2, reopened.Spine.Count);
         XDocument content = reopened.GetContentXml("chapter-1");
@@ -94,8 +95,9 @@ public sealed class EpubPublishingPreflightContracts {
         Assert.Equal("Second", Assert.Single(reopened.Read().TableOfContents[0].Children).Label);
 
         var whole = EpubManuscript.ImportHtml(html, new EpubManuscriptOptions { ChapterHeadingLevel = 0 });
-        Assert.Single(whole.RequireNoLoss().Spine);
-        Assert.DoesNotContain(whole.Report.FidelityDiagnostics, item => item.Code == "EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED");
+        whole.ThrowIfLoss();
+        Assert.Single(whole.Value.Spine);
+        Assert.DoesNotContain(whole.Report.Diagnostics, item => item.Code == "EPUB_IMPORT_CHAPTER_BOUNDARY_PRESERVED");
     }
 
     [Fact]

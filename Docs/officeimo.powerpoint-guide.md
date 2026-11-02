@@ -128,7 +128,7 @@ Imported binary files use a preservation-aware writer: no-op saves can retain th
 representable edits append compatible records, and unrelated or unknown records and streams remain intact.
 Saving blocks on known loss by default. Tables, charts, and SmartArt can be converted to deterministic static
 PNG visuals only after the caller accepts the reported loss with
-`new PowerPointSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }`. Features with no safe
+`new PowerPointSaveOptions { AllowLoss = true }`. Features with no safe
 binary representation are blocked rather than silently omitted.
 
 The versioned capability catalog is the source of truth for import, fresh binary authoring, binary round-trip,

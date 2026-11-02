@@ -31,7 +31,7 @@ public sealed class ReaderPublisherTests {
         Assert.Equal(result.Blocks.Select(block => block.Id), result.EnumerateContent().Where(item => item.Block != null).Select(item => item.Block!.Id));
         OfficeDocumentReadResult transported = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(result));
         Assert.Equal(result.Blocks.Select(block => block.Id), transported.EnumerateBlocks().Select(block => block.Id));
-        Assert.All(native.ReadReport.FidelityDiagnostics, finding => Assert.Contains(result.Diagnostics,
+        Assert.All(native.ReadReport.Diagnostics, finding => Assert.Contains(result.Diagnostics,
             retained => retained.Code == finding.Code && retained.Attributes["lossKind"] == finding.LossKind.ToString()));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "PUB_READER_LAYOUT_OMITTED");
         Assert.Equal(native.Images.Count, result.Assets.Count); Assert.All(result.Assets, asset => Assert.Null(asset.PayloadBytes));

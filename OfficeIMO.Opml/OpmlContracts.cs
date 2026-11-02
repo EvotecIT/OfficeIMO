@@ -150,31 +150,31 @@ public sealed class OpmlValidationResult {
 }
 
 /// <summary>Conversion result with deterministic loss reporting.</summary>
-public sealed class OpmlConversionResult<T> : IOfficeConversionReport {
+public sealed class OpmlConversionResult<T> : OfficeConversionReport {
     /// <summary>Converted value.</summary>
     public T Value { get; }
     /// <summary>Conversion diagnostics.</summary>
-    public IReadOnlyList<OpmlDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<OpmlDiagnostic> NativeDiagnostics { get; }
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    public bool HasLoss { get; }
+    public override bool HasLoss { get; }
 
     internal OpmlConversionResult(T value, IReadOnlyList<OpmlDiagnostic> diagnostics) {
         Value = value;
-        Diagnostics = diagnostics;
+        NativeDiagnostics = diagnostics;
         FidelityDiagnostics = Array.AsReadOnly(System.Linq.Enumerable.Select(diagnostics, diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                diagnostic.LossKind,
+                diagnostic.Path,
                 "OfficeIMO.Opml",
-                diagnostic.Path)).ToArray());
+                diagnostic.LossKind)).ToArray());
         HasLoss = System.Linq.Enumerable.Any(FidelityDiagnostics, d => d.LossKind != OfficeConversionLossKind.None);
     }
 
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new InvalidDataException("The OPML conversion reported loss. Inspect Diagnostics for details.");
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The OPML conversion reported loss. Inspect NativeDiagnostics for details.", this);
 }

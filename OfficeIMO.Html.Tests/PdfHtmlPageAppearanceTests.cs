@@ -242,7 +242,7 @@ public sealed class PdfHtmlPageAppearanceTests {
             warning.Code == OfficeDiagnosticCodes.PageAppearanceUnaccountedImageOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     [Fact]

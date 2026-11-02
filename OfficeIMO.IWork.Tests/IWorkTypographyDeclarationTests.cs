@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(IWorkSourceDeclarationIssueKind.UnsupportedField, issue.Kind);
         });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 

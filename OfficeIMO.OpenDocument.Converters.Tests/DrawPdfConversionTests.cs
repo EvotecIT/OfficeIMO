@@ -57,8 +57,8 @@ public sealed class DrawPdfConversionTests {
         OdgDocument source = CreateDrawing();
         source.Pages[1].Shapes.AddRectangle(OdfRect.FromCentimeters(1, 4, 2, 2), "UnsupportedGeometry").Element.Name = OdfNamespaces.Draw + "custom-shape";
         var conversion = source.ToPdfDocumentResult();
-        Assert.Contains(conversion.FidelityDiagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<OdfConversionLossException>(() => conversion.RequireNoLoss());
+        Assert.Contains(conversion.Diagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<OdfConversionLossException>(() => conversion.ThrowIfLoss());
         using var output = new MemoryStream(new byte[] { 1, 2, 3 }, writable: true);
         var result = source.SaveAsPdfResult(output, new() { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported });
         Assert.False(result.Succeeded);
@@ -91,7 +91,7 @@ public sealed class DrawPdfConversionTests {
         saved.RequireSuccess();
         Assert.Equal(2, saved.ConversionReports.Count);
         Assert.True(saved.HasLoss);
-        Assert.Contains(conversion.FidelityDiagnostics, d => d.Source.StartsWith("OfficeIMO.OpenDocument:"));
+        Assert.Contains(conversion.Diagnostics, d => d.Format.StartsWith("OfficeIMO.OpenDocument:"));
         Assert.Contains(conversion.Warnings, w => w.Code == "vertical-text-stacked-fallback");
         Assert.Equal(xml, source.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
         Assert.Equal(PdfPageSizes.Letter, settings.PdfOptions.PageSize);
@@ -111,8 +111,8 @@ public sealed class DrawPdfConversionTests {
         Assert.Contains(projected.Report.Mappings, m => m.Feature == "page:1:First/shape:ImageCaption:text" && m.Status == OdfConversionMappingStatus.Approximated);
         var conversion = source.ToPdfDocumentResult();
         Assert.Contains("ImageCaptionMarker", PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).ExtractText());
-        Assert.DoesNotContain(conversion.FidelityDiagnostics, d => d.Location == "page:1:First/shape:ImageCaption:image-text");
-        Assert.Contains(conversion.FidelityDiagnostics, d => d.Location == "document-metadata" && d.LossKind == OfficeConversionLossKind.Omission);
+        Assert.DoesNotContain(conversion.Diagnostics, d => d.Location == "page:1:First/shape:ImageCaption:image-text");
+        Assert.Contains(conversion.Diagnostics, d => d.Location == "document-metadata" && d.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class DrawPdfConversionTests {
         var conversion = loaded.ToPdfDocumentResult();
         Assert.Equal(3, PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes())).Pages.Count);
         Assert.Equal(before, loaded.GetXml("content.xml").ToString(SaveOptions.DisableFormatting));
-        Assert.DoesNotContain(conversion.FidelityDiagnostics, d => d.Location == "document-metadata");
+        Assert.DoesNotContain(conversion.Diagnostics, d => d.Location == "document-metadata");
     }
 
     [Theory]
@@ -160,7 +160,7 @@ public sealed class DrawPdfConversionTests {
                 : useAsync ? await source.SaveAsPdfResultAsync(output, options) : source.SaveAsPdfResult(output, options);
             Assert.False(result.Succeeded);
             Assert.True(result.HasLoss);
-            Assert.Contains(result.FidelityDiagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(result.ConversionDiagnostics, d => d.Location!.StartsWith("page:2:Second/") && d.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(original, path ? File.ReadAllBytes(outputPath) : output.ToArray());
             Assert.True(output.CanWrite);
         } finally { if (File.Exists(outputPath)) File.Delete(outputPath); }

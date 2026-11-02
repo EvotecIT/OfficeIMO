@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(report.SourceReferenceIssues);
         Assert.Equal(visual ? IWorkProjectionKind.VisualFallback : IWorkProjectionKind.EditableReconstruction,
             report.ProjectionKind);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED").LossKind);
     }
 

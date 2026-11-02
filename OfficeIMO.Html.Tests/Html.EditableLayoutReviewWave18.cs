@@ -59,8 +59,8 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
         Assert.Single(word.Images);
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pict", rtf, StringComparison.Ordinal);
-        Assert.Contains(wordResult.Report.Diagnostics, IsNestedPlacementDiagnostic);
-        Assert.Contains(rtfResult.Report.Diagnostics, IsNestedPlacementDiagnostic);
+        Assert.Contains(wordResult.Report.NativeDiagnostics, IsNestedPlacementDiagnostic);
+        Assert.Contains(rtfResult.Report.NativeDiagnostics, IsNestedPlacementDiagnostic);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class HtmlEditableLayoutReviewWave18Tests {
         using PowerPointDocument presentation = result.Value;
 
         Assert.Single(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Gradient");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened
             && diagnostic.Severity == HtmlDiagnosticSeverity.Warning
             && diagnostic.LossKind == OfficeConversionLossKind.Omission

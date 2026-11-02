@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("xls-ole-custom-document-property-unsupported", feature.Code);
             Assert.Equal("DocumentProperty:Custom:PropertyId:0x0002:Type:0x0048", feature.DetailCode);
             Assert.Contains("UnsupportedBlob", feature.Description);
-            Assert.Contains(result.Diagnostics, diagnostic =>
+            Assert.Contains(result.NativeDiagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Info
                 && diagnostic.Code == "xls-ole-custom-document-property-unsupported"
                 && diagnostic.DetailCode == "DocumentProperty:Custom:PropertyId:0x0002:Type:0x0048");

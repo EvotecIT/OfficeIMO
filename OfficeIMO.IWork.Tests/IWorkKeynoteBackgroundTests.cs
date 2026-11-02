@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(kind is "solid" or "none", slide.HasBackgroundFill);
                 Assert.Equal(expected.GetProperty("rgb").GetString(), slide.BackgroundColor?.RgbHex);
                 Assert.Equal(slide.BackgroundColor?.RgbHex, reopened.Slides[slide.Index - 1].BackgroundColor);
-                if (kind == "unsupported") Assert.Contains(result.Report.Diagnostics,
+                if (kind == "unsupported") Assert.Contains(result.Report.NativeDiagnostics,
                     d => d.Code == "IWORK_KEYNOTE_BACKGROUND_UNSUPPORTED" && d.RecordIdentifier == slide.SourceIdentity!.RecordIdentifier);
             }
         }

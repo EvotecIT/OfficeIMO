@@ -43,9 +43,9 @@ public sealed class DjVuPdfPageReport {
 }
 
 /// <summary>DjVu-stage fidelity and provenance, carried in the PDF result's source conversion reports.</summary>
-public sealed class DjVuPdfConversionReport : IOfficeConversionReport {
+public sealed class DjVuPdfConversionReport : OfficeConversionReport {
     internal DjVuPdfConversionReport(string hash, List<DjVuPdfPageReport> pages,
-        List<OfficeConversionFidelityDiagnostic> diagnostics, OfficeDocumentOcrExecutionReport? ocrReport) {
+        List<OfficeDiagnostic> diagnostics, OfficeDocumentOcrExecutionReport? ocrReport) {
         SourceSha256 = hash; Pages = pages.AsReadOnly(); FidelityDiagnostics = diagnostics.AsReadOnly(); OcrReport = ocrReport;
     }
     /// <summary>Hash of the exact primary DjVu source snapshot.</summary>
@@ -55,11 +55,10 @@ public sealed class DjVuPdfConversionReport : IOfficeConversionReport {
     /// <summary>Existing execution counters when an explicit OCR engine ran.</summary>
     public OfficeDocumentOcrExecutionReport? OcrReport { get; }
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    public bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeConversionException("DjVu PDF conversion reported fidelity loss. Inspect FidelityDiagnostics.", this);
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("DjVu PDF conversion reported fidelity loss. Inspect FidelityDiagnostics.", this);
 }

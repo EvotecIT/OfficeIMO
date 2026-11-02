@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, CssTableOptions());
         Assert.Contains("Retained", rendered.Text);
         Assert.DoesNotContain("Unsupported", rendered.Text);
-        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported
+        Assert.Contains(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported
             && item.LossKind == OfficeConversionLossKind.Omission && item.Source == "div#target::after");
     }
 }

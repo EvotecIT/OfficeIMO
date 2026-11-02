@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeImageExportDiagnosticCodes.FontSubstituted, diagnostic!.Code);
             Assert.Equal(OfficeIMO.OfficeConversionLossKind.Approximation, diagnostic.LossKind);
             Assert.Throws<OfficeImageExportPolicyException>(() =>
-                new OfficeImageExportPolicy { RequireNoLoss = true }.EnsureAccepted(new[] { diagnostic }));
+                new OfficeImageExportPolicy { FailOnLoss = true }.EnsureAccepted(new[] { diagnostic }));
             Assert.Throws<OfficeImageExportPolicyException>(() =>
                 new OfficeImageExportPolicy { FailOnDiagnosticCodes = new[] { diagnostic.Code } }
                     .EnsureAccepted(new[] { diagnostic }));

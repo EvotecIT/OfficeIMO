@@ -49,7 +49,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(Corpus("numbers-parser/cross-table-formulas.numbers"),
             conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);
-        Assert.Contains(result.Report.FidelityDiagnostics, d => d.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED"
+        Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED"
             && d.LossKind == OfficeConversionLossKind.Approximation);
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;

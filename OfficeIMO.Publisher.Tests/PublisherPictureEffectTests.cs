@@ -17,8 +17,8 @@ public sealed class PublisherPictureEffectTests {
         Assert.All(document.Images.Select((image, index) => (image, index)), entry =>
             Assert.Equal(originals[entry.index], entry.image.GetBytes()));
         Assert.Equal(OfficeColor.FromRgb(expected, expected, expected), ProjectedRaster(document, 362).GetPixel(0, 0));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED" && item.Location == "Contents/object/362");
-        Assert.Contains(document.ToSvgResult(PicturePageIndex(document, 362)).Report.FidelityDiagnostics,
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED" && item.Location == "Contents/object/362");
+        Assert.Contains(document.ToSvgResult(PicturePageIndex(document, 362)).Report.Diagnostics,
             item => item.Code == "PUB_PICTURE_EFFECT_APPROXIMATED");
         var pdf = document.ToPdfDocumentResult();
         Assert.Contains(document.ReadReport, pdf.SourceConversionReports);
@@ -59,7 +59,7 @@ public sealed class PublisherPictureEffectTests {
             [property] = value, [0x013F] = 0x00040004
         }), new PublisherReadOptions { ImageCodec = new PictureCodec() });
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == diagnostic);
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == diagnostic);
     }
 
     [Theory]
@@ -75,7 +75,7 @@ public sealed class PublisherPictureEffectTests {
         PublisherDocument document = PublisherDocument.Load(PictureInput(new Dictionary<ushort, uint> {
             [property] = value, [0x013F] = 0x00040004
         }), new PublisherReadOptions { ImageCodec = new PictureCodec() });
-        Assert.Equal(reported, document.ReadReport.FidelityDiagnostics.Any(item => item.Code == "PUB_PICTURE_RECOLOR_UNASSESSED"
+        Assert.Equal(reported, document.ReadReport.Diagnostics.Any(item => item.Code == "PUB_PICTURE_RECOLOR_UNASSESSED"
             && item.Location == "Contents/object/362"));
         Assert.Equal(OfficeColor.FromRgb(54, 54, 54), ProjectedRaster(document, 362).GetPixel(0, 0));
     }

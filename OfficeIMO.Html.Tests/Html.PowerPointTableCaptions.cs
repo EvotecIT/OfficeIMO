@@ -25,7 +25,7 @@ public sealed class HtmlPowerPointTableCaptionTests {
         PowerPointTable firstTable = Assert.Single(captionSlide.Tables);
         Assert.Equal("Row 1", firstTable.GetCell(0, 0).Text);
         Assert.Equal("Standard 1", firstTable.GetCell(0, 1).Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
     }

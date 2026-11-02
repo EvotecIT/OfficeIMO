@@ -57,7 +57,7 @@ public class HtmlExcelRasterNormalization {
         using ExcelDocument workbook = result.RequireValue();
         if (limit == "pixels") Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
         else Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.Contains(limit == "pixels" ? "MaxDecodedImagePixels" : "raster decode attempts"));
     }
 
@@ -137,7 +137,7 @@ public class HtmlExcelRasterNormalization {
             Assert.InRange(Math.Abs(expected[index] - actual[index]), 0, index % 4 == 3 ? 0 : 3);
         }
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.ResourceTypeUnsupported);
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && d.Detail == "sourceMediaType=image/" + format + "; nativeMediaType=image/png");
     }
 
@@ -207,7 +207,7 @@ public class HtmlExcelRasterNormalization {
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Equal(2, result.Report.Diagnostics.Count(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Equal(2, result.Report.NativeDiagnostics.Count(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.Contains("raster decode attempts")));
     }
 
@@ -259,7 +259,7 @@ public class HtmlExcelRasterNormalization {
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Empty(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Single(result.Report.Diagnostics.Where(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Single(result.Report.NativeDiagnostics.Where(d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.Contains("raster decode input bytes")));
     }
 
@@ -276,7 +276,7 @@ public class HtmlExcelRasterNormalization {
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && diagnostic.Detail!.StartsWith("MaxTotalImageBytes:", StringComparison.Ordinal));
     }
 
@@ -298,7 +298,7 @@ public class HtmlExcelRasterNormalization {
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using ExcelDocument workbook = result.RequireValue();
         Assert.Single(workbook.Sheets.SelectMany(sheet => sheet.Images));
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && d.Detail!.StartsWith("MaxTotalImageBytes:", StringComparison.Ordinal));
     }
 

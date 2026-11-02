@@ -22,7 +22,7 @@ public static partial class OfficeOcrConversionExtensions {
         var converted = source.Document.ConvertToExcelWithEvidence(options, cancellationToken);
         ExcelDocument value = converted.Value;
         try {
-            report = PdfConversionEvidence.CreateReport("Pdf", new IOfficeConversionReport[] { converted.Report },
+            report = PdfConversionEvidence.CreateReport("Pdf", new OfficeConversionReport[] { converted.Report },
                 elapsed: timer.Elapsed, itemsWritten: value.Sheets.Count, target: "Excel");
             if (options?.FailOnLoss == true) report.ThrowIfLoss();
             return value;

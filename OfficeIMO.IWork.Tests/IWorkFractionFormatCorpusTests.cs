@@ -45,7 +45,7 @@ public sealed class IWorkFractionFormatCorpusTests {
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_FRACTION_DISPLAY_APPROXIMATED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);

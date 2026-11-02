@@ -372,7 +372,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nestedOptions.AdditionalStylesheets.Clear();
 
         HtmlRenderDocument rendered = HtmlRenderEngine.RenderEmbedded(nestedDocument, nestedOptions, _resources, _cancellationToken);
-        _diagnostics.AddRange(rendered.Diagnostics);
+        _diagnostics.AddRange(rendered.NativeDiagnostics);
         HtmlRenderPage page = rendered.Pages[0];
         OfficeDrawing nested = page.CreateDrawing(_cancellationToken);
         if (Math.Abs(nested.Width - context.Width) <= 0.0001D

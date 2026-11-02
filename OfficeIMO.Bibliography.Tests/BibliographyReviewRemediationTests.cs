@@ -35,20 +35,20 @@ public sealed class BibliographyReviewRemediationTests {
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement root = json.RootElement[0];
         Assert.Equal(itemValue, root.GetProperty(itemField).GetString());
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
+        Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
         if (includeNameAndDateOwners) {
             Assert.Equal("name-edited", root.GetProperty("author")[0].GetProperty("x-name").GetString());
             Assert.Equal("date-edited", root.GetProperty("issued").GetProperty("x-date").GetString());
-            Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
-            Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
-            Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
-            Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+            Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+            Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+            Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+            Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
         }
     }
 
@@ -61,7 +61,7 @@ public sealed class BibliographyReviewRemediationTests {
         document.Items.Add(item);
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
-        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.False(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).HasErrors);
         Assert.DoesNotContain("custom id", written.Content, StringComparison.OrdinalIgnoreCase);
@@ -120,7 +120,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Strict_canonical_write_rejects_partially_recovered_source() {
         BibliographyDocument document = BibliographyDocument.Parse("@book{a,title={A}}\n@book", BibliographyFormat.BibLatex).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222");
     }
@@ -132,7 +132,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Strict_canonical_write_rejects_ignored_source_fragments(string source, BibliographyFormat format) {
         BibliographyDocument document = BibliographyDocument.Parse(source, format).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222");
     }
@@ -144,7 +144,7 @@ public sealed class BibliographyReviewRemediationTests {
         item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = "Research and Development Team" }));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyContributor contributor = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items[0].Contributors);
 
         Assert.Contains("{{Research and Development Team}}", written.Content, StringComparison.Ordinal);
@@ -155,7 +155,7 @@ public sealed class BibliographyReviewRemediationTests {
     public void Csl_keyword_delimiters_survive_strict_canonical_round_trip() {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"keyword\":\"alpha, beta; gamma\"}]", BibliographyFormat.CslJson).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Equal("alpha, beta; gamma", Assert.Single(reopened.Keywords));
@@ -180,12 +180,12 @@ public sealed class BibliographyReviewRemediationTests {
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyNativeField reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].NativeFields.Single(field => field.Name == "custom");
 
         Assert.Equal("edited", reopened.Value);
         Assert.Contains("<custom>edited</custom>", written.Content, StringComparison.Ordinal);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV234" && diagnostic.Field == "native.custom");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV234" && diagnostic.Field == "native.custom");
     }
 
     [Theory]
@@ -206,13 +206,13 @@ public sealed class BibliographyReviewRemediationTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, readOptions).Document;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyReadResult reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson);
 
         Assert.False(reopened.HasErrors);
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV247" || diagnostic.Code == "BIBCONV126");
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "custom");
+        Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "custom");
     }
 
     [Fact]

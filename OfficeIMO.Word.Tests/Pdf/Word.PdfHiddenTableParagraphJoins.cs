@@ -164,7 +164,7 @@ public partial class Word {
         var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { FontSize = global::OfficeIMO.OfficeLength.Points(18D) } } });
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "native-hidden-paragraph-join-unsupported");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(18D, pdf.GetPage(1).Letters.First(letter => letter.Value == "A").FontSize, 3);
         Assert.Equal(18D, Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "B").FontSize, 3);

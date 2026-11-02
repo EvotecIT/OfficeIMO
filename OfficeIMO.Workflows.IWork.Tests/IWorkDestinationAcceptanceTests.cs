@@ -35,7 +35,7 @@ public sealed partial class IWorkWorkflowTests {
         if (allowPartial) {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("True", evidence.Facts["partialEditableReconstruction"]);
-            Assert.Contains(evidence.FidelityDiagnostics, diagnostic =>
+            Assert.Contains(evidence.Diagnostics, diagnostic =>
                 diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(files.Output);
             Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());

@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
 
         PdfCore.PdfDocumentConversionResult pdf = document.ConvertToPdfWithEvidence(options);
         byte[] bytes = pdf.ToBytes();
-        pdf.RequireNoLoss();
+        pdf.ThrowIfLoss();
         Assert.Equal(logicalText, PdfCore.PdfReadDocument.Open(bytes).ExtractText().Trim());
         OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult replay = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(

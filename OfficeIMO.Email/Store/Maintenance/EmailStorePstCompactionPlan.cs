@@ -51,6 +51,6 @@ public sealed class EmailStorePstCompactionPlan {
     /// <summary>Whether the verified rewrite may start.</summary>
     public bool IsExecutable => SelectedItems > 0 && !ItemLimitReached &&
         !Diagnostics.Any(diagnostic => diagnostic.Severity == EmailStoreDiagnosticSeverity.Error) &&
-        (!Options.FailOnDataLoss || !Diagnostics.Any(diagnostic =>
+        (!Options.FailOnLoss || !Diagnostics.Any(diagnostic =>
             diagnostic.Severity != EmailStoreDiagnosticSeverity.Information));
 }

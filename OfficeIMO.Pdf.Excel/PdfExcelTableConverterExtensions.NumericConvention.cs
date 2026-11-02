@@ -17,7 +17,7 @@ public static partial class PdfExcelTableConverterExtensions {
     private static CultureInfo ResolveNumericCulture(
         IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables,
         CultureInfo requested,
-        List<OfficeConversionFidelityDiagnostic> diagnostics,
+        List<OfficeDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
         NumericConventionEvidence evidence = default;
         for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
@@ -37,26 +37,30 @@ public static partial class PdfExcelTableConverterExtensions {
             : evidence.Point > 0 && evidence.Comma == 0 ? '.'
             : null;
         if (evidence.Comma > 0 && evidence.Point > 0) {
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "pdf-excel-numeric-convention-mixed",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "PDF table values use both comma and point decimal separators (" +
                 evidence.Comma.ToString(CultureInfo.InvariantCulture) + " comma, " +
                 evidence.Point.ToString(CultureInfo.InvariantCulture) + " point); values were parsed with the " +
                 DescribeCulture(requested) + " culture and some numbers may be misread.",
-                OfficeConversionLossKind.Approximation,
-                "OfficeIMO.Pdf.Excel"));
+                null,
+                "OfficeIMO.Pdf.Excel",
+                OfficeConversionLossKind.Approximation));
             return requested;
         }
 
         if (!inferredDecimal.HasValue) {
             if (evidence.Ambiguous > 0) {
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                     "pdf-excel-numeric-value-ambiguous",
+                    global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                     evidence.Ambiguous.ToString(CultureInfo.InvariantCulture) +
                     " PDF table value(s) such as '" + evidence.FirstAmbiguous + "' can be read either as a grouped integer or a decimal; " +
                     "the document has no other separator evidence, so they were parsed with the " + DescribeCulture(requested) + " culture.",
-                    OfficeConversionLossKind.Approximation,
-                    "OfficeIMO.Pdf.Excel"));
+                    null,
+                    "OfficeIMO.Pdf.Excel",
+                    OfficeConversionLossKind.Approximation));
             }
             return requested;
         }
@@ -64,12 +68,14 @@ public static partial class PdfExcelTableConverterExtensions {
         string requestedDecimal = requested.NumberFormat.NumberDecimalSeparator;
         if (requestedDecimal.Length == 1 && requestedDecimal[0] == inferredDecimal.Value) return requested;
         if (!requestedIsDefault) {
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                 "pdf-excel-numeric-convention-mismatch",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "PDF table values use '" + inferredDecimal.Value + "' as the decimal separator, but they were parsed with the requested " +
                 DescribeCulture(requested) + " culture.",
-                OfficeConversionLossKind.Approximation,
-                "OfficeIMO.Pdf.Excel"));
+                null,
+                "OfficeIMO.Pdf.Excel",
+                OfficeConversionLossKind.Approximation));
             return requested;
         }
 

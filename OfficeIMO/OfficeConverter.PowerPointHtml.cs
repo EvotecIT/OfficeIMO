@@ -11,7 +11,7 @@ public static partial class OfficeConverter {
         var converted = document.ToHtmlResult(options.PowerPointHtml);
         long slides = options.PowerPointHtml?.IncludeHiddenSlides == true ? document.Slides.Count : document.Slides.Count(slide => !slide.Hidden);
         var report = new OfficeConversionReport(options.SourceName!, "Html", itemsWritten: slides,
-            diagnostics: converted.Report.Diagnostics.Select(diagnostic => new OfficeDiagnostic(diagnostic.Code,
+            diagnostics: converted.Report.NativeDiagnostics.Select(diagnostic => new OfficeDiagnostic(diagnostic.Code,
                 diagnostic.Severity switch {
                     HtmlDiagnosticSeverity.Error => OfficeDiagnosticSeverity.Error,
                     HtmlDiagnosticSeverity.Warning => OfficeDiagnosticSeverity.Warning,

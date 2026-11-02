@@ -20,8 +20,7 @@ public sealed class PublicApiNamingContracts {
         Type[] rootContracts = {
             typeof(IOfficeResult),
             typeof(IOfficeResult<>),
-            typeof(IOfficeConversionReport),
-            typeof(IOfficeConversionResult<,>),
+            typeof(OfficeConversionReport),
             typeof(OfficeConversionResult<,>),
             typeof(OfficeFormatDescriptor),
             typeof(OfficeCompatibilityReport),
@@ -247,13 +246,11 @@ public sealed class PublicApiNamingContracts {
 
         Assert.All(resultTypes, static resultType => {
             Assert.True(typeof(IOfficeResult).IsAssignableFrom(resultType), resultType.FullName);
-            Assert.Contains(resultType.GetInterfaces(), static contract =>
-                contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IOfficeConversionResult<,>));
             Assert.NotNull(resultType.GetProperty("Value"));
             Assert.NotNull(resultType.GetProperty("Report"));
             Assert.NotNull(resultType.GetProperty("HasLoss"));
             Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
-            Assert.NotNull(resultType.GetMethod("RequireNoLoss", Type.EmptyTypes));
+            Assert.NotNull(resultType.GetMethod("ThrowIfLoss", Type.EmptyTypes));
         });
 
         Type[] parseResults = {

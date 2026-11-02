@@ -30,44 +30,45 @@ public sealed class OneNoteMarkdownDiagnostic {
 }
 
 /// <summary>A Markdown document paired with explicit semantic-projection diagnostics.</summary>
-public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDocument, OneNoteMarkdownConversionReport> {
+public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<MarkdownDocument> {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new OneNoteMarkdownConversionReport Report => (OneNoteMarkdownConversionReport)base.Report;
+
     internal OneNoteMarkdownConversionResult(MarkdownDocument value, IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics)
         : base(value, new OneNoteMarkdownConversionReport(diagnostics)) { }
 
     /// <summary>Source and projection diagnostics captured for this operation.</summary>
-    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics => Report.Diagnostics;
+    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics => Report.NativeDiagnostics;
 
 }
 
 /// <summary>OneNote-to-Markdown semantic-projection diagnostics captured for one operation.</summary>
-public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
+public sealed class OneNoteMarkdownConversionReport : OfficeConversionReport {
     internal OneNoteMarkdownConversionReport(IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
-        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
-            new OfficeConversionFidelityDiagnostic(
+        NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics.Select(static diagnostic =>
+            new global::OfficeIMO.OfficeDiagnostic(
                 diagnostic.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 diagnostic.Message,
-                GetLossKind(diagnostic),
+                diagnostic.Source,
                 "OfficeIMO.OneNote.Markdown",
-                diagnostic.Source)).ToArray());
+                GetLossKind(diagnostic))).ToArray());
     }
 
     /// <summary>Source and projection diagnostics in discovery order.</summary>
-    public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<OneNoteMarkdownDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>Category-preserving conversion diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>True when projection reported an approximation, omission, or error.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic =>
+    public override bool HasLoss => NativeDiagnostics.Any(static diagnostic =>
         diagnostic.Severity != OneNoteDiagnosticSeverity.Information);
 
     /// <summary>Throws when projection reported possible content loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException("OneNote-to-Markdown conversion reported one or more lossy mappings.");
-        }
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("OneNote-to-Markdown conversion reported one or more lossy mappings.", this);
 
     private static OfficeConversionLossKind GetLossKind(OneNoteMarkdownDiagnostic diagnostic) {
         if (diagnostic.LossKind.HasValue) {

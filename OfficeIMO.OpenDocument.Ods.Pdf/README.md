@@ -1,6 +1,6 @@
 # OfficeIMO.OpenDocument.Ods.Pdf
 
-Bidirectional ODS and PDF conversion without Word or PowerPoint dependencies. Forward `ToPdfDocumentResult()` calls expose the typed ODS-to-Excel report in `SourceConversionReports` and PDF-layout diagnostics in `Report`; `ConversionReports`, `HasLoss`, and `RequireNoLoss()` cover both stages. PDF to ODS reconstructs detected tables through the PDF-to-Excel and Excel-to-ODS adapters and reports omitted non-table page content.
+Bidirectional ODS and PDF conversion without Word or PowerPoint dependencies. Forward `ToPdfDocumentResult()` calls expose the typed ODS-to-Excel report in `SourceConversionReports` and PDF-layout diagnostics in `Report`; `ConversionReports`, `HasLoss`, and `ThrowIfLoss()` cover both stages. PDF to ODS reconstructs detected tables through the PDF-to-Excel and Excel-to-ODS adapters and reports omitted non-table page content.
 
 PDF imports accept `ExcelPdfImportOptions.PreserveColumnProportions` through `pdfOptions`. This optional policy retains detected relative column widths, with the [shared import settings and fallback behavior](../OfficeIMO.Excel.Pdf/README.md#import-structured-pdf-data). ODS widths use the spreadsheet adapter's approximate unit conversion; physical PDF dimensions and exact printer geometry are not guaranteed. `PdfOdsConversionReport.PdfReport.Entries` exposes whether each table applied the proportions.
 

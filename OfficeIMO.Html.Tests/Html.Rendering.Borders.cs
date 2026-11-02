@@ -352,7 +352,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<path", svg, StringComparison.Ordinal);
         Assert.Contains("stroke-dasharray=", svg, StringComparison.Ordinal);
         Assert.Contains("BorderPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Source == "div#side-border" || diagnostic.Source == "div#overridden-border" || diagnostic.Source == "div#mixed-border");
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "div#side-border" || diagnostic.Source == "div#overridden-border" || diagnostic.Source == "div#mixed-border");
         Assert.Contains(HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.OutlinePaintValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BorderPaintValueUnsupported, out _));

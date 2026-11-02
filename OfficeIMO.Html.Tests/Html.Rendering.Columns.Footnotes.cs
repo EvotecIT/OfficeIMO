@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Single(document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>(), t => t.Text == "Body" + i.ToString("D2"));
         }
         Assert.Single(document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>(), t => t.Text == "End");
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed partial class HtmlRenderingTests {
                 || image.Y + image.Height <= note.Y || note.Y + note.Height <= image.Y);
         }
         Assert.Single(document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>(), t => t.Text == "AfterImage");
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.InRange(note.X, call.X, call.X + 100D);
         for (int i = 0; i < 12; i++) Assert.Single(document.Pages.SelectMany(p => p.Visuals).OfType<HtmlRenderText>(),
             t => t.Text == "Note" + i.ToString("D2"));
-        Assert.DoesNotContain(document.Diagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, d => d.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     [Fact]

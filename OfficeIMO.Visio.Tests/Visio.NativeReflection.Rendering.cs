@@ -53,14 +53,14 @@ public sealed class VisioNativeReflectionRenderingTests {
         VisioDocument document = Load(xml);
         AssertOutlines(document, "165.6 374.4 21.6 374.4 136.8 302.4");
         var scene = document.ToDrawings();
-        Assert.Contains(scene.Report.FidelityDiagnostics, item => item.Code == "VISIO_SHAPE_CACHED_REFLECTION" && item.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<OfficeConversionException>(() => scene.Report.RequireNoLoss());
+        Assert.Contains(scene.Report.Diagnostics, item => item.Code == "VISIO_SHAPE_CACHED_REFLECTION" && item.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<OfficeConversionException>(() => scene.Report.ThrowIfLoss());
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
             var result = document.ExportImage(format, new VisioImageExportOptions { RenderText = false, RenderStencilArtwork = false });
             Assert.Contains(result.Diagnostics, item => item.Code == "VISIO_SHAPE_CACHED_REFLECTION");
         }
         flip.Value = "NaN"; document = Load(xml);
-        Assert.Contains(document.ToDrawings().Report.FidelityDiagnostics, item => item.Code == "VISIO_SHAPE_TRANSFORM_INVALID" && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(document.ToDrawings().Report.Diagnostics, item => item.Code == "VISIO_SHAPE_TRANSFORM_INVALID" && item.LossKind == OfficeConversionLossKind.Omission);
         foreach (OfficeImageExportFormat format in new[] { OfficeImageExportFormat.Svg, OfficeImageExportFormat.Png }) {
             var result = document.ExportImage(format, new VisioImageExportOptions { RenderText = false, RenderStencilArtwork = false });
             Assert.Contains(result.Diagnostics, item => item.Code == "VISIO_SHAPE_TRANSFORM_INVALID" && item.LossKind == OfficeConversionLossKind.Omission);

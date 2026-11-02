@@ -16,7 +16,7 @@ public sealed class RtfNativeStyleWritingTests {
         outer.AddParagraph("Outer").SetListText(text => text.AddText("1.").StyleId = marker.Id);
         if (nested) outer.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Inner").SetListText(text => text.AddText("2.").StyleId = marker.Id);
         var result = source.ToRtfResult();
-        Assert.Equal("Paragraphs=0;Runs=" + (nested ? "2" : "1"), Assert.Single(result.Report.Diagnostics).Detail);
+        Assert.Equal("Paragraphs=0;Runs=" + (nested ? "2" : "1"), Assert.Single(result.Report.NativeDiagnostics).Detail);
         RtfTable table = Assert.Single(RtfDocument.Read(result.Value).Document.Blocks.OfType<RtfTable>());
         AssertMarker(table.Rows[0].Cells[0].Paragraphs.Single(paragraph => paragraph.ToPlainText() == "Outer"));
         if (nested) AssertMarker(Assert.Single(table.Rows[0].Cells[0].Blocks.OfType<RtfTable>()).Rows[0].Cells[0].Paragraphs.Single(paragraph => paragraph.ToPlainText() == "Inner"));
@@ -34,12 +34,12 @@ public sealed class RtfNativeStyleWritingTests {
 \pard\s1 Inherited {\b0\v0 Visible} {\plain Plain}\par}";
         RtfDocument source = RtfDocument.Read(input).Document;
         var result = source.ToRtfResult();
-        RtfConversionDiagnostic loss = Assert.Single(result.Report.Diagnostics);
+        RtfConversionDiagnostic loss = Assert.Single(result.Report.NativeDiagnostics);
         Assert.Equal("RtfNormalizationFormattingInheritanceMaterialized", loss.Code);
         Assert.Equal(RtfConversionAction.Flattened, loss.Action);
         Assert.Equal("Paragraphs=1;Runs=3", loss.Detail);
         Assert.Equal(4, loss.Count);
-        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.ThrowIfLoss());
 
         RtfParagraph original = source.Paragraphs[0];
         Assert.Null(original.DirectAlignment);
@@ -64,11 +64,11 @@ public sealed class RtfNativeStyleWritingTests {
         RtfDocument source = RtfDocument.Create();
         source.AddStyle(9, "Unused").Bold = true;
         source.AddParagraph("Direct").Runs[0].Bold = true;
-        source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true }).RequireNoLoss();
+        source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true }).ThrowIfLoss();
         RtfStyle used = source.AddStyle(1, "Used");
         used.Bold = true;
         source.Paragraphs[0].StyleId = used.Id;
-        source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true }).RequireNoLoss();
+        source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true }).ThrowIfLoss();
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class RtfNativeStyleWritingTests {
         source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Cell").StyleId = bold.Id;
 
         var output = source.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = true });
-        Assert.Equal("Paragraphs=0;Runs=5", Assert.Single(output.Report.Diagnostics).Detail);
+        Assert.Equal("Paragraphs=0;Runs=5", Assert.Single(output.Report.NativeDiagnostics).Detail);
         RtfDocument reopened = RtfDocument.Read(output.Value).Document;
         Assert.True(reopened.Paragraphs[0].Runs[0].DirectBold);
         Assert.True(Assert.Single(reopened.Paragraphs[0].Inlines.OfType<RtfField>()).Result.Runs[0].DirectBold);

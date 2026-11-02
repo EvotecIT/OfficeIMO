@@ -48,7 +48,7 @@ The packages target `netstandard2.0`, .NET 8, and .NET 10; Windows builds also t
 | <!-- capability:bounded-ingestion --> Bounded ingestion | Full | `RtfReadOptions.UntrustedDefaults` caps input bytes/chars, depth, tokens, groups, text, binary, images, objects, and semantic blocks. |
 | <!-- capability:cancellation --> Cancellation | Full | String, byte, file, and stream routes support cooperative cancellation through tokenization and semantic binding. |
 | <!-- capability:unknown-diagnostics --> Unknown and preserve-only destinations | Full | Stable diagnostics identify unknown ignorable destinations and classified advanced families while the lossless path retains syntax. |
-| <!-- capability:shared-report --> Shared conversion truth | Full | `RtfConversionReport` is used across semantic adapters. `RequireNoLoss()` rejects flattened, omitted, blocked, or error diagnostics. `ToRtfResult()` reports normalization loss, including unbound syntax and stale encapsulated HTML. PDF uses `PdfConversionReport` with `RtfAction` details. |
+| <!-- capability:shared-report --> Shared conversion truth | Full | `RtfConversionReport` is used across semantic adapters. `ThrowIfLoss()` rejects flattened, omitted, blocked, or error diagnostics. `ToRtfResult()` reports normalization loss, including unbound syntax and stale encapsulated HTML. PDF uses `PdfConversionReport` with `RtfAction` details. |
 | <!-- capability:web-safe-html --> HTML output profiles | Full | `CreateWebSafeProfile()` blocks unsafe URL schemes, private metadata, and inline payloads by default. `CreateRoundTripProfile()` is explicit trusted output. |
 
 The untrusted profile is intentionally conservative. Applications can clone or create `RtfReadOptions` with different limits, but uploaded RTF should not use the compatibility-oriented default without a host boundary.
@@ -126,7 +126,7 @@ The raw `Settings.NoteMode` retains a declared `\fet` value separately from note
 | RTF to Word | Missing, mixed, negative or unrepresentable row half-gaps use zero table margins with `RtfWordTableCellGapFlattened`; explicit row/cell padding still applies. |
 | Word to RTF | Nonzero spacing between separated cells is omitted with `WordRtfTableCellSpacingOmitted`; it is not an RTF half-gap. |
 
-These diagnostics describe conversion losses. Strict callers can reject them with `RequireNoLoss()`. When composing a Word bridge with PDF conversion, carry the bridge report with `WithSourceConversionReport(...)` so saving the PDF retains those source losses.
+These diagnostics describe conversion losses. Strict callers can reject them with `ThrowIfLoss()`. When composing a Word bridge with PDF conversion, carry the bridge report with `WithSourceConversionReport(...)` so saving the PDF retains those source losses.
 
 ## Safe and strict recipe
 
@@ -142,7 +142,7 @@ string html = converted.Value;
 var report = new RtfConversionReport();
 report.AddReadDiagnostics(read.Diagnostics, "upload.rtf");
 report.Merge(converted.RtfReport);
-report.RequireNoLoss();
+report.ThrowIfLoss();
 ```
 
 Use strict mode when the workflow must reject any degradation. For display or extraction workflows, inspect `Diagnostics` and decide which explicit flatten/omit/block actions are acceptable.
