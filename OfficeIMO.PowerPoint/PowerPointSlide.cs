@@ -184,6 +184,19 @@ namespace OfficeIMO.PowerPoint {
             return name;
         }
 
+        /// <summary>
+        ///     Normalizes slide markup before a package save. The package save persists every loaded root,
+        ///     so serializing the slide here as well would only repeat that work.
+        /// </summary>
+        internal void PrepareForPackageSave() {
+            if (!_slidePart.IsRootElementLoaded
+                && GetLegacySlideIdShowValue(GetSlideId()) == null) {
+                return;
+            }
+
+            NormalizeHiddenSlideMarkup();
+        }
+
         internal void Save() {
             SlideId slideId = GetSlideId();
             if (!_slidePart.IsRootElementLoaded
