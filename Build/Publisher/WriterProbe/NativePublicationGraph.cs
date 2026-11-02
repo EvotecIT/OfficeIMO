@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Publisher.Internal;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
 namespace OfficeIMO.Publisher.WriterProbe;
@@ -158,6 +159,7 @@ internal static class NativePublicationGraph {
         // IdLayout remains an independent identifier in field 7.
         if (frameCount != 1) fields.Add(ShortScalar(2, 0x18, checked((ushort)frameCount)));
         if (story.Source.CellEnds != null) fields.Add(ShortScalar(3, 0x10, 0)); // Table story role (Tdet).
+        if (story.Source.AutomaticHyphenation is { } enabled) fields.Add(PublisherStoryHyphenation.EncodeFlag(enabled));
         fields.Add(Scalar(7, 0x20, story.LayoutId));
         return Variable(0, 0x88, fields.ToArray());
     }

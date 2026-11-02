@@ -2,6 +2,9 @@ namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Reads and rewrites the qualified Contents story flag independently of Quill text and paragraph formatting.</summary>
 internal static class PublisherStoryHyphenation {
+    /// <summary>Encodes the qualified OplQsb flag shared by source saving and template-free creation codecs.</summary>
+    internal static byte[] EncodeFlag(bool enabled) => new byte[] { 4, enabled ? (byte)8 : (byte)0 };
+
     internal static void Read(PublisherBinaryData data, PublisherContents publication, PublisherParseContext context) {
         var catalog = Find(data, publication, context);
         if (catalog == null) return;
@@ -32,7 +35,7 @@ internal static class PublisherStoryHyphenation {
             if (changes.TryGetValue(id, out bool enabled)) {
                 if (!Setting(fields).HasValue) return null;
                 byte[] body = PublisherOplWriter.Rewrite(data, entry.Offset, entry.Length, fields,
-                    new Dictionary<byte, byte[]> { [4] = new byte[] { 4, enabled ? (byte)8 : (byte)0 } }, context);
+                    new Dictionary<byte, byte[]> { [4] = EncodeFlag(enabled) }, context);
                 entries.Add(PublisherOplWriter.Nested(entry.Id, entry.Type, body.Skip(4).ToArray()));
                 changed.Add(id);
             } else {

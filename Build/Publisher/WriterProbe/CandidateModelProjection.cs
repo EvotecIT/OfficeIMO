@@ -4,6 +4,79 @@ namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects qualified source-free specimens from their final authoring models into codec inputs.</summary>
 internal static class CandidateModelProjection {
+    /// <summary>Retains complete story identity and chain order independently of physical page and drawing order.</summary>
+    internal static CandidatePublicationSpec LinkedStories(PublisherDocument document) {
+        PublisherPage master = EmptySingleMaster(document);
+        var frames = document.Pages.SelectMany((page, pageIndex) => FramePage(page)
+            .Select(frame => (Frame: frame, PageIndex: pageIndex))).ToDictionary(item => item.Frame.Id);
+        var ordered = document.Pages.Select(page => new Queue<PublisherTextFrame>(
+            page.ObjectIds.Select(id => frames[id].Frame))).ToArray();
+        var stories = new Dictionary<uint, CandidateStorySpec>();
+        var objects = new List<CandidateObjectSpec>();
+        // Keep the existing cross-page allocation slots; each page's final
+        // object order supplies their current occupants.
+        foreach (var slot in frames.Values.OrderBy(item => item.Frame.Id)) {
+            PublisherTextFrame frame = ordered[slot.PageIndex].Dequeue();
+            PlainFrameLayout(frame);
+            if (!stories.TryGetValue(frame.StoryId, out CandidateStorySpec? story)) {
+                story = CandidateStorySpec.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
+                stories.Add(frame.StoryId, story);
+            }
+            objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
+                new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height), story,
+                PageIndex: slot.PageIndex, ColumnSpacing: frame.ColumnSpacing, FrameOrder: frame.Order));
+        }
+        return SingleMasterSpecification(document, master, objects);
+    }
+
+    /// <summary>Projects the qualified unlinked column, inset and Top/Center/Bottom frame profile.</summary>
+    internal static CandidatePublicationSpec FrameLayouts(PublisherDocument document) {
+        PublisherPage master = EmptySingleMaster(document);
+        var objects = new List<CandidateObjectSpec>();
+        for (int index = 0; index < document.Pages.Count; index++) {
+            PublisherPage page = document.Pages[index];
+            var frames = FramePage(page).ToDictionary(frame => frame.Id);
+            foreach (uint id in page.ObjectIds) {
+                PublisherTextFrame frame = frames[id];
+                if (frame.PreviousFrameId.HasValue || frame.NextFrameId.HasValue || frame.WrapObjectIds.Count != 0
+                    || frame.ColumnCount is < 1 or > 3)
+                    throw new NotSupportedException("The layout specimen requires unlinked, unwrapped one-to-three-column frames.");
+                objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
+                    new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
+                    CandidateStorySpec.Styled(document.TextStories.Single(story => story.Id == frame.StoryId)),
+                    PageIndex: index, FrameLayout: frame));
+            }
+        }
+        return SingleMasterSpecification(document, master, objects);
+    }
+
+    /// <summary>Projects the current borderless 2x2 table and ordinary caption profile in final drawing order.</summary>
+    internal static CandidatePublicationSpec Tables(PublisherDocument document) {
+        PublisherPage master = EmptySingleMaster(document);
+        if (document.Pages.Count != 1 || document.Pages[0].Tables.Count != 1
+            || document.Pages[0].Pictures.Count != 0 || document.Pages[0].Shapes.Count != 0)
+            throw new NotSupportedException("The table specimen requires one physical page and one borderless table with ordinary captions.");
+        PublisherPage page = document.Pages[0];
+        PublisherTable table = page.Tables[0];
+        if (table.RowCount != 2 || table.ColumnCount != 2 || table.Cells.Count != 4 || !table.HasTextMapping
+            || !table.HasPlacement || !table.StoryId.HasValue || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))
+            throw new NotSupportedException("The table specimen requires the qualified complete unmerged 2x2 grid.");
+        var frames = page.TextFrames.ToDictionary(frame => frame.Id);
+        var objects = new List<CandidateObjectSpec>();
+        foreach (uint id in page.ObjectIds) {
+            if (id == table.Id) {
+                objects.Add(new CandidateObjectSpec(CandidateObjectKind.Table,
+                    new CandidatePlacement(table.X, table.Y, table.Width, table.Height),
+                    CandidateStorySpec.Table(table, document.TextStories.Single(story => story.Id == table.StoryId)), Table: table));
+            } else if (frames.TryGetValue(id, out PublisherTextFrame? frame)) {
+                objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
+                    new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
+                    OrdinaryStory(document, frame), ColumnSpacing: frame.ColumnSpacing));
+            } else throw new NotSupportedException("An owned table-page object has no qualified projection.");
+        }
+        return SingleMasterSpecification(document, master, objects);
+    }
+
     /// <summary>Projects the existing text-only two-centered-master or centered/left/right-master profiles.</summary>
     internal static CandidatePublicationSpec MultipleMasters(PublisherDocument document) {
         PublisherPage[] masters = document.MasterPages.ToArray();
@@ -40,20 +113,11 @@ internal static class CandidateModelProjection {
 
     /// <summary>Projects ordinary single-master content, preserving each specimen's named or unnamed native picture profile.</summary>
     internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document, bool includePictureNames = true) {
-        if (document.HasNativeSource || document.MasterPages.Count != 1
-            || document.MasterPages[0].MasterSide != PublisherMasterPageSide.Single
-            || document.Pages.Count is < 1 or > 16
-            || document.Pages.Concat(document.MasterPages).Any(page => page.Width != 612 || page.Height != 792))
-            throw new NotSupportedException("The model projection requires source-free Letter pages and one centered master.");
-        PublisherPage master = document.MasterPages[0];
-        if (document.Pages.Any(page => page.MasterPageId != master.Id))
-            throw new NotSupportedException("The single-master specimen requires that master on every physical page.");
+        PublisherPage master = SingleMaster(document);
         var objects = new List<CandidateObjectSpec>();
         AddPage(master, 0, true);
         for (int index = 0; index < document.Pages.Count; index++) AddPage(document.Pages[index], index, false);
-        return new CandidatePublicationSpec(612 * 12700, 792 * 12700, objects, document.Pages.Count,
-            new[] { new CandidateMasterSpec("A", master.Name, PublisherMasterPageSide.Single) },
-            Enumerable.Repeat<int?>(0, document.Pages.Count).ToArray());
+        return SingleMasterSpecification(document, master, objects);
 
         void AddPage(PublisherPage page, int index, bool onMaster) {
             if (page.Tables.Count != 0) throw new NotSupportedException("Tables require their separate writer profile.");
@@ -88,13 +152,45 @@ internal static class CandidateModelProjection {
     }
 
     private static CandidateStorySpec OrdinaryStory(PublisherDocument document, PublisherTextFrame frame) {
-        if (frame.PreviousFrameId.HasValue || frame.NextFrameId.HasValue || frame.ColumnCount != 1
-            || !frame.Padding.Equals(OfficeTextPadding.Empty) || frame.VerticalAlignment != OfficeTextVerticalAlignment.Top
-            || frame.WrapObjectIds.Count != 0)
-            throw new NotSupportedException("Linked, inset, multicolumn and wrapped frames require their separate writer profiles.");
-        PublisherTextStory story = document.TextStories.Single(item => item.Id == frame.StoryId);
-        if (story.Paragraphs.Count != 1)
-            throw new NotSupportedException("The text specimen requires one complete paragraph per frame.");
-        return CandidateStorySpec.Styled(story.Paragraphs[0]);
+        if (frame.PreviousFrameId.HasValue || frame.NextFrameId.HasValue)
+            throw new NotSupportedException("Linked frames require their separate writer profile.");
+        PlainFrameLayout(frame);
+        return CandidateStorySpec.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
     }
+
+    private static void PlainFrameLayout(PublisherTextFrame frame) {
+        if (frame.ColumnCount != 1 || !frame.Padding.Equals(OfficeTextPadding.Empty)
+            || frame.VerticalAlignment != OfficeTextVerticalAlignment.Top || frame.WrapObjectIds.Count != 0)
+            throw new NotSupportedException("Inset, multicolumn, aligned and wrapped frames require their separate writer profiles.");
+    }
+
+    private static IReadOnlyList<PublisherTextFrame> FramePage(PublisherPage page) {
+        if (page.Tables.Count != 0 || page.Pictures.Count != 0 || page.Shapes.Count != 0
+            || page.ObjectIds.Count != page.TextFrames.Count)
+            throw new NotSupportedException("The frame specimen requires text-only page content.");
+        return page.TextFrames;
+    }
+
+    private static PublisherPage EmptySingleMaster(PublisherDocument document) {
+        PublisherPage master = SingleMaster(document);
+        if (master.ObjectIds.Count != 0) throw new NotSupportedException("The text/table specimen requires an empty applied master.");
+        return master;
+    }
+
+    private static PublisherPage SingleMaster(PublisherDocument document) {
+        if (document.HasNativeSource || document.MasterPages.Count != 1
+            || document.MasterPages[0].MasterSide != PublisherMasterPageSide.Single
+            || document.Pages.Count is < 1 or > 16
+            || document.Pages.Concat(document.MasterPages).Any(page => page.Width != 612 || page.Height != 792))
+            throw new NotSupportedException("The model projection requires source-free Letter pages and one centered master.");
+        PublisherPage master = document.MasterPages[0];
+        if (document.Pages.Any(page => page.MasterPageId != master.Id))
+            throw new NotSupportedException("The single-master specimen requires that master on every physical page.");
+        return master;
+    }
+
+    private static CandidatePublicationSpec SingleMasterSpecification(PublisherDocument document, PublisherPage master,
+        IReadOnlyList<CandidateObjectSpec> objects) => new(612 * 12700, 792 * 12700, objects, document.Pages.Count,
+            new[] { new CandidateMasterSpec("A", master.Name, PublisherMasterPageSide.Single) },
+            Enumerable.Repeat<int?>(0, document.Pages.Count).ToArray());
 }

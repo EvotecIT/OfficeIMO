@@ -311,9 +311,9 @@ Page, picture and image-asset counts depend on the selected case.
 | `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
 | `mixed-object-pages` | Projects the final public model with overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `master-content` | Projects the final public authoring model: one centered master owns a rectangle, picture and single-paragraph text frame and is applied to three Letter pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. Current object order, geometry, paint, stories and referenced asset identity supply the codec inputs. One PNG path required. |
-| `linked-story`, `linked-story-overflow` | One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
-| `frame-layout`, `frame-layout-edited` | Six public-model text frames on two pages: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
-| `table`, `table-edited` | Borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label. The edited specimen adds a first-cell paragraph and refills the last cell. |
+| `linked-story`, `linked-story-overflow` | Projects the final public model with an empty applied master. One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
+| `frame-layout`, `frame-layout-edited` | Projects six final public-model text frames on two pages with an empty applied master: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
+| `table`, `table-edited` | Projects the final public model of a borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label, with an empty applied master. The edited specimen adds a first-cell paragraph and refills the last cell. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -346,8 +346,8 @@ header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
 
-`CandidateModelProjection` derives the master-content, mixed-page, object/image-page
-and multiple/paired-master codec inputs from the final `PublisherDocument`;
+`CandidateModelProjection` derives the master-content, mixed-page, object/image-page,
+linked-story, frame-layout, table and multiple/paired-master codec inputs from the final `PublisherDocument`;
 none maintains a second editable object list. Current picture bounds, source
 crops, referenced image bytes and model asset identities supply the codec. Named
 profiles derive their native filename and OfficeArt basename from the current
@@ -356,17 +356,29 @@ Unused model assets are not emitted, and independent assets with identical bytes
 retain separate native bindings. New edited variants have artifact reload proof;
 their native opening, editing, saving and appearance require separate qualification.
 The projection accepts the existing source-free Letter/single-master profile.
-Imported publications, tables, linked or multicolumn text, insets, non-Top
-alignment, wrap references, multiple paragraphs and non-rectangle artwork require
-their separate writer profiles and are rejected here. Native paragraph terminators
-retain the existing encoding convention. Other specimens keep their profile-specific
-construction. This projection does not admit public native creation or broaden
+The ordinary object profile rejects imported publications, tables, linked or
+multicolumn text, insets, non-Top alignment, wrap references, multiple paragraphs
+and non-rectangle artwork. Those features require their separate writer profiles. Native paragraph terminators
+retain the existing encoding convention. This projection does not admit public native creation or broaden
 the probe's native acceptance evidence. The text-only multiple-master projection
 accepts either two centered definitions or one centered definition followed by
 the named left/right pair. It derives current names, assignments, frame order,
 bounds and complete single-paragraph stories, retaining the existing omission
 of the default column-gap property. Unassigned physical pages, nonzero gaps,
 other frame layouts and non-text content require separate qualification.
+
+The linked, frame-layout and table adapters require an explicit empty applied
+master; this is specimen authoring, while `PublisherDocument.Create` still creates
+no master by default. Linked frames retain complete story identity and chain
+ordinals independently of physical page and drawing order. They require the
+ordinary unwrapped single-column Top-aligned layout. The separate frame-layout
+profile accepts unlinked, unwrapped one-to-three-column frames. The table profile
+accepts a complete unmerged borderless 2×2 grid and ordinary captions; current
+tracks, cell paragraphs and table/caption order supply the codec inputs. Explicit
+story automatic-hyphenation settings use the same native flag encoder as source
+saving, preserving false separately from the omitted default. These edited variants
+have encoded-artifact reload evidence; native editing, saving and appearance
+remain separate qualification requirements.
 
 The page graph has `physical page count + 5` ordered references: one master,
 the physical pages and four utility pages. `DpgMaster=1` and `DpgSpecial=5`

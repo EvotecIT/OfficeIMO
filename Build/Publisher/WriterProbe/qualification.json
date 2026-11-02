@@ -30464,5 +30464,113 @@
       "Public native creation, repair-positive recovery and broader appearance/operation qualification remain unqualified."
     ],
     "canClosePUB00": false
+  },
+  "canonicalTextTableModelProjection": {
+    "scope": "Opt-in linked-story, frame-layout and borderless-table specimens project final public model state rather than retaining construction-time codec snapshots.",
+    "sourceFiles": [
+      "CandidateLinkedStory.cs",
+      "CandidateFrameLayout.cs",
+      "CandidateTableCreation.cs",
+      "CandidateModelProjection.cs",
+      "CandidatePublicationSpec.cs",
+      "NativePublicationGraph.cs",
+      "OfficeIMO.Publisher/Internal/PublisherStoryHyphenation.cs"
+    ],
+    "baselineNativeFiles": [
+      {
+        "kind": "linked-story",
+        "sha256": "d4d072ea15341ee60f01e1713f52835d73ffbc4dfd3c9572135e69ec3f7584ca",
+        "bytes": 9728
+      },
+      {
+        "kind": "linked-story-overflow",
+        "sha256": "6e878745b4721cbe85e4daf4c73bdac36d28b0aa75bedff363920eb902342e65",
+        "bytes": 12288
+      },
+      {
+        "kind": "linked-story-language",
+        "sha256": "5aac782aef41937beb5479467cab6f946b7097a8caf2af1671674a78b3de842a",
+        "bytes": 9728
+      },
+      {
+        "kind": "linked-story-language-overflow",
+        "sha256": "1caef967a03f1e9c6647ea9c58cc0b76f8583788619dc67d26ef3c8ca6848d4a",
+        "bytes": 12288
+      },
+      {
+        "kind": "frame-layout",
+        "sha256": "6899d58a6fea9a2a07e7aeefa5db667ebca9eae2178c7d83a2f084e86c75b7c5",
+        "bytes": 14336
+      },
+      {
+        "kind": "frame-layout-edited",
+        "sha256": "17264190f0c8e73f88b9385d9077ebea238f06d0ac6bc3fc8d93709259bbbc58",
+        "bytes": 14336
+      },
+      {
+        "kind": "frame-layout-language",
+        "sha256": "ddb1e1033e8b0650fbacae3c11464cfed4bc862dae710add10d69209c9190996",
+        "bytes": 14336
+      },
+      {
+        "kind": "table",
+        "sha256": "62b6cef4f7643645432fcef84fd1247eedafa2c7555d9342eeb9a8ab1ac2c1ca",
+        "bytes": 8704
+      },
+      {
+        "kind": "table-edited",
+        "sha256": "7a92e274811ae585c9b5f57ed926cde6b1220cc6fb64aec9e9c3a2c40de1aaf9",
+        "bytes": 8704
+      }
+    ],
+    "baselineNativeBytesUnchanged": true,
+    "publisherSha256": "ac660931ffd283ec4ee248e3bf10fa0bd7ce09e8f5d82f60f27a0dc8284eee21",
+    "proof": [
+      "PreservesAllNineLinkedLayoutAndTableNativeBaselines",
+      "ProjectsFinalLinkedStoryOrderOwnershipOverflowAndHyphenation",
+      "ProjectsFinalColumnInsetAlignmentAndStoryEdits",
+      "ProjectsFinalTableTracksCellPartitionsAndObjectOrder",
+      "PreservesExplicitStoryHyphenationWithOnlyItsNativeFlagByteChanged",
+      "RefusesUnqualifiedLinkedFrameLayout",
+      "RefusesLinkingInTheUnlinkedLayoutProfile",
+      "RefusesUnqualifiedFourColumnCreationLayout",
+      "RefusesUnqualifiedCreationTableGrid",
+      "RequiresAnExplicitModelMasterForNativeTextProjection"
+    ],
+    "observations": [
+      "Linked story identity and chain order are independent of physical-page order and current per-page drawing order; appended linked frames retain complete text and terminal overflow.",
+      "Column count, full intercolumn gap, asymmetric insets, vertical alignment, bounds and single-paragraph styles come from current frame/story state.",
+      "The table profile retains current complete 2x2 cell partitions, unequal tracks, multiple cell paragraphs and table/caption drawing order.",
+      "Explicit story automatic-hyphenation false/true settings use the existing source-save flag encoder; the two emitted native files differ in exactly the flag byte.",
+      "Each specimen explicitly creates and applies its empty master. PublisherDocument.Create continues to create no master by default."
+    ],
+    "regression": {
+      "requested": false,
+      "beforeReloaded": true,
+      "afterReloaded": false,
+      "carrier": "Contents story catalog OplQsb field4; type0x00=false and type0x08=true; null omits the qualified default",
+      "encoder": "OfficeIMO.Publisher/Internal/PublisherStoryHyphenation.cs",
+      "independentNativeFlagEvidence": "nativeHyphenationSettings"
+    },
+    "validation": {
+      "artifactChecksPassed": 30,
+      "focusedRuntimeSuite": "PublisherStoryHyphenationTests",
+      "runtimes": [
+        "net10.0",
+        "net8.0",
+        "net472"
+      ],
+      "passedPerRuntime": 10,
+      "failures": 0,
+      "probeAndHarnessBuildWarnings": 0
+    },
+    "limits": [
+      "Source-free Letter pages and one explicitly applied empty centered master; existing shared character/paragraph admission remains unchanged.",
+      "Linked stories require ordinary unwrapped single-column Top-aligned frames; the separate layout profile requires unlinked unwrapped one-to-three-column frames.",
+      "Tables require the complete unmerged borderless 2x2 grid and ordinary unlinked captions; larger grids, merged cells and table paint remain unqualified.",
+      "Changed model variants have encoded-artifact reload evidence only. No new native opening, editing, saving, recovery or appearance qualification is asserted.",
+      "Public native creation and the remaining PUB00-PUB06 lifecycle criteria remain open."
+    ],
+    "canClosePUB00": false
   }
 }

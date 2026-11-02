@@ -4,9 +4,14 @@ namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>Projects public column, inset and vertical-alignment authoring into the native creation specimen.</summary>
 internal static class CandidateFrameLayout {
-    internal static CandidatePublicationSpec Create(bool edited, uint? languageId = null) {
+    internal static CandidatePublicationSpec Create(bool edited, uint? languageId = null) =>
+        CandidateModelProjection.FrameLayouts(Author(edited, languageId));
+
+    internal static PublisherDocument Author(bool edited, uint? languageId = null) {
         PublisherDocument document = PublisherDocument.Create(612, 792);
-        document.AddPage();
+        PublisherPage master = document.AddMasterPage("Master Page A");
+        document.SetPageMaster(document.Pages[0].Id, master.Id);
+        document.AddPage(master.Id);
         var layouts = new[] {
             (Columns: 1, Gap: 0D, Padding: new OfficeTextPadding(12, 6, 18, 9), Alignment: OfficeTextVerticalAlignment.Top),
             (Columns: 2, Gap: 12D, Padding: OfficeTextPadding.Empty, Alignment: OfficeTextVerticalAlignment.Top),
@@ -26,10 +31,6 @@ internal static class CandidateFrameLayout {
                 edited ? new OfficeTextPadding(9, 3, 15, 6) : layout.Padding,
                 edited ? OfficeTextVerticalAlignment.Bottom : layout.Alignment);
         }
-        CandidateObjectSpec[] objects = document.Pages.SelectMany((page, pageIndex) => page.TextFrames.Select(frame =>
-            new CandidateObjectSpec(CandidateObjectKind.TextBox, new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
-                CandidateStorySpec.Styled(document.TextStories.Single(story => story.Id == frame.StoryId).Paragraphs.Single()),
-                PageIndex: pageIndex, FrameLayout: frame))).ToArray();
-        return new CandidatePublicationSpec(612 * 12700, 792 * 12700, objects, document.Pages.Count);
+        return document;
     }
 }

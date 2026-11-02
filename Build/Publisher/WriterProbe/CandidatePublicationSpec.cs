@@ -30,11 +30,13 @@ internal sealed class CandidateStorySpec {
     private readonly string? _plain;
     internal IReadOnlyList<OfficeRichTextParagraph>? Paragraphs { get; }
     internal IReadOnlyList<int>? CellEnds { get; }
+    internal bool? AutomaticHyphenation { get; }
     internal string Text => Paragraphs == null ? _plain! : string.Concat(Paragraphs.Select(paragraph =>
         string.Concat(paragraph.Runs.Select(run => run.Text)) + '\r'));
 
-    private CandidateStorySpec(string? plain, IReadOnlyList<OfficeRichTextParagraph>? paragraphs, IReadOnlyList<int>? cellEnds = null) {
-        _plain = plain; Paragraphs = paragraphs; CellEnds = cellEnds;
+    private CandidateStorySpec(string? plain, IReadOnlyList<OfficeRichTextParagraph>? paragraphs, IReadOnlyList<int>? cellEnds = null,
+        bool? automaticHyphenation = null) {
+        _plain = plain; Paragraphs = paragraphs; CellEnds = cellEnds; AutomaticHyphenation = automaticHyphenation;
     }
 
     internal static CandidateStorySpec Plain(string text) {
@@ -45,11 +47,17 @@ internal sealed class CandidateStorySpec {
 
     internal static CandidateStorySpec Styled(OfficeRichTextParagraph paragraph) => new(null, new[] { paragraph });
 
+    internal static CandidateStorySpec Styled(PublisherTextStory story) {
+        if (story.Paragraphs.Count != 1)
+            throw new NotSupportedException("The text specimen requires one complete paragraph per story.");
+        return new CandidateStorySpec(null, story.Paragraphs, automaticHyphenation: story.AutomaticHyphenation);
+    }
+
     internal static CandidateStorySpec Table(PublisherTable table, PublisherTextStory story) {
         int end = 0;
         int[] ends = table.Cells.Select(cell => end = checked(end + cell.Paragraphs.Sum(paragraph =>
             paragraph.Runs.Sum(run => run.Text.Length) + 1))).ToArray();
-        var result = new CandidateStorySpec(null, story.Paragraphs, ends);
+        var result = new CandidateStorySpec(null, story.Paragraphs, ends, story.AutomaticHyphenation);
         if (result.Text != story.Text.Replace('\n', '\r') || ends.Last() != result.Text.Length)
             throw new NotSupportedException("The table specimen requires complete ordinary cell paragraphs.");
         return result;
