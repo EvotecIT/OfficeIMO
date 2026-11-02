@@ -631,6 +631,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
         /// Measures the width a block's lines could have used. A block of short lines is often its own component,
         /// so its measure comes from body text on the same left margin unless something sits beside the block.
         /// Prominent lines are left out, since a wide title must not make body text beneath it look short.
+        /// A neighbouring column can be staggered, so content beside counts within a few lines of the block,
+        /// up to the wider margin lines above and below it.
         /// </summary>
         private static double GetBodyColumnWidth(
             PdfUnderstandingLine[] component,
@@ -641,16 +643,22 @@ internal static partial class PdfAdvancedUnderstandingStages {
             double left = body.Min(static line => line.XStart);
             double right = body.Max(static line => line.XEnd);
             double marginTolerance = pageMedianFontSize * 0.5D;
-            double measureRight = pageLines
-                .Where(line => !IsTypographicallyProminent(line, pageMedianFontSize) && Math.Abs(line.XStart - left) <= marginTolerance)
-                .Select(static line => line.XEnd)
-                .DefaultIfEmpty(right)
-                .Max();
-            if (measureRight <= right) return right - left;
-            double top = body.Max(static line => line.BaselineY) + pageMedianFontSize;
-            double bottom = body.Min(static line => line.BaselineY) - pageMedianFontSize;
+            PdfUnderstandingLine[] wider = pageLines
+                .Where(line => !IsTypographicallyProminent(line, pageMedianFontSize) && Math.Abs(line.XStart - left) <= marginTolerance && line.XEnd > right)
+                .ToArray();
+            if (wider.Length == 0) return right - left;
+            double measureRight = wider.Max(static line => line.XEnd);
+            double componentTop = body.Max(static line => line.BaselineY);
+            double componentBottom = body.Min(static line => line.BaselineY);
+            double reach = Math.Max(pageMedianFontSize * 3D, componentTop - componentBottom);
+            double top = wider.Where(line => line.BaselineY > componentTop).Select(static line => line.BaselineY)
+                .DefaultIfEmpty(double.MaxValue).Min();
+            double bottom = wider.Where(line => line.BaselineY < componentBottom).Select(static line => line.BaselineY)
+                .DefaultIfEmpty(double.MinValue).Max();
+            top = Math.Min(top, componentTop + reach);
+            bottom = Math.Max(bottom, componentBottom - reach);
             bool hasContentBeside = pageLines.Any(line => line.XStart >= right && line.XStart < measureRight &&
-                line.BaselineY <= top && line.BaselineY >= bottom);
+                line.BaselineY < top && line.BaselineY > bottom);
             return (hasContentBeside ? right : measureRight) - left;
         }
 

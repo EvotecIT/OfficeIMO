@@ -2671,15 +2671,17 @@ public partial class PdfUnderstandingPipelineTests {
             logical.Paragraphs.Select(static paragraph => paragraph.Text));
     }
 
-    [Fact]
-    public void AdvancedSegmentation_KeepsNarrowWrappedColumnBesideOtherContentTogether() {
+    [Theory]
+    [InlineData(633D)]
+    [InlineData(600D)]
+    public void AdvancedSegmentation_KeepsNarrowWrappedColumnBesideOtherContentTogether(double rightColumnBaseline) {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Full width introduction above the narrow columns", "F1", 12D, 72D, 700D, 400D),
             new PdfTextSpan("Narrow left", "F1", 12D, 72D, 640D, 62D),
             new PdfTextSpan("wrapped text", "F1", 12D, 72D, 626D, 66D),
-            new PdfTextSpan("Separate right column", "F1", 12D, 300D, 633D, 120D)
+            new PdfTextSpan("Separate right column", "F1", 12D, 300D, rightColumnBaseline, 120D)
         });
 
         PdfDocumentReadResult logical = Read(pdf, options);
