@@ -137,7 +137,9 @@ namespace OfficeIMO.Excel {
             // path, which must invoke that callback only once.
             bool appends = buffer.CanAdd(row, column);
             int existingCell = appends ? -1 : buffer.FindCell(row, column);
-            if (!appends && (existingCell < 0 || _worksheetPart.TableDefinitionParts.Any())) {
+            if (!appends && (existingCell < 0
+                || _worksheetPart.TableDefinitionParts.Any()
+                || FormulaWouldReplaceCachedValue(buffer.GetCell(existingCell), cell))) {
                 MaterializePendingDirectCellValues();
                 return false;
             }
@@ -175,6 +177,13 @@ namespace OfficeIMO.Excel {
 
             return true;
         }
+
+        // CellFormula keeps the cell's existing value as its typed cached result. The
+        // buffer carries formulas without a typed cache, so that write takes the DOM route.
+        private static bool FormulaWouldReplaceCachedValue(in ExcelBufferedCell existing, in ExcelBufferedCell incoming)
+            => incoming.Reference is DirectFormulaCellValue
+               && existing.Kind != ExcelBufferedCellKind.StyleOnly
+               && existing.Reference is not DirectFormulaCellValue;
 
         // Overwriting keeps the cell's format, as the DOM does.
         private void ReplaceBufferedCell(ExcelCellValueBuffer buffer, int cellIndex, int row, int column, in ExcelBufferedCell cell) {

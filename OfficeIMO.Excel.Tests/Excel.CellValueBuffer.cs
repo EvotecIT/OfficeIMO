@@ -384,6 +384,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CellValueBuffer_FormulaOverAWrittenValueSavesThatValueAsItsTypedCache() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            for (int row = 1; row <= 200; row++) {
+                sheet.CellValue(row, 1, row * 2d);
+                sheet.CellValue(row, 2, row % 2 == 0);
+            }
+            // Row 1 is among the cells also written to the DOM; row 150 lives only in the buffer.
+            foreach (int row in new[] { 1, 150 }) {
+                sheet.CellFormula(row, 1, "A2*0");
+                sheet.CellFormula(row, 2, "NOT(TRUE)");
+            }
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using ExcelDocument reopened = ExcelDocument.Load(output);
+            ExcelSheet saved = reopened.Sheets[0];
+            foreach (int row in new[] { 1, 150 }) {
+                Assert.Equal("A2*0", saved.GetFormulaText(row, 1));
+                Assert.Equal(row * 2d, saved.CellAt(row, 1).GetValue<double>());
+                Assert.Equal("NOT(TRUE)", saved.GetFormulaText(row, 2));
+                Assert.Equal(row % 2 == 0, saved.CellAt(row, 2).GetValue<bool>());
+            }
+        }
+
+        [Fact]
         public void CellValueBuffer_ReadsMatchTheDomRouteAndLeaveTheCellsBuffered() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet buffered = document.AddSheet("Buffered");
