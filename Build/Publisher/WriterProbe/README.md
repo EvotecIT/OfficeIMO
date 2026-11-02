@@ -296,6 +296,16 @@ final paragraph CR that appears after save/reopen. This is one controlled native
 object-model edit; character-level editing, manual UI editing, general formatting
 and repair-free opening remain unassessed.
 
+`-NativeEditTarget FirstTableCell` uses the same isolated lifecycle to change
+the first unmerged cell of the sole table on one physical page. Other objects
+may coexist on that page. The report records the target, prior text and observed
+replacement, then verifies the cell after native save/reopen. Both targets accept
+single-line text, including an empty replacement, and require `Validate/Full`.
+
+```powershell
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath ./table.pub -OutputDirectory ./native-cell-edit -NativeEditText 'Native Item' -NativeEditTarget FirstTableCell
+```
+
 ## Creation cases
 
 All cases use Letter-size physical pages and the same ordered
@@ -731,6 +741,31 @@ ambiguous counts/history, missing cell utilities in populated drawings, cluster
 rollover, merged/composed decoration and broader producers remain outside this
 profile. Native cell mutation, managed/native text-baseline parity, repair-free
 acceptance and public source-free native creation remain unqualified.
+
+The `tableNativeCellMutation` record separately qualifies actual first-cell text
+replacement in four table outputs: fresh borderless/decorated authoring and
+compact/native-normalized first-utility source saves. Three independent controls
+undergo the same edit. All accepted tables retain complete cell styles, spans,
+grid geometry and unrelated objects. Eight initial/resaved candidate PDF pairs
+match the controls at 100 dpi; an edited borderless creation adds two independent
+native PDF pairs. Four native-edited files then pass public re-edit/save/reload
+and PowerShell PDF conversion with styles and other cells retained. The existing
+sole-text-box mutation route also passes native Full validation.
+Clearing the decorated table's first cell adds two matched native PDF pairs and
+four complete inventories with styles/other cells retained; public reload exposes
+the cleared cell as empty.
+
+Earlier utility-free borderless authoring remains rejected for native style
+stability: its fill observations are unavailable and native validation/edit/save
+can activate white fills. Fresh unmerged tables now emit explicit hidden white
+cell utilities even without visible decoration; decorated and merged specimen
+bytes remain unchanged. The composed newsletter uses the same fix. Native Full
+retains its table geometry/content and hidden fills. Against the immediately
+preceding writer, pages two/three match exactly; the table region on page one
+changes by 959 initial and 1,389 resaved pixels at 100 dpi as automatic white
+backgrounds disappear. Glyph text/positions remain identical. This sibling check
+does not qualify independent newsletter appearance parity, native newsletter cell
+editing, merged-cell editing, broader native mutations or repair-free acceptance.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

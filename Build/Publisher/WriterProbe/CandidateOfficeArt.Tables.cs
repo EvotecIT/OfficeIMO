@@ -7,7 +7,8 @@ internal static partial class CandidateOfficeArt {
     /// <summary>Consumes the shared source-free table utility encoder for the internal authoring specimen.</summary>
     private static (byte[] Bytes, uint Count, uint LastSpid)? TableDrawing(Graph graph) {
         ObjectBinding[] tables = graph.Objects.Where(item => item.Source.Table is { } table
-            && (table.Cells.Any(cell => cell.FillColor.HasValue) || table.BorderSegments.Count != 0)).ToArray();
+            && (table.Cells.All(cell => cell.RowSpan == 1 && cell.ColumnSpan == 1)
+                || table.Cells.Any(cell => cell.FillColor.HasValue) || table.BorderSegments.Count != 0)).ToArray();
         if (tables.Length == 0) return null;
         var inputs = new List<PublisherTableUtilityInput>();
         foreach (ObjectBinding item in tables) {

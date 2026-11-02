@@ -33,7 +33,7 @@ internal static partial class CandidateOfficeArt {
         uint lastShapeId = RootShapeId + shapeCount - 1;
         var tableDrawing = TableDrawing(graph);
         if (tableDrawing.HasValue && shapeCount > 1024)
-            throw new NotSupportedException("The decorated table specimen uses one SPID cluster per drawing.");
+            throw new NotSupportedException("The table utility specimen uses one SPID cluster per drawing.");
         byte[] fdgg = Art(0, 0xF006, Bytes(writer => {
             // Follow the native/PPT allocation convention: one beyond the
             // greatest allocated SPID. No hidden background shape is emitted.

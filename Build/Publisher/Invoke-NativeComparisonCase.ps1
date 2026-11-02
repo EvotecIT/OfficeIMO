@@ -7,8 +7,9 @@ it supplies the deadline and preserves uncertain processes on startup failures.
 Corpus content is synthetic, fonts/colors are explicit, and macros stay disabled.
 Candidate validation performs only its requested Inspect, Export, Resave or Full stage;
 inventories are persisted before PDF exports and repair remains unassessed.
-NativeEditText optionally replaces the sole unlinked physical text box before
-native save-as during Validate/Full; it never modifies the original input.
+NativeEditText optionally replaces the sole unlinked physical text box or the
+sole table's first unmerged cell before native save-as during Validate/Full;
+it never modifies the original input.
 #>
 [CmdletBinding()]
 param(
@@ -28,6 +29,9 @@ param(
     [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
     [string] $NativeEditText,
 
+    [ValidateSet('TextBox', 'FirstTableCell')]
+    [string] $NativeEditTarget = 'TextBox',
+
     [Parameter(Mandatory)]
     [ValidateSet('Blank', 'BlankPages', 'TextPages', 'ObjectPages', 'ObjectPagesEdited', 'MixedObjectPages', 'MixedObjectPagesEdited', 'WrapObjectOrderDefaults', 'WrapObjectOrderLayout', 'WrapTextFrameOutside', 'WrapObjectOrderLeft', 'WrapObjectOrderRight', 'WrapObjectOrderLarger', 'WrapObjectOrderLargerLeft', 'WrapObjectOrderLargerTie', 'WrapObjectOrderLargerColumns', 'WrapObjectOrderOutside', 'WrapObjectOrderRectangleOnly', 'WrapObjectOrderPictureOnly', 'WrapObjectOrderSwap', 'WrapObjectOrder', 'WrapObjectOrderReversed', 'WrapObjectOrderNone', 'MixedObjectOrder', 'MixedObjectOrderReversed', 'MasterContent', 'MasterContentEdited', 'LinkedStory', 'LinkedStoryOverflow', 'TableCreation', 'TableCreationEdited', 'TableCreationMerged', 'TableCreationMergedEdited', 'TableDecoration', 'TableDecorationEdited', 'TableDecorationText', 'TableBordersOnly', 'TableBordersOnlyText', 'TableFillsOnly', 'TableBordersOnlyCleared', 'TableFillVisibility', 'TableFillVisibilityRestored', 'TableFillVisibilityText', 'TableBorderTopology', 'TableBordersCleared', 'TableBorderTopologyTextFill', 'TableBorderDefaultFill', 'FrameCreation', 'FrameCreationEdited', 'FrameCreationFrench', 'ImagePages', 'ImagePagesEdited', 'ImagePagesReplacement', 'ImagePagesJpegReplacement', 'ImagePagesJpegCropped', 'ImagePagesCropped', 'SharedImagePages', 'SharedImagePagesReplacement', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextNonuniformParagraphs', 'TextNonuniformTextReplacements', 'TextMixedRunTextReplacements', 'TextFormattingTopology', 'TextEmptyRefill', 'TextRunSegmentation', 'TextNonuniformEmptyParagraphs', 'TextUniformEmptyParagraphs', 'TextParagraphAttributes', 'TextAlignedTabs', 'TextFrameLayout', 'TextVerticalPlacement', 'TextFontMetrics', 'TextFallbackAlignment', 'TextFrameBreaks', 'TextLabelFitting', 'TextHyphenation', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'TableLabelWrapped', 'TableLabelShortParagraphs', 'TableCellTyping', 'TableCellTypingEarlyRange', 'TableCellParagraphs', 'TableNonuniformParagraphs', 'TableNonuniformTextReplacements', 'TableMixedRunTextReplacements', 'TableFormattingTopology', 'TableEmptyRefill', 'TableRunSegmentation', 'TableNonuniformEmptyParagraphs', 'TableUniformEmptyParagraphs', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'MultipleMastersEdited', 'TwoPageMasterEdited', 'MultipleMastersReassigned', 'MultipleMastersIgnored', 'TwoPageMasterReassigned', 'TwoPageMasterIgnored', 'PictureOwnership', 'PictureReplacement', 'PictureCropped', 'PictureCropFractions', 'PictureCropFractionsReplacement')]
     [string] $Case,
@@ -45,6 +49,9 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version 2
 $nativeEditRequested = $PSBoundParameters.ContainsKey('NativeEditText')
+if ($PSBoundParameters.ContainsKey('NativeEditTarget') -and -not $nativeEditRequested) {
+    throw 'NativeEditTarget requires NativeEditText.'
+}
 if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
     throw 'NativeEditText requires candidate validation with Stage Full.'
 }
@@ -144,6 +151,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeTableCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeTableDecorationControl.ps1')
 . (Join-Path $PSScriptRoot 'Get-NativeTableCellStyle.ps1')
+. (Join-Path $PSScriptRoot 'Set-NativeCandidateText.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeFrameCreationControl.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeImagePagesControl.ps1')
 . (Join-Path $PSScriptRoot 'New-NativeReplacementImage.ps1')
@@ -387,41 +395,8 @@ try {
             $document = $application.Open($snapshot, $false, $false)
             if ($nativeEditRequested) {
                 Set-NativePhase 'NativeTextMutation'
-                if ($document.ReadOnly -or $document.Pages.Count -ne 1) {
-                    throw 'Native text mutation requires one writable physical page.'
-                }
-                $editPage = $document.Pages.Item(1)
-                $objects.Add($editPage)
-                if ($editPage.Shapes.Count -ne 1) {
-                    throw 'Native text mutation requires exactly one physical text box.'
-                }
-                $editShape = $editPage.Shapes.Item(1)
-                $objects.Add($editShape)
-                if ($editShape.Type -ne 17 -or $editShape.HasTextFrame -ne -1) {
-                    throw 'Native text mutation requires an ordinary text box.'
-                }
-                $editFrame = $editShape.TextFrame
-                $objects.Add($editFrame)
-                if ($editFrame.HasNextLink -eq -1 -or $editFrame.HasPreviousLink -eq -1) {
-                    throw 'Native text mutation does not accept linked frames.'
-                }
-                $editRange = $editFrame.TextRange
-                $objects.Add($editRange)
-                $beforeText = [string]$editRange.Text
-                $editRange.Text = $NativeEditText
-                $observedText = [string]$editRange.Text
-                # A freshly assigned range can omit the final paragraph CR
-                # that Publisher materializes when saving the publication.
-                if ($observedText -cne $NativeEditText -and $observedText -cne ($NativeEditText + "`r")) {
-                    throw 'Publisher did not retain the requested native text mutation.'
-                }
-                $nativeTextMutation = [ordered]@{
-                    shapeName = [string]$editShape.Name
-                    before = $beforeText
-                    requested = $NativeEditText
-                    observed = $observedText
-                }
-                $qualifiedOperations.Add('NativeTextMutation')
+                $nativeTextMutation = Set-NativeCandidateText -Publication $document -Objects $objects -Target $NativeEditTarget -Text $NativeEditText
+                $qualifiedOperations.Add($(if ($NativeEditTarget -eq 'FirstTableCell') { 'NativeTableCellTextMutation' } else { 'NativeTextMutation' }))
             }
             Set-NativePhase 'NativeResave'
             # 1 is pbFilePublication; exclude task output from recent files.
@@ -437,11 +412,20 @@ try {
             if (-not $resavedInventory.readOnly) {
                 throw 'Publisher did not reopen the native resave read-only.'
             }
-            if ($nativeEditRequested -and
-                ($resavedInventory.pageCount -ne 1 -or
-                 $resavedInventory.pages[0].shapes.Count -ne 1 -or
-                 $resavedInventory.pages[0].shapes[0].text -cne ($NativeEditText + "`r"))) {
-                throw 'The native text mutation did not survive save-as and reopen.'
+            if ($nativeEditRequested) {
+                $editedText = $null
+                if ($NativeEditTarget -eq 'TextBox') {
+                    if ($resavedInventory.pageCount -eq 1 -and $resavedInventory.pages[0].shapes.Count -eq 1) {
+                        $editedText = $resavedInventory.pages[0].shapes[0].text
+                    }
+                } elseif ($resavedInventory.pageCount -eq 1) {
+                    $tables = @($resavedInventory.pages[0].shapes | Where-Object type -eq 18)
+                    if ($tables.Count -eq 1) {
+                        $cells = @($tables[0].tableCells | Where-Object { $_.row -eq 1 -and $_.column -eq 1 })
+                        if ($cells.Count -eq 1 -and $cells[0].rowSpan -eq 1 -and $cells[0].columnSpan -eq 1) { $editedText = $cells[0].text }
+                    }
+                }
+                if ($editedText -cne ($NativeEditText + "`r")) { throw 'The native text mutation did not survive save-as and reopen.' }
             }
             $qualifiedOperations.Add('ReadOnlyReopen')
             $qualifiedOperations.Add('ResavedInventory')

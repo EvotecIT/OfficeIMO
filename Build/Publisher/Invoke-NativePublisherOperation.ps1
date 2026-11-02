@@ -34,6 +34,10 @@ Optional single-line replacement for a candidate with one physical page and one
 unlinked text box. Validate/Full only. The writable snapshot is changed before
 native save-as; initial artifacts retain the original content. An empty value
 clears the text range.
+.PARAMETER NativeEditTarget
+TextBox retains the sole unlinked text-box profile. FirstTableCell changes the
+first unmerged cell of the sole physical table on one page; other shapes remain
+untouched. Both targets require NativeEditText and Validate/Full.
 .EXAMPLE
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath ./candidate.pub -OutputDirectory ./candidate-native
 .EXAMPLE
@@ -65,6 +69,9 @@ param(
     [ValidatePattern('\A[^\p{Cc}\p{Zl}\p{Zp}]*\z')]
     [string] $NativeEditText,
 
+    [ValidateSet('TextBox', 'FirstTableCell')]
+    [string] $NativeEditTarget = 'TextBox',
+
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90,
 
@@ -85,6 +92,9 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     $hostPath = $nativeHost[0].Source
 }
 $nativeEditRequested = $PSBoundParameters.ContainsKey('NativeEditText')
+if ($PSBoundParameters.ContainsKey('NativeEditTarget') -and -not $nativeEditRequested) {
+    throw 'NativeEditTarget requires NativeEditText.'
+}
 if ($nativeEditRequested -and ($Operation -ne 'Validate' -or $Stage -ne 'Full')) {
     throw 'NativeEditText requires candidate validation with Stage Full.'
 }
@@ -198,7 +208,7 @@ if ($Operation -eq 'Validate') {
     $argumentValues += @('-InputPath', $InputPath, '-Stage', $Stage)
 }
 if ($nativeEditRequested) {
-    $argumentValues += @('-NativeEditText', $NativeEditText)
+    $argumentValues += @('-NativeEditText', $NativeEditText, '-NativeEditTarget', $NativeEditTarget)
 }
 $arguments = ($argumentValues | ForEach-Object { ConvertTo-NativePublisherArgument $_ }) -join ' '
 $worker = $null

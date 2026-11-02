@@ -1174,8 +1174,34 @@ the final perpendicular table extent, including bounds-only resizing of existing
 styles. Output reports `PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED` for broader
 native uncertainty. Missing cell utilities in populated drawings, cluster
 rollover, decorated merges, larger/composed layouts and additional producer
-profiles remain unqualified. Actual native cell mutation, repair-free acceptance
+profiles remain unqualified. Native cell mutation beyond the profile below, repair-free acceptance
 and public source-free native creation remain open criteria.
+
+The `tableNativeCellMutation` record qualifies actual first-cell text replacement
+in four unmerged table outputs: fresh borderless and decorated authoring, plus
+compact and native-normalized first-utility saves. Three independent native
+controls undergo the same edit. Initial opening/export and native text change,
+SaveAs/reopen retain complete cell styles/spans, geometry and unrelated objects.
+Eight candidate PDF pairs match the controls exactly at 100 dpi. The fresh edited
+borderless specimen adds two independent native PDF pairs. Four native-edited
+files support a further public managed cell edit/save/reload and PowerShell PDF
+conversion while retaining styles and other cells. This is a whole-range COM
+text edit in the isolated validation copy; broader native editing stays unqualified.
+Clearing the first decorated cell adds two matched native PDF pairs and four
+complete inventories; its styles and other cells remain intact, and public
+reload exposes the native-cleared cell as empty.
+
+Earlier utility-free borderless authoring exposes unavailable fill observations;
+native validation/edit/save can activate white fills. Fresh unmerged authoring
+now emits hidden white cell utilities even when every cell has no fill and there
+are no borders. Decorated and merged specimen bytes remain unchanged. The same
+fix keeps composed newsletter fills hidden through native Full validation. Its
+glyph text/positions remain identical to the preceding writer, with a localized
+table-region raster change as automatic white backgrounds disappear; independent
+newsletter appearance parity remains unqualified. The older compact fixtures
+remain source-preservation inputs and do not establish native style stability.
+Merged-cell editing, additional native mutations, repair-free acceptance and
+public source-free native creation remain open criteria.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the
