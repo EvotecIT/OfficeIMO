@@ -821,7 +821,12 @@ public class CsvWideBenchmarks
         using ExcelReaderNetCsvReader reader = ExcelReaderApi.FromCsv(_csvUtf8);
         var observation = CsvWideReadObservation.Empty;
         bool header = true;
-        foreach (var row in reader)
+#if NET10_0_OR_GREATER
+        var rows = reader.FirstSheet;
+#else
+        var rows = reader;
+#endif
+        foreach (var row in rows)
         {
             if (header)
             {
