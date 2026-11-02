@@ -2090,7 +2090,7 @@ jobs:
           }
 
           $analyzerSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.Aot.slnx'
-          dotnet new sln --name OfficeIMO.Aot --output $env:RUNNER_TEMP --format sln
+          dotnet new sln --name OfficeIMO.Aot --output $env:RUNNER_TEMP --format slnx
           dotnet sln $analyzerSolution add @($projects)
           dotnet restore $analyzerSolution -p:TargetFramework=net8.0
           dotnet build $analyzerSolution --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore -p:EnableTrimAnalyzer=true -p:EnableAotAnalyzer=true
