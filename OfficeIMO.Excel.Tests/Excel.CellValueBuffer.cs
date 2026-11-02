@@ -11,33 +11,33 @@ namespace OfficeIMO.Tests {
         public static IEnumerable<object[]> BufferedCellShapes() {
             yield return new object[] { "trailing total", (Action<ExcelSheet>)(sheet => {
                 WriteBufferedRows(sheet, firstRow: 1, rows: 100);
-                sheet.CellValue(101, 1, "Total");
-                sheet.CellFormula(101, 2, "SUM(B1:B100)");
+                sheet.Cell(101, 1).SetValue("Total");
+                sheet.Cell(101, 2).SetFormula("SUM(B1:B100)");
             }) };
             yield return new object[] { "title above data", (Action<ExcelSheet>)(sheet => {
-                sheet.CellValue(2, 2, "Title");
+                sheet.Cell(2, 2).SetValue("Title");
                 WriteBufferedRows(sheet, firstRow: 4, rows: 100);
             }) };
             yield return new object[] { "rows and columns with gaps", (Action<ExcelSheet>)(sheet => {
                 for (int row = 2; row <= 400; row += 3) {
                     for (int column = 2; column <= 12; column += 4) {
-                        sheet.CellValue(row, column, row * column);
+                        sheet.Cell(row, column).SetValue(row * column);
                     }
                 }
             }) };
             yield return new object[] { "explicit blanks", (Action<ExcelSheet>)(sheet => {
                 for (int row = 1; row <= 70; row++) {
-                    sheet.CellValue(row, 1, (object?)null);
-                    sheet.CellValue(row, 3, "kept");
+                    sheet.Cell(row, 1).SetValue((object?)null);
+                    sheet.Cell(row, 3).SetValue("kept");
                 }
             }) };
         }
 
         private static void WriteBufferedRows(ExcelSheet sheet, int firstRow, int rows) {
             for (int index = 0; index < rows; index++) {
-                sheet.CellValue(firstRow + index, 1, "name " + index);
-                sheet.CellValue(firstRow + index, 2, index * 1.5);
-                sheet.CellValue(firstRow + index, 3, new DateTime(2024, 1, 1).AddDays(index));
+                sheet.Cell(firstRow + index, 1).SetValue("name " + index);
+                sheet.Cell(firstRow + index, 2).SetValue(index * 1.5);
+                sheet.Cell(firstRow + index, 3).SetValue(new DateTime(2024, 1, 1).AddDays(index));
             }
         }
 
@@ -77,10 +77,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet summary = document.AddSheet("Summary");
             ExcelSheet data = document.AddSheet("Data");
             document.AddSheet("Empty");
-            summary.CellValue(1, 1, "Total");
-            summary.CellFormula(1, 2, "SUM(Data!B1:B100)");
+            summary.Cell(1, 1).SetValue("Total");
+            summary.Cell(1, 2).SetFormula("SUM(Data!B1:B100)");
             WriteBufferedRows(data, firstRow: 1, rows: 100);
-            data.CellValue(101, 1, "line one\nline two");
+            data.Cell(101, 1).SetValue("line one\nline two");
             Assert.True(document.HasPendingDirectCellValues);
         };
 
@@ -111,8 +111,8 @@ namespace OfficeIMO.Tests {
                 ExcelSheet plain = document.AddSheet("Plain");
                 ExcelSheet styled = document.AddSheet("Styled");
                 WriteBufferedRows(plain, firstRow: 1, rows: 100);
-                styled.CellValue(1, 1, "Header");
-                styled.CellBold(1, 1);
+                styled.Cell(1, 1).SetValue("Header");
+                styled.Cell(1, 1).SetBold();
             }, options: null);
 
             using ExcelDocument reopened = ExcelDocument.Load(output);
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 ExcelSheet sheet = document.AddSheet("Data");
                 WriteBufferedRows(sheet, firstRow: 1, rows: 100);
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(30));
-                sheet.MergeRange("E1:F2");
+                sheet.Range("E1:F2").Merge();
                 sheet.SetComment(1, 1, "note");
                 sheet.SetHyperlink(90, 1, "https://example.org", "Home");
                 Assert.True(document.HasPendingDirectCellValues);
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
             using MemoryStream output = SaveCells(
                 sheet => {
                     WriteBufferedRows(sheet, firstRow: 1, rows: 100);
-                    sheet.CellValue(101, 1, "line one\nline two");
+                    sheet.Cell(101, 1).SetValue("line one\nline two");
                 },
                 options: null,
                 ExcelSavePackageWriter.ExtendedPackage);
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 5000; row++) {
-                    sheet.CellValue(row, 1, "item number " + row + (row % 97 == 0 ? " WWWWWWWW" : string.Empty));
-                    sheet.CellValue(row, 2, row * 1.25);
-                    sheet.CellValue(row, 3, new DateTime(2024, 1, 1).AddDays(row));
+                    sheet.Cell(row, 1).SetValue("item number " + row + (row % 97 == 0 ? " WWWWWWWW" : string.Empty));
+                    sheet.Cell(row, 2).SetValue(row * 1.25);
+                    sheet.Cell(row, 3).SetValue(new DateTime(2024, 1, 1).AddDays(row));
                 }
 
                 if (materializeFirst) {
@@ -208,13 +208,13 @@ namespace OfficeIMO.Tests {
             using MemoryStream output = SaveWorkbook(document => {
                 ExcelSheet styled = document.AddSheet("Styled");
                 ExcelSheet plain = document.AddSheet("Plain");
-                styled.CellValue(1, 1, "Header");
-                styled.CellBold(1, 1);
+                styled.Cell(1, 1).SetValue("Header");
+                styled.Cell(1, 1).SetBold();
                 WriteBufferedRows(styled, firstRow: 2, rows: 200);
-                styled.FormatCell(150, 2, "0.000");
-                styled.CellBackground(150, 3, "#DDEBF7");
-                styled.CellBold(160, 1);
-                styled.CellValue(160, 1, "overwritten");
+                styled.Cell(150, 2).SetNumberFormat("0.000");
+                styled.Cell(150, 3).SetFillColor("#DDEBF7");
+                styled.Cell(160, 1).SetBold();
+                styled.Cell(160, 1).SetValue("overwritten");
                 WriteBufferedRows(plain, firstRow: 1, rows: 100);
                 Assert.True(document.HasPendingDirectCellValues);
             }, options: null);
@@ -235,10 +235,10 @@ namespace OfficeIMO.Tests {
             const int rows = 15000;
             using MemoryStream output = SaveWorkbook(document => {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Header");
-                sheet.CellBold(1, 1);
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.Cell(1, 1).SetBold();
                 WriteBufferedRows(sheet, firstRow: 2, rows);
-                sheet.FormatCell(rows + 1, 2, "0.000");
+                sheet.Cell(rows + 1, 2).SetNumberFormat("0.000");
             }, options: null);
 
             using ExcelDocument reopened = ExcelDocument.Load(output);
@@ -253,8 +253,8 @@ namespace OfficeIMO.Tests {
             using MemoryStream output = SaveWorkbook(document => {
                 ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= formats; row++) {
-                    sheet.CellValue(row, 1, row);
-                    sheet.FormatCell(row, 1, "0\"" + row + "\"");
+                    sheet.Cell(row, 1).SetValue(row);
+                    sheet.Cell(row, 1).SetNumberFormat("0\"" + row + "\"");
                 }
 
                 Assert.True(document.HasPendingDirectCellValues);
@@ -274,9 +274,9 @@ namespace OfficeIMO.Tests {
         public void CellValueBuffer_RowSettingsTablesRulesChartsAndPropertiesStayOutOfTheDom() {
             using MemoryStream output = SaveWorkbook(document => {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(1, 3, "When");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(1, 3).SetValue("When");
                 WriteBufferedRows(sheet, firstRow: 2, rows: 200);
                 sheet.SetRowHeight(150, ExcelColumnWidth.Characters(30));
                 sheet.SetRowHidden(151, true);
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
         public void CellValueBuffer_FarSparseCellsLeaveTheRectangleWriters() {
             Action<ExcelSheet> write = sheet => {
                 WriteBufferedRows(sheet, firstRow: 1, rows: 100);
-                sheet.CellValue(ExcelA1.MaxRows, ExcelA1.MaxColumns, "corner");
+                sheet.Cell(ExcelA1.MaxRows, ExcelA1.MaxColumns).SetValue("corner");
             };
 
             using MemoryStream output = SaveCells(write, options: null, expectedWriter: null);
@@ -344,7 +344,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             WriteBufferedRows(sheet, firstRow: 1, rows: 100);
-            sheet.MergeRange("E1:F2");
+            sheet.Range("E1:F2").Merge();
             sheet.SetComment(1, 1, "note");
 
             using var output = new MemoryStream();
@@ -364,23 +364,23 @@ namespace OfficeIMO.Tests {
 
         private static void WriteMixedBufferedCells(ExcelSheet sheet) {
             for (int row = 1; row <= 80; row++) {
-                sheet.CellValue(row, 1, "text " + row);
-                sheet.CellValue(row, 2, row * 1.25);
-                sheet.CellValue(row, 3, row);
-                sheet.CellValue(row, 4, 9_007_199_254_740_993L + row);
-                sheet.CellValue(row, 5, row % 2 == 0);
-                sheet.CellValue(row, 6, new DateTime(2024, 1, 1, 6, 30, 0).AddDays(row));
+                sheet.Cell(row, 1).SetValue("text " + row);
+                sheet.Cell(row, 2).SetValue(row * 1.25);
+                sheet.Cell(row, 3).SetValue(row);
+                sheet.Cell(row, 4).SetValue(9_007_199_254_740_993L + row);
+                sheet.Cell(row, 5).SetValue(row % 2 == 0);
+                sheet.Cell(row, 6).SetValue(new DateTime(2024, 1, 1, 6, 30, 0).AddDays(row));
             }
 
-            sheet.CellValue(81, 1, "  padded  ");
-            sheet.CellValue(81, 2, "   ");
-            sheet.CellValue(81, 3, "line\nbreak");
-            sheet.CellValue(81, 4, 1.5m);
-            sheet.CellValue(81, 5, TimeSpan.FromHours(30));
-            sheet.CellValue(81, 6, (object?)null);
-            sheet.CellFormula(81, 7, "SUM(B1:B80)");
-            sheet.CellValue(82, 1, 3d);
-            sheet.FormatCell(82, 1, "yyyy-mm-dd");
+            sheet.Cell(81, 1).SetValue("  padded  ");
+            sheet.Cell(81, 2).SetValue("   ");
+            sheet.Cell(81, 3).SetValue("line\nbreak");
+            sheet.Cell(81, 4).SetValue(1.5m);
+            sheet.Cell(81, 5).SetValue(TimeSpan.FromHours(30));
+            sheet.Cell(81, 6).SetValue((object?)null);
+            sheet.Cell(81, 7).SetFormula("SUM(B1:B80)");
+            sheet.Cell(82, 1).SetValue(3d);
+            sheet.Cell(82, 1).SetNumberFormat("yyyy-mm-dd");
         }
 
         [Fact]
@@ -388,13 +388,13 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             for (int row = 1; row <= 200; row++) {
-                sheet.CellValue(row, 1, row * 2d);
-                sheet.CellValue(row, 2, row % 2 == 0);
+                sheet.Cell(row, 1).SetValue(row * 2d);
+                sheet.Cell(row, 2).SetValue(row % 2 == 0);
             }
             // Row 1 is among the cells also written to the DOM; row 150 lives only in the buffer.
             foreach (int row in new[] { 1, 150 }) {
-                sheet.CellFormula(row, 1, "A2*0");
-                sheet.CellFormula(row, 2, "NOT(TRUE)");
+                sheet.Cell(row, 1).SetFormula("A2*0");
+                sheet.Cell(row, 2).SetFormula("NOT(TRUE)");
             }
 
             using var output = new MemoryStream();
@@ -404,9 +404,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet saved = reopened.Sheets[0];
             foreach (int row in new[] { 1, 150 }) {
                 Assert.Equal("A2*0", saved.GetFormulaText(row, 1));
-                Assert.Equal(row * 2d, saved.CellAt(row, 1).GetValue<double>());
+                Assert.Equal(row * 2d, saved.Cell(row, 1).GetValue<double>());
                 Assert.Equal("NOT(TRUE)", saved.GetFormulaText(row, 2));
-                Assert.Equal(row % 2 == 0, saved.CellAt(row, 2).GetValue<bool>());
+                Assert.Equal(row % 2 == 0, saved.Cell(row, 2).GetValue<bool>());
             }
         }
 
@@ -437,8 +437,8 @@ namespace OfficeIMO.Tests {
 
             using (var cells = sheet.EnumerateCells().GetEnumerator()) {
                 Assert.True(cells.MoveNext());
-                sheet.CellValue(100, 1, "changed");
-                sheet.CellValue(101, 1, "added");
+                sheet.Cell(100, 1).SetValue("changed");
+                sheet.Cell(101, 1).SetValue("added");
                 int count = 1;
                 object? lastName = null;
                 while (cells.MoveNext()) {
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests {
             WriteBufferedRows(sheet, firstRow: 1, rows: 30_000);
 
             for (int read = 1; read <= 20; read++) {
-                sheet.CellValue(30_000 + read, 1, read);
+                sheet.Cell(30_000 + read, 1).SetValue(read);
                 Assert.Equal(90_000 + read, sheet.EnumerateCells().Count());
             }
 

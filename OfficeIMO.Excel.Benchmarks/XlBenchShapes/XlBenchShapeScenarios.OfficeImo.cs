@@ -9,18 +9,18 @@ internal static partial class XlBenchShapeScenarios {
     internal static byte[] OfficeImoWrite() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(1, 2, "Amount");
-        sheet.CellValue(1, 3, "Date");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(1, 2).SetValue("Amount");
+        sheet.Cell(1, 3).SetValue("Date");
         for (int i = 0; i < WriteRows; i++) {
             int row = i + 2;
-            sheet.CellValue(row, 1, WriteStrings[i]);
-            sheet.CellValue(row, 2, WriteNumbers[i]);
-            sheet.CellValue(row, 3, WriteDates[i]);
+            sheet.Cell(row, 1).SetValue(WriteStrings[i]);
+            sheet.Cell(row, 2).SetValue(WriteNumbers[i]);
+            sheet.Cell(row, 3).SetValue(WriteDates[i]);
         }
         int sumRow = WriteRows + 2;
-        sheet.CellValue(sumRow, 1, "Total");
-        sheet.CellFormula(sumRow, 2, $"SUM(B2:B{WriteRows + 1})");
+        sheet.Cell(sumRow, 1).SetValue("Total");
+        sheet.Cell(sumRow, 2).SetFormula($"SUM(B2:B{WriteRows + 1})");
         return Save(document);
     }
 
@@ -62,9 +62,9 @@ internal static partial class XlBenchShapeScenarios {
 
     private static void OfficeImoWriteRows(ExcelSheet sheet, int first, int end) {
         for (int i = first; i < end; i++) {
-            sheet.CellValue(i + 1, 1, WriteStrings[i]);
-            sheet.CellValue(i + 1, 2, WriteNumbers[i]);
-            sheet.CellValue(i + 1, 3, WriteDates[i]);
+            sheet.Cell(i + 1, 1).SetValue(WriteStrings[i]);
+            sheet.Cell(i + 1, 2).SetValue(WriteNumbers[i]);
+            sheet.Cell(i + 1, 3).SetValue(WriteDates[i]);
         }
     }
 
@@ -95,13 +95,13 @@ internal static partial class XlBenchShapeScenarios {
     internal static long OfficeImoEditedRead() {
         using var document = ExcelDocument.Load(new MemoryStream(ReadWorkbook));
         var sheet = document.Sheets[0];
-        sheet.CellValue(1, 4, EditedValue);
+        sheet.Cell(1, 4).SetValue(EditedValue);
         return OfficeImoCountCells(sheet);
     }
 
     internal static long OfficeImoEditedSheetsRead() {
         using var document = ExcelDocument.Load(new MemoryStream(SheetsWorkbook));
-        document.Sheets[0].CellValue(2, 1, EditedText);
+        document.Sheets[0].Cell(2, 1).SetValue(EditedText);
         long cells = 0;
         foreach (var sheet in document.Sheets) {
             cells += OfficeImoCountCells(sheet);
@@ -112,22 +112,22 @@ internal static partial class XlBenchShapeScenarios {
     internal static byte[] OfficeImoReport() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet(ReportSheet);
-        sheet.CellValue(1, 1, "Week");
-        sheet.CellValue(1, 2, "Week Ending");
+        sheet.Cell(1, 1).SetValue("Week");
+        sheet.Cell(1, 2).SetValue("Week Ending");
         for (int s = 0; s < StockSymbols; s++) {
-            sheet.CellValue(1, 3 + s, Symbols[s]);
+            sheet.Cell(1, 3 + s).SetValue(Symbols[s]);
         }
         for (int column = 1; column <= 2 + StockSymbols; column++) {
-            sheet.CellBold(1, column);
+            sheet.Cell(1, column).SetBold();
         }
         for (int w = 0; w < StockWeeks; w++) {
             int row = 2 + w;
-            sheet.CellValue(row, 1, w + 1);
-            sheet.CellValue(row, 2, WeekEndings[w]);
-            sheet.FormatCell(row, 2, DateFormat);
+            sheet.Cell(row, 1).SetValue(w + 1);
+            sheet.Cell(row, 2).SetValue(WeekEndings[w]);
+            sheet.Cell(row, 2).SetNumberFormat(DateFormat);
             for (int s = 0; s < StockSymbols; s++) {
-                sheet.CellValue(row, 3 + s, Prices[w][s]);
-                sheet.FormatCell(row, 3 + s, PriceFormat);
+                sheet.Cell(row, 3 + s).SetValue(Prices[w][s]);
+                sheet.Cell(row, 3 + s).SetNumberFormat(PriceFormat);
             }
         }
         sheet.AutoFitColumn(2);
@@ -157,7 +157,7 @@ internal static partial class XlBenchShapeScenarios {
         }
         int lastRow = EditLastRowAfterDelete;
         for (int row = 2; row <= lastRow; row++) {
-            sheet.CellValue(row, 1, EditColumnAValue);
+            sheet.Cell(row, 1).SetValue(EditColumnAValue);
         }
         document.Calculate();
         sheet.TryGetCachedFormulaValue(lastRow, EditSumColumn, out string? cached);
@@ -175,7 +175,7 @@ internal static partial class XlBenchShapeScenarios {
         int lastRow = EditRows + 1;
         for (int row = 2; row <= lastRow; row++) {
             for (int column = InsertAt; column < InsertAt + InsertCount; column++) {
-                sheet.CellValue(row, column, InsertedValue);
+                sheet.Cell(row, column).SetValue(InsertedValue);
             }
         }
         document.Calculate();
@@ -191,7 +191,7 @@ internal static partial class XlBenchShapeScenarios {
         using var document = ExcelDocument.Load(new MemoryStream(CalcWorkbook));
         var products = document[CalcProductsSheet];
         for (int i = 0; i < CalcProducts; i++) {
-            products.CellValue(2 + i, CalcUnitPriceColumn, CalcNewPrice(i));
+            products.Cell(2 + i, CalcUnitPriceColumn).SetValue(CalcNewPrice(i));
         }
         document.Calculate();
         document[CalcSummarySheet].TryGetCachedFormulaValue(CalcGrandTotalRow, CalcStatColumn, out string? cached);
@@ -205,21 +205,18 @@ internal static partial class XlBenchShapeScenarios {
     internal static byte[] OfficeImoTemplate() {
         using var document = ExcelDocument.Load(new MemoryStream(TemplateWorkbook));
         var sheet = document.Sheets.First(candidate => candidate.Name == "Report");
-        var (titleRow, titleColumn) = ParseCell(document.GetNamedRange("ReportTitle")!);
-        sheet.CellValue(titleRow, titleColumn, TemplateTitle);
-        var (dateRow, dateColumn) = ParseCell(document.GetNamedRange("ReportDate")!);
-        sheet.CellValue(dateRow, dateColumn, TemplateDate);
-        var (regionRow, regionColumn) = ParseCell(document.GetNamedRange("Region")!);
-        sheet.CellValue(regionRow, regionColumn, TemplateRegion);
+        document.GetNamedRange("ReportTitle")!.FirstCell.SetValue(TemplateTitle);
+        document.GetNamedRange("ReportDate")!.FirstCell.SetValue(TemplateDate);
+        document.GetNamedRange("Region")!.FirstCell.SetValue(TemplateRegion);
         for (int i = 0; i < Lines.Length; i++) {
             int row = TemplateFirstRow + i;
             TemplateLine line = Lines[i];
-            sheet.CellValue(row, 1, line.Date);
-            sheet.CellValue(row, 2, line.Product);
-            sheet.CellValue(row, 3, line.Category);
-            sheet.CellValue(row, 4, line.Quantity);
-            sheet.CellValue(row, 5, line.UnitPrice);
-            sheet.CellFormula(row, 6, $"D{row}*E{row}");
+            sheet.Cell(row, 1).SetValue(line.Date);
+            sheet.Cell(row, 2).SetValue(line.Product);
+            sheet.Cell(row, 3).SetValue(line.Category);
+            sheet.Cell(row, 4).SetValue(line.Quantity);
+            sheet.Cell(row, 5).SetValue(line.UnitPrice);
+            sheet.Cell(row, 6).SetFormula($"D{row}*E{row}");
         }
         sheet.ResizeTable("Sales", $"A5:F{TemplateFirstRow + TemplateRows - 1}");
         return Save(document);

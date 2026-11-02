@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                     string reference = ExcelA1.CellReference(row, 1);
                     Assert.True(references.Add(reference), $"Duplicate catalog case {reference}.");
                     if (spills.ContainsKey(reference)) report.SetDynamicArrayFormula(reference, formula);
-                    else report.CellFormula(row, 1, formula);
+                    else report.Cell(row, 1).SetFormula(formula);
                 }
                 Assert.Equal(223, references.Count);
                 // Includes the independently authored NA() source cell, with no imported native caches.
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_InvariantDateTextRetainsEarlyCalendar(double serial, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Dates");
-            sheet.CellFormula(1, 1, $"TEXT({serial.ToString(CultureInfo.InvariantCulture)},\"yyyy-mm-dd\")");
+            sheet.Cell(1, 1).SetFormula($"TEXT({serial.ToString(CultureInfo.InvariantCulture)},\"yyyy-mm-dd\")");
             Assert.Equal(1, document.Calculate());
             Assert.True(sheet.TryGetCachedFormulaValue(1, 1, out string? actual));
             Assert.Equal(expected, actual);

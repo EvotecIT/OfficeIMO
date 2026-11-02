@@ -197,7 +197,7 @@ public sealed class ExcelOdsChartAuthoringTests {
         ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "Jan", "Feb" },
             new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
         ExcelChartDataRange range = chart.DataRange!;
-        source[range.SheetName].Cell(range.SeriesStartRow, range.SeriesStartColumn, "not numeric");
+        source[range.SheetName].Cell(range.SeriesStartRow, range.SeriesStartColumn).SetValue("not numeric");
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);

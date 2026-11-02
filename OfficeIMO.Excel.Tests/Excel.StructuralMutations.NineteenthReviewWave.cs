@@ -31,13 +31,13 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_NormalizesDisplayAliasWhenStableNameMatchesTarget() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 10);
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(10);
             sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = Assert.Single(sheet.WorksheetPart.TableDefinitionParts).Table!;
             table.DisplayName = "Sales";
             table.Save();
-            sheet.CellFormula(1, 3, "SUM(Sales[Amount])");
+            sheet.Cell(1, 3).SetFormula("SUM(Sales[Amount])");
 
             Assert.Equal("Internal", sheet.RenameTable("Sales", "Internal"));
 
@@ -85,26 +85,26 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralColumns_HandleImplicitRowsAndHeaderlessTables() {
             using var document = ExcelDocument.Create();
             ExcelSheet implicitRows = document.AddSheet("Implicit");
-            implicitRows.CellValue(2, 2, "B2");
-            implicitRows.CellValue(2, 3, "C2");
+            implicitRows.Cell(2, 2).SetValue("B2");
+            implicitRows.Cell(2, 3).SetValue("C2");
             Row implicitRow = Assert.Single(implicitRows.WorksheetPart.Worksheet
                 .GetFirstChild<SheetData>()!.Elements<Row>());
             implicitRow.RowIndex = null;
 
-            implicitRows.DeleteColumns(1);
+            implicitRows.DeleteColumnsTransactional(1);
 
             Assert.Null(implicitRow.RowIndex);
             Assert.Equal(new[] { "A2", "B2" }, implicitRow.Elements<Cell>()
                 .Select(cell => cell.CellReference!.Value).ToArray());
 
             ExcelSheet headerless = document.AddSheet("Headerless");
-            headerless.CellValue(1, 1, "Alpha");
-            headerless.CellValue(1, 2, "Beta");
-            headerless.CellValue(2, 1, "Gamma");
-            headerless.CellValue(2, 2, "Delta");
+            headerless.Cell(1, 1).SetValue("Alpha");
+            headerless.Cell(1, 2).SetValue("Beta");
+            headerless.Cell(2, 1).SetValue("Gamma");
+            headerless.Cell(2, 2).SetValue("Delta");
             headerless.AddTable("A1:B2", false, "Data", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
 
-            headerless.InsertColumns(2);
+            headerless.InsertColumnsTransactional(2);
 
             Cell[] firstRow = headerless.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!
                 .Elements<Row>().First().Elements<Cell>().ToArray();

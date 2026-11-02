@@ -47,7 +47,7 @@ public sealed class IWorkDateTimeFormatCorpusTests {
         foreach (var expected in package.GetProperty("cells").EnumerateArray()) {
             int row = expected.GetProperty("row").GetInt32(), column = expected.GetProperty("column").GetInt32();
             var source = result.Projection.Sheets[0].Tables[0].GetCell(row, column)!;
-            var actual = reopened.Sheets[0].CellAt(row, column);
+            var actual = reopened.Sheets[0].Cell(row, column);
             Assert.Equal(Assert.IsType<DateTime>(source.Value).ToOADate(), actual.GetValue<double>());
             Assert.Equal(source.NumberFormat!.ToSpreadsheetFormatCode(), actual.GetStyle().NumberFormatCode);
             Assert.True(source.FormulaIsComplete);

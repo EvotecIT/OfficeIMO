@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cells">Collection of cell coordinates and values.</param>
         /// <param name="mode">Optional execution mode override.</param>
         /// <param name="ct">Cancellation token.</param>
-        public void CellValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default) =>
+        public void SetValues(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode = null, CancellationToken ct = default) =>
             CellValuesCore(cells, mode, ct, preserveMissingValues: false);
 
         private void CellValuesCore(IEnumerable<(int Row, int Column, object Value)> cells, ExcelExecutionMode? mode, CancellationToken ct, bool preserveMissingValues) {

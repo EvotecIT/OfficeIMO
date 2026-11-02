@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Alignment");
-                    sheet.CellValue(1, 1, "General horizontal");
-                    sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                    sheet.Cell(1, 1).SetValue("General horizontal");
+                    sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                     Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                     Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();

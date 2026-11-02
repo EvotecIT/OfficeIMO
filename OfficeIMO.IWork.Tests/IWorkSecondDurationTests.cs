@@ -41,8 +41,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            Assert.Equal(seconds / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-            Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+            Assert.Equal(seconds / 86400, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+            Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
             Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         } else if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordDocumentResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellKind.Empty, Assert.Single(result.Projection.Sheets[0].Tables[0].Cells).ValueKind);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(code, reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal(code, reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 

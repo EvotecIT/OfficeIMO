@@ -16,7 +16,7 @@ public sealed class ExcelOpenLifecycleWorkflowTests {
         try {
             string path = Path.Combine(root, "Review[final].xlsx");
             using (var source = ExcelDocument.Create()) {
-                source.AddSheet("Data").CellValue(1, 1, "Original");
+                source.AddSheet("Data").Cell(1, 1).SetValue("Original");
                 source.Save(path, new ExcelSaveOptions { Password = password });
             }
             using var runspace = Open();

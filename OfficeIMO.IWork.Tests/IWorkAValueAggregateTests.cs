@@ -19,9 +19,9 @@ public sealed partial class IWorkBoundaryTests {
         using var stream = new MemoryStream(); result.Value.Save(stream); stream.Position = 0;
         using var reopened = ExcelDocument.Load(stream);
         Assert.Equal(name + "(1,2)", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]

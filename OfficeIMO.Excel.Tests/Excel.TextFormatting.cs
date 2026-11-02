@@ -19,19 +19,19 @@ public class ExcelTextFormattingTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Text");
-                sheet.CellAt(1, 1).SetValue("Primary")
+                sheet.Cell(1, 1).SetValue("Primary")
                     .SetBold().SetItalic()
                     .SetUnderline(ExcelUnderlineStyle.DoubleAccounting)
                     .SetStrikethrough().SetSuperscript()
                     .SetFontName("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetFontColor("336699");
                 sheet.Range("A2:A3").SetUnderline(ExcelUnderlineStyle.Double)
                     .SetItalic().SetStrikethrough().SetSubscript().SetFontSize(global::OfficeIMO.OfficeLength.Pixels(18));
-                sheet.CellFontSize(4, 1, global::OfficeIMO.OfficeLength.Inches(0.25));
-                sheet.CellAt(1, 2).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetRichText(
+                sheet.Cell(4, 1).SetFontSize(global::OfficeIMO.OfficeLength.Inches(0.25));
+                sheet.Cell(1, 2).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetRichText(
                     new ExcelRichTextRun("Inherited"),
                     new ExcelRichTextRun(" Sized") { FontSize = global::OfficeIMO.OfficeLength.Centimeters(0.635), Bold = false });
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellFontSize(10, 1, global::OfficeIMO.OfficeLength.Zero));
-                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.CellAt(11, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(-1)));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.Cell(10, 1).SetFontSize(global::OfficeIMO.OfficeLength.Zero));
+                Assert.Throws<ArgumentOutOfRangeException>(() => sheet.Cell(11, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(-1)));
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.Range("A12:A13").SetFontSize(global::OfficeIMO.OfficeLength.Zero));
                 document.Save();
             }
@@ -69,10 +69,10 @@ public class ExcelTextFormattingTests {
             Assert.Equal(18D, nativeRuns[1].RunProperties!.GetFirstChild<FontSize>()!.Val!.Value);
             Assert.False(nativeRuns[1].RunProperties!.GetFirstChild<Bold>()!.Val!.Value);
             using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(path)))) {
-                ExcelRichTextRun[] runs = loaded.Sheets[0].CellAt(1, 2).GetRichText().ToArray();
+                ExcelRichTextRun[] runs = loaded.Sheets[0].Cell(1, 2).GetRichText().ToArray();
                 Assert.Null(runs[0].FontSize);
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(18), runs[1].FontSize);
-                loaded.Sheets[0].CellAt(2, 2).SetBold().SetRichText(runs);
+                loaded.Sheets[0].Cell(2, 2).SetBold().SetRichText(runs);
                 using var copied = SpreadsheetDocument.Open(new MemoryStream(loaded.ToBytes()), false);
                 Run[] copiedRuns = copied.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
                     .Single(cell => cell.CellReference?.Value == "B2").InlineString!.Elements<Run>().ToArray();
@@ -111,12 +111,12 @@ public class ExcelTextFormattingTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Text");
-                sheet.CellAt(1, 1).SetValue("mixed CASE").SetBold().TransformTextCase(OfficeTextCase.TitleCase);
-                sheet.CellAt(2, 1).SetRichText(
+                sheet.Cell(1, 1).SetValue("mixed CASE").SetBold().TransformTextCase(OfficeTextCase.TitleCase);
+                sheet.Cell(2, 1).SetRichText(
                     new ExcelRichTextRun("Styled") { Bold = true, UnderlineStyle = ExcelUnderlineStyle.Double },
                     new ExcelRichTextRun(" TEXT") { Italic = true, VerticalTextAlignment = ExcelVerticalTextAlignment.Subscript });
-                sheet.CellAt(3, 1).SetValue(42);
-                sheet.CellAt(4, 1).SetFormula("A3+1");
+                sheet.Cell(3, 1).SetValue(42);
+                sheet.Cell(4, 1).SetFormula("A3+1");
 
                 sheet.Range("A2:A4").TransformTextCase(OfficeTextCase.ToggleCase);
                 document.Save();
@@ -124,16 +124,16 @@ public class ExcelTextFormattingTests {
 
             using ExcelDocument reloaded = ExcelDocument.Load(path);
             ExcelSheet reloadedSheet = reloaded.Sheets[0];
-            Assert.Equal("Mixed Case", reloadedSheet.CellAt(1, 1).GetValue<string>());
-            ExcelRichTextRun[] runs = reloadedSheet.CellAt(2, 1).GetRichText().ToArray();
+            Assert.Equal("Mixed Case", reloadedSheet.Cell(1, 1).GetValue<string>());
+            ExcelRichTextRun[] runs = reloadedSheet.Cell(2, 1).GetRichText().ToArray();
             Assert.Equal(new[] { "sTYLED", " text" }, runs.Select(run => run.Text));
             Assert.True(runs[0].Bold);
             Assert.True(runs[0].Underline);
             Assert.Equal(ExcelUnderlineStyle.Double, runs[0].UnderlineStyle);
             Assert.True(runs[1].Italic);
             Assert.Equal(ExcelVerticalTextAlignment.Subscript, runs[1].VerticalTextAlignment);
-            Assert.Equal(42D, reloadedSheet.CellAt(3, 1).GetValue<double>());
-            Assert.Equal("A3+1", reloadedSheet.CellAt(4, 1).GetValue().Formula);
+            Assert.Equal(42D, reloadedSheet.Cell(3, 1).GetValue<double>());
+            Assert.Equal("A3+1", reloadedSheet.Cell(4, 1).GetValue().Formula);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -163,7 +163,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddSheet("Text").CellAt(1, 1).SetFormula("\"mixed Case\"");
+                document.AddSheet("Text").Cell(1, 1).SetFormula("\"mixed Case\"");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -177,7 +177,9 @@ public class ExcelTextFormattingTests {
                 ExcelSheet sheet = document.Sheets[0];
                 Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? snapshot));
                 Assert.Equal(ExcelCellValueKind.Formula, snapshot!.Kind);
-                Assert.False(sheet.TransformCellTextCase(1, 1, OfficeTextCase.Uppercase));
+                string? formula = sheet.GetFormulaText(1, 1);
+                sheet.Cell(1, 1).TransformTextCase(OfficeTextCase.Uppercase);
+                Assert.Equal(formula, sheet.GetFormulaText(1, 1));
                 document.Save();
             }
 
@@ -197,7 +199,7 @@ public class ExcelTextFormattingTests {
         var expected = new DateTime(2026, 4, 5);
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddSheet("Dates").CellAt(1, 1).SetValue(expected);
+                document.AddSheet("Dates").Cell(1, 1).SetValue(expected);
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -220,14 +222,11 @@ public class ExcelTextFormattingTests {
     public void RichTextCaseTransformsDoNotResetContextAtRunBoundaries() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Text");
-        sheet.CellAt(1, 1).SetRichText(
-            new ExcelRichTextRun("hELLO. ") { Bold = true },
-            new ExcelRichTextRun("aNOTHER") { Italic = true },
-            new ExcelRichTextRun(" SENTENCE") { Underline = true });
+        sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("hELLO. ") { Bold = true }, new ExcelRichTextRun("aNOTHER") { Italic = true },new ExcelRichTextRun(" SENTENCE") { Underline = true });
 
-        sheet.CellAt(1, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+        sheet.Cell(1, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
 
-        ExcelRichTextRun[] actual = sheet.CellAt(1, 1).GetRichText().ToArray();
+        ExcelRichTextRun[] actual = sheet.Cell(1, 1).GetRichText().ToArray();
         Assert.Equal(new[] { "Hello. ", "Another", " sentence" }, actual.Select(run => run.Text));
         Assert.True(actual[0].Bold);
         Assert.True(actual[1].Italic);
@@ -240,8 +239,8 @@ public class ExcelTextFormattingTests {
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = created.AddSheet("Text");
-                sheet.CellAt(1, 1).SetValue("placeholder");
-                sheet.CellAt(2, 1).SetValue("placeholder");
+                sheet.Cell(1, 1).SetValue("placeholder");
+                sheet.Cell(2, 1).SetValue("placeholder");
                 created.Save();
             }
 
@@ -265,8 +264,8 @@ public class ExcelTextFormattingTests {
             }
 
             using (ExcelDocument loaded = ExcelDocument.Load(path)) {
-                loaded.Sheets[0].CellAt(1, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
-                loaded.Sheets[0].CellAt(2, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+                loaded.Sheets[0].Cell(1, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
+                loaded.Sheets[0].Cell(2, 1).TransformTextCase(OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
                 loaded.Save();
             }
 
@@ -297,7 +296,7 @@ public class ExcelTextFormattingTests {
         string expectedProperties;
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddSheet("Text").CellAt(1, 1).SetRichText(
+                created.AddSheet("Text").Cell(1, 1).SetRichText(
                     new ExcelRichTextRun("istanbul") { Bold = true, FontName = "Aptos" });
                 created.Save();
             }
@@ -312,7 +311,7 @@ public class ExcelTextFormattingTests {
             }
 
             using (ExcelDocument loaded = ExcelDocument.Load(path)) {
-                loaded.Sheets[0].CellAt(1, 1)
+                loaded.Sheets[0].Cell(1, 1)
                     .TransformTextCase(OfficeTextCase.TitleCase, CultureInfo.GetCultureInfo("tr-TR"));
                 loaded.Save();
             }
@@ -337,8 +336,8 @@ public class ExcelTextFormattingTests {
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = created.AddSheet("Text");
-                sheet.CellAt(1, 1).SetValue("First");
-                sheet.CellAt(2, 1).SetValue("Second");
+                sheet.Cell(1, 1).SetValue("First");
+                sheet.Cell(2, 1).SetValue("Second");
                 created.Save();
             }
 
@@ -367,7 +366,7 @@ public class ExcelTextFormattingTests {
             }
 
             using (ExcelDocument loaded = ExcelDocument.Load(path)) {
-                loaded.Sheets[0].CellAt(1, 1)
+                loaded.Sheets[0].Cell(1, 1)
                     .TransformTextCase(OfficeTextCase.TitleCase, CultureInfo.GetCultureInfo("tr-TR"));
                 loaded.Save();
             }
@@ -399,17 +398,17 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddSheet("Text").CellAt(1, 1).SetValue("Plain")
+                created.AddSheet("Text").Cell(1, 1).SetValue("Plain")
                     .SetBold().SetItalic().SetUnderline().SetStrikethrough();
-                created.Sheets[0].CellAt(2, 1).SetRichText(
+                created.Sheets[0].Cell(2, 1).SetRichText(
                     new ExcelRichTextRun("Rich") {
                         Bold = true,
                         Italic = true,
                         Underline = true,
                         Strikethrough = true,
                     });
-                created.Sheets[0].CellAt(3, 1).SetRichText(new ExcelRichTextRun("Physical"));
-                created.Sheets[0].CellAt(4, 1).SetValue("Unspecified").SetFontName("Aptos");
+                created.Sheets[0].Cell(3, 1).SetRichText(new ExcelRichTextRun("Physical"));
+                created.Sheets[0].Cell(4, 1).SetValue("Unspecified").SetFontName("Aptos");
                 created.Save();
             }
 
@@ -443,12 +442,12 @@ public class ExcelTextFormattingTests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            ExcelCellStyleInfo direct = loaded.Sheets[0].CellAt(1, 1).GetStyle();
+            ExcelCellStyleInfo direct = loaded.Sheets[0].Cell(1, 1).GetStyle();
             ExcelWorksheetInfo worksheetSnapshot = Assert.Single(loaded.Inspect().Worksheets);
             ExcelCellStyleInfo inspected = worksheetSnapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style!;
             Assert.Equal(global::OfficeIMO.OfficeLength.Pixels(18), direct.FontSize);
             Assert.Equal(direct.FontSize, inspected.FontSize);
-            Assert.Null(loaded.Sheets[0].CellAt(4, 1).GetStyle().FontSize);
+            Assert.Null(loaded.Sheets[0].Cell(4, 1).GetStyle().FontSize);
             Assert.Null(worksheetSnapshot.Cells.Single(cell => cell.Row == 4 && cell.Column == 1).Style!.FontSize);
             ExcelRangeVisualInfo visual = loaded.Sheets[0].Range("A1:A4").CreateVisualSnapshot();
             Assert.Equal(direct.FontSize, visual.Cells.Single(cell => cell.Row == 1).Style.FontSize);
@@ -464,7 +463,7 @@ public class ExcelTextFormattingTests {
                 Assert.False(style.Strikethrough);
             }
 
-            ExcelRichTextRun directRun = Assert.Single(loaded.Sheets[0].CellAt(2, 1).GetRichText());
+            ExcelRichTextRun directRun = Assert.Single(loaded.Sheets[0].Cell(2, 1).GetRichText());
             ExcelRichTextRun inspectedRun = Assert.Single(
                 worksheetSnapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).RichTextRuns);
             foreach (ExcelRichTextRun run in new[] { directRun, inspectedRun }) {

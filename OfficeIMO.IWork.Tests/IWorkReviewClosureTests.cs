@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.False(cell.FormulaIsComplete);
         Assert.Equal(42d, Assert.IsType<double>(cell.Value), 10);
-        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED");
     }
@@ -136,8 +136,8 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Sheets.Count);
-        Assert.Equal(1d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
-        Assert.Equal(2d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(1d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>(), 10);
+        Assert.Equal(2d, result.Value.Sheets[1].Cell(1, 1).GetValue<double>(), 10);
         Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(12.619047619047619d), result.Value.Sheets[0].DefaultColumnWidth);
         Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Characters(25.952380952380953d), result.Value.Sheets[1].DefaultColumnWidth);
         Assert.Empty(result.Value.Sheets[0].GetColumnDefinitions());
@@ -154,8 +154,8 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Sheets.Count);
-        Assert.Equal("Sheet annotation", result.Value.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal(42d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal("Sheet annotation", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
+        Assert.Equal(42d, result.Value.Sheets[1].Cell(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]

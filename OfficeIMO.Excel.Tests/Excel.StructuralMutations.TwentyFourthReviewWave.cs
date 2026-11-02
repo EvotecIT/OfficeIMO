@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationDiagnostics_ObserveCancellation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            document.AddSheet("Data").CellValue(1, 1, "value");
+            document.AddSheet("Data").Cell(1, 1).SetValue("value");
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
@@ -39,10 +39,10 @@ namespace OfficeIMO.Tests {
             TableColumn[] columns = table.TableColumns!.Elements<TableColumn>().ToArray();
             columns[0].TotalsRowLabel = "Total";
             columns[1].TotalsRowFormula = new TotalsRowFormula("SUBTOTAL(109,[Amount])");
-            sheet.CellValue(2, 1, "old");
-            sheet.CellValue(2, 2, 1d);
-            sheet.CellValue(3, 1, "Total");
-            sheet.CellAt(3, 2).SetFormula("SUBTOTAL(109,[Amount])");
+            sheet.Cell(2, 1).SetValue("old");
+            sheet.Cell(2, 2).SetValue(1d);
+            sheet.Cell(3, 1).SetValue("Total");
+            sheet.Cell(3, 2).SetFormula("SUBTOTAL(109,[Amount])");
             table.Save();
 
             var host = new StubQueryHost(new ExcelQueryExecutionResult(
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:B4", refreshed.Range);
             Assert.Equal("A1:B4", table.Reference!.Value);
             Assert.Equal("A1:B3", table.AutoFilter!.Reference!.Value);
-            Assert.Equal("Total", sheet.CellAt(4, 1).GetValue<string>());
+            Assert.Equal("Total", sheet.Cell(4, 1).GetValue<string>());
             Assert.Equal("SUBTOTAL(109,[Amount])", sheet.GetFormulaText(4, 2));
             Assert.Equal("Total", columns[0].TotalsRowLabel!.Value);
             Assert.Equal("SUBTOTAL(109,[Amount])", columns[1].TotalsRowFormula!.Text);
@@ -114,19 +114,19 @@ namespace OfficeIMO.Tests {
             Assert.All(row.Elements<Cell>(), cell => Assert.Null(cell.CellReference));
 
             plan.Apply();
-            Assert.Equal("A", sheet.CellAt(1, 3).GetValue<string>());
-            Assert.Equal("B", sheet.CellAt(1, 4).GetValue<string>());
+            Assert.Equal("A", sheet.Cell(1, 3).GetValue<string>());
+            Assert.Equal("B", sheet.Cell(1, 4).GetValue<string>());
 
             var implicitRow = new Row(
                 new Cell { CellValue = new CellValue("clear"), DataType = CellValues.String },
                 new Cell { CellValue = new CellValue("keep"), DataType = CellValues.String });
             sheetData.Append(implicitRow);
-            sheet.ClearRange("A2:A2", ExcelClearOptions.Values);
+            sheet.Range("A2:A2").Clear(ExcelClearOptions.Values);
             Assert.Null(implicitRow.Elements<Cell>().First().CellValue);
             Assert.Equal("keep", implicitRow.Elements<Cell>().Last().CellValue!.Text);
 
             sheet.InsertCells("A2:A2", ExcelCellShiftDirection.Right);
-            Assert.Equal("keep", sheet.CellAt(2, 3).GetValue<string>());
+            Assert.Equal("keep", sheet.Cell(2, 3).GetValue<string>());
         }
 
         private static ExcelChartData CreateModernChartData(int count) {

@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             cell.ValueMetaIndex = 128;
             var lookup = RichValueErrorLookup.FromRoots(metadata, values, structures);
             for (uint index = 1; index <= 128; index++) Assert.Equal(expected, lookup.Resolve(index, "#VALUE!"));
-            Assert.Equal(expected, sheet.CellAt(1, 1).GetValue().Value);
+            Assert.Equal(expected, sheet.Cell(1, 1).GetValue().Value);
             byte[] bytes = document.ToBytes();
             foreach (string? selection in new string?[] { null, "Data" }) {
                 using var reader = ExcelDocument.OpenReader(new MemoryStream(bytes),
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
         public void ImportedRowLayoutPreservesCellsPrecisionAndHiddenState() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(3, 1, "Keep");
-            sheet.CellValue(1002, 1, "Tail");
+            sheet.Cell(3, 1).SetValue("Keep");
+            sheet.Cell(1002, 1).SetValue("Tail");
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(25)));
             sheet.SetRowHidden(1002, true);
             var heights = Enumerable.Range(1, 1000).Reverse().ToDictionary(index => index, _ => 20.123456789d);
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
             Assert.True(rows[1].Hidden!.Value);
             Assert.True(rows[1000].Hidden!.Value);
             Assert.True(rows[1001].Hidden!.Value);
-            Assert.Equal("Keep", reopened["Data"].CellAt(3, 1).GetValue().Value);
-            Assert.Equal("Tail", reopened["Data"].CellAt(1002, 1).GetValue().Value);
+            Assert.Equal("Keep", reopened["Data"].Cell(3, 1).GetValue().Value);
+            Assert.Equal("Tail", reopened["Data"].Cell(1002, 1).GetValue().Value);
             Assert.Empty(reopened.ValidateOpenXml());
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
@@ -95,15 +95,15 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
-            sheet.CellValue(1, 1, visible);
-            sheet.CellValue(2, 1, new string('\u200B', 30000) + visible);
-            sheet.CellWrapText(1, 1);
-            sheet.CellWrapText(2, 1);
+            sheet.Cell(1, 1).SetValue(visible);
+            sheet.Cell(2, 1).SetValue(new string('\u200B', 30000) + visible);
+            sheet.Cell(1, 1).SetWrapText();
+            sheet.Cell(2, 1).SetWrapText();
             sheet.AutoFitRows();
             var rows = sheet.WorksheetPart.Worksheet.Descendants<Row>().ToArray();
             Assert.True(rows[0].Height!.Value > 15);
             Assert.Equal(rows[0].Height!.Value, rows[1].Height!.Value);
-            Assert.Equal(new string('\u200B', 30000) + visible, sheet.CellAt(2, 1).GetValue().Value);
+            Assert.Equal(new string('\u200B', 30000) + visible, sheet.Cell(2, 1).GetValue().Value);
         }
 
         [Fact]
@@ -113,8 +113,8 @@ namespace OfficeIMO.Tests {
                 "<table><caption>" + text + "</caption><tr><td>" + text + "</td><td>Definition</td></tr></table>")
                 .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic }).RequireValue();
             var sheet = Assert.Single(document.Sheets);
-            Assert.Equal(text, sheet.CellAt(1, 1).GetValue().Value);
-            Assert.Equal(text, sheet.CellAt(3, 1).GetValue().Value);
+            Assert.Equal(text, sheet.Cell(1, 1).GetValue().Value);
+            Assert.Equal(text, sheet.Cell(3, 1).GetValue().Value);
             Assert.All(sheet.WorksheetPart.Worksheet.Descendants<Row>()
                 .Where(row => row.RowIndex?.Value == 1 || row.RowIndex?.Value == 3),
                 row => Assert.True(row.Height?.Value > 15));

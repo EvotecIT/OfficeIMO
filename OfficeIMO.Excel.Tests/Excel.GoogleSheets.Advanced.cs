@@ -14,11 +14,11 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.SetRichText(1, 1, new[] {
+                sheet.Cell(1, 1).SetRichText(new[] {
                     new ExcelRichTextRun("Bold") { Bold = true, FontColor = "FF112233" },
                     new ExcelRichTextRun(" plain"),
                 });
-                sheet.CellValue(2, 1, 12);
+                sheet.Cell(2, 1).SetValue(12);
                 sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                 sheet.GroupRows(2, 5, outlineLevel: 1);
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests
             try {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Data");
-                    sheet.CellValue(2, 1, 12);
+                    sheet.Cell(2, 1).SetValue(12);
                     sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                     document.Save();
                 }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests
         public void Test_GoogleSheetsBatch_PreservesConditionalStrike(bool strike) {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 1);
+            sheet.Cell(1, 1).SetValue(1);
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Range = "A1",
                 Type = "CellIs",
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests
             try {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet dashboard = document.AddSheet("ChartData");
-                    dashboard.CellValue(1, 1, "User content");
+                    dashboard.Cell(1, 1).SetValue("User content");
                     dashboard.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 4, Title = "Sales" });
                     document.Save();
                 }
@@ -320,9 +320,9 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "=1+1");
-                sheet.CellValue(1, 2, "00123");
-                sheet.CellFormula(1, 3, "1+1");
+                sheet.Cell(1, 1).SetValue("=1+1");
+                sheet.Cell(1, 2).SetValue("00123");
+                sheet.Cell(1, 3).SetFormula("1+1");
 
                 GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
                 var ids = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch);
@@ -343,7 +343,7 @@ namespace OfficeIMO.Tests
             try {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Data");
-                    sheet.SetRichText(1, 1, new[] {
+                    sheet.Cell(1, 1).SetRichText(new[] {
                         new ExcelRichTextRun("Bold") { Bold = true },
                         new ExcelRichTextRun(" plain") { Italic = true },
                     });
@@ -386,7 +386,7 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Protected");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 sheet.Protect();
                 var options = new GoogleSheetsSaveOptions {
                     Spreadsheet = new GoogleSheetsSpreadsheetOptions { Locale = "pl_PL", TimeZone = "Europe/Warsaw", RecalculationInterval = GoogleSheetsRecalculationInterval.Minute },
@@ -438,14 +438,14 @@ namespace OfficeIMO.Tests
             {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(4, 1, "North");
-                sheet.CellValue(4, 2, 30d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(4, 1).SetValue("North");
+                sheet.Cell(4, 2).SetValue(30d);
                 sheet.AddPivotTable("A1:B4", "D1", options: new ExcelPivotTableOptions { Name = "PopulationPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Count, "Non-empty count"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.CountNumbers, "Numeric count"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.StandardDeviationP, "Population SD"), new ExcelPivotDataField("Value", ExcelPivotDataFunction.VarianceP, "Population Variance"), } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
@@ -466,16 +466,16 @@ namespace OfficeIMO.Tests
             {
                 using var document = ExcelDocument.Create(path);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(3, 2, 20d);
-                sheet.CellValue(1, 4, "Cached Region");
-                sheet.CellValue(1, 5, "Cached Total");
-                sheet.CellValue(2, 4, "North");
-                sheet.CellValue(2, 5, 10d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(3, 2).SetValue(20d);
+                sheet.Cell(1, 4).SetValue("Cached Region");
+                sheet.Cell(1, 5).SetValue("Cached Total");
+                sheet.Cell(2, 4).SetValue("North");
+                sheet.Cell(2, 5).SetValue(10d);
                 sheet.AddPivotTable("A1:B3", "D1", options: new ExcelPivotTableOptions { Name = "CachedPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Value", ExcelPivotDataFunction.Sum, "Total") } });
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());

@@ -11,14 +11,14 @@ public sealed partial class ExcelRange {
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++)
                 cells[row * columns + column] = (FirstRow + row, FirstColumn + column, values[row, column]!);
-        Sheet.CellValues(cells);
+        Sheet.SetValues(cells);
         return this;
     }
 
     /// <summary>Gets an editable cell using one-based offsets from this range's top-left cell.</summary>
-    public ExcelCell CellAt(int rowOffset, int columnOffset) {
+    public ExcelCell Cell(int rowOffset, int columnOffset) {
         if (rowOffset < 1 || rowOffset > LastRow - FirstRow + 1) throw new ArgumentOutOfRangeException(nameof(rowOffset));
         if (columnOffset < 1 || columnOffset > LastColumn - FirstColumn + 1) throw new ArgumentOutOfRangeException(nameof(columnOffset));
-        return Sheet.CellAt(FirstRow + rowOffset - 1, FirstColumn + columnOffset - 1);
+        return new ExcelCell(Sheet, FirstRow + rowOffset - 1, FirstColumn + columnOffset - 1);
     }
 }

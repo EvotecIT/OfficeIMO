@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             using var partial = source.ToExcelDocumentResult(options); partial.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Null(reopened.Sheets[0].GetFormulaText(1, 1));
-            Assert.Equal(marker, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal(marker, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
             Assert.Empty(reopened.ValidateOpenXml());
         } else {
             using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
@@ -88,7 +88,7 @@ public sealed partial class IWorkBoundaryTests {
             tilePayload: BytesField(5, row));
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Empty(result.Report.SourceDeclarationIssues);
     }
 

@@ -38,9 +38,9 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         var sheet = reopened.Sheets[0];
         Assert.Equal(expression, sheet.GetFormulaText(1, 1));
-        Assert.Equal(42d, sheet.CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, sheet.Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, sheet.CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, sheet.Cell(1, 1).GetValue<double>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
             hasFormula: true, formulaPayload: BytesField(1, Message(nodes.ToArray()))) });
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         Assert.Equal("=" + expression, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.Formula);
-        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, result.Value.Calculate());
         IWorkFormulaCacheAssertions.HasType(result.Value, 0, "A1", "e");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -117,9 +117,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(expression, reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        Assert.Equal(expected, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(expected, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Empty(reopened.ValidateOpenXml());
     }
 

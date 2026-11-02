@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests
                             Assert.True(ExcelA1.TryParseRange(result.OutputRange, out int top, out int left, out int bottom, out int right));
                             var grid = new object?[bottom - top + 1, right - left + 1];
                             for (int r = 0; r < grid.GetLength(0); r++) for (int c = 0; c < grid.GetLength(1); c++)
-                                grid[r, c] = sheet.CellAt(top + r, left + c).GetValue().Value;
+                                grid[r, c] = sheet.Cell(top + r, left + c).GetValue().Value;
                             var labels = grid.Cast<object?>().OfType<string>().ToArray();
                             Assert.Contains((system == 1900 ? "1900-01-01" : "1904-01-01") + " 00:00:00 Total", labels);
                             if (system == 1900) {
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests
                 var lookups = document.GetSheet("Lookups");
                 lookups.ClearCachedFormulaResults();
                 Assert.Equal(count, lookups.RecalculateSupportedFormulas());
-                for (int row = 0; row < count; row++) AssertPivotLookupOracleValue(expected[row, 0], lookups.CellAt(row + 1, 2).GetValue().Value);
+                for (int row = 0; row < count; row++) AssertPivotLookupOracleValue(expected[row, 0], lookups.Cell(row + 1, 2).GetValue().Value);
                 document.Save(output);
             }
             using var reopened = ExcelDocumentReader.Open(output);
@@ -112,9 +112,9 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create();
             document.DateSystem = system;
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Group");
-            sheet.CellValue(1, 2, "Key");
-            sheet.CellValue(1, 3, "Amount");
+            sheet.Cell(1, 1).SetValue("Group");
+            sheet.Cell(1, 2).SetValue("Key");
+            sheet.Cell(1, 3).SetValue("Amount");
             var dates = system == ExcelDateSystem.NineteenHundred ? new[]
             {
                 new DateTime(1900, 1, 1),
@@ -131,13 +131,13 @@ namespace OfficeIMO.Tests
                 new DateTime(2024, 1, 1, 12, 0, 0)
             };
             for (int index = 0; index < dates.Length; index++)
-                sheet.CellValue(index + 2, 2, dates[index]);
-            sheet.CellError(6, 2, "#DIV/0!");
-            sheet.CellValue(7, 2, "#DIV/0!");
+                sheet.Cell(index + 2, 2).SetValue(dates[index]);
+            sheet.Cell(6, 2).SetError("#DIV/0!");
+            sheet.Cell(7, 2).SetValue("#DIV/0!");
             for (int row = 2; row <= 7; row++)
             {
-                sheet.CellValue(row, 1, "All");
-                sheet.CellValue(row, 3, (double)row);
+                sheet.Cell(row, 1).SetValue("All");
+                sheet.Cell(row, 3).SetValue((double)row);
             }
 
             sheet.AddPivotTable("A1:C7", "E1", options: new ExcelPivotTableOptions { Name = "TypedPivot", RowFields = new[] { "Group", "Key" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") } });
@@ -162,14 +162,14 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Source");
-            sheet.CellValue(1, 1, "Key");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, 1d);
-            sheet.CellValue(2, 2, 7d);
+            sheet.Cell(1, 1).SetValue("Key");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(1d);
+            sheet.Cell(2, 2).SetValue(7d);
             sheet.AddPivotTable("A1:B2", "D1", options: new ExcelPivotTableOptions { Name = "Pivot", RowFields = new[] { "Key" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Revenue") } });
             sheet.MaterializePivotTable("Pivot");
             var date = new DateTime(1900, 1, 1);
-            sheet.CellValue(2, 1, date);
+            sheet.Cell(2, 1).SetValue(date);
             sheet.MaterializePivotTable("Pivot");
             Assert.Equal(7d, sheet.GetPivotData("Pivot", "Revenue", new Dictionary<string, object?> { ["Key"] = date }).Value);
             var field = sheet.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().First();

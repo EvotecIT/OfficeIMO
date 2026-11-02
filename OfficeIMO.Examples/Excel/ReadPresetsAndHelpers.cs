@@ -27,23 +27,23 @@ namespace OfficeIMO.Examples.Excel
             using (var doc = ExcelDocument.Create(filePath, new ExcelCreateOptions { FirstSheetName = "Data" }))
             {
                 var sheet = doc.Sheets[0];
-                sheet.CellValue(1, 1, "Active");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(1, 3, "Date");
-                sheet.CellValue(1, 4, "Qty");
-                sheet.CellValue(1, 5, "Note");
+                sheet.Cell(1, 1).SetValue("Active");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(1, 3).SetValue("Date");
+                sheet.Cell(1, 4).SetValue("Qty");
+                sheet.Cell(1, 5).SetValue("Note");
 
-                sheet.CellValue(2, 1, true);
-                sheet.CellValue(2, 2, 999.95m);
-                sheet.CellValue(2, 3, DateTime.Today);
-                sheet.CellValue(2, 4, 2);
-                sheet.CellValue(2, 5, "Preset demo");
+                sheet.Cell(2, 1).SetValue(true);
+                sheet.Cell(2, 2).SetValue(999.95m);
+                sheet.Cell(2, 3).SetValue(DateTime.Today);
+                sheet.Cell(2, 4).SetValue(2);
+                sheet.Cell(2, 5).SetValue("Preset demo");
 
-                sheet.CellValue(3, 1, false);
-                sheet.CellValue(3, 2, 1234.56m);
-                sheet.CellValue(3, 3, DateTime.Today.AddDays(-2));
-                sheet.CellValue(3, 4, 5);
-                sheet.CellValue(3, 5, "Helpers demo");
+                sheet.Cell(3, 1).SetValue(false);
+                sheet.Cell(3, 2).SetValue(1234.56m);
+                sheet.Cell(3, 3).SetValue(DateTime.Today.AddDays(-2));
+                sheet.Cell(3, 4).SetValue(5);
+                sheet.Cell(3, 5).SetValue("Helpers demo");
 
                 doc.Save();
                 if (openExcel) doc.OpenInApplication();

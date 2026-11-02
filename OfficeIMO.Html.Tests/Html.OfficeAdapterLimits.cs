@@ -15,7 +15,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void ExcelHtml_RejectsInvalidExportRowLimit() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddSheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("value");
 
         Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = -1 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = 0 }));
@@ -25,7 +25,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void OfficeHtml_ExportsVersionedSemanticEnvelopes() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddSheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("value");
         HtmlTextConversionResult export = workbook.ToHtmlResult();
         string html = export.RequireValue();
 
@@ -303,7 +303,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
 
         Assert.Equal(2, result.Sheets);
         Assert.Contains(workbook.Sheets,
-            sheet => Enumerable.Range(1, 4).Any(row => sheet.CellAt(row, 1).GetValue<string>() == "Narrative retained"));
+            sheet => Enumerable.Range(1, 4).Any(row => sheet.Cell(row, 1).GetValue<string>() == "Narrative retained"));
         Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
                 && diagnostic.Detail?.StartsWith(nameof(HtmlImportLimits.MaxTables), StringComparison.Ordinal) == true);
@@ -715,7 +715,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
         Assert.Equal(1, result.Sheets);
         Assert.Equal(5, result.Cells);
         Assert.Equal("Products", workbook.Sheets[0].Name);
-        Assert.Equal("Products", workbook.Sheets[0].CellAt(4, 1).GetValue<string>());
+        Assert.Equal("Products", workbook.Sheets[0].Cell(4, 1).GetValue<string>());
     }
 
     [Fact]

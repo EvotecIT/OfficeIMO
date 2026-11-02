@@ -131,13 +131,13 @@ namespace OfficeIMO.Tests
         }
 
         private static void WritePivotSource(ExcelSheet sheet, string firstHeader, string secondHeader, string thirdHeader, int dataRows) {
-            sheet.CellValue(1, 1, firstHeader);
-            sheet.CellValue(1, 2, secondHeader);
-            sheet.CellValue(1, 3, thirdHeader);
+            sheet.Cell(1, 1).SetValue(firstHeader);
+            sheet.Cell(1, 2).SetValue(secondHeader);
+            sheet.Cell(1, 3).SetValue(thirdHeader);
             for (int row = 0; row < dataRows; row++) {
-                sheet.CellValue(row + 2, 1, row % 2 == 0 ? "East" : "West");
-                sheet.CellValue(row + 2, 2, row % 2 == 0 ? "A" : "B");
-                sheet.CellValue(row + 2, 3, (row + 1) * 10);
+                sheet.Cell(row + 2, 1).SetValue(row % 2 == 0 ? "East" : "West");
+                sheet.Cell(row + 2, 2).SetValue(row % 2 == 0 ? "A" : "B");
+                sheet.Cell(row + 2, 3).SetValue((row + 1) * 10);
             }
         }
     }

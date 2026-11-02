@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SUM(C:D)", "SUM(E:F)")]
         [InlineData("LOG10(B1)", "LOG10(D1)")]
         public void InsertColumns_moves_and_widens_references(string formula, string expected) {
-            Assert.Equal(expected, Mutate(formula, sheet => sheet.InsertColumns(2, 2), formulaColumn: 30));
+            Assert.Equal(expected, Mutate(formula, sheet => sheet.InsertColumnsTransactional(2, 2), formulaColumn: 30));
         }
 
         [Theory]
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         [InlineData("D1+A1", "C1+A1")]
         [InlineData("B1", "#REF!")]
         public void DeleteColumns_moves_and_shrinks_references(string formula, string expected) {
-            Assert.Equal(expected, Mutate(formula, sheet => sheet.DeleteColumns(2), formulaColumn: 30));
+            Assert.Equal(expected, Mutate(formula, sheet => sheet.DeleteColumnsTransactional(2), formulaColumn: 30));
         }
 
         private static string Mutate(string formula, Action<ExcelSheet> edit, int formulaColumn = 1) {
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream)) {
                 document.AddSheet("Other");
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellFormula(20, formulaColumn, formula);
+                sheet.Cell(20, formulaColumn).SetFormula(formula);
                 edit(sheet);
                 document.Save(stream);
             }

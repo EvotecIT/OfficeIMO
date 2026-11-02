@@ -195,7 +195,7 @@ namespace OfficeIMO.Pdf.Excel {
                                 out int decimalPlaces)) {
                             continue;
                         }
-                        sheet.CellAt(rowIndex + 2, columnIndex + 1).SetNumberFormat(
+                        sheet.Cell(rowIndex + 2, columnIndex + 1).SetNumberFormat(
                             BuildCurrencyNumberFormat(
                                 currencyTokens[columnIndex]!,
                                 currencyAffixPositions[columnIndex]!.Value,
@@ -307,7 +307,7 @@ namespace OfficeIMO.Pdf.Excel {
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, ExcelPdfImportOptions options) {
             ExcelSheet sheet = workbook.AddSheet(options.EmptyWorkbookSheetName, ExcelSheetNameValidationMode.Sanitize, options.CancellationToken);
-            sheet.CellValue(1, 1, "No PDF tables detected.");
+            sheet.Cell(1, 1).SetValue("No PDF tables detected.");
         }
 
         private static (

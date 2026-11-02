@@ -19,8 +19,8 @@ namespace OfficeIMO.Tests {
         public void Test_RangeMove_RejectsPartiallyIntersectingRangeMetadata(string kind) {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(1, 2, 2);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(2);
             switch (kind) {
                 case "validation":
                     sheet.WorksheetPart.Worksheet.Append(new DataValidations(
@@ -45,22 +45,22 @@ namespace OfficeIMO.Tests {
                 () => sheet.PlanMoveRange("A1", "D1"));
 
             Assert.Contains("range metadata", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(1, sheet.CellAt(1, 1).GetValue<int>());
-            Assert.Equal(2, sheet.CellAt(1, 2).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(1, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(1, 2).GetValue<int>());
         }
 
         [Fact]
         public void Test_RangeMove_ReplacesDestinationLegacyAndThreadedComments() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Legacy source");
-            sheet.CellValue(1, 2, "Threaded source");
+            sheet.Cell(1, 1).SetValue("Legacy source");
+            sheet.Cell(1, 2).SetValue("Threaded source");
             sheet.SetComment("A1", "Keep legacy", "Tester");
             sheet.SetComment("E1", "Replace legacy", "Tester");
             sheet.AddThreadedComment("B1", "Keep threaded", "Tester");
             sheet.AddThreadedComment("F1", "Replace threaded", "Tester");
 
-            sheet.MoveRange("A1:B1", "E1");
+            sheet.Range("A1:B1").MoveTo("E1");
 
             ExcelCommentInfo legacy = Assert.Single(sheet.GetComments());
             Assert.Equal("E1", legacy.CellReference);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             absolute.FromMarker!.ColumnId!.Text = (ExcelA1.MaxColumns - 1).ToString();
             absolute.ToMarker!.ColumnId!.Text = (ExcelA1.MaxColumns - 1).ToString();
 
-            absoluteSheet.InsertColumns(1);
+            absoluteSheet.InsertColumnsTransactional(1);
 
             Assert.Equal((ExcelA1.MaxColumns - 1).ToString(), absolute.FromMarker.ColumnId.Text);
             Assert.Equal((ExcelA1.MaxColumns - 1).ToString(), absolute.ToMarker.ColumnId!.Text);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
             columnMoveOnly.FromMarker!.ColumnId!.Text = "3";
             columnMoveOnly.ToMarker!.ColumnId!.Text = "8";
 
-            columnMoveOnlySheet.InsertColumns(4);
+            columnMoveOnlySheet.InsertColumnsTransactional(4);
 
             Assert.Equal("4", columnMoveOnly.FromMarker.ColumnId.Text);
             Assert.Equal("9", columnMoveOnly.ToMarker.ColumnId!.Text);
@@ -173,8 +173,8 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaDependencies_FilterWhitespaceSeparatedCellLikeFunctions() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 10);
-            sheet.CellFormula(1, 2, "LOG10 (A1)");
+            sheet.Cell(1, 1).SetValue(10);
+            sheet.Cell(1, 2).SetFormula("LOG10 (A1)");
 
             ExcelFormulaDependencyNode node = Assert.IsType<ExcelFormulaDependencyNode>(
                 document.InspectFormulas().DependencyGraph.FindNode("Data", "B1"));

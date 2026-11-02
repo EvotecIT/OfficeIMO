@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RewritesPostfixReferencesWithoutTreatingDefinedNamesAsCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(3, 1).SetValue(10);
-            sheet.CellFormula(1, 2, "A3%+A3#+XFE1+SUM(XFE1:XFE2)");
+            sheet.Cell(3, 1).SetValue(10);
+            sheet.Cell(1, 2).SetFormula("A3%+A3#+XFE1+SUM(XFE1:XFE2)");
 
             sheet.InsertRows(3);
 
@@ -27,8 +27,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellAt(2, 1).SetValue(1);
-                sheet.CellAt(3, 1).SetValue(2);
+                sheet.Cell(2, 1).SetValue(1);
+                sheet.Cell(3, 1).SetValue(2);
                 sheet.Range("B2:B3").Validation.CustomFormula("A2>$A$2");
                 sheet.AddConditionalFormulaRule("C2:C3", "A2>$A$2");
 
@@ -60,17 +60,17 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellAt(2, 1).SetValue(1);
-                sheet.CellAt(3, 1).SetValue(2);
-                sheet.CellAt(4, 2).SetValue(3);
-                sheet.CellAt(1, 4).SetValue("Key");
-                sheet.CellAt(1, 5).SetValue("Value");
-                sheet.CellAt(2, 4).SetValue("A");
-                sheet.CellAt(2, 5).SetValue(1);
-                sheet.CellAt(3, 4).SetValue("B");
-                sheet.CellAt(3, 5).SetValue(2);
-                sheet.CellAt(4, 4).SetValue("C");
-                sheet.CellAt(4, 5).SetValue(3);
+                sheet.Cell(2, 1).SetValue(1);
+                sheet.Cell(3, 1).SetValue(2);
+                sheet.Cell(4, 2).SetValue(3);
+                sheet.Cell(1, 4).SetValue("Key");
+                sheet.Cell(1, 5).SetValue("Value");
+                sheet.Cell(2, 4).SetValue("A");
+                sheet.Cell(2, 5).SetValue(1);
+                sheet.Cell(3, 4).SetValue("B");
+                sheet.Cell(3, 5).SetValue(2);
+                sheet.Cell(4, 4).SetValue("C");
+                sheet.Cell(4, 5).SetValue(3);
                 sheet.Protect();
 
                 var protectedRange = new ProtectedRange {
@@ -141,9 +141,9 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreservesExternalLinkLocationsAndHonorsOwnedRowMetadata() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Header");
-            sheet.CellAt(2, 1).SetValue("Value");
-            sheet.CellAt(3, 1).SetValue("Total");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(2, 1).SetValue("Value");
+            sheet.Cell(3, 1).SetValue("Total");
             sheet.SetHyperlink(2, 1, "https://example.org", display: "External");
             Hyperlink hyperlink = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<Hyperlink>());
             hyperlink.Location = "Data!A2";
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("A3", hyperlink.Reference!.Value);
             Assert.Equal("Data!A2", hyperlink.Location!.Value);
-            Assert.Equal("External", sheet.CellAt(3, 1).GetValue<string>());
+            Assert.Equal("External", sheet.Cell(3, 1).GetValue<string>());
         }
 
         [Fact]
@@ -177,9 +177,9 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.MutationCharacterBudget.{Guid.NewGuid():N}.xlsx");
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    source.AddSheet("Target").CellValue(1, 1, "Value");
+                    source.AddSheet("Target").Cell(1, 1).SetValue("Value");
                     ExcelSheet unrelated = source.AddSheet("Unrelated");
-                    unrelated.CellValue(1, 1, "placeholder");
+                    unrelated.Cell(1, 1).SetValue("placeholder");
                     Cell cell = Assert.Single(
                         unrelated.WorksheetPart.Worksheet.Descendants<Cell>());
                     cell.DataType = CellValues.InlineString;
@@ -218,10 +218,10 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.AggregateMutationCharacterBudget.{Guid.NewGuid():N}.xlsx");
             try {
                 using (var source = ExcelDocument.Create(path)) {
-                    source.AddSheet("Target").CellValue(1, 1, "Value");
+                    source.AddSheet("Target").Cell(1, 1).SetValue("Value");
                     foreach (string name in new[] { "First", "Second" }) {
                         ExcelSheet unrelated = source.AddSheet(name);
-                        unrelated.CellValue(1, 1, "placeholder");
+                        unrelated.Cell(1, 1).SetValue("placeholder");
                         Cell cell = Assert.Single(
                             unrelated.WorksheetPart.Worksheet.Descendants<Cell>());
                         cell.DataType = CellValues.InlineString;

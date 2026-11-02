@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void DuplicateLegacyComments_DoNotCrashStructuralRowRemapping() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(3, 1, "Value");
+            sheet.Cell(3, 1).SetValue("Value");
             sheet.SetComment(3, 1, "Duplicate", author: "Tester");
             AppendDuplicateComment(sheet);
 
@@ -28,18 +28,16 @@ namespace OfficeIMO.Tests {
         public void DuplicateLegacyComments_DoNotCrashSortedRowRemapping() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Score");
-            sheet.CellValue(2, 1, "High");
-            sheet.CellValue(2, 2, 10D);
-            sheet.CellValue(3, 1, "Low");
-            sheet.CellValue(3, 2, 1D);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Score");
+            sheet.Cell(2, 1).SetValue("High");
+            sheet.Cell(2, 2).SetValue(10D);
+            sheet.Cell(3, 1).SetValue("Low");
+            sheet.Cell(3, 2).SetValue(1D);
             sheet.SetComment(2, 1, "Duplicate", author: "Tester");
             AppendDuplicateComment(sheet);
 
-            sheet.SortRangeByColumn(
-                "A1:B3",
-                columnOffset: 2,
+            sheet.Range("A1:B3").SortByColumn(columnOffset: 2,
                 ascending: true,
                 hasHeader: true);
 

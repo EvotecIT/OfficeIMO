@@ -88,7 +88,7 @@ public sealed class ReaderInspectionResourceLimitEvidenceTests {
             using var memory = new MemoryStream();
             using (ExcelDocument document = ExcelDocument.Create(memory)) {
                 ExcelSheet sheet = document.AddSheet("Hidden source");
-                for (int index = 1; index <= 4; index++) sheet.Cell(index, 1, "Hidden source " + index);
+                for (int index = 1; index <= 4; index++) sheet.Cell(index, 1).SetValue("Hidden source " + index);
                 foreach (var row in document.OpenXmlDocument!.WorkbookPart!.WorksheetParts.Single().Worksheet!.Descendants<DocumentFormat.OpenXml.Spreadsheet.Row>()) row.Hidden = true;
                 document.Save();
             }

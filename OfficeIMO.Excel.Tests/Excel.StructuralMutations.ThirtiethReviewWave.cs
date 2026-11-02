@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralColumns_NormalizeCellsWithImplicitReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Implicit");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
             Row row = Assert.Single(sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
             foreach (Cell cell in row.Elements<Cell>()) cell.CellReference = null;
 
@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
             plan.Apply();
             Assert.Equal(new[] { "B1", "C1" }, row.Elements<Cell>()
                 .Select(cell => cell.CellReference!.Value).ToArray());
-            Assert.Equal("A", sheet.CellAt(1, 2).GetValue<string>());
-            Assert.Equal("B", sheet.CellAt(1, 3).GetValue<string>());
+            Assert.Equal("A", sheet.Cell(1, 2).GetValue<string>());
+            Assert.Equal("B", sheet.Cell(1, 3).GetValue<string>());
         }
 
         [Fact]
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Exclusive");
 
-            sheet.CellValue(1, 1, "Replacement");
+            sheet.Cell(1, 1).SetValue("Replacement");
 
             Assert.Empty(document.WorkbookPartRoot.RdRichValueParts);
             Assert.Null(document.WorkbookPartRoot.CellMetadataPart!.Metadata!.GetFirstChild<ValueMetadata>());
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
 
             sheet.SetInCellImage(2, 1, TinyPng, altText: "Shared");
             sheet.Range("A2").CopyTo("B2");
-            sheet.CellValue(2, 1, "Detach one");
+            sheet.Cell(2, 1).SetValue("Detach one");
 
             ExcelInCellImage remaining = Assert.Single(sheet.GetInCellImages());
             Assert.Equal("B2", remaining.CellReference);
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             };
             connection.Append(new Parameters(parameter) { Count = 1U });
 
-            sheet.InsertColumns(1);
+            sheet.InsertColumnsTransactional(1);
 
             Assert.Equal("B5", parameter.Cell!.Value);
         }

@@ -12,31 +12,6 @@ namespace OfficeIMO.Excel {
         // Rollback replaces the stylesheet root and therefore starts a new index.
         private static readonly ConditionalWeakTable<Stylesheet, StyleBatch> StyleWriters = new();
 
-        /// <summary>
-        /// Applies or clears text wrapping for selected cells under one workbook
-        /// write lock and saves the stylesheet once. Other cell formatting is preserved.
-        /// </summary>
-        /// <param name="cells">1-based row and column coordinates. Duplicate coordinates are applied once.</param>
-        /// <param name="wrapText">Whether text should wrap within the selected cells.</param>
-        /// <exception cref="ArgumentNullException">The cell selection is null.</exception>
-        /// <exception cref="ArgumentOutOfRangeException">A coordinate is outside the worksheet. The selection is validated before editing.</exception>
-        public void CellWrapTextFor(IEnumerable<(int Row, int Column)> cells, bool wrapText = true) {
-            if (cells == null) throw new ArgumentNullException(nameof(cells));
-            var selected = cells.Distinct().ToArray();
-            foreach (var cell in selected) {
-                if (cell.Row < 1 || cell.Row > ExcelA1.MaxRows || cell.Column < 1 || cell.Column > ExcelA1.MaxColumns) {
-                    throw new ArgumentOutOfRangeException(nameof(cells), "Cell coordinates must be within the worksheet.");
-                }
-            }
-            if (selected.Length == 0) return;
-
-            WriteLockConditional(() => {
-                using (BeginStyleBatch()) {
-                    foreach (var cell in selected) CellWrapText(cell.Row, cell.Column, wrapText);
-                }
-            });
-        }
-
         /// <summary>Indexes style primitives and saves the stylesheet once while a converter writes one sheet.</summary>
         internal IDisposable BeginStyleBatch() {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");

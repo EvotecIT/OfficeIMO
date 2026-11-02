@@ -130,11 +130,11 @@ public sealed class ExcelAutoFitCancellationTests {
         Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(widths, ColumnState(reopened.Sheets[0]));
-        Assert.Equal("Retained source", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(date.UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
+        Assert.Equal("Retained source", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(date.UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(2, 2).GetValue<double>());
         if (hasLaterRow) {
-            Assert.Equal("Retained later row", reopened.Sheets[0].CellAt(3, 1).GetValue<string>());
-            Assert.Equal(date.AddDays(1).UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(3, 2).GetValue<double>());
+            Assert.Equal("Retained later row", reopened.Sheets[0].Cell(3, 1).GetValue<string>());
+            Assert.Equal(date.AddDays(1).UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(3, 2).GetValue<double>());
         }
     }
 
@@ -142,7 +142,7 @@ public sealed class ExcelAutoFitCancellationTests {
     public void SequentialAutoFitDoesNotApplyWidthsWhenMeasurementCompletionCancels() {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "A long ordinary cell value requiring a wider column");
+        sheet.Cell(1, 1).SetValue("A long ordinary cell value requiring a wider column");
         var widths = ColumnState(sheet);
         using var cancellation = new CancellationTokenSource();
         document.Execution.OnTiming = (operation, _) => {
@@ -157,7 +157,7 @@ public sealed class ExcelAutoFitCancellationTests {
         document.Save(saved);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(widths, ColumnState(reopened.Sheets[0]));
-        Assert.Equal("A long ordinary cell value requiring a wider column", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("A long ordinary cell value requiring a wider column", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     private static void FitColumns(ExcelSheet sheet, string route, CancellationToken cancellationToken) {
@@ -199,7 +199,7 @@ public sealed class ExcelAutoFitCancellationTests {
         Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal(widths, ColumnState(reopened.Sheets[0]));
-        Assert.Equal("An extended description that needs a wider column", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-        Assert.Equal(42D, reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
+        Assert.Equal("An extended description that needs a wider column", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+        Assert.Equal(42D, reopened.Sheets[0].Cell(2, 2).GetValue<double>());
     }
 }

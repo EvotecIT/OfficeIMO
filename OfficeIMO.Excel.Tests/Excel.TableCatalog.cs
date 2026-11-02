@@ -14,19 +14,19 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet1 = document.AddSheet("SheetOne");
-                sheet1.CellValue(1, 1, "Name");
-                sheet1.CellValue(1, 2, "Value");
-                sheet1.CellValue(2, 1, "A");
-                sheet1.CellValue(2, 2, 1d);
+                sheet1.Cell(1, 1).SetValue("Name");
+                sheet1.Cell(1, 2).SetValue("Value");
+                sheet1.Cell(2, 1).SetValue("A");
+                sheet1.Cell(2, 2).SetValue(1d);
                 sheet1.AddTable("A1:B2", true, "TableOne", ExcelTableStyle.TableStyleMedium9);
 
                 var sheet2 = document.AddSheet("SheetTwo");
-                sheet2.CellValue(1, 1, "Name");
-                sheet2.CellValue(1, 2, "Value");
-                sheet2.CellValue(1, 3, "Count");
-                sheet2.CellValue(2, 1, "B");
-                sheet2.CellValue(2, 2, 2d);
-                sheet2.CellValue(2, 3, 3);
+                sheet2.Cell(1, 1).SetValue("Name");
+                sheet2.Cell(1, 2).SetValue("Value");
+                sheet2.Cell(1, 3).SetValue("Count");
+                sheet2.Cell(2, 1).SetValue("B");
+                sheet2.Cell(2, 2).SetValue(2d);
+                sheet2.Cell(2, 3).SetValue(3);
                 sheet2.AddTable("A1:C2", true, "TableTwo", ExcelTableStyle.TableStyleMedium9);
                 sheet2.SetTableTotalsByName("TableTwo", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["Value"] = ExcelTableTotalsFunction.Sum,

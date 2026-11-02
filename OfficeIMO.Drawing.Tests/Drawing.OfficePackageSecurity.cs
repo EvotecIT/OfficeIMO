@@ -395,7 +395,7 @@ public sealed class DrawingOfficePackageSecurityTests {
     private static byte[] CreateWorkbook() {
         using var output = new MemoryStream();
         using (ExcelDocument workbook = ExcelDocument.Create()) {
-            workbook.AddSheet("Data").CellValue(1, 1, "safe");
+            workbook.AddSheet("Data").Cell(1, 1).SetValue("safe");
             workbook.Save(output);
         }
         return output.ToArray();

@@ -122,9 +122,9 @@ public sealed partial class IWorkBoundaryTests {
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             var sheet = reopened.Sheets[0]; Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out var value)); Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);
-            Assert.Equal(18, sheet.GetCellStyle(1, 1).FontSize?.ToPoints()); Assert.False(sheet.GetCellStyle(1, 1).Bold);
-            Assert.Equal("right", sheet.GetCellStyle(1, 1).HorizontalAlignment);
-            Assert.Equal(20, sheet.GetCellStyle(3, 2).FontSize?.ToPoints());
+            Assert.Equal(18, sheet.Cell(1, 1).GetStyle().FontSize?.ToPoints()); Assert.False(sheet.Cell(1, 1).GetStyle().Bold);
+            Assert.Equal("right", sheet.Cell(1, 1).GetStyle().HorizontalAlignment);
+            Assert.Equal(20, sheet.Cell(3, 2).GetStyle().FontSize?.ToPoints());
         } else {
             using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
@@ -364,7 +364,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Null(result.Projection.Sheets[0].Tables[0].GetParagraphStyle(1, 1)!.TextStyle.Bold);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-            Assert.False(reopened.Sheets[0].GetCellStyle(1, 1).Bold);
+            Assert.False(reopened.Sheets[0].Cell(1, 1).GetStyle().Bold);
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out var value));
             Assert.Equal(richText ? "Styled\n" : "42", richText ? value!.Text : value!.RawValue);
         } else {

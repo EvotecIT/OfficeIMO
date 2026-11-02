@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
         using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]

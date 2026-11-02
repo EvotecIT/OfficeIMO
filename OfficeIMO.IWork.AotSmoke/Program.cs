@@ -58,13 +58,13 @@ foreach (var (name, hash) in fixtures) {
         using var reopened = ExcelDocument.Load(saved);
         ExcelSheet sheet = reopened.Sheets[0];
         if (name == "simple.numbers") {
-            Require(sheet.CellAt(1, 1).GetValue<string>() == "a" && sheet.CellAt(2, 2).GetValue<double>() == 2
-                && sheet.CellAt(3, 3).GetValue<string>() == "Z", "Saved XLSX lost typed native cells.");
+            Require(sheet.Cell(1, 1).GetValue<string>() == "a" && sheet.Cell(2, 2).GetValue<double>() == 2
+                && sheet.Cell(3, 3).GetValue<string>() == "Z", "Saved XLSX lost typed native cells.");
         } else {
-            Require(sheet.GetFormulaText(2, 2) == "A1+A2" && sheet.CellAt(2, 2).GetValue<double>() == 3,
+            Require(sheet.GetFormulaText(2, 2) == "A1+A2" && sheet.Cell(2, 2).GetValue<double>() == 3,
                 "Saved XLSX lost the native formula or cache.");
-            sheet.CellValue(1, 1, 10d);
-            Require(reopened.Calculate() > 0 && sheet.CellAt(2, 2).GetValue<double>() == 12,
+            sheet.Cell(1, 1).SetValue(10d);
+            Require(reopened.Calculate() > 0 && sheet.Cell(2, 2).GetValue<double>() == 12,
                 "NativeAOT XLSX recalculation did not follow the edited operand.");
         }
         Require(!reopened.ValidateOpenXml().Any(), "Saved XLSX failed validation.");

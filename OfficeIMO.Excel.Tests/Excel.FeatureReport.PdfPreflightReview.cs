@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.CellValue(1, 1, "Image");
+                sheet.Cell(1, 1).SetValue("Image");
                 sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Headers");
-                sheet.CellValue(1, 1, "Report");
+                sheet.Cell(1, 1).SetValue("Report");
                 sheet.SetHeaderFooter(headerLeft: "&BTotal", headerCenter: "Page &P");
                 document.Save();
             }
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Headers");
-                sheet.CellValue(1, 1, "Report");
+                sheet.Cell(1, 1).SetValue("Report");
                 sheet.SetHeaderFooter(headerCenter: "&\"UnmappedFont\"Report");
                 document.Save();
             }
@@ -125,11 +125,11 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellFormula(5, 4, "B2+1");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(5, 4).SetFormula("B2+1");
                 document.SetPrintArea(sheet, "A1:B2", save: false);
                 document.Save();
             }
@@ -151,8 +151,8 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Ready");
-                sheet.CellFormula(5, 1, "A1+1");
+                sheet.Cell(1, 1).SetValue("Ready");
+                sheet.Cell(5, 1).SetFormula("A1+1");
                 sheet.SetRowHidden(5, true);
                 document.Save();
             }
@@ -174,10 +174,10 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10d);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10d);
                 document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1, save: false);
                 document.Save();
             }

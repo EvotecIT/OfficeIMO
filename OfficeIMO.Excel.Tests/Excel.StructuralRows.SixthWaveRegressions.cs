@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsDataTableInputReferences() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 2).SetValue(1);
+            sheet.Cell(1, 2).SetValue(1);
             Cell owner = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             owner.CellFormula = new CellFormula {
@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RemovesEmptyMergeCollection() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.MergeRange("A2:B2");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Range("A2:B2").Merge();
 
             sheet.DeleteRows(2);
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RejectsOleObjectsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(1);
             sheet.WorksheetPart.Worksheet.Append(
                 new OleObjects(
                     new OleObject { ShapeId = 1025U }));
@@ -55,28 +55,28 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(2));
 
             Assert.Contains("OLE", exception.Message);
-            Assert.Equal(1, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(2, 1).GetValue<int>());
         }
 
         [Fact]
         public void Test_StructuralRows_RejectsSingleCellXmlMappingsAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(1);
             sheet.WorksheetPart.AddNewPart<SingleCellTablePart>();
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.DeleteRows(2));
 
             Assert.Contains("single-cell XML mappings", exception.Message);
-            Assert.Equal(1, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(2, 1).GetValue<int>());
         }
 
         [Fact]
         public void Test_StructuralRows_PreservesMovedCommentVmlShape() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(5, 2).SetValue(1);
+            sheet.Cell(5, 2).SetValue(1);
             sheet.SetComment(5, 2, "Keep formatting", author: "Tester");
 
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);

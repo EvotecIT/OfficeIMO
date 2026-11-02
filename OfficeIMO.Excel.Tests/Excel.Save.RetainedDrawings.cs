@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
 
         private static (ExcelChart Chart, ExcelImage Image) CreateRetainedDrawingWorkbook(ExcelDocument document) {
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, 42d);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue(42d);
             var range = new ExcelChartDataRange("Report", 1, 1, 1, 1, hasHeaderRow: false);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, range, new OfficeIMO.Excel.ExcelChartOptions { Row = 4, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Before title" });
             byte[] imageBytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png"));

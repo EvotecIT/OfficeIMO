@@ -185,8 +185,8 @@ namespace OfficeIMO.Tests {
             byte[] package;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Rows");
-                sheet.CellValue(1, 1, "one");
-                sheet.CellValue(2, 1, "two");
+                sheet.Cell(1, 1).SetValue("one");
+                sheet.Cell(2, 1).SetValue("two");
                 package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }
 
@@ -210,7 +210,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_PackageDetector_DoesNotMisclassifyXmlWorkbookPackages() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "XML package");
+            document.AddSheet("Data").Cell(1, 1).SetValue("XML package");
             byte[] package = document.ToBytes();
 
             Assert.False(XlsbPackageDetector.TryFindWorkbookPart(package, out _));
@@ -347,24 +347,24 @@ namespace OfficeIMO.Tests {
             ExcelNativeCellValueInfo date = AssertCellValue(sheet, 2, 1);
             Assert.Equal(ExcelCellValueKind.DateTime, date.Kind);
             Assert.Equal(new DateTime(2024, 2, 29), date.DateTimeValue);
-            Assert.Equal(2U, sheet.GetCellStyle(2, 1).StyleIndex);
-            Assert.Equal("yyyy\\-mm\\-dd", sheet.GetCellStyle(2, 1).NumberFormatCode);
+            Assert.Equal(2U, sheet.Cell(2, 1).GetStyle().StyleIndex);
+            Assert.Equal("yyyy\\-mm\\-dd", sheet.Cell(2, 1).GetStyle().NumberFormatCode);
 
-            ExcelCellStyleInfo heading = sheet.GetCellStyle(1, 1);
+            ExcelCellStyleInfo heading = sheet.Cell(1, 1).GetStyle();
             Assert.Equal(1U, heading.StyleIndex);
             Assert.True(heading.Bold);
             Assert.Equal("solid", heading.FillPatternType);
             Assert.NotNull(heading.Border);
 
-            ExcelCellStyleInfo percent = sheet.GetCellStyle(3, 1);
+            ExcelCellStyleInfo percent = sheet.Cell(3, 1).GetStyle();
             Assert.Equal(3U, percent.StyleIndex);
             Assert.Equal(10U, percent.NumberFormatId);
 
-            ExcelCellStyleInfo precise = sheet.GetCellStyle(4, 1);
+            ExcelCellStyleInfo precise = sheet.Cell(4, 1).GetStyle();
             Assert.Equal(4U, precise.StyleIndex);
             Assert.Equal("0.0000", precise.NumberFormatCode);
 
-            ExcelCellStyleInfo decorated = sheet.GetCellStyle(5, 1);
+            ExcelCellStyleInfo decorated = sheet.Cell(5, 1).GetStyle();
             Assert.Equal(5U, decorated.StyleIndex);
             Assert.Equal("solid", decorated.FillPatternType);
             Assert.Equal("center", decorated.HorizontalAlignment);
@@ -388,15 +388,15 @@ namespace OfficeIMO.Tests {
         public void Xlsb_StyledExcelFixture_NativeRewritePreservesStylesDatesAndFormulaPayload() {
             byte[] original = File.ReadAllBytes(GetStyledExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
-            document.Sheets[0].CellValue(3, 1, 0.2D);
+            document.Sheets[0].Cell(3, 1).SetValue(0.2D);
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
             ExcelSheet sheet = Assert.Single(reloaded.Sheets);
             Assert.Equal(ExcelDateSystem.NineteenFour, reloaded.DateSystem);
-            Assert.Equal(3U, sheet.GetCellStyle(3, 1).StyleIndex);
-            Assert.Equal(10U, sheet.GetCellStyle(3, 1).NumberFormatId);
+            Assert.Equal(3U, sheet.Cell(3, 1).GetStyle().StyleIndex);
+            Assert.Equal(10U, sheet.Cell(3, 1).GetStyle().NumberFormatId);
             Assert.Equal(new DateTime(2024, 2, 29), AssertCellValue(sheet, 2, 1).DateTimeValue);
             Assert.True(sheet.TryGetCellText(3, 1, out string? percentValue));
             Assert.Equal("0.2", percentValue);
@@ -418,10 +418,10 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = Assert.Single(converted.Sheets);
             Assert.Equal(ExcelDateSystem.NineteenFour, converted.DateSystem);
             Assert.Equal(new DateTime(2024, 2, 29), AssertCellValue(sheet, 2, 1).DateTimeValue);
-            Assert.True(sheet.GetCellStyle(1, 1).Bold);
-            Assert.Equal("solid", sheet.GetCellStyle(5, 1).FillPatternType);
-            Assert.Equal(15, sheet.GetCellStyle(5, 1).TextRotation);
-            Assert.Equal("SUM(A3,A4)", sheet.CellAt(2, 2).GetValue().Formula);
+            Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
+            Assert.Equal("solid", sheet.Cell(5, 1).GetStyle().FillPatternType);
+            Assert.Equal(15, sheet.Cell(5, 1).GetStyle().TextRotation);
+            Assert.Equal("SUM(A3,A4)", sheet.Cell(2, 2).GetValue().Formula);
         }
 
         [Fact]
@@ -470,7 +470,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_GeometryFixture_NativeRewritePreservesWorksheetMetadata() {
             byte[] original = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
-            document.Sheets[0].CellValue(2, 1, "Edited");
+            document.Sheets[0].Cell(2, 1).SetValue("Edited");
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -533,7 +533,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_HyperlinkFixture_NativeRewritePreservesLinkRecordsAndRelationships() {
             byte[] original = File.ReadAllBytes(GetHyperlinkExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
-            document.Sheets[0].CellValue(3, 1, "Edited plain value");
+            document.Sheets[0].Cell(3, 1).SetValue("Edited plain value");
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -746,7 +746,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
             Assert.Equal("https://example.org/collision-safe", Assert.Single(reloaded.Sheets[0].GetHyperlinks()).Value.Target);
 
-            reloaded.Sheets[0].ClearRange("A1:A1", ExcelClearOptions.Hyperlinks);
+            reloaded.Sheets[0].Range("A1:A1").Clear(ExcelClearOptions.Hyperlinks);
             byte[] cleared = reloaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using var clearedArchive = new ZipArchive(new MemoryStream(cleared, writable: false), ZipArchiveMode.Read);
             ZipArchiveEntry clearedRelationshipPart = Assert.IsType<ZipArchiveEntry>(clearedArchive.GetEntry(relationshipPartName));
@@ -760,7 +760,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_HyperlinkMutation_RemovesRecordsAndPreservesUnrelatedRelationshipPart() {
             using ExcelDocument document = ExcelDocument.Load(GetHyperlinkExcelGeneratedXlsbFixturePath());
-            document.Sheets[0].ClearRange("A1:A2", ExcelClearOptions.Hyperlinks);
+            document.Sheets[0].Range("A1:A2").Clear(ExcelClearOptions.Hyperlinks);
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -860,7 +860,7 @@ namespace OfficeIMO.Tests {
                 "(A1+2)*10%"
             };
             for (int row = 1; row <= expected.Length; row++) {
-                Assert.Equal(expected[row - 1], sheet.CellAt(row, 2).GetValue().Formula);
+                Assert.Equal(expected[row - 1], sheet.Cell(row, 2).GetValue().Formula);
             }
             Assert.True(sheet.TryGetCellText(1, 2, out string? ifValue));
             Assert.True(sheet.TryGetCellText(2, 2, out string? ifErrorValue));
@@ -877,14 +877,14 @@ namespace OfficeIMO.Tests {
         public void Xlsb_RichFormulaFixture_NativeRewritePreservesEveryFormulaPayload() {
             byte[] original = File.ReadAllBytes(GetRichFormulaExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
-            document.Sheets[0].CellValue(1, 1, 12D);
+            document.Sheets[0].Cell(1, 1).SetValue(12D);
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
-            Assert.Equal("IF(A1>5,\"High\",\"Low\")", reloaded.Sheets[0].CellAt(1, 2).GetValue().Formula);
-            Assert.Equal("IFERROR(A1/A2,\"Divide error\")", reloaded.Sheets[0].CellAt(2, 2).GetValue().Formula);
-            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", reloaded.Sheets[0].CellAt(6, 2).GetValue().Formula);
+            Assert.Equal("IF(A1>5,\"High\",\"Low\")", reloaded.Sheets[0].Cell(1, 2).GetValue().Formula);
+            Assert.Equal("IFERROR(A1/A2,\"Divide error\")", reloaded.Sheets[0].Cell(2, 2).GetValue().Formula);
+            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", reloaded.Sheets[0].Cell(6, 2).GetValue().Formula);
             for (int row = 1; row <= 8; row++) {
                 AssertFormulaPayloadEqual(original, rewritten, "xl/worksheets/sheet1.bin", (row, 2));
             }
@@ -900,10 +900,10 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
             ExcelSheet sheet = Assert.Single(converted.Sheets);
-            Assert.Equal("IF(A1>5,\"High\",\"Low\")", sheet.CellAt(1, 2).GetValue().Formula);
-            Assert.Equal("IFERROR(A1/A2,\"Divide error\")", sheet.CellAt(2, 2).GetValue().Formula);
-            Assert.Equal("\"Hello\"&\" \"&\"XLSB\"", sheet.CellAt(3, 2).GetValue().Formula);
-            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", sheet.CellAt(6, 2).GetValue().Formula);
+            Assert.Equal("IF(A1>5,\"High\",\"Low\")", sheet.Cell(1, 2).GetValue().Formula);
+            Assert.Equal("IFERROR(A1/A2,\"Divide error\")", sheet.Cell(2, 2).GetValue().Formula);
+            Assert.Equal("\"Hello\"&\" \"&\"XLSB\"", sheet.Cell(3, 2).GetValue().Formula);
+            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", sheet.Cell(6, 2).GetValue().Formula);
             Assert.True(sheet.TryGetCellText(2, 2, out string? cachedValue));
             Assert.Equal("Divide error", cachedValue);
         }
@@ -1015,7 +1015,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_ModifiedSource_RewritesCellsAndPreservesOtherPackageParts() {
             byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
-            document.Sheets[0].CellValue(2, 2, 43);
+            document.Sheets[0].Cell(2, 2).SetValue(43);
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -1031,7 +1031,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NativeRewrite_PreservesCompleteFormulaPayloadWhenCachedResultChanges() {
             byte[] original = File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath());
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
-            document.Sheets[0].CellValue(3, 2, 51D);
+            document.Sheets[0].Cell(3, 2).SetValue(51D);
             Cell formulaCell = Assert.Single(document.Sheets[0].WorksheetPart.Worksheet.Descendants<Cell>(),
                 cell => string.Equals(cell.CellReference?.Value, "B3", StringComparison.Ordinal));
             Assert.NotNull(formulaCell.CellFormula);
@@ -1050,24 +1050,24 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NativeRewrite_EncodesChangedCommonFormula() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
-            document.Sheets[0].CellFormula(3, 2, "SUM(B2,9)");
+            document.Sheets[0].Cell(3, 2).SetFormula("SUM(B2,9)");
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
-            Assert.Equal("SUM(B2,9)", reloaded.Sheets[0].CellAt(3, 2).GetValue().Formula);
+            Assert.Equal("SUM(B2,9)", reloaded.Sheets[0].Cell(3, 2).GetValue().Formula);
         }
 
         [Fact]
         public void Xlsb_NativeRewrite_HandlesTextBooleanAndNewRowsAcrossSequentialSaves() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellValue(2, 1, "Beta");
-            sheet.CellValue(1, 3, true);
-            sheet.CellValue(4, 1, "New row");
+            sheet.Cell(2, 1).SetValue("Beta");
+            sheet.Cell(1, 3).SetValue(true);
+            sheet.Cell(4, 1).SetValue("New row");
 
             byte[] first = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
-            sheet.CellValue(2, 2, 44);
+            sheet.Cell(2, 2).SetValue(44);
             byte[] second = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(second, writable: false));
@@ -1087,8 +1087,8 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NativeRewrite_ExpandsDimensionsAndRebuildsSegmentedRowSpans() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
             ExcelSheet sheet = document.Sheets[0];
-            sheet.CellValue(2, 1025, "second segment");
-            sheet.CellValue(4, 1025, "new row");
+            sheet.Cell(2, 1025).SetValue("second segment");
+            sheet.Cell(4, 1025).SetValue("new row");
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -1106,7 +1106,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NativeRewrite_UsesExactFirstCellDimensionForEmptySourceSheet() {
             byte[] emptySource = RemoveWorksheetRowsAndCells(File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath()));
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(emptySource, writable: false));
-            document.Sheets[0].CellValue(3, 3, "Only cell");
+            document.Sheets[0].Cell(3, 3).SetValue("Only cell");
 
             byte[] rewritten = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
@@ -1120,7 +1120,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_UnsupportedStructuralMutation_RejectsBeforeWriting() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
-            document.Sheets[0].MergeRange("A1:B1");
+            document.Sheets[0].Range("A1:B1").Merge();
             using var destination = new MemoryStream();
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
@@ -1133,7 +1133,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_ProjectedWorkbook_SavesAsValidEditableXlsx() {
             using ExcelDocument source = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
-            source.Sheets[0].CellValue(2, 2, 43);
+            source.Sheets[0].Cell(2, 2).SetValue(43);
             using var destination = new MemoryStream();
 
             source.Save(destination, ExcelFileFormat.Xlsx);
@@ -1164,7 +1164,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_NewWorkbook_SyncAndAsyncSaveProduceReadableNativePackages() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "XLSB");
+            document.AddSheet("Data").Cell(1, 1).SetValue("XLSB");
             using var synchronousDestination = new MemoryStream();
             using var asynchronousDestination = new MemoryStream();
 
@@ -1187,11 +1187,11 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_WritesMultipleSheetsValuesVisibilityAndDimensions() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet values = document.AddSheet("Values");
-            values.CellValue(2, 2, "Text");
-            values.CellValue(3, 3, 42.5D);
-            values.CellValue(4, 4, true);
+            values.Cell(2, 2).SetValue("Text");
+            values.Cell(3, 3).SetValue(42.5D);
+            values.Cell(4, 4).SetValue(true);
             ExcelSheet hidden = document.AddSheet("Hidden Data");
-            hidden.CellValue(1, 1, "Hidden");
+            hidden.Cell(1, 1).SetValue("Hidden");
             hidden.SetHidden(true);
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -1213,7 +1213,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_NewWorkbook_StreamsToNonSeekableDestinations() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Streamed").CellValue(1, 1, "BIFF12");
+            document.AddSheet("Streamed").Cell(1, 1).SetValue("BIFF12");
             using var synchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
             using var asynchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
 
@@ -1232,27 +1232,27 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_WritesCommonFormulaTokensAndCachedResults() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Formula");
-            sheet.CellValue(1, 1, 2D);
-            sheet.CellValue(2, 1, 3D);
-            sheet.CellFormula(3, 1, "SUM(A1:A2)");
-            sheet.CellFormula(4, 1, "\"Hello\"&\" \"&\"XLSB\"");
-            sheet.CellFormula(5, 1, "IF(A1>A2,\"High\",\"Low\")");
-            sheet.CellFormula(6, 1, "IFERROR(A1/0,\"Divide error\")");
-            sheet.CellFormula(7, 1, "CHOOSE(2,\"First\",\"Second\",\"Third\")");
+            sheet.Cell(1, 1).SetValue(2D);
+            sheet.Cell(2, 1).SetValue(3D);
+            sheet.Cell(3, 1).SetFormula("SUM(A1:A2)");
+            sheet.Cell(4, 1).SetFormula("\"Hello\"&\" \"&\"XLSB\"");
+            sheet.Cell(5, 1).SetFormula("IF(A1>A2,\"High\",\"Low\")");
+            sheet.Cell(6, 1).SetFormula("IFERROR(A1/0,\"Divide error\")");
+            sheet.Cell(7, 1).SetFormula("CHOOSE(2,\"First\",\"Second\",\"Third\")");
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Equal("SUM(A1:A2)", reloaded.Sheets[0].CellAt(3, 1).GetValue().Formula);
-            Assert.Equal("\"Hello\"&\" \"&\"XLSB\"", reloaded.Sheets[0].CellAt(4, 1).GetValue().Formula);
-            Assert.Equal("IF(A1>A2,\"High\",\"Low\")", reloaded.Sheets[0].CellAt(5, 1).GetValue().Formula);
-            Assert.Equal("IFERROR(A1/0,\"Divide error\")", reloaded.Sheets[0].CellAt(6, 1).GetValue().Formula);
-            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", reloaded.Sheets[0].CellAt(7, 1).GetValue().Formula);
+            Assert.Equal("SUM(A1:A2)", reloaded.Sheets[0].Cell(3, 1).GetValue().Formula);
+            Assert.Equal("\"Hello\"&\" \"&\"XLSB\"", reloaded.Sheets[0].Cell(4, 1).GetValue().Formula);
+            Assert.Equal("IF(A1>A2,\"High\",\"Low\")", reloaded.Sheets[0].Cell(5, 1).GetValue().Formula);
+            Assert.Equal("IFERROR(A1/0,\"Divide error\")", reloaded.Sheets[0].Cell(6, 1).GetValue().Formula);
+            Assert.Equal("CHOOSE(2,\"First\",\"Second\",\"Third\")", reloaded.Sheets[0].Cell(7, 1).GetValue().Formula);
         }
 
         [Fact]
         public void Xlsb_NewWorkbook_RejectsUnsupportedFormulaBeforeTouchingDestinationContent() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Formula").CellFormula(1, 1, "Sheet1!A1");
+            document.AddSheet("Formula").Cell(1, 1).SetFormula("Sheet1!A1");
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
             using var destination = new MemoryStream();
             destination.Write(sentinel, 0, sentinel.Length);
@@ -1270,11 +1270,11 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create()) {
                     ExcelSheet sheet = document.AddSheet("Sequential");
-                    sheet.CellValue(1, 1, "First");
+                    sheet.Cell(1, 1).SetValue("First");
                     document.Save(path);
                     Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
 
-                    sheet.CellValue(1, 1, "Second");
+                    sheet.Cell(1, 1).SetValue("Second");
                     document.Save();
                 }
 
@@ -1292,25 +1292,25 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             document.DateSystem = ExcelDateSystem.NineteenFour;
             ExcelSheet sheet = document.AddSheet("Styled");
-            sheet.CellValue(1, 1, "Heading");
-            sheet.CellBold(1, 1);
-            sheet.CellBackground(1, 1, "#4472C4");
-            sheet.CellWrapText(1, 1);
-            sheet.CellValue(2, 1, date);
-            sheet.CellValue(3, 1, 12.34567D);
-            sheet.FormatCell(3, 1, "0.0000");
-            Assert.True(sheet.GetCellStyle(1, 1).Bold);
+            sheet.Cell(1, 1).SetValue("Heading");
+            sheet.Cell(1, 1).SetBold();
+            sheet.Cell(1, 1).SetFillColor("#4472C4");
+            sheet.Cell(1, 1).SetWrapText();
+            sheet.Cell(2, 1).SetValue(date);
+            sheet.Cell(3, 1).SetValue(12.34567D);
+            sheet.Cell(3, 1).SetNumberFormat("0.0000");
+            Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal(ExcelDateSystem.NineteenFour, reloaded.DateSystem);
             ExcelSheet reloadedSheet = Assert.Single(reloaded.Sheets);
-            ExcelCellStyleInfo heading = reloadedSheet.GetCellStyle(1, 1);
+            ExcelCellStyleInfo heading = reloadedSheet.Cell(1, 1).GetStyle();
             Assert.True(heading.Bold);
             Assert.True(heading.WrapText);
             Assert.Equal("solid", heading.FillPatternType);
             Assert.Equal(date, AssertCellValue(reloadedSheet, 2, 1).DateTimeValue);
-            Assert.Equal("0.0000", reloadedSheet.GetCellStyle(3, 1).NumberFormatCode);
+            Assert.Equal("0.0000", reloadedSheet.Cell(3, 1).GetStyle().NumberFormatCode);
             Assert.Contains(reloaded.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.NumberingFormats!
                 .Elements<NumberingFormat>(), format => format.FormatCode?.Value == "0.0000");
         }
@@ -1322,8 +1322,8 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_RejectsOversizedStyleNamesBeforeEncoding(string target) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Styles");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellBold(1, 1);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 1).SetBold();
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             stylesheet.TableStyles ??= new TableStyles { Count = 0U };
             string oversized = new string('s', 100_000);
@@ -1345,8 +1345,8 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_WritesWorksheetGeometry() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Geometry");
-            sheet.CellValue(1, 1, "Merged heading");
-            sheet.CellValue(5, 4, "Extent");
+            sheet.Cell(1, 1).SetValue("Merged heading");
+            sheet.Cell(5, 4).SetValue("Extent");
             sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(9D));
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20D));
@@ -1356,7 +1356,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHidden(3, true);
             sheet.SetRowOutline(4, 2, collapsed: true);
             sheet.Freeze(topRows: 1, leftCols: 1);
-            sheet.MergeRange("A1:C1");
+            sheet.Range("A1:C1").Merge();
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
@@ -1438,7 +1438,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesCalculationProperties() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Calculation").CellValue(1, 1, 1D);
+            document.AddSheet("Calculation").Cell(1, 1).SetValue(1D);
             document.WorkbookRoot.Append(new CalculationProperties {
                 CalculationId = 42U,
                 CalculationMode = CalculateModeValues.AutoNoTable,
@@ -1489,7 +1489,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesClassicWorkbookProtection() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Protected").CellValue(1, 1, "Locked structure");
+            document.AddSheet("Protected").Cell(1, 1).SetValue("Locked structure");
             document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                 ProtectStructure = true,
                 ProtectWindows = true,
@@ -1517,7 +1517,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.LockWindows?.Value);
             Assert.True(result.LockRevision?.Value);
 
-            reloaded.Sheets[0].CellValue(1, 1, "Updated under protection");
+            reloaded.Sheets[0].Cell(1, 1).SetValue("Updated under protection");
             byte[] rewritten = reloaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using (var archive = new ZipArchive(new MemoryStream(rewritten, writable: false), ZipArchiveMode.Read)) {
                 using Stream workbookStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/workbook.bin")).Open();
@@ -1574,8 +1574,8 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             ExcelSheet reloadedData = Assert.Single(reloaded.Sheets, sheet => sheet.Name == "Data Sheet");
-            Assert.Equal("'Data Sheet'!$A$1:$B$3", reloaded.GetNamedRange("RevenueData"));
-            Assert.Equal("$C$2", reloadedData.GetNamedRange("LocalCell"));
+            Assert.Equal("'Data Sheet'!$A$1:$B$3", reloaded.GetNamedRangeText("RevenueData"));
+            Assert.Equal("$C$2", reloadedData.GetNamedRangeText("LocalCell"));
             Assert.Equal("$A$1:$C$10", reloadedData.GetPrintArea());
             ExcelPrintTitles titles = reloadedData.GetPrintTitles();
             Assert.Equal(1, titles.FirstRow);
@@ -1588,10 +1588,10 @@ namespace OfficeIMO.Tests {
             Assert.True(projectedRevenueName.Hidden?.Value);
             Assert.Equal("Projected from BIFF12", projectedRevenueName.Comment?.Value);
 
-            reloadedData.CellValue(1, 1, "Edited with names preserved");
+            reloadedData.Cell(1, 1).SetValue("Edited with names preserved");
             byte[] rewritten = reloaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument rewrittenDocument = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
-            Assert.Equal("'Data Sheet'!$A$1:$B$3", rewrittenDocument.GetNamedRange("RevenueData"));
+            Assert.Equal("'Data Sheet'!$A$1:$B$3", rewrittenDocument.GetNamedRangeText("RevenueData"));
             Assert.Equal("$A$1:$C$10", rewrittenDocument.Sheets[0].GetPrintArea());
         }
 
@@ -1599,12 +1599,12 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_WritesAndProjectsCommonWorksheetMetadata() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Status");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "Open");
-            sheet.CellValue(2, 2, 12.5D);
-            sheet.CellValue(3, 1, "Closed");
-            sheet.CellValue(3, 2, 8D);
+            sheet.Cell(1, 1).SetValue("Status");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("Open");
+            sheet.Cell(2, 2).SetValue(12.5D);
+            sheet.Cell(3, 1).SetValue("Closed");
+            sheet.Cell(3, 2).SetValue(8D);
             sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
                 [0U] = new[] { "Open", "Closed" }
             });
@@ -1768,7 +1768,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("&CEven page", projectedHeaderFooter.EvenHeader?.Text);
             Assert.Equal("&RPage &P of &N", projectedHeaderFooter.OddFooter?.Text);
 
-            reloadedSheet.CellValue(2, 2, 13.5D);
+            reloadedSheet.Cell(2, 2).SetValue(13.5D);
             byte[] rewritten = reloaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             using ExcelDocument rewrittenDocument = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
             Assert.True(rewrittenDocument.Sheets[0].IsProtected);

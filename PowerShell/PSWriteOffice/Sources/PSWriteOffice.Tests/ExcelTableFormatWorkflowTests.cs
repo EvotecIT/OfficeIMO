@@ -14,8 +14,8 @@ public sealed class ExcelTableFormatWorkflowTests {
     public void NamedTableFormatsOnlyItsOwnDataCells(bool noHeader) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Sales");
-        sheet.CellValue(20, 2, 0.25);
-        sheet.FormatCell(20, 2, "0.0000");
+        sheet.Cell(20, 2).SetValue(0.25);
+        sheet.Cell(20, 2).SetNumberFormat("0.0000");
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("sheet", sheet);
         runspace.SessionStateProxy.SetVariable("noHeader", noHeader);
@@ -36,8 +36,8 @@ public sealed class ExcelTableFormatWorkflowTests {
         var reopened = saved.Sheets[0];
         Assert.NotNull(reopened.GetTableRange("Sales"));
         int firstDataRow = noHeader ? 1 : 2;
-        Assert.Equal("0.00%", reopened.CellAt(firstDataRow, 2).GetStyle().NumberFormatCode);
-        Assert.Equal("0.0000", reopened.CellAt(20, 2).GetStyle().NumberFormatCode);
+        Assert.Equal("0.00%", reopened.Cell(firstDataRow, 2).GetStyle().NumberFormatCode);
+        Assert.Equal("0.0000", reopened.Cell(20, 2).GetStyle().NumberFormatCode);
         Assert.True(reopened.TryGetCellText(firstDataRow, 1, out string region));
         Assert.Equal("North", region);
     }

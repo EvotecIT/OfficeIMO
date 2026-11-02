@@ -164,7 +164,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
         switch (kind) {
             case "Excel":
                 var excel = OfficeIMO.Excel.ExcelDocument.Create();
-                excel.AddSheet("Evidence").CellValue(1, 1, text);
+                excel.AddSheet("Evidence").Cell(1, 1).SetValue(text);
                 return excel;
             case "PowerPoint":
                 var slides = OfficeIMO.PowerPoint.PowerPointDocument.Create();

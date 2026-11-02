@@ -82,9 +82,9 @@ try {
                 break;
             case "numbers":
                 using (var workbook = OfficeIMO.Excel.ExcelDocument.Load(output)) {
-                    if (workbook.Sheets.Count != 1 || workbook.Sheets[0].CellAt(1, 1).GetValue<string>() != "a"
-                        || workbook.Sheets[0].CellAt(2, 2).GetValue<double>() != 2d
-                        || workbook.Sheets[0].CellAt(3, 3).GetValue<string>() != "Z")
+                    if (workbook.Sheets.Count != 1 || workbook.Sheets[0].Cell(1, 1).GetValue<string>() != "a"
+                        || workbook.Sheets[0].Cell(2, 2).GetValue<double>() != 2d
+                        || workbook.Sheets[0].Cell(3, 3).GetValue<string>() != "Z")
                         throw new InvalidOperationException("Packed Numbers conversion lost its typed grid values.");
                 }
                 break;

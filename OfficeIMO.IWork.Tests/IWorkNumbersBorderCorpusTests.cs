@@ -39,12 +39,12 @@ public sealed partial class IWorkBoundaryTests {
             int row = cell.GetProperty("row").GetInt32(), column = cell.GetProperty("column").GetInt32();
             string? value = cell.GetProperty("value").GetString();
             Assert.Equal(value, table.GetCell(row, column)?.Value);
-            Assert.Equal(value ?? string.Empty, output.CellAt(row, column).GetValue<string>() ?? string.Empty);
-            Assert.Equal(nativeSheet.CellAt(row, column).GetValue<string>() ?? string.Empty,
-                output.CellAt(row, column).GetValue<string>() ?? string.Empty);
+            Assert.Equal(value ?? string.Empty, output.Cell(row, column).GetValue<string>() ?? string.Empty);
+            Assert.Equal(nativeSheet.Cell(row, column).GetValue<string>() ?? string.Empty,
+                output.Cell(row, column).GetValue<string>() ?? string.Empty);
             var borders = table.GetBorders(row, column);
-            var savedBorders = Assert.IsType<ExcelCellBorderInfo>(output.GetCellStyle(row, column).Border);
-            var nativeBorders = Assert.IsType<ExcelCellBorderInfo>(nativeSheet.GetCellStyle(row, column).Border);
+            var savedBorders = Assert.IsType<ExcelCellBorderInfo>(output.Cell(row, column).GetStyle().Border);
+            var nativeBorders = Assert.IsType<ExcelCellBorderInfo>(nativeSheet.Cell(row, column).GetStyle().Border);
             foreach (var edge in cell.GetProperty("edges").EnumerateObject()) {
                 var side = edge.Name switch {
                     "left" => borders.Left, "right" => borders.Right, "top" => borders.Top, "bottom" => borders.Bottom,
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(64, edges);
         Assert.False(nativeSheet.TryGetCellValueSnapshot(3, 4, out _));
         Assert.False(output.TryGetCellValueSnapshot(3, 4, out _));
-        Assert.NotNull(output.GetCellStyle(3, 4).Border); // Empty D3 retains its four styled edges.
+        Assert.NotNull(output.Cell(3, 4).GetStyle().Border); // Empty D3 retains its four styled edges.
         Assert.Empty(reopened.ValidateOpenXml());
         Assert.Equal(expected.GetProperty("sourceSha256").GetString(), BorderCorpusHash(source));
     }

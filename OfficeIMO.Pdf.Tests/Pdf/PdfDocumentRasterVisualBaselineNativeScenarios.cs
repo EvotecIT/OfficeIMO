@@ -261,21 +261,21 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
                 ExcelSheet summary = document.AddSheet("Summary");
-                summary.CellAt(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
-                summary.MergeRange("A1:B1");
-                summary.CellAt(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
-                summary.CellAt(2, 2).SetValue("Value").SetBold().SetFillColor("E6F2FF");
-                summary.CellAt(2, 3).SetValue("Status").SetBold().SetFillColor("E6F2FF");
-                summary.Cell(3, 1, "Revenue");
-                summary.CellAt(3, 2).SetValue(12345.6).Currency(2, System.Globalization.CultureInfo.GetCultureInfo("en-US"));
-                summary.CellAt(3, 3).SetValue("On track").SetFontColor("2F6F3E");
-                summary.Cell(4, 1, "Margin");
-                summary.CellAt(4, 2).SetValue(0.257).Percent(1);
+                summary.Cell(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
+                summary.Range("A1:B1").Merge();
+                summary.Cell(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
+                summary.Cell(2, 2).SetValue("Value").SetBold().SetFillColor("E6F2FF");
+                summary.Cell(2, 3).SetValue("Status").SetBold().SetFillColor("E6F2FF");
+                summary.Cell(3, 1).SetValue("Revenue");
+                summary.Cell(3, 2).SetValue(12345.6).Currency(2, System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+                summary.Cell(3, 3).SetValue("On track").SetFontColor("2F6F3E");
+                summary.Cell(4, 1).SetValue("Margin");
+                summary.Cell(4, 2).SetValue(0.257).Percent(1);
                 summary.SetHyperlink(4, 3, "https://officeimo.net/excel-pdf", display: "External Link");
-                summary.Cell(5, 1, "Drilldown");
+                summary.Cell(5, 1).SetValue("Drilldown");
                 summary.SetInternalLink(5, 2, "Details!A1", display: "Open Details");
-                summary.Cell(6, 1, "Visual image");
-                summary.Cell(6, 3, "logo above grid");
+                summary.Cell(6, 1).SetValue("Visual image");
+                summary.Cell(6, 3).SetValue("logo above grid");
                 summary.AddImage(6, 2, logoBytes, new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(64),
@@ -283,19 +283,19 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     Name = "Summary Logo",
                     Description = "Summary visual proof"
                 });
-                summary.Cell(8, 1, "HiddenRowValue");
-                summary.Cell(10, 1, "Month");
-                summary.Cell(10, 2, "Actual");
-                summary.Cell(10, 3, "Target");
-                summary.Cell(11, 1, "Jan");
-                summary.Cell(11, 2, 12);
-                summary.Cell(11, 3, 10);
-                summary.Cell(12, 1, "Feb");
-                summary.Cell(12, 2, 18);
-                summary.Cell(12, 3, 16);
-                summary.Cell(13, 1, "Mar");
-                summary.Cell(13, 2, 24);
-                summary.Cell(13, 3, 20);
+                summary.Cell(8, 1).SetValue("HiddenRowValue");
+                summary.Cell(10, 1).SetValue("Month");
+                summary.Cell(10, 2).SetValue("Actual");
+                summary.Cell(10, 3).SetValue("Target");
+                summary.Cell(11, 1).SetValue("Jan");
+                summary.Cell(11, 2).SetValue(12);
+                summary.Cell(11, 3).SetValue(10);
+                summary.Cell(12, 1).SetValue("Feb");
+                summary.Cell(12, 2).SetValue(18);
+                summary.Cell(12, 3).SetValue(16);
+                summary.Cell(13, 1).SetValue("Mar");
+                summary.Cell(13, 2).SetValue(24);
+                summary.Cell(13, 3).SetValue(20);
                 summary.AddChart(OfficeChartType.ColumnClustered, "A10:C13", new OfficeIMO.Excel.ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(140), Title = "Revenue Chart" });
                 summary.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
                 summary.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
@@ -303,13 +303,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
                 summary.SetRowHeight(6, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(32)));
                 summary.SetColumnHidden(4, true);
-                summary.Cell(2, 4, "HiddenColumnValue");
+                summary.Cell(2, 4).SetValue("HiddenColumnValue");
                 summary.SetRowHidden(8, true);
-                summary.CellBorder(2, 1, OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
-                summary.CellBorder(2, 2, OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
-                summary.CellBorder(2, 3, OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
-                summary.CellAlign(3, 2, OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
-                summary.CellAlign(4, 2, OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
+                summary.Cell(2, 1).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.Cell(2, 2).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.Cell(2, 3).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.Cell(3, 2).SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
+                summary.Cell(4, 2).SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
                 summary.SetHeaderFooter(
                     headerLeft: "Daily Excel",
                     headerCenter: "Workbook &A",
@@ -321,11 +321,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
 
                 ExcelSheet details = document.AddSheet("Details");
-                details.CellAt(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
-                details.Cell(2, 1, "Owner");
-                details.Cell(2, 2, "OfficeIMO");
-                details.Cell(3, 1, "Status");
-                details.Cell(3, 2, "Linked sheet destination");
+                details.Cell(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
+                details.Cell(2, 1).SetValue("Owner");
+                details.Cell(2, 2).SetValue("OfficeIMO");
+                details.Cell(3, 1).SetValue("Status");
+                details.Cell(3, 2).SetValue("Linked sheet destination");
                 details.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
                 details.SetColumnWidth(2, ExcelColumnWidth.Characters(30));
 

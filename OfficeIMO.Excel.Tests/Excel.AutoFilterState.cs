@@ -8,15 +8,15 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterState_ReadsValuesCustomBlankAndTopCriteria() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(1, 3, "Rank");
-            sheet.CellValue(2, 1, "EU");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(2, 3, 1);
-            sheet.CellValue(3, 1, "US");
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(3, 3, 2);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(1, 3).SetValue("Rank");
+            sheet.Cell(2, 1).SetValue("EU");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(2, 3).SetValue(1);
+            sheet.Cell(3, 1).SetValue("US");
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(3, 3).SetValue(2);
             sheet.AutoFilterAdd("A1:C3");
             sheet.AutoFilterByHeaderEquals("Region", new[] { "EU", "US" });
             sheet.AutoFilterByHeaderBetween("Amount", 10, 20);

@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests
                 var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, sourceRows);
                 if (kind.EndsWith("-error", StringComparison.Ordinal))
-                    source.CellError(5, 4, "#DIV/0!");
+                    source.Cell(5, 4).SetError("#DIV/0!");
                 ExcelPivotFilter filter = kind switch
                 {
                     "mixed-row-greater50" => ExcelPivotFilter.ValueGreaterThan("Product", "Metric", 50d),

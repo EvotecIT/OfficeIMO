@@ -25,9 +25,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ResizedDynamicArray.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 2);
-                sheet.CellValue(1, 2, 2);
-                sheet.CellFormula(1, 5, "G2+H2");
+                sheet.Cell(1, 1).SetValue(2);
+                sheet.Cell(1, 2).SetValue(2);
+                sheet.Cell(1, 5).SetFormula("G2+H2");
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,B1)");
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCellText(1, 7, out var anchor));
@@ -37,18 +37,18 @@ namespace OfficeIMO.Tests {
                 Assert.True(sheet.TryGetCachedFormulaValue(1, 5, out var dependent));
                 Assert.Equal("7", dependent);
                 Assert.Equal("G1:H2", Assert.Single(sheet.InspectFormulas().Formulas, f => f.Array?.IsDynamic == true).Array!.Range);
-                Assert.Throws<InvalidOperationException>(() => sheet.CellValue(2, 8, 99));
-                Assert.Throws<InvalidOperationException>(() => sheet.CellFormula(2, 8, "1+1"));
-                Assert.Throws<InvalidOperationException>(() => sheet.CellValues(new[] { (Row: 2, Column: 8, Value: (object)99) }));
-                Assert.Throws<InvalidOperationException>(() => sheet.ClearRange("H2:H2", ExcelClearOptions.Values));
+                Assert.Throws<InvalidOperationException>(() => sheet.Cell(2, 8).SetValue(99));
+                Assert.Throws<InvalidOperationException>(() => sheet.Cell(2, 8).SetFormula("1+1"));
+                Assert.Throws<InvalidOperationException>(() => sheet.SetValues(new[] { (Row: 2, Column: 8, Value: (object)99) }));
+                Assert.Throws<InvalidOperationException>(() => sheet.Range("H2:H2").Clear(ExcelClearOptions.Values));
 
-                sheet.CellValue(1, 1, 4);
+                sheet.Cell(1, 1).SetValue(4);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCellText(4, 8, out var grown));
                 Assert.Equal("8", grown);
                 Assert.Equal("G1:H4", Assert.Single(sheet.InspectFormulas().Formulas, f => f.Array?.IsDynamic == true).Array!.Range);
 
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.False(sheet.TryGetCellText(4, 8, out _));
                 Assert.False(sheet.TryGetCellText(2, 8, out _));
@@ -69,9 +69,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "BlockedDynamicArray.xlsx");
             using var document = ExcelDocument.Create(path);
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(2, 8, "blocker");
+            sheet.Cell(2, 8).SetValue("blocker");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
-            sheet.CellFormula(1, 9, "G1");
+            sheet.Cell(1, 9).SetFormula("G1");
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
             Assert.Equal("#SPILL!", error);
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             Assert.False(sheet.TryGetCellText(1, 8, out _));
             Assert.True(sheet.TryGetCachedFormulaValue(1, 9, out var propagated));
             Assert.Equal("#SPILL!", propagated);
-            sheet.ClearRange("H2:H2", ExcelClearOptions.Values);
+            sheet.Range("H2:H2").Clear(ExcelClearOptions.Values);
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(2, 8, out var recovered));
             Assert.Equal("4", recovered);
@@ -142,9 +142,9 @@ namespace OfficeIMO.Tests {
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             document.RecalculateSupportedFormulas();
             Assert.Throws<InvalidOperationException>(() =>
-                sheet.SetRichText(2, 8, new[] { new ExcelRichTextRun("text") }));
+                sheet.Cell(2, 8).SetRichText(new[] { new ExcelRichTextRun("text") }));
             Assert.Throws<InvalidOperationException>(() =>
-                sheet.SetRichText(1, 7, new[] { new ExcelRichTextRun("text") }));
+                sheet.Cell(1, 7).SetRichText(new[] { new ExcelRichTextRun("text") }));
             Assert.Throws<InvalidOperationException>(() => sheet.SetInCellImage(2, 8, TinyPng));
             Assert.Throws<InvalidOperationException>(() => sheet.SetInCellImage(1, 7, TinyPng));
             var table = new System.Data.DataTable();
@@ -208,13 +208,13 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_ChangedPlainCacheSurvivesShrink() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 2);
+            sheet.Cell(1, 1).SetValue(2);
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
             document.RecalculateSupportedFormulas();
             var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
                 cell => cell.CellReference?.Value == "H2");
             child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
-            sheet.CellValue(1, 1, 1);
+            sheet.Cell(1, 1).SetValue(1);
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
             Assert.Equal("#SPILL!", error);
@@ -227,14 +227,14 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "LoadedDynamicShrink.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 2);
+                sheet.Cell(1, 1).SetValue(2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
             }
             using (var document = ExcelDocument.Load(path)) {
                 var sheet = document["Data"];
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCellText(1, 7, out var anchor));
                 Assert.Equal("1", anchor);
@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "WorkbookPropertyBeforeDynamicShrink.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 2);
+                sheet.Cell(1, 1).SetValue(2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(path)) {
                 document.BuiltinDocumentProperties.Title = "Updated workbook title";
                 var sheet = document["Data"];
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCellText(1, 8, out var value));
                 Assert.Equal("2", value);
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddSheet("Data");
                 for (int index = 0; index < 100; index++) {
                     int row = index * 4 + 1;
-                    sheet.CellValue(row, 1, 2);
+                    sheet.Cell(row, 1).SetValue(2);
                     sheet.SetDynamicArrayFormula($"G{row}", $"SEQUENCE(A{row},2)");
                 }
                 document.RecalculateSupportedFormulas();
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(path)) {
                 var sheet = document["Data"];
                 for (int index = 0; index < 100; index++)
-                    sheet.CellValue(index * 4 + 1, 1, 1);
+                    sheet.Cell(index * 4 + 1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 for (int index = 0; index < 100; index++) {
                     int row = index * 4 + 1;
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
                 var sheet = document["Data"];
                 Assert.True(sheet.TryGetCellText(2, 8, out var prior));
                 Assert.Equal("4", prior);
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCellText(1, 8, out var retained));
                 Assert.Equal("2", retained);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "LoadedChangedDynamicShrink.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 2);
+                sheet.Cell(1, 1).SetValue(2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
                 var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
                     cell => cell.CellReference?.Value == "H2");
                 child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 using (var original = sheet.WorksheetPart.GetStream(FileMode.Open, FileAccess.Read)) {
                     var xml = System.Xml.Linq.XDocument.Load(original);
                     var savedCell = Assert.Single(xml.Descendants(), element => element.Name.LocalName == "c"
@@ -357,20 +357,20 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "LoadedDynamicFilter.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "alpha");
-                sheet.CellValue(2, 1, "beta");
-                sheet.CellValue(3, 1, "gamma");
-                sheet.CellValue(1, 2, 1);
-                sheet.CellValue(2, 2, 1);
-                sheet.CellValue(3, 2, 0);
+                sheet.Cell(1, 1).SetValue("alpha");
+                sheet.Cell(2, 1).SetValue("beta");
+                sheet.Cell(3, 1).SetValue("gamma");
+                sheet.Cell(1, 2).SetValue(1);
+                sheet.Cell(2, 2).SetValue(1);
+                sheet.Cell(3, 2).SetValue(0);
                 sheet.SetDynamicArrayFormula("G1", "FILTER(A1:A3,B1:B3)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
             }
             using (var document = ExcelDocument.Load(path)) {
                 var sheet = document["Data"];
-                sheet.CellValue(1, 2, 0);
-                sheet.CellValue(3, 2, 1);
+                sheet.Cell(1, 2).SetValue(0);
+                sheet.Cell(3, 2).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCellText(1, 7, out var first));
                 Assert.Equal("beta", first);
@@ -386,7 +386,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "SavedExternalDynamicChild.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 2);
+                sheet.Cell(1, 1).SetValue(2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests {
                     cell => cell.CellReference?.Value == "H2");
                 child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
                 sheet.WorksheetPart.Worksheet.Save();
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
                 Assert.Equal("#SPILL!", error);
@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ExternalEditBeforeDynamicSheetAccess.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 2);
+                sheet.Cell(1, 1).SetValue(2);
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
                 document.RecalculateSupportedFormulas();
                 document.Save();
@@ -423,7 +423,7 @@ namespace OfficeIMO.Tests {
                 child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
                 part.Worksheet.Save();
                 var sheet = document["Data"];
-                sheet.CellValue(1, 1, 1);
+                sheet.Cell(1, 1).SetValue(1);
                 document.RecalculateSupportedFormulas();
                 Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
                 Assert.Equal("#SPILL!", error);
@@ -439,10 +439,10 @@ namespace OfficeIMO.Tests {
             var authored = document.AddSheet("Data");
             var other = document["Data"];
             Assert.NotSame(authored, other);
-            other.CellValue(5, 5, 1); // Populate the shared write index before formula authoring.
+            other.Cell(5, 5).SetValue(1); // Populate the shared write index before formula authoring.
             authored.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
             document.RecalculateSupportedFormulas();
-            Assert.Throws<InvalidOperationException>(() => other.CellValue(2, 8, 99));
+            Assert.Throws<InvalidOperationException>(() => other.Cell(2, 8).SetValue(99));
             var child = Assert.Single(other.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
                 cell => cell.CellReference?.Value == "H2");
             child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
@@ -457,16 +457,15 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_TextTransformationCannotRewriteSpillChildren() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "alpha");
-            sheet.CellValue(2, 1, "beta");
-            sheet.CellValue(1, 2, 1);
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("alpha");
+            sheet.Cell(2, 1).SetValue("beta");
+            sheet.Cell(1, 2).SetValue(1);
+            sheet.Cell(2, 2).SetValue(1);
             sheet.SetDynamicArrayFormula("G1", "FILTER(A1:A2,B1:B2)");
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(2, 7, out var original));
             Assert.Equal("beta", original);
-            Assert.Throws<InvalidOperationException>(() => sheet.TransformCellTextCase(
-                2, 7, OfficeIMO.Drawing.OfficeTextCase.Uppercase));
+            Assert.Throws<InvalidOperationException>(() => sheet.Cell(2, 7).TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase));
             Assert.True(sheet.TryGetCellText(2, 7, out var retained));
             Assert.Equal("beta", retained);
         }
@@ -476,9 +475,9 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "BlockedNativeDynamicArray.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(2, 8, "blocker");
+                sheet.Cell(2, 8).SetValue("blocker");
                 sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
-                sheet.CellFormula(1, 9, "G1");
+                sheet.Cell(1, 9).SetFormula("G1");
                 document.RecalculateSupportedFormulas();
                 document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
                 Assert.Empty(document.ValidateOpenXml());
@@ -489,7 +488,7 @@ namespace OfficeIMO.Tests {
             using (var reopened = ExcelDocument.Load(path)) {
                 var sheet = reopened["Data"];
                 sheet.ClearArrayFormula("G1");
-                sheet.CellValue(1, 7, 7);
+                sheet.Cell(1, 7).SetValue(7);
                 Assert.True(sheet.TryGetCellText(1, 7, out var text));
                 Assert.Equal("7", text);
                 Assert.DoesNotContain(sheet.InspectFormulas().Formulas, f => f.Array?.IsDynamic == true);
@@ -501,20 +500,20 @@ namespace OfficeIMO.Tests {
         public void DynamicArrays_GrowthCollisionRetiresOldChildrenAndRecovers() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, 2);
+            sheet.Cell(1, 1).SetValue(2);
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(2, 8, out var oldChild));
             Assert.Equal("4", oldChild);
-            sheet.CellValue(3, 8, "blocker");
-            sheet.CellValue(1, 1, 4);
+            sheet.Cell(3, 8).SetValue("blocker");
+            sheet.Cell(1, 1).SetValue(4);
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
             Assert.Equal("#SPILL!", error);
             Assert.False(sheet.TryGetCellText(2, 8, out _));
             Assert.True(sheet.TryGetCellText(3, 8, out var blocker));
             Assert.Equal("blocker", blocker);
-            sheet.ClearRange("H3:H3", ExcelClearOptions.Values);
+            sheet.Range("H3:H3").Clear(ExcelClearOptions.Values);
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(4, 8, out var recovered));
             Assert.Equal("8", recovered);

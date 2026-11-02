@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void Save_retained_core_properties_preserve_subsequent_edits(bool standardWriter, bool fileSave) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            document.AddSheet("Report").CellValue(1, 1, "Data");
+            document.AddSheet("Report").Cell(1, 1).SetValue("Data");
             ExcelBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             properties.Title = "Before save";
             var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter };
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
         public void Save_retained_application_properties_preserve_subsequent_edits(bool standardWriter, bool fileSave) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            document.AddSheet("Report").CellValue(1, 1, "Data");
+            document.AddSheet("Report").Cell(1, 1).SetValue("Data");
             ExcelApplicationProperties properties = document.ApplicationProperties;
             properties.Company = "Before save";
             var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter };
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         public void Save_retained_custom_property_preserves_subsequent_edits(bool standardWriter, bool fileSave) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
-            document.AddSheet("Report").CellValue(1, 1, "Data");
+            document.AddSheet("Report").Cell(1, 1).SetValue("Data");
             var property = new ExcelCustomProperty("Before save");
             document.SetCustomDocumentProperty("Review", property);
             var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter };

@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RejectsCompleteDeletionOfPivotConsolidationSource() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = CreatePivotSheet(document);
-            sheet.CellAt(5, 1).SetValue(1);
-            sheet.CellAt(6, 1).SetValue(2);
+            sheet.Cell(5, 1).SetValue(1);
+            sheet.Cell(6, 1).SetValue(2);
             PivotTableCacheDefinitionPart cachePart = Assert.Single(
                 sheet.WorksheetPart.PivotTableParts).PivotTableCacheDefinitionPart!;
             var rangeSet = new RangeSet { Sheet = "Data", Reference = "A5:A6" };
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("complete consolidation source range", exception.Message);
             Assert.Equal("A5:A6", rangeSet.Reference!.Value);
-            Assert.Equal(1, sheet.CellAt(5, 1).GetValue<int>());
-            Assert.Equal(2, sheet.CellAt(6, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(5, 1).GetValue<int>());
+            Assert.Equal(2, sheet.Cell(6, 1).GetValue<int>());
         }
 
         [Fact]
@@ -70,10 +70,10 @@ namespace OfficeIMO.Tests {
 
         private static ExcelSheet CreateDrawingSheet(ExcelDocument document) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 5, Column = 4 });
             return sheet;
         }

@@ -60,9 +60,9 @@ public class HtmlArtifactRoundTrips {
     public void SemanticHtml_ProducesReopenableXlsxAndPptxArtifacts() {
         using ExcelDocument sourceWorkbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sourceSheet = sourceWorkbook.AddSheet("Evidence");
-        sourceSheet.CellValue(1, 1, "Label");
-        sourceSheet.CellValue(2, 1, Marker);
-        sourceSheet.MergeRange("A2:B2");
+        sourceSheet.Cell(1, 1).SetValue("Label");
+        sourceSheet.Cell(2, 1).SetValue(Marker);
+        sourceSheet.Range("A2:B2").Merge();
         HtmlToExcelResult excelResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceWorkbook.ToHtml()).ToExcelDocumentResult();
         using var xlsx = new MemoryStream();
         excelResult.Value.Save(xlsx);

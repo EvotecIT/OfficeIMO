@@ -223,7 +223,7 @@ public sealed class IWorkCorpusTests {
         ExcelSheet first = result.Value.Sheets[0];
         Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
         Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));
-        Assert.Equal(3d, first.CellAt(2, 2).GetValue<double>(), 10);
+        Assert.Equal(3d, first.Cell(2, 2).GetValue<double>(), 10);
     }
 
     [Fact]
@@ -546,7 +546,7 @@ public sealed class IWorkCorpusTests {
         using PowerPointDocument powerPoint = PowerPointDocument.Load(powerPointBytes);
         Assert.Contains(word.Paragraphs, paragraph => paragraph.Text == "hello pages");
         Assert.Single(excel.Sheets);
-        Assert.Equal("a", excel.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("a", excel.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(2, powerPoint.Slides.Count);
         Assert.Empty(powerPoint.Slides[0].Pictures);
         Assert.Contains(powerPoint.Slides[0].TextBoxes, box => box.Text.Contains("first bullet", StringComparison.Ordinal));

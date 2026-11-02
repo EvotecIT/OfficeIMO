@@ -19,7 +19,7 @@ public sealed class ReaderOptionalPasswordTests {
         if (extension == "docx") {
             using var word = WordDocument.Create(); word.AddParagraph("Plain source"); word.Save(encoded);
         } else if (extension == "xlsx") {
-            using var workbook = ExcelDocument.Create(); workbook.AddSheet("Data").CellValue(1, 1, "Plain source"); workbook.Save(encoded);
+            using var workbook = ExcelDocument.Create(); workbook.AddSheet("Data").Cell(1, 1).SetValue("Plain source"); workbook.Save(encoded);
         } else {
             using var presentation = PowerPointDocument.Create(); presentation.AddSlide().AddTextBox("Plain source"); presentation.Save(encoded);
         }

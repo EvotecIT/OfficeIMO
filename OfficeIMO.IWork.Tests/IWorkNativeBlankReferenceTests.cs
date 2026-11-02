@@ -37,17 +37,17 @@ public sealed partial class IWorkBoundaryTests {
         VerifyCells(native, sourceToo: true, afterOperandEdit: false);
         Assert.Equal(qualified, reopened.Calculate());
         VerifyCells(native, sourceToo: false, afterOperandEdit: false);
-        reopened.Sheets[0].CellValue(4, 3, 18d);
+        reopened.Sheets[0].Cell(4, 3).SetValue(18d);
         Assert.Equal(qualified, reopened.Calculate());
         VerifyCells(edited, sourceToo: false, afterOperandEdit: true);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Assert.Equal(18d, final.Sheets[0].CellAt(4, 3).GetValue<double>());
-        Assert.Equal(18d, final.Sheets[1].CellAt(3, 4).GetValue<double>());
-        Assert.Equal(90d, final.Sheets[1].CellAt(4, 4).GetValue<double>());
+        Assert.Equal(18d, final.Sheets[0].Cell(4, 3).GetValue<double>());
+        Assert.Equal(18d, final.Sheets[1].Cell(3, 4).GetValue<double>());
+        Assert.Equal(90d, final.Sheets[1].Cell(4, 4).GetValue<double>());
         if (!filled) {
             Assert.Null(final.Sheets[1].GetFormulaText(6, 4));
-            Assert.Equal("#ERROR", final.Sheets[1].CellAt(6, 4).GetValue<string>());
+            Assert.Equal("#ERROR", final.Sheets[1].Cell(6, 4).GetValue<string>());
         }
         Assert.Empty(final.ValidateOpenXml());
         VerifyInputs();
@@ -66,12 +66,12 @@ public sealed partial class IWorkBoundaryTests {
                 }
                 if (isEditable) {
                     Assert.Equal(expected.GetProperty("excelFormula").GetString(), reopened.Sheets[1].GetFormulaText(row, column));
-                    Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[1].CellAt(row, column).GetValue<double>());
+                    Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[1].Cell(row, column).GetValue<double>());
                 } else {
                     // An omitted source formula remains a source error cache
                     // when a later destination edit changes its former operand.
                     Assert.Null(reopened.Sheets[1].GetFormulaText(row, column));
-                    Assert.Equal("#ERROR", reopened.Sheets[1].CellAt(row, column).GetValue<string>());
+                    Assert.Equal("#ERROR", reopened.Sheets[1].Cell(row, column).GetValue<string>());
                     if (!afterOperandEdit) Assert.False(expected.GetProperty("qualified").GetBoolean());
                 }
             }

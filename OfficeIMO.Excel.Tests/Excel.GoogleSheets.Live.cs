@@ -24,9 +24,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (var source = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = source.AddSheet("RoundTrip");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(2, 1, "OfficeIMO");
-                    sheet.CellFormula(2, 2, "SUM(1,2)");
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(2, 1).SetValue("OfficeIMO");
+                    sheet.Cell(2, 2).SetFormula("SUM(1,2)");
                     GoogleSpreadsheetReference created = await source.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
                         Title = "OfficeIMO disposable live test " + Guid.NewGuid().ToString("N"),
                         Location = new GoogleDriveFileLocation { FolderId = folderId, DriveId = driveId, SharedDriveAware = true },
@@ -39,11 +39,11 @@ namespace OfficeIMO.Tests {
                 var importer = new GoogleSheetsImporter();
                 GoogleSheetsImportResult native = await importer.ImportAsync(fileId!, session, new GoogleSheetsImportOptions { Mode = GoogleWorkspaceImportMode.Native });
                 using (native.Document) {
-                    Assert.Equal("OfficeIMO", native.Document.Sheets[0].CellAt(2, 1).GetValue<string>());
+                    Assert.Equal("OfficeIMO", native.Document.Sheets[0].Cell(2, 1).GetValue<string>());
                 }
                 GoogleSheetsImportResult broad = await importer.ImportAsync(fileId!, session, new GoogleSheetsImportOptions { Mode = GoogleWorkspaceImportMode.DriveExport });
                 using (broad.Document) {
-                    Assert.Equal("OfficeIMO", broad.Document.Sheets[0].CellAt(2, 1).GetValue<string>());
+                    Assert.Equal("OfficeIMO", broad.Document.Sheets[0].Cell(2, 1).GetValue<string>());
                 }
             } finally {
                 if (!string.IsNullOrWhiteSpace(fileId)) {

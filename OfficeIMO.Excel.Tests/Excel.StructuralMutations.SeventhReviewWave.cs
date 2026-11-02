@@ -17,15 +17,15 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             ExcelSheet formulaSheet = crossSheet ? document.AddSheet("Summary") : sheet;
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(1, 2, 2);
-            formulaSheet.CellFormula(3, 1, crossSheet ? "SUM(Data!A1:B1)" : "SUM(A1:B1)");
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(2);
+            formulaSheet.Cell(3, 1).SetFormula(crossSheet ? "SUM(Data!A1:B1)" : "SUM(A1:B1)");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
                 () => sheet.PlanMoveRange("A1", "D1"));
 
             Assert.Contains("partially overlapping", exception.Message);
-            Assert.Equal(1d, sheet.CellAt(1, 1).GetValue<double>());
+            Assert.Equal(1d, sheet.Cell(1, 1).GetValue<double>());
             Assert.Equal(crossSheet ? "SUM(Data!A1:B1)" : "SUM(A1:B1)", Assert.Single(formulaSheet.GetFormulaCells()).Formula);
         }
 
@@ -33,10 +33,10 @@ namespace OfficeIMO.Tests {
         public void Test_RangeMove_RemapsCellBackedConnectionParameter() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(5, 1, 1);
+            sheet.Cell(5, 1).SetValue(1);
             Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
-            sheet.MoveRange("A5", "B5");
+            sheet.Range("A5").MoveTo("B5");
 
             Assert.Equal("B5", parameter.Cell!.Value);
         }
@@ -68,15 +68,15 @@ namespace OfficeIMO.Tests {
         public void Test_RangeBasedTableWrapper_RemainsStableAfterResizeAndSchemaChange() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellValue(1, 5, "X");
-            sheet.CellValue(1, 6, "Y");
-            sheet.CellValue(2, 5, 1);
-            sheet.CellValue(2, 6, 2);
+            sheet.Cell(1, 5).SetValue("X");
+            sheet.Cell(1, 6).SetValue("Y");
+            sheet.Cell(2, 5).SetValue(1);
+            sheet.Cell(2, 6).SetValue(2);
             sheet.AddTable("E1:F2", true, "Costs", ExcelTableStyle.TableStyleMedium2);
 
             ExcelTable table = sheet.Table("A1:B2")
@@ -113,13 +113,13 @@ namespace OfficeIMO.Tests {
         public void Test_TableRename_PreservesLetAndLambdaLexicalBindings() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(1);
             sheet.AddTable("A1:A2", true, "Input", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "LET(Input,1,Input)");
-            sheet.CellFormula(5, 1, "Input+LET(Input,1,Input)");
-            sheet.CellFormula(6, 1, "LET(Input,1,SUM(Input[Amount])+Input)");
-            sheet.CellFormula(7, 1, "LAMBDA(Input,Input)(1)");
+            sheet.Cell(4, 1).SetFormula("LET(Input,1,Input)");
+            sheet.Cell(5, 1).SetFormula("Input+LET(Input,1,Input)");
+            sheet.Cell(6, 1).SetFormula("LET(Input,1,SUM(Input[Amount])+Input)");
+            sheet.Cell(7, 1).SetFormula("LAMBDA(Input,Input)(1)");
 
             sheet.RenameTable("Input", "Ledger");
 

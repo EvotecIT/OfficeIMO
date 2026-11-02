@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("MoreConditions");
                     for (int row = 1; row <= 6; row++) {
                         for (int column = 1; column <= 8; column++) {
-                            sheet.CellValue(row, column, row * column);
+                            sheet.Cell(row, column).SetValue(row * column);
                         }
                     }
 
@@ -103,9 +103,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("CfStop");
-                    sheet.CellValue(1, 1, 1d);
-                    sheet.CellValue(2, 1, 5d);
-                    sheet.CellValue(3, 1, 10d);
+                    sheet.Cell(1, 1).SetValue(1d);
+                    sheet.Cell(2, 1).SetValue(5d);
+                    sheet.Cell(3, 1).SetValue(10d);
 
                     sheet.AddConditionalRule("A1:A3", ExcelConditionalFormattingOperator.GreaterThan, "3", null, stopIfTrue: true);
 
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("SingleCf");
-                    sheet.CellValue(1, 1, 3d);
+                    sheet.Cell(1, 1).SetValue(3d);
                     sheet.AddConditionalRule("A1", ExcelConditionalFormattingOperator.GreaterThan, "1");
 
                     document.Save(xlsOutputPath);
@@ -177,13 +177,13 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("CfExpressions");
-                    sheet.CellValue(1, 1, "Ready");
-                    sheet.CellValue(2, 1, "Blocked");
-                    sheet.CellValue(3, 1, "Ready");
-                    sheet.CellValue(1, 2, string.Empty);
-                    sheet.CellValue(2, 2, "Filled");
-                    sheet.CellValue(1, 3, "#N/A");
-                    sheet.CellValue(2, 3, "Ok");
+                    sheet.Cell(1, 1).SetValue("Ready");
+                    sheet.Cell(2, 1).SetValue("Blocked");
+                    sheet.Cell(3, 1).SetValue("Ready");
+                    sheet.Cell(1, 2).SetValue(string.Empty);
+                    sheet.Cell(2, 2).SetValue("Filled");
+                    sheet.Cell(1, 3).SetValue("#N/A");
+                    sheet.Cell(2, 3).SetValue("Ok");
 
                     sheet.AddConditionalTextRule("A1:A3", ExcelConditionalFormatType.ContainsText, "Ready");
                     sheet.AddConditionalBlanksRule("B1:B3");
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ExternalCf");
-                    sheet.CellValue(1, 1, 5d);
+                    sheet.Cell(1, 1).SetValue(5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new OpenXmlConditionalFormatting(
                         new OpenXmlConditionalFormattingRule(
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ExternalCfName");
-                    sheet.CellValue(1, 1, 5d);
+                    sheet.Cell(1, 1).SetValue(5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new OpenXmlConditionalFormatting(
                         new OpenXmlConditionalFormattingRule(
@@ -306,7 +306,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("ExternalCfName");
-                    sheet.CellValue(1, 1, 5d);
+                    sheet.Cell(1, 1).SetValue(5d);
 
                     sheet.WorksheetPart.Worksheet!.Append(new OpenXmlConditionalFormatting(
                         new OpenXmlConditionalFormattingRule(
@@ -346,7 +346,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedConditionalFormattingFormulaPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting formula token payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Conditioned");
+                sheet.Cell(1, 1).SetValue("Conditioned");
                 string longLiteral = "\"" + new string('A', 255) + "\"";
                 string formula = string.Join("&", Enumerable.Repeat(longLiteral, 260));
 
@@ -371,14 +371,14 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("CfAggregates");
                     for (int row = 1; row <= 5; row++) {
-                        sheet.CellValue(row, 1, row == 5 ? 2 : row);
-                        sheet.CellValue(row, 2, row);
-                        sheet.CellValue(row, 3, row * 10);
-                        sheet.CellValue(row, 4, row * 10);
-                        sheet.CellValue(row, 5, row * 10);
-                        sheet.CellValue(row, 6, row * 10);
-                        sheet.CellValue(row, 7, row * 10);
-                        sheet.CellValue(row, 8, row * 10);
+                        sheet.Cell(row, 1).SetValue(row == 5 ? 2 : row);
+                        sheet.Cell(row, 2).SetValue(row);
+                        sheet.Cell(row, 3).SetValue(row * 10);
+                        sheet.Cell(row, 4).SetValue(row * 10);
+                        sheet.Cell(row, 5).SetValue(row * 10);
+                        sheet.Cell(row, 6).SetValue(row * 10);
+                        sheet.Cell(row, 7).SetValue(row * 10);
+                        sheet.Cell(row, 8).SetValue(row * 10);
                     }
 
                     sheet.AddConditionalDuplicateValuesRule("A1:A5");
@@ -435,11 +435,11 @@ namespace OfficeIMO.Tests {
                     ExcelSheet firstRegion = document.AddSheet("Region 1");
                     ExcelSheet secondRegion = document.AddSheet("Region 2");
 
-                    input.CellValue(1, 1, 5d);
-                    firstRegion.CellValue(1, 1, 1d);
-                    firstRegion.CellValue(2, 1, 2d);
-                    secondRegion.CellValue(1, 1, 3d);
-                    secondRegion.CellValue(2, 1, 4d);
+                    input.Cell(1, 1).SetValue(5d);
+                    firstRegion.Cell(1, 1).SetValue(1d);
+                    firstRegion.Cell(2, 1).SetValue(2d);
+                    secondRegion.Cell(1, 1).SetValue(3d);
+                    secondRegion.Cell(2, 1).SetValue(4d);
 
                     document.SetNamedRange("Threshold", "'Input'!$A$1", save: false);
                     input.AddConditionalFormulaRule("B1:B2", "SUM(Threshold,'Region 1:Region 2'!$A$1:$A$2)>0");
@@ -474,8 +474,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("CfTime");
-                    sheet.CellValue(1, 1, new DateTime(2026, 6, 27));
-                    sheet.CellValue(2, 1, new DateTime(2026, 6, 26));
+                    sheet.Cell(1, 1).SetValue(new DateTime(2026, 6, 27));
+                    sheet.Cell(2, 1).SetValue(new DateTime(2026, 6, 26));
                     sheet.AddConditionalTimePeriodRule("A1:A2", timePeriod);
 
                     document.Save(xlsOutputPath);

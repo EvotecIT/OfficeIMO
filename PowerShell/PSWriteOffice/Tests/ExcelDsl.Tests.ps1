@@ -348,7 +348,7 @@ Describe 'Excel DSL surface' {
         $before = (Get-FileHash -LiteralPath $path).Hash
         $document = Open-OfficeExcel -Path $path
         try {
-            $document.Sheets[0].CellValue(1, 1, 'Unsaved edit')
+            $document.Sheets[0].Cell(1, 1).SetValue('Unsaved edit')
             $document | Save-OfficeExcel -SaveOptions @{ EvaluateFormulas = $true } -WhatIf -ErrorAction Stop
             (Get-FileHash -LiteralPath $path).Hash | Should -Be $before
             $value = $null

@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsCustomSheetViewRowBreaks() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("keep");
+            sheet.Cell(1, 1).SetValue("keep");
             var pageBreak = new Break { Id = (uint)ExcelA1.MaxRows, ManualPageBreak = true };
             sheet.WorksheetPart.Worksheet.Append(new CustomSheetViews(
                 new CustomSheetView(
@@ -52,16 +52,16 @@ namespace OfficeIMO.Tests {
             Assert.Throws<InvalidOperationException>(() => sheet.InsertRows(1));
 
             Assert.Equal((uint)ExcelA1.MaxRows, pageBreak.Id!.Value);
-            Assert.Equal("keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("keep", sheet.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]
         public void Test_StructuralRows_RemapsOffice2010SortConditions() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.CellAt(3, 1).SetValue(2);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
             sheet.AutoFilterAdd("A1:A3");
             var worksheetCondition = new X14.SortCondition { Reference = "A2:A3" };
             sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()!.Append(
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_InvalidatesExtendedChartDimensionCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
-            sheet.CellAt(3, 1).SetValue(2);
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
             DrawingsPart drawingsPart = sheet.WorksheetPart.AddNewPart<DrawingsPart>();
             drawingsPart.WorksheetDrawing = new Xdr.WorksheetDrawing();
             ExtendedChartPart chartPart = drawingsPart.AddNewPart<ExtendedChartPart>();

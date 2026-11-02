@@ -155,7 +155,7 @@ public partial class Html {
         Assert.NotEmpty(wordDocument.Paragraphs);
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddSheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("value");
         HtmlConversionDocument excelHtml = HtmlConversionDocument.Parse(workbook.ToHtml());
         using ExcelDocument importedWorkbook = excelHtml.ToExcelDocumentResult().RequireValue();
         Assert.Single(importedWorkbook.Sheets);

@@ -185,15 +185,15 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Summary");
-                sheet.CellValue(1, 1, "Quarter");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(1, 3, "Target");
-                sheet.CellValue(2, 1, "Q1");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 12);
-                sheet.CellValue(3, 1, "Q2");
-                sheet.CellValue(3, 2, 20);
-                sheet.CellValue(3, 3, 22);
+                sheet.Cell(1, 1).SetValue("Quarter");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(1, 3).SetValue("Target");
+                sheet.Cell(2, 1).SetValue("Q1");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(12);
+                sheet.Cell(3, 1).SetValue("Q2");
+                sheet.Cell(3, 2).SetValue(20);
+                sheet.Cell(3, 3).SetValue(22);
                 sheet.AddChart(OfficeChartType.Line, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), Title = "Quarterly", IncludeCachedData = true, HasHeaders = true });
                 document.Save();
             }
@@ -218,18 +218,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Coverage");
-                sheet.CellValue(1, 1, "Area");
-                sheet.CellValue(1, 2, "Current");
-                sheet.CellValue(1, 3, "Target");
-                sheet.CellValue(2, 1, "Mail");
-                sheet.CellValue(2, 2, 3);
-                sheet.CellValue(2, 3, 5);
-                sheet.CellValue(3, 1, "DNS");
-                sheet.CellValue(3, 2, 4);
-                sheet.CellValue(3, 3, 5);
-                sheet.CellValue(4, 1, "Identity");
-                sheet.CellValue(4, 2, 2);
-                sheet.CellValue(4, 3, 5);
+                sheet.Cell(1, 1).SetValue("Area");
+                sheet.Cell(1, 2).SetValue("Current");
+                sheet.Cell(1, 3).SetValue("Target");
+                sheet.Cell(2, 1).SetValue("Mail");
+                sheet.Cell(2, 2).SetValue(3);
+                sheet.Cell(2, 3).SetValue(5);
+                sheet.Cell(3, 1).SetValue("DNS");
+                sheet.Cell(3, 2).SetValue(4);
+                sheet.Cell(3, 3).SetValue(5);
+                sheet.Cell(4, 1).SetValue("Identity");
+                sheet.Cell(4, 2).SetValue(2);
+                sheet.Cell(4, 3).SetValue(5);
                 var chart = sheet.AddChart(OfficeChartType.Radar, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Coverage", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Current", new[] { 4d, 3d, 5d, 2d }, OfficeChartType.Radar), new ExcelChartSeries("Target", new[] { 5d, 5d, 5d, 4d }, OfficeChartType.Radar) }));
                 chart.SetSeriesLineColor("Current", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Target", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12"));
@@ -274,26 +274,26 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Prices");
-                sheet.CellValue(1, 1, "Date");
-                sheet.CellValue(1, 2, "Open");
-                sheet.CellValue(1, 3, "High");
-                sheet.CellValue(1, 4, "Low");
-                sheet.CellValue(1, 5, "Close");
-                sheet.CellValue(2, 1, "2026-01-01");
-                sheet.CellValue(2, 2, 102);
-                sheet.CellValue(2, 3, 108);
-                sheet.CellValue(2, 4, 99);
-                sheet.CellValue(2, 5, 105);
-                sheet.CellValue(3, 1, "2026-01-02");
-                sheet.CellValue(3, 2, 105);
-                sheet.CellValue(3, 3, 111);
-                sheet.CellValue(3, 4, 101);
-                sheet.CellValue(3, 5, 109);
-                sheet.CellValue(4, 1, "2026-01-03");
-                sheet.CellValue(4, 2, 109);
-                sheet.CellValue(4, 3, 116);
-                sheet.CellValue(4, 4, 106);
-                sheet.CellValue(4, 5, 113);
+                sheet.Cell(1, 1).SetValue("Date");
+                sheet.Cell(1, 2).SetValue("Open");
+                sheet.Cell(1, 3).SetValue("High");
+                sheet.Cell(1, 4).SetValue("Low");
+                sheet.Cell(1, 5).SetValue("Close");
+                sheet.Cell(2, 1).SetValue("2026-01-01");
+                sheet.Cell(2, 2).SetValue(102);
+                sheet.Cell(2, 3).SetValue(108);
+                sheet.Cell(2, 4).SetValue(99);
+                sheet.Cell(2, 5).SetValue(105);
+                sheet.Cell(3, 1).SetValue("2026-01-02");
+                sheet.Cell(3, 2).SetValue(105);
+                sheet.Cell(3, 3).SetValue(111);
+                sheet.Cell(3, 4).SetValue(101);
+                sheet.Cell(3, 5).SetValue(109);
+                sheet.Cell(4, 1).SetValue("2026-01-03");
+                sheet.Cell(4, 2).SetValue(109);
+                sheet.Cell(4, 3).SetValue(116);
+                sheet.Cell(4, 4).SetValue(106);
+                sheet.Cell(4, 5).SetValue(113);
                 var chart = sheet.AddChart(OfficeChartType.Stock, "A1:E4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 7, Width = OfficeLength.Pixels(560), Height = OfficeLength.Pixels(340), Title = "Price Range", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04" }, new[] { new ExcelChartSeries("Open", new[] { 102d, 105d, 109d, 112d }, OfficeChartType.Stock), new ExcelChartSeries("High", new[] { 108d, 111d, 116d, 118d }, OfficeChartType.Stock), new ExcelChartSeries("Low", new[] { 99d, 101d, 106d, 110d }, OfficeChartType.Stock), new ExcelChartSeries("Close", new[] { 105d, 109d, 113d, 116d }, OfficeChartType.Stock) }));
                 chart.SetSeriesLineColor("Close", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25));
@@ -337,22 +337,22 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Terrain");
-                sheet.CellValue(1, 1, "Zone");
-                sheet.CellValue(1, 2, "Low");
-                sheet.CellValue(1, 3, "Mid");
-                sheet.CellValue(1, 4, "High");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 12);
-                sheet.CellValue(2, 3, 18);
-                sheet.CellValue(2, 4, 24);
-                sheet.CellValue(3, 1, "Central");
-                sheet.CellValue(3, 2, 16);
-                sheet.CellValue(3, 3, 21);
-                sheet.CellValue(3, 4, 29);
-                sheet.CellValue(4, 1, "South");
-                sheet.CellValue(4, 2, 14);
-                sheet.CellValue(4, 3, 20);
-                sheet.CellValue(4, 4, 27);
+                sheet.Cell(1, 1).SetValue("Zone");
+                sheet.Cell(1, 2).SetValue("Low");
+                sheet.Cell(1, 3).SetValue("Mid");
+                sheet.Cell(1, 4).SetValue("High");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(12);
+                sheet.Cell(2, 3).SetValue(18);
+                sheet.Cell(2, 4).SetValue(24);
+                sheet.Cell(3, 1).SetValue("Central");
+                sheet.Cell(3, 2).SetValue(16);
+                sheet.Cell(3, 3).SetValue(21);
+                sheet.Cell(3, 4).SetValue(29);
+                sheet.Cell(4, 1).SetValue("South");
+                sheet.Cell(4, 2).SetValue(14);
+                sheet.Cell(4, 3).SetValue(20);
+                sheet.Cell(4, 4).SetValue(27);
                 var chart = sheet.AddChart(OfficeChartType.Surface, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(560), Height = OfficeLength.Pixels(340), Title = "Surface", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "North", "Central", "South", "West" }, new[] { new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, OfficeChartType.Surface), new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, OfficeChartType.Surface), new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, OfficeChartType.Surface) }));
                 chart.SetSeriesFillColor("High", OfficeColor.Parse("22C55E"));
@@ -395,22 +395,22 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Surface");
-                sheet.CellValue(1, 1, "Bucket");
-                sheet.CellValue(1, 2, "Low");
-                sheet.CellValue(1, 3, "Mid");
-                sheet.CellValue(1, 4, "High");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 18);
-                sheet.CellValue(2, 4, 25);
-                sheet.CellValue(3, 1, "East");
-                sheet.CellValue(3, 2, 14);
-                sheet.CellValue(3, 3, 22);
-                sheet.CellValue(3, 4, 30);
-                sheet.CellValue(4, 1, "South");
-                sheet.CellValue(4, 2, 12);
-                sheet.CellValue(4, 3, 20);
-                sheet.CellValue(4, 4, 28);
+                sheet.Cell(1, 1).SetValue("Bucket");
+                sheet.Cell(1, 2).SetValue("Low");
+                sheet.Cell(1, 3).SetValue("Mid");
+                sheet.Cell(1, 4).SetValue("High");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(18);
+                sheet.Cell(2, 4).SetValue(25);
+                sheet.Cell(3, 1).SetValue("East");
+                sheet.Cell(3, 2).SetValue(14);
+                sheet.Cell(3, 3).SetValue(22);
+                sheet.Cell(3, 4).SetValue(30);
+                sheet.Cell(4, 1).SetValue("South");
+                sheet.Cell(4, 2).SetValue(12);
+                sheet.Cell(4, 3).SetValue(20);
+                sheet.Cell(4, 4).SetValue(28);
                 var wireframeChart = sheet.AddChart(OfficeChartType.SurfaceWireframe, "A1:D4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Wireframe Surface", IncludeCachedData = true, HasHeaders = true });
                 wireframeChart.UpdateData(new ExcelChartData(new[] { "North", "East", "South", "West" }, new[] { new ExcelChartSeries("Low", new[] { 11d, 15d, 13d, 17d }, OfficeChartType.SurfaceWireframe), new ExcelChartSeries("Mid", new[] { 18d, 22d, 19d, 23d }, OfficeChartType.SurfaceWireframe), new ExcelChartSeries("High", new[] { 25d, 30d, 28d, 32d }, OfficeChartType.SurfaceWireframe) }));
                 wireframeChart.SetSeriesFillColor("High", OfficeColor.Parse("22C55E"));
@@ -464,14 +464,14 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Mix");
-                sheet.CellValue(1, 1, "Category");
-                sheet.CellValue(1, 2, "Share");
-                sheet.CellValue(2, 1, "Mail");
-                sheet.CellValue(2, 2, 42);
-                sheet.CellValue(3, 1, "DNS");
-                sheet.CellValue(3, 2, 28);
-                sheet.CellValue(4, 1, "Identity");
-                sheet.CellValue(4, 2, 30);
+                sheet.Cell(1, 1).SetValue("Category");
+                sheet.Cell(1, 2).SetValue("Share");
+                sheet.Cell(2, 1).SetValue("Mail");
+                sheet.Cell(2, 2).SetValue(42);
+                sheet.Cell(3, 1).SetValue("DNS");
+                sheet.Cell(3, 2).SetValue(28);
+                sheet.Cell(4, 1).SetValue("Identity");
+                sheet.Cell(4, 2).SetValue(30);
                 var chart = sheet.AddChart(OfficeChartType.Pie3D, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Workload Mix", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Mail", "DNS", "Identity", "Device" }, new[] { new ExcelChartSeries("Share", new[] { 40d, 24d, 26d, 10d }, OfficeChartType.Pie3D) }));
                 chart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false).SetSeriesFillColor("Share", OfficeColor.Parse("2563EB"));
@@ -513,16 +513,16 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Share");
-                sheet.CellValue(1, 1, "Segment");
-                sheet.CellValue(1, 2, "Share");
-                sheet.CellValue(2, 1, "Core");
-                sheet.CellValue(2, 2, 40);
-                sheet.CellValue(3, 1, "Growth");
-                sheet.CellValue(3, 2, 24);
-                sheet.CellValue(4, 1, "Services");
-                sheet.CellValue(4, 2, 26);
-                sheet.CellValue(5, 1, "Other");
-                sheet.CellValue(5, 2, 10);
+                sheet.Cell(1, 1).SetValue("Segment");
+                sheet.Cell(1, 2).SetValue("Share");
+                sheet.Cell(2, 1).SetValue("Core");
+                sheet.Cell(2, 2).SetValue(40);
+                sheet.Cell(3, 1).SetValue("Growth");
+                sheet.Cell(3, 2).SetValue(24);
+                sheet.Cell(4, 1).SetValue("Services");
+                sheet.Cell(4, 2).SetValue(26);
+                sheet.Cell(5, 1).SetValue("Other");
+                sheet.Cell(5, 2).SetValue(10);
                 var pieChart = sheet.AddChart(OfficeChartType.PieOfPie, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Pie of Pie", IncludeCachedData = true, HasHeaders = true });
                 pieChart.UpdateData(new ExcelChartData(new[] { "Core", "Growth", "Services", "Other", "Legacy" }, new[] { new ExcelChartSeries("Share", new[] { 38d, 25d, 24d, 9d, 4d }, OfficeChartType.PieOfPie) }));
                 pieChart.SetDataLabels(showValue: true, showCategoryName: true, showSeriesName: false, showLegendKey: false, showPercent: false).SetSeriesFillColor("Share", OfficeColor.Parse("2563EB"));
@@ -571,18 +571,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Mix");
-                sheet.CellValue(1, 1, "Quarter");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(1, 3, "Target");
-                sheet.CellValue(2, 1, "Q1");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 12);
-                sheet.CellValue(3, 1, "Q2");
-                sheet.CellValue(3, 2, 18);
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "Q3");
-                sheet.CellValue(4, 2, 24);
-                sheet.CellValue(4, 3, 26);
+                sheet.Cell(1, 1).SetValue("Quarter");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(1, 3).SetValue("Target");
+                sheet.Cell(2, 1).SetValue("Q1");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(12);
+                sheet.Cell(3, 1).SetValue("Q2");
+                sheet.Cell(3, 2).SetValue(18);
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("Q3");
+                sheet.Cell(4, 2).SetValue(24);
+                sheet.Cell(4, 3).SetValue(26);
                 var columnChart = sheet.AddChart(OfficeChartType.ColumnStacked100, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "100% Stacked Columns", IncludeCachedData = true, HasHeaders = true });
                 columnChart.UpdateData(new ExcelChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, OfficeChartType.ColumnStacked100), new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, OfficeChartType.ColumnStacked100) }));
                 columnChart.SetSeriesFillColor("Sales", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
@@ -628,18 +628,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Quarter");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(1, 3, "Target");
-                sheet.CellValue(2, 1, "Q1");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 12);
-                sheet.CellValue(3, 1, "Q2");
-                sheet.CellValue(3, 2, 18);
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "Q3");
-                sheet.CellValue(4, 2, 24);
-                sheet.CellValue(4, 3, 26);
+                sheet.Cell(1, 1).SetValue("Quarter");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(1, 3).SetValue("Target");
+                sheet.Cell(2, 1).SetValue("Q1");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(12);
+                sheet.Cell(3, 1).SetValue("Q2");
+                sheet.Cell(3, 2).SetValue(18);
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("Q3");
+                sheet.Cell(4, 2).SetValue(24);
+                sheet.Cell(4, 3).SetValue(26);
                 var columnChart = sheet.AddChart(OfficeChartType.Column3DClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Columns", IncludeCachedData = true, HasHeaders = true });
                 columnChart.UpdateData(new ExcelChartData(new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { new ExcelChartSeries("Sales", new[] { 12d, 19d, 25d, 31d }, OfficeChartType.Column3DClustered), new ExcelChartSeries("Target", new[] { 14d, 21d, 28d, 34d }, OfficeChartType.Column3DClustered) }));
                 columnChart.SetSeriesFillColor("Sales", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
@@ -697,18 +697,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Trend");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Actual");
-                sheet.CellValue(1, 3, "Plan");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 12);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 15);
-                sheet.CellValue(3, 3, 17);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 20);
-                sheet.CellValue(4, 3, 23);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Actual");
+                sheet.Cell(1, 3).SetValue("Plan");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(12);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(15);
+                sheet.Cell(3, 3).SetValue(17);
+                sheet.Cell(4, 1).SetValue("Mar");
+                sheet.Cell(4, 2).SetValue(20);
+                sheet.Cell(4, 3).SetValue(23);
                 var stackedChart = sheet.AddChart(OfficeChartType.LineStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Stacked Line", IncludeCachedData = true, HasHeaders = true });
                 stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, OfficeChartType.LineStacked), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, OfficeChartType.LineStacked) }));
                 stackedChart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
@@ -757,18 +757,18 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Share");
-                sheet.CellValue(1, 1, "Segment");
-                sheet.CellValue(1, 2, "Current");
-                sheet.CellValue(1, 3, "Previous");
-                sheet.CellValue(2, 1, "Core");
-                sheet.CellValue(2, 2, 40);
-                sheet.CellValue(2, 3, 35);
-                sheet.CellValue(3, 1, "Growth");
-                sheet.CellValue(3, 2, 24);
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(4, 1, "Services");
-                sheet.CellValue(4, 2, 26);
-                sheet.CellValue(4, 3, 30);
+                sheet.Cell(1, 1).SetValue("Segment");
+                sheet.Cell(1, 2).SetValue("Current");
+                sheet.Cell(1, 3).SetValue("Previous");
+                sheet.Cell(2, 1).SetValue("Core");
+                sheet.Cell(2, 2).SetValue(40);
+                sheet.Cell(2, 3).SetValue(35);
+                sheet.Cell(3, 1).SetValue("Growth");
+                sheet.Cell(3, 2).SetValue(24);
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(4, 1).SetValue("Services");
+                sheet.Cell(4, 2).SetValue(26);
+                sheet.Cell(4, 3).SetValue(30);
 
                 var exception = Assert.Throws<NotSupportedException>(() =>
                     sheet.AddChart(type, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 }));
@@ -784,18 +784,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Trend");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Actual");
-                sheet.CellValue(1, 3, "Plan");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 12);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 15);
-                sheet.CellValue(3, 3, 17);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 20);
-                sheet.CellValue(4, 3, 23);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Actual");
+                sheet.Cell(1, 3).SetValue("Plan");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(12);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(15);
+                sheet.Cell(3, 3).SetValue(17);
+                sheet.Cell(4, 1).SetValue("Mar");
+                sheet.Cell(4, 2).SetValue(20);
+                sheet.Cell(4, 3).SetValue(23);
                 var chart = sheet.AddChart(OfficeChartType.Line3D, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Line", IncludeCachedData = true, HasHeaders = true });
                 chart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 16d, 22d, 27d }, OfficeChartType.Line3D), new ExcelChartSeries("Plan", new[] { 12d, 18d, 24d, 29d }, OfficeChartType.Line3D) }));
                 chart.SetSeriesLineColor("Actual", OfficeColor.Parse("2563EB"), width: OfficeLength.Points(1.25)).SetSeriesMarker("Plan", OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F97316"), lineColor: OfficeColor.Parse("7C2D12")).SetDataLabels(showValue: true);
@@ -839,18 +839,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Mix");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Services");
-                sheet.CellValue(1, 3, "Licenses");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 35);
-                sheet.CellValue(2, 3, 18);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 42);
-                sheet.CellValue(3, 3, 23);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 48);
-                sheet.CellValue(4, 3, 29);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Services");
+                sheet.Cell(1, 3).SetValue("Licenses");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(35);
+                sheet.Cell(2, 3).SetValue(18);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(42);
+                sheet.Cell(3, 3).SetValue(23);
+                sheet.Cell(4, 1).SetValue("Mar");
+                sheet.Cell(4, 2).SetValue(48);
+                sheet.Cell(4, 3).SetValue(29);
                 var stackedChart = sheet.AddChart(OfficeChartType.AreaStacked, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "Stacked Area", IncludeCachedData = true, HasHeaders = true });
                 stackedChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Services", new[] { 36d, 44d, 50d, 54d }, OfficeChartType.AreaStacked), new ExcelChartSeries("Licenses", new[] { 19d, 25d, 31d, 34d }, OfficeChartType.AreaStacked) }));
                 stackedChart.SetSeriesFillColor("Services", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
@@ -895,18 +895,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Volume");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Actual");
-                sheet.CellValue(1, 3, "Plan");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(2, 3, 12);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 16);
-                sheet.CellValue(3, 3, 18);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 21);
-                sheet.CellValue(4, 3, 24);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Actual");
+                sheet.Cell(1, 3).SetValue("Plan");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(2, 3).SetValue(12);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(16);
+                sheet.Cell(3, 3).SetValue(18);
+                sheet.Cell(4, 1).SetValue("Mar");
+                sheet.Cell(4, 2).SetValue(21);
+                sheet.Cell(4, 3).SetValue(24);
                 var areaChart = sheet.AddChart(OfficeChartType.Area3D, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(520), Height = OfficeLength.Pixels(340), Title = "3D Area", IncludeCachedData = true, HasHeaders = true });
                 areaChart.UpdateData(new ExcelChartData(new[] { "Jan", "Feb", "Mar", "Apr" }, new[] { new ExcelChartSeries("Actual", new[] { 11d, 17d, 22d, 28d }, OfficeChartType.Area3D), new ExcelChartSeries("Plan", new[] { 13d, 19d, 25d, 31d }, OfficeChartType.Area3D) }));
                 areaChart.SetSeriesFillColor("Actual", OfficeColor.Parse("2563EB")).SetDataLabels(showValue: true);
@@ -956,14 +956,14 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Dashboard");
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Revenue");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 16);
-                sheet.CellValue(4, 1, "Mar");
-                sheet.CellValue(4, 2, 13);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Revenue");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(16);
+                sheet.Cell(4, 1).SetValue("Mar");
+                sheet.Cell(4, 2).SetValue(13);
                 sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
                 sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
                 sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
@@ -1001,12 +1001,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Dashboard");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(1, 2, "Rules");
-                sheet.CellValue(2, 1, "High");
-                sheet.CellValue(2, 2, 5);
-                sheet.CellValue(3, 1, "Medium");
-                sheet.CellValue(3, 2, 3);
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(1, 2).SetValue("Rules");
+                sheet.Cell(2, 1).SetValue("High");
+                sheet.Cell(2, 2).SetValue(5);
+                sheet.Cell(3, 1).SetValue("Medium");
+                sheet.Cell(3, 2).SetValue(3);
                 sheet.AddTable("A1:B3", hasHeader: true, name: "StatusData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4);
 
                 ExcelChartGridLayout layout = sheet.ChartLayout(row: 12, column: 4, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(300));
@@ -1045,12 +1045,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Pie");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(1, 2, "Rules");
-                sheet.CellValue(2, 1, "High");
-                sheet.CellValue(2, 2, 5);
-                sheet.CellValue(3, 1, "Medium");
-                sheet.CellValue(3, 2, 3);
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(1, 2).SetValue("Rules");
+                sheet.Cell(2, 1).SetValue("High");
+                sheet.Cell(2, 2).SetValue(5);
+                sheet.Cell(3, 1).SetValue("Medium");
+                sheet.Cell(3, 2).SetValue(3);
 
                 sheet.AddChart(OfficeChartType.Pie, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(300), Title = "Status" })
                     .SetDataLabels(
@@ -1080,12 +1080,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Pie");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(1, 2, "Rules");
-                sheet.CellValue(2, 1, "High");
-                sheet.CellValue(2, 2, 5);
-                sheet.CellValue(3, 1, "Medium");
-                sheet.CellValue(3, 2, 3);
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(1, 2).SetValue("Rules");
+                sheet.Cell(2, 1).SetValue("High");
+                sheet.Cell(2, 2).SetValue(5);
+                sheet.Cell(3, 1).SetValue("Medium");
+                sheet.Cell(3, 2).SetValue(3);
 
                 sheet.AddChart(OfficeChartType.Pie, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(300), Title = "Status" })
                     .SetDataLabels(
@@ -1189,7 +1189,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Summary");
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (9, 1, (object)"sentinel"),
                     (9, 2, (object)"sentinel"),
                     (10, 1, (object)"A"),
@@ -1238,12 +1238,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Report!2026's");
-                sheet.Cell(1, 1, "Month");
-                sheet.Cell(1, 2, "Sales");
-                sheet.Cell(2, 1, "Jan");
-                sheet.Cell(3, 1, "Feb");
-                sheet.Cell(2, 2, 1d);
-                sheet.Cell(3, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 2).SetValue(2d);
 
                 var chart = sheet.AddChart(OfficeChartType.Line, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 6, Width = OfficeLength.Pixels(480), Height = OfficeLength.Pixels(320), HasHeaders = true, Title = "Monthly" });
 
@@ -1428,7 +1428,7 @@ namespace OfficeIMO.Tests
                     (32, 1, 2d), (32, 2, 4d), (32, 3, 2d), (32, 4, 5d),
                     (33, 1, 3d), (33, 2, 3d), (33, 3, 5d), (33, 4, 6d)
                 };
-                sheet.CellValues(rangeCells, null);
+                sheet.SetValues(rangeCells, null);
 
                 sheet.AddScatterChartFromRanges(new[] {
                     new ExcelChartSeriesRange("Series 1", "A31:A33", "B31:B33"),
@@ -1474,7 +1474,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Summary");
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (1, 1, (object)"X"), (1, 2, (object)"Y"),
                     (2, 1, (object)1d), (2, 2, (object)2d),
                     (3, 1, (object)2d), (3, 2, (object)4d),
@@ -1602,7 +1602,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (1, 1, (object)"X"), (1, 2, "Y1"),
                     (2, 1, 1d), (2, 2, 2d),
                     (3, 1, 2d), (3, 2, 4d),
@@ -1642,7 +1642,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValues(new[] {
+                sheet.SetValues(new[] {
                     (1, 1, (object)"X"), (1, 2, "Y"), (1, 3, "Size"),
                     (2, 1, 1d), (2, 2, 2d), (2, 3, 4d),
                     (3, 1, 2d), (3, 2, 3d), (3, 3, 5d),
@@ -2312,17 +2312,17 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Summary");
-                sheet.CellValue(1, 2, "Q1");
-                sheet.CellValue(1, 3, "Q2");
-                sheet.CellValue(1, 4, "Q3");
-                sheet.CellValue(2, 1, "Wrong row");
-                sheet.CellValue(2, 2, 999);
-                sheet.CellValue(2, 3, 999);
-                sheet.CellValue(2, 4, 999);
-                sheet.CellValue(3, 1, "Actual");
-                sheet.CellValue(3, 2, 10);
-                sheet.CellValue(3, 3, 20);
-                sheet.CellValue(3, 4, 30);
+                sheet.Cell(1, 2).SetValue("Q1");
+                sheet.Cell(1, 3).SetValue("Q2");
+                sheet.Cell(1, 4).SetValue("Q3");
+                sheet.Cell(2, 1).SetValue("Wrong row");
+                sheet.Cell(2, 2).SetValue(999);
+                sheet.Cell(2, 3).SetValue(999);
+                sheet.Cell(2, 4).SetValue(999);
+                sheet.Cell(3, 1).SetValue("Actual");
+                sheet.Cell(3, 2).SetValue(10);
+                sheet.Cell(3, 3).SetValue(20);
+                sheet.Cell(3, 4).SetValue(30);
 
                 var range = new ExcelChartDataRange(
                     "Summary",

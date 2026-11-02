@@ -1,3 +1,4 @@
+using OfficeIMO.Spreadsheet;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -109,12 +110,43 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Returns the A1 range for a defined name. If <paramref name="scope"/> is supplied, searches a sheet‑local name first.
+        /// Returns the range a defined name refers to, on the worksheet the name points at. When
+        /// <paramref name="scope"/> is supplied, a name local to that sheet wins over a workbook name.
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
         /// <param name="scope">Optional sheet scope to resolve a local name.</param>
-        /// <returns>The stored range or formula expression, or null if not found.</returns>
-        public string? GetNamedRange(string name, ExcelSheet? scope = null) {
+        /// <returns>
+        /// The range, or null when the name does not exist or does not refer to one rectangular cell range on an
+        /// existing worksheet (for example a constant, a formula or a <c>#REF!</c> reference). Use
+        /// <see cref="ListNamedRanges"/> for the stored text of every name.
+        /// </returns>
+        public ExcelRange? GetNamedRange(string name, ExcelSheet? scope = null) {
+            string? text = GetNamedRangeText(name, scope);
+            return text == null ? null : ResolveNamedRangeTarget(text, scope);
+        }
+
+        private ExcelRange? ResolveNamedRangeTarget(string text, ExcelSheet? scope) {
+            if (!SpreadsheetRangeReference.TryParse(text, SpreadsheetAddressDialect.ExcelA1, out SpreadsheetRangeReference? syntax)
+                || syntax == null) return null;
+            SpreadsheetCellReference end = syntax.End ?? syntax.Start;
+            if (!syntax.Start.IsCell || !end.IsCell) return null;
+            string? sheetName = syntax.Start.SheetName ?? end.SheetName;
+            if (end.SheetName != null && !string.Equals(end.SheetName, sheetName, StringComparison.OrdinalIgnoreCase)) return null;
+
+            ExcelSheet? sheet = scope;
+            if (sheetName != null) {
+                if (!TryGetSheet(sheetName, out sheet)) return null;
+            }
+            if (sheet == null) return null;
+
+            int firstRow = checked((int)syntax.Start.Row!.Value), lastRow = checked((int)end.Row!.Value);
+            int firstColumn = syntax.Start.Column!.Value, lastColumn = end.Column!.Value;
+            return sheet.Range(Math.Min(firstRow, lastRow), Math.Min(firstColumn, lastColumn),
+                Math.Max(firstRow, lastRow), Math.Max(firstColumn, lastColumn));
+        }
+
+        /// <summary>Returns the stored reference text of a defined name, or null when it is not defined.</summary>
+        internal string? GetNamedRangeText(string name, ExcelSheet? scope = null) {
 #if NET8_0_OR_GREATER
             ArgumentNullException.ThrowIfNullOrWhiteSpace(name);
 #else

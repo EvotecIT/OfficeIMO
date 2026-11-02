@@ -122,7 +122,7 @@ public sealed partial class IWorkBoundaryTests {
         using global::OfficeIMO.Excel.ExcelDocument reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal(result.WorksheetMappings.Select(mapping => mapping.DestinationName), reopened.Sheets.Select(sheet => sheet.Name));
         Assert.Equal(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.Formula!.TrimStart('='), reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(84d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(84d, reopened.Sheets[1].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -219,8 +219,8 @@ public sealed partial class IWorkBoundaryTests {
             System.Xml.XmlConvert.VerifyXmlChars(sheet.Name);
             Assert.InRange(sheet.Name.Length, 1, 31);
         });
-        Assert.Equal(1d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(2d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(1d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(2d, reopened.Sheets[1].Cell(1, 1).GetValue<double>());
     }
 
     private static string CorpusFixture(string path) => Path.Combine(AppContext.BaseDirectory,

@@ -158,7 +158,7 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
 
     private static byte[] Workbook() {
         using ExcelDocument document = ExcelDocument.Create();
-        var sheet = document.AddSheet("Evidence"); sheet.CellValue(1, 1, "first"); sheet.CellValue(2, 1, "second"); document.AddSheet("Second");
+        var sheet = document.AddSheet("Evidence"); sheet.Cell(1, 1).SetValue("first"); sheet.Cell(2, 1).SetValue("second"); document.AddSheet("Second");
         WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
         SharedStringTablePart strings = workbook.SharedStringTablePart ?? workbook.AddNewPart<SharedStringTablePart>();
         strings.SharedStringTable = new SharedStringTable(new SharedStringItem(new Text("first")), new SharedStringItem(new Text("second"))) { Count = 2, UniqueCount = 2 };

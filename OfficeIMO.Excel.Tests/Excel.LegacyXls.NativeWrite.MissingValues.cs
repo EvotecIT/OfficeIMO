@@ -23,10 +23,10 @@ namespace OfficeIMO.Tests {
         public void NativeBinarySave_ClearedTrailingCellsRetainOnlyIntentionalBlanks(ExcelFileFormat format, bool styled, bool clearAll) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Keep");
-            sheet.CellValue(5, 4, 42);
-            if (styled) sheet.FormatRange("D5:D5", "0.0000");
-            sheet.ClearRange("D5:D5", clearAll ? ExcelClearOptions.All : ExcelClearOptions.Values);
+            sheet.Cell(1, 1).SetValue("Keep");
+            sheet.Cell(5, 4).SetValue(42);
+            if (styled) sheet.Range("D5:D5").SetNumberFormat("0.0000");
+            sheet.Range("D5:D5").Clear(clearAll ? ExcelClearOptions.All : ExcelClearOptions.Values);
 
             Cell cleared = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "D5");
             Assert.Null(cleared.CellValue);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
                     Cell blank = cells.Single(cell => cell.CellReference?.Value == "D5");
                     Assert.Null(blank.CellValue);
                     Assert.Null(blank.DataType);
-                    Assert.Equal("0.0000", result.GetCellStyle(5, 4).NumberFormatCode);
+                    Assert.Equal("0.0000", result.Cell(5, 4).GetStyle().NumberFormatCode);
                 }
                 // XLSB retains authored worksheet geometry independently of cells.
                 Assert.Equal("A1:D5", result.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()!.Reference!.Value);
@@ -82,8 +82,8 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_PresentEmptyTextExtendsUsedRangeWithoutStyle(string storage) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Keep");
-            sheet.CellValue(5, 4, string.Empty);
+            sheet.Cell(1, 1).SetValue("Keep");
+            sheet.Cell(5, 4).SetValue(string.Empty);
             Cell source = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "D5");
             source.RemoveAllChildren();
             source.DataType = storage == "InlineString" ? CellValues.InlineString
@@ -140,8 +140,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Next", reader.GetString(2));
             Assert.False(reader.Read());
             using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(bytes, writable: false));
-            Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(2, 2).NumberFormatCode);
-            Assert.Equal("0.0000", loaded.Sheets[0].GetCellStyle(3, 2).NumberFormatCode);
+            Assert.Equal("0.0000", loaded.Sheets[0].Cell(2, 2).GetStyle().NumberFormatCode);
+            Assert.Equal("0.0000", loaded.Sheets[0].Cell(3, 2).GetStyle().NumberFormatCode);
         }
 
         [Theory]
@@ -181,14 +181,14 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_MissingReplacementKeepsDefaultPresenceUntilStylesAreCleared() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Replace");
+            sheet.Cell(1, 1).SetValue("Replace");
             DataTable table = new DataTable();
             table.Columns.Add("A", typeof(string));
             table.Columns.Add("B", typeof(string));
             table.Columns.Add("C", typeof(string));
             table.Rows.Add(DBNull.Value, DBNull.Value, DBNull.Value);
             sheet.WriteData(table, includeHeaders: false, mode: ExcelExecutionMode.Parallel);
-            sheet.ClearRange("A1:C1", ExcelClearOptions.Values);
+            sheet.Range("A1:C1").Clear(ExcelClearOptions.Values);
             byte[] missing = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
             using (ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(missing, new ExcelReaderOptions { HasHeaderRow = false })) {
                 Assert.Equal(3, reader.FieldCount);
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                 Assert.All(Enumerable.Range(0, 3), ordinal => Assert.True(reader.IsDBNull(ordinal)));
                 Assert.False(reader.Read());
             }
-            sheet.ClearRange("A1:C1", ExcelClearOptions.All);
+            sheet.Range("A1:C1").Clear(ExcelClearOptions.All);
             byte[] cleared = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
             using ExcelWorkbookDataReader empty = ExcelDocument.OpenReader(cleared, new ExcelReaderOptions { HasHeaderRow = false });
             Assert.Equal(0, empty.FieldCount);

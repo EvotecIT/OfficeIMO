@@ -33,11 +33,11 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(saved);
         string alternate = fallback switch { "text" => "\"Recovered\"", "boolean" => "TRUE", "number" => "99", _ => "1/0" };
         Assert.Equal("IFERROR(" + (primaryError ? "6/0" : "6") + "," + alternate + ")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal(1, reopened.Calculate());
-        if (fallback == "text") Assert.Equal("Recovered", reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-        else if (fallback == "boolean") Assert.True(reopened.Sheets[0].CellAt(1, 1).GetValue<bool>());
-        else Assert.Equal(primaryError ? 99d : 6d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        if (fallback == "text") Assert.Equal("Recovered", reopened.Sheets[0].Cell(1, 1).GetValue<string>());
+        else if (fallback == "boolean") Assert.True(reopened.Sheets[0].Cell(1, 1).GetValue<bool>());
+        else Assert.Equal(primaryError ? 99d : 6d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         IWorkFormulaCacheAssertions.HasType(reopened, 0, "A1", fallback == "text" ? "str" : fallback == "boolean" ? "b" : "n");
         Assert.Empty(reopened.ValidateOpenXml());
     }

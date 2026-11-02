@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Protected");
-                    sheet.CellValue(1, 1, "Protected range");
-                    sheet.CellValue(2, 3, "Second range");
+                    sheet.Cell(1, 1).SetValue("Protected range");
+                    sheet.Cell(2, 3).SetValue("Second range");
                     sheet.Protect();
 
                     sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("SingleProtected");
-                    sheet.CellValue(1, 1, "Editable");
+                    sheet.Cell(1, 1).SetValue("Editable");
                     sheet.Protect();
                     sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(
                         new ProtectedRange {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedProtectedRangePayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("protected range payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Protected range");
+                sheet.Cell(1, 1).SetValue("Protected range");
                 sheet.Protect();
                 sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(
                     new ProtectedRange {
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksProtectedRangeUnsupportedAttributesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("protected ranges with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Protected range metadata");
+                sheet.Cell(1, 1).SetValue("Protected range metadata");
                 sheet.Protect();
                 var protectedRange = new ProtectedRange {
                     Name = "UnlockedBlock",
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksProtectedRangeUnsupportedCollectionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("protected ranges with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Protected range collection metadata");
+                sheet.Cell(1, 1).SetValue("Protected range collection metadata");
                 sheet.Protect();
                 var protectedRanges = new ProtectedRanges(
                     new ProtectedRange {
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksModernWorkbookProtectionHashesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("modern workbook protection hashes", (document, sheet) => {
-                sheet.CellValue(1, 1, "Modern workbook hash");
+                sheet.Cell(1, 1).SetValue("Modern workbook hash");
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                     ProtectStructure = true,
                     LegacyPasswordHash = "CAFE"
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksModernWorkbookRevisionProtectionHashesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("workbook revision protection", (document, sheet) => {
-                sheet.CellValue(1, 1, "Revision protection");
+                sheet.Cell(1, 1).SetValue("Revision protection");
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                     ProtectStructure = true,
                     LegacyPasswordHash = "CAFE"
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksModernWorksheetProtectionHashesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("modern worksheet protection hashes", (document, sheet) => {
-                sheet.CellValue(1, 1, "Modern worksheet hash");
+                sheet.Cell(1, 1).SetValue("Modern worksheet hash");
                 sheet.Protect(new ExcelSheetProtectionOptions {
                     LegacyPasswordHash = "BEEF"
                 });
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInvalidWorkbookProtectionHashesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("invalid workbook protection password hashes", (document, sheet) => {
-                sheet.CellValue(1, 1, "Invalid workbook hash");
+                sheet.Cell(1, 1).SetValue("Invalid workbook hash");
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                     ProtectStructure = true,
                     LegacyPasswordHash = "CAFE"
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInvalidWorksheetProtectionHashesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("invalid worksheet protection password hashes", (document, sheet) => {
-                sheet.CellValue(1, 1, "Invalid worksheet hash");
+                sheet.Cell(1, 1).SetValue("Invalid worksheet hash");
                 sheet.Protect(new ExcelSheetProtectionOptions {
                     LegacyPasswordHash = "BEEF"
                 });
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInvalidWriteReservationHashesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("invalid write-reservation password hashes", (document, sheet) => {
-                sheet.CellValue(1, 1, "Invalid write reservation hash");
+                sheet.Cell(1, 1).SetValue("Invalid write reservation hash");
                 document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                     ReadOnlyRecommended = true,
                     UserName = "Reviewer"
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorkbookExtensionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("workbook extension metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Workbook extension metadata");
+                sheet.Cell(1, 1).SetValue("Workbook extension metadata");
                 document.WorkbookRoot.Append(new WorkbookExtensionList(
                     new WorkbookExtension { Uri = "{4F3E2D1C-0000-4000-8000-000000000001}" }));
                 document.WorkbookRoot.Save();
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetExtensionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet extension metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Worksheet extension metadata");
+                sheet.Cell(1, 1).SetValue("Worksheet extension metadata");
                 sheet.WorksheetPart.Worksheet.Append(new WorksheetExtensionList(
                     new WorksheetExtension { Uri = "{4F3E2D1C-0000-4000-8000-000000000002}" }));
                 sheet.WorksheetPart.Worksheet.Save();
@@ -255,10 +255,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSparklinesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("sparklines", (document, sheet) => {
-                sheet.CellValue(1, 1, "Jan");
-                sheet.CellValue(1, 2, "Feb");
-                sheet.CellValue(2, 1, 10d);
-                sheet.CellValue(2, 2, 12d);
+                sheet.Cell(1, 1).SetValue("Jan");
+                sheet.Cell(1, 2).SetValue("Feb");
+                sheet.Cell(2, 1).SetValue(10d);
+                sheet.Cell(2, 2).SetValue(12d);
                 sheet.AddSparklines("A2:B2", "C2");
             });
         }
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksIgnoredCalculatedColumnErrorsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("ignored calculated-column errors", (document, sheet) => {
-                sheet.CellValue(1, 1, "Text number");
+                sheet.Cell(1, 1).SetValue("Text number");
                 sheet.WorksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors(
                     new IgnoredError {
                         SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" },
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksIgnoredErrorsUnsupportedCollectionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("ignored errors with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Text number");
+                sheet.Cell(1, 1).SetValue("Text number");
                 var ignoredErrors = new DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors(
                     new IgnoredError {
                         SequenceOfReferences = new ListValue<StringValue> { InnerText = "A1" },
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedCellWatchReferencesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell watch references outside BIFF8 worksheet limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Watched");
+                sheet.Cell(1, 1).SetValue("Watched");
                 sheet.WorksheetPart.Worksheet.Append(new CellWatches(
                     new CellWatch { CellReference = "XFD1048576" }));
                 sheet.WorksheetPart.Worksheet.Save();
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCellWatchesUnsupportedCollectionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell watches with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Watched");
+                sheet.Cell(1, 1).SetValue("Watched");
                 var cellWatches = new CellWatches(
                     new CellWatch { CellReference = "A1" });
                 cellWatches.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));
@@ -316,8 +316,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAutoFilterDropdownControlMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter dropdown control metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -333,8 +333,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAutoFilterExtensionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter extension metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -347,8 +347,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAutoFilterSortMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter sort metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -360,8 +360,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAutoFilterUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -373,8 +373,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAutoFilterColumnUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter column metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -391,8 +391,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAutoFilterCriteriaUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter criteria metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -408,8 +408,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateAutoFilterCriteriaContainersBeforeWriting() {
             AssertNativeXlsSaveNotSupported("AutoFilter columns with multiple filter types", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -493,8 +493,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateWorksheetSingletonElementsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("multiple worksheet AutoFilter", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AutoFilterAdd("A1:A2");
 
                 sheet.WorksheetPart.Worksheet.Append(new AutoFilter { Reference = "B1:B2" });
@@ -505,7 +505,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCustomSheetViewsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("custom sheet views", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom sheet view");
+                sheet.Cell(1, 1).SetValue("Custom sheet view");
                 sheet.WorksheetPart.Worksheet.Append(new CustomSheetViews(
                     new CustomSheetView { Guid = "{4F3E2D1C-0000-4000-8000-000000000003}" }));
                 sheet.WorksheetPart.Worksheet.Save();
@@ -515,7 +515,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetScenariosWithoutChangedCellsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet scenario cell counts outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Scenario value");
+                sheet.Cell(1, 1).SetValue("Scenario value");
                 sheet.WorksheetPart.Worksheet.Append(new Scenarios(
                     new Scenario { Name = "Best case" }));
                 sheet.WorksheetPart.Worksheet.Save();
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataConsolidationSourceReferencesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("external data consolidation source relationships", (document, sheet) => {
-                sheet.CellValue(1, 1, "Consolidated");
+                sheet.Cell(1, 1).SetValue("Consolidated");
                 sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                     new DataReferences(
                         new DataReference {
@@ -538,7 +538,7 @@ namespace OfficeIMO.Tests {
             });
 
             AssertNativeXlsSaveNotSupported("external data consolidation sheet-qualified source references", (document, sheet) => {
-                sheet.CellValue(1, 1, "Consolidated");
+                sheet.Cell(1, 1).SetValue("Consolidated");
                 sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                     new DataReferences(
                         new DataReference {
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
             });
 
             AssertNativeXlsSaveNotSupported("named data consolidation source references with explicit cell ranges", (document, sheet) => {
-                sheet.CellValue(1, 1, "Consolidated");
+                sheet.Cell(1, 1).SetValue("Consolidated");
                 sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                     new DataReferences(
                         new DataReference {
@@ -569,7 +569,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataConsolidationSourceReferenceCollectionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data consolidation source references", (document, sheet) => {
-                sheet.CellValue(1, 1, "Consolidated");
+                sheet.Cell(1, 1).SetValue("Consolidated");
                 var dataReferences = new DataReferences(
                     new DataReference {
                         Reference = "A1:A2",
@@ -586,8 +586,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataValidationCollectionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation collection metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
 
                 var validations = new DataValidations {
                     Count = 1U
@@ -608,9 +608,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateDataValidationCollectionsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("multiple worksheet data-validation collections", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
-                sheet.CellValue(3, 1, 7d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
+                sheet.Cell(3, 1).SetValue(7d);
 
                 sheet.WorksheetPart.Worksheet.Append(new DataValidations(
                     new DataValidation(
@@ -639,8 +639,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateDataValidationFormula1ElementsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation formulas with duplicate Formula1 elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
 
                 var validation = new DataValidation(
                     new Formula1("1"),
@@ -658,8 +658,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateDataValidationFormula2ElementsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation formulas with duplicate Formula2 elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
 
                 var validation = new DataValidation(
                     new Formula1("1"),
@@ -677,8 +677,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataValidationFormula1UnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation formula metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
 
                 var formula = new Formula1("1");
                 formula.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));
@@ -697,8 +697,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataValidationFormula2UnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation formula metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
 
                 var formula = new Formula2("10");
                 formula.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));
@@ -717,8 +717,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataValidationExtensionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation extension metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(2, 1, 5d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue(5d);
 
                 var validation = new DataValidation(
                     new Formula1("1"),
@@ -737,8 +737,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDataValidationImeModeMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data validation IME mode metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Input");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Input");
+                sheet.Cell(2, 1).SetValue("Alpha");
 
                 var validation = new DataValidation(
                     new Formula1("1"),
@@ -818,7 +818,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingPivotMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting pivot metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -836,7 +836,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingExtensionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting extension metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 var conditionalFormatting = new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -856,7 +856,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 var conditionalFormatting = new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -875,7 +875,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingRuleUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting rule metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 var rule = new ConditionalFormattingRule(
                     new Formula("A1>0")) {
@@ -894,7 +894,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingFormulaUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting formula metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 var formula = new Formula("A1>0");
                 formula.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));
@@ -913,7 +913,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingDifferentialFormatsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting differential formats", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -931,12 +931,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingVisualPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
                 sheet.AddConditionalColorScale("A1:A1", "FFFF0000", "FF00FF00");
             });
 
             AssertNativeXlsSaveNotSupported("conditional formatting visual or extension payloads", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
                 sheet.AddConditionalIconSet("A1:A1");
             });
         }
@@ -944,7 +944,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedConditionalFormattingRuleTypesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting rule types outside the BIFF8 classic rule subset", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule {
@@ -960,7 +960,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedConditionalFormattingOperatorsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting operators outside the BIFF8 classic rule subset", (document, sheet) => {
-                sheet.CellValue(1, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Ready");
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -978,7 +978,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingFormulasOutsideNativeSubsetBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting formulas outside the native XLS formula subset", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -995,8 +995,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingFormulaBackedMultiRangesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting formula-backed rule ranges outside the native XLS subset", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
-                sheet.CellValue(1, 3, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
+                sheet.Cell(1, 3).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule {
@@ -1012,7 +1012,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInvalidConditionalFormattingRangesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting ranges", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -1029,7 +1029,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksTooManyConditionalFormattingRangesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting range counts outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
                 string ranges = string.Join(" ", Enumerable.Range(1, 8193).Select(row => "A" + row.ToString(CultureInfo.InvariantCulture)));
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
@@ -1047,7 +1047,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConditionalFormattingRangesOutsideBiffLimitsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("conditional formatting ranges outside BIFF8 worksheet limits", (document, sheet) => {
-                sheet.CellValue(1, 1, 5d);
+                sheet.Cell(1, 1).SetValue(5d);
 
                 sheet.WorksheetPart.Worksheet.Append(new ConditionalFormatting(
                     new ConditionalFormattingRule(
@@ -1064,7 +1064,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedWorksheetCalculationPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet calculation properties", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sheet calculation");
+                sheet.Cell(1, 1).SetValue("Sheet calculation");
                 var properties = new SheetCalculationProperties {
                     FullCalculationOnLoad = true
                 };
@@ -1077,7 +1077,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedWorkbookCalculationPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("workbook calculation properties", (document, sheet) => {
-                sheet.CellValue(1, 1, "Workbook calculation");
+                sheet.Cell(1, 1).SetValue("Workbook calculation");
                 var properties = new CalculationProperties { FullCalculationOnLoad = true };
                 properties.SetAttribute(new OpenXmlAttribute("unsupported", string.Empty, "1"));
                 document.WorkbookRoot.Append(properties);
@@ -1088,7 +1088,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateWorkbookSingletonElementsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("multiple workbook calculation property elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Duplicate workbook calculation");
+                sheet.Cell(1, 1).SetValue("Duplicate workbook calculation");
                 document.WorkbookRoot.RemoveAllChildren<CalculationProperties>();
                 document.WorkbookRoot.Append(new CalculationProperties {
                     CalculationMode = CalculateModeValues.Manual
@@ -1103,7 +1103,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedWorksheetPhoneticSettingsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet phonetic settings", (document, sheet) => {
-                sheet.CellValue(1, 1, "Phonetic settings");
+                sheet.Cell(1, 1).SetValue("Phonetic settings");
                 var properties = new PhoneticProperties {
                     FontId = 0U
                 };
@@ -1116,12 +1116,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksHeaderFooterImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
-                sheet.CellValue(1, 1, "Header image");
+                sheet.Cell(1, 1).SetValue("Header image");
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
             });
 
             AssertNativeXlsSaveNotSupported("header or footer images", (document, sheet) => {
-                sheet.CellValue(1, 1, "Footer image");
+                sheet.Cell(1, 1).SetValue("Footer image");
                 sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 }, "image/jpeg", width: OfficeLength.Points(24D), height: OfficeLength.Points(16D));
             });
         }
@@ -1129,7 +1129,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedHeaderFooterTextBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer text lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized header");
+                sheet.Cell(1, 1).SetValue("Oversized header");
                 sheet.SetHeaderFooter(headerCenter: new string('H', 70000));
             });
         }
@@ -1137,7 +1137,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedHeaderFooterExtensionTextBeforeWriting() {
             AssertNativeXlsSaveNotSupported("header or footer text lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized first-page header");
+                sheet.Cell(1, 1).SetValue("Oversized first-page header");
                 sheet.SetFirstPageHeaderFooter(headerCenter: new string('F', 70000));
             });
         }
@@ -1145,7 +1145,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCustomWorkbookViewsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("custom workbook views", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom workbook view");
+                sheet.Cell(1, 1).SetValue("Custom workbook view");
                 Workbook workbook = document.WorkbookRoot;
                 workbook.RemoveAllChildren<CustomWorkbookViews>();
                 var customWorkbookViews = new CustomWorkbookViews(new CustomWorkbookView());
@@ -1163,7 +1163,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksVbaProjectsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("VBA projects or macros", (document, sheet) => {
-                sheet.CellValue(1, 1, "Macro workbook");
+                sheet.Cell(1, 1).SetValue("Macro workbook");
                 VbaProjectPart vbaProjectPart = document.WorkbookPartRoot.AddNewPart<VbaProjectPart>();
                 using var stream = new MemoryStream(new byte[] { 1, 2, 3, 4 });
                 vbaProjectPart.FeedData(stream);
@@ -1173,7 +1173,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCustomXmlPartsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("custom XML parts", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom XML");
+                sheet.Cell(1, 1).SetValue("Custom XML");
                 CustomXmlPart customXmlPart = document.WorkbookPartRoot.AddCustomXmlPart(CustomXmlPartType.CustomXml);
                 using var stream = new MemoryStream(Encoding.UTF8.GetBytes("<metadata><owner>OfficeIMO</owner></metadata>"));
                 customXmlPart.FeedData(stream);
@@ -1183,7 +1183,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorkbookDataPartRelationshipsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data part relationships", (document, sheet) => {
-                sheet.CellValue(1, 1, "Workbook data relationship");
+                sheet.Cell(1, 1).SetValue("Workbook data relationship");
                 AddMediaDataReference(document, document.WorkbookPartRoot);
             });
         }
@@ -1191,7 +1191,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetDataPartRelationshipsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("data part relationships", (document, sheet) => {
-                sheet.CellValue(1, 1, "Worksheet data relationship");
+                sheet.Cell(1, 1).SetValue("Worksheet data relationship");
                 AddMediaDataReference(document, sheet.WorksheetPart);
             });
         }
@@ -1199,7 +1199,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksThreadedCommentsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("threaded comments", (document, sheet) => {
-                sheet.CellValue(1, 1, "Threaded");
+                sheet.Cell(1, 1).SetValue("Threaded");
                 sheet.AddThreadedComment("A1", "Review this before release", "Modern Reviewer");
             });
         }
@@ -1207,7 +1207,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectFillMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object fill metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment fill");
+                sheet.Cell(1, 1).SetValue("Custom comment fill");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported fill", "Reviewer", visible: false, anchor: null);
                 SetCommentVmlFillColor(sheet, "#ffcccc");
             });
@@ -1216,7 +1216,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectLineMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object line metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment outline");
+                sheet.Cell(1, 1).SetValue("Custom comment outline");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported outline", "Reviewer", visible: false, anchor: null);
                 SetCommentVmlLineColor(sheet, "#cc0000");
             });
@@ -1225,7 +1225,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectShadowMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object shadow metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment shadow");
+                sheet.Cell(1, 1).SetValue("Custom comment shadow");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported shadow", "Reviewer", visible: false, anchor: null);
                 SetCommentVmlShadowColor(sheet, "#666666");
             });
@@ -1234,7 +1234,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectTextboxMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object textbox metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment textbox");
+                sheet.Cell(1, 1).SetValue("Custom comment textbox");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported textbox", "Reviewer", visible: false, anchor: null);
                 SetCommentVmlTextboxStyle(sheet, "mso-direction-alt:auto;mso-fit-shape-to-text:t");
             });
@@ -1243,7 +1243,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectClientMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object client metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment client data");
+                sheet.Cell(1, 1).SetValue("Custom comment client data");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported client data", "Reviewer", visible: false, anchor: null);
                 AddCommentVmlClientDataElement(sheet, "TextHAlign", "Center");
             });
@@ -1252,7 +1252,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectShapeMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object shape metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment shape");
+                sheet.Cell(1, 1).SetValue("Custom comment shape");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported shape style", "Reviewer", visible: false, anchor: null);
                 SetCommentVmlShapeStyle(sheet, "position:absolute;margin-left:4pt;margin-top:0pt;width:108pt;height:59pt;z-index:1;visibility:hidden");
             });
@@ -1261,7 +1261,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksCommentObjectPathMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("comment object shape metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Custom comment path");
+                sheet.Cell(1, 1).SetValue("Custom comment path");
                 sheet.SetLegacyComment(1, 1, "Supported text with unsupported path", "Reviewer", visible: false, anchor: null);
                 SetCommentVmlPathConnectType(sheet, "rect");
             });
@@ -1270,7 +1270,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksChartSheetsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("unsupported sheet types", (document, sheet) => {
-                sheet.CellValue(1, 1, "Chart sheet marker");
+                sheet.Cell(1, 1).SetValue("Chart sheet marker");
                 document.WorkbookPartRoot.AddNewPart<ChartsheetPart>();
             });
         }
@@ -1278,7 +1278,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDialogSheetsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("unsupported sheet types", (document, sheet) => {
-                sheet.CellValue(1, 1, "Dialog sheet marker");
+                sheet.Cell(1, 1).SetValue("Dialog sheet marker");
                 document.WorkbookPartRoot.AddNewPart<DialogsheetPart>();
             });
         }
@@ -1286,7 +1286,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksMacroSheetsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("unsupported sheet types", (document, sheet) => {
-                sheet.CellValue(1, 1, "Macro sheet marker");
+                sheet.Cell(1, 1).SetValue("Macro sheet marker");
                 document.WorkbookPartRoot.AddNewPart<MacroSheetPart>();
             });
         }
@@ -1294,7 +1294,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInternationalMacroSheetsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("unsupported sheet types", (document, sheet) => {
-                sheet.CellValue(1, 1, "International macro sheet marker");
+                sheet.Cell(1, 1).SetValue("International macro sheet marker");
                 document.WorkbookPartRoot.AddNewPart<InternationalMacroSheetPart>();
             });
         }
@@ -1302,7 +1302,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksPivotTableMarkersBeforeWriting() {
             AssertNativeXlsSaveNotSupported("PivotTables", (document, sheet) => {
-                sheet.CellValue(1, 1, "Pivot marker");
+                sheet.Cell(1, 1).SetValue("Pivot marker");
                 document.WorkbookRoot.Append(new PivotCaches(
                     new PivotCache {
                         CacheId = 1U,
@@ -1315,7 +1315,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksExternalWorkbookLinksBeforeWriting() {
             AssertNativeXlsSaveNotSupported("external workbook links", (document, sheet) => {
-                sheet.CellValue(1, 1, "External link");
+                sheet.Cell(1, 1).SetValue("External link");
                 document.WorkbookRoot.Append(new ExternalReferences(
                     new ExternalReference {
                         Id = "rIdExternalWorkbook"
@@ -1327,7 +1327,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksConnectionsAndQueryTablesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("connections or query tables", (document, sheet) => {
-                sheet.CellValue(1, 1, "Connection");
+                sheet.Cell(1, 1).SetValue("Connection");
                 ExtendedPart connectionPart = document.WorkbookPartRoot.AddExtendedPart(
                     "http://schemas.openxmlformats.org/officeDocument/2006/relationships/connections",
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml",
@@ -1348,7 +1348,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksEmbeddedOlePackagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("embedded OLE objects or packages", (document, sheet) => {
-                sheet.CellValue(1, 1, "Embedded package");
+                sheet.Cell(1, 1).SetValue("Embedded package");
                 EmbeddedPackagePart embeddedPackagePart = sheet.WorksheetPart.AddEmbeddedPackagePart(EmbeddedPackagePartType.Xlsx);
                 using var stream = new MemoryStream(new byte[] { 5, 6, 7, 8 });
                 embeddedPackagePart.FeedData(stream);
@@ -1358,7 +1358,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksEmbeddedOleObjectsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("embedded OLE objects or packages", (document, sheet) => {
-                sheet.CellValue(1, 1, "Embedded object");
+                sheet.Cell(1, 1).SetValue("Embedded object");
                 EmbeddedObjectPart embeddedObjectPart = sheet.WorksheetPart.AddEmbeddedObjectPart("application/vnd.openxmlformats-officedocument.oleObject");
                 using var stream = new MemoryStream(new byte[] { 9, 10, 11, 12 });
                 embeddedObjectPart.FeedData(stream);
@@ -1368,7 +1368,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksFormControlsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("form controls", (document, sheet) => {
-                sheet.CellValue(1, 1, "Form control");
+                sheet.Cell(1, 1).SetValue("Form control");
                 const string controlsXml = "<x:controls xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><x:control shapeId=\"1026\" name=\"ApproveButton\" r:id=\"rIdControl1\" /></x:controls>";
                 sheet.WorksheetPart.Worksheet.Append(new Controls(controlsXml));
                 sheet.WorksheetPart.Worksheet.Save();
@@ -1378,7 +1378,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetSlicersBeforeWriting() {
             AssertNativeXlsSaveNotSupported("slicers or timelines", (document, sheet) => {
-                sheet.CellValue(1, 1, "Worksheet slicer");
+                sheet.Cell(1, 1).SetValue("Worksheet slicer");
                 sheet.WorksheetPart.AddNewPart<SlicersPart>();
             });
         }
@@ -1386,7 +1386,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetTimelinesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("slicers or timelines", (document, sheet) => {
-                sheet.CellValue(1, 1, "Worksheet timeline");
+                sheet.Cell(1, 1).SetValue("Worksheet timeline");
                 sheet.WorksheetPart.AddNewPart<TimeLinePart>();
             });
         }
@@ -1394,7 +1394,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorkbookMetadataExtensionsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("workbook metadata extensions", (document, sheet) => {
-                sheet.CellValue(1, 1, "Metadata extension");
+                sheet.Cell(1, 1).SetValue("Metadata extension");
                 document.WorkbookPartRoot.AddNewPart<CellMetadataPart>();
             });
         }
@@ -1402,7 +1402,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksRichDataFeaturesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich data features", (document, sheet) => {
-                sheet.CellValue(1, 1, "Rich data");
+                sheet.Cell(1, 1).SetValue("Rich data");
                 document.WorkbookPartRoot.AddNewPart<RdRichValuePart>();
             });
         }
@@ -1410,7 +1410,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksRichStylesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich styles", (document, sheet) => {
-                sheet.CellValue(1, 1, "Rich styles");
+                sheet.Cell(1, 1).SetValue("Rich styles");
                 document.WorkbookPartRoot.AddNewPart<RichStylesPart>();
             });
         }
@@ -1418,8 +1418,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateCellFontPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell font properties with duplicate font name elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Duplicate font");
-                sheet.CellAt(1, 1).SetFontName("Arial");
+                sheet.Cell(1, 1).SetValue("Duplicate font");
+                sheet.Cell(1, 1).SetFontName("Arial");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1444,8 +1444,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedCellFontMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell font properties with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Font metadata");
-                sheet.CellAt(1, 1).SetFontName("Arial");
+                sheet.Cell(1, 1).SetValue("Font metadata");
+                sheet.Cell(1, 1).SetFontName("Arial");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1471,8 +1471,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateFillStyleChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("fill style with duplicate foreground color elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Duplicate fill");
-                sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetValue("Duplicate fill");
+                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1500,8 +1500,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateBorderStyleChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("border style with duplicate left border elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Duplicate border");
-                sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetValue("Duplicate border");
+                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1526,8 +1526,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateCellFormatAlignmentChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell-format style with duplicate alignment elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Duplicate alignment");
-                sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetValue("Duplicate alignment");
+                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1548,8 +1548,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDuplicateCellFormatProtectionChildrenBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell-format style with duplicate protection elements", (document, sheet) => {
-                sheet.CellValue(1, 1, "Duplicate protection");
-                sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
+                sheet.Cell(1, 1).SetValue("Duplicate protection");
+                sheet.Cell(1, 1).SetFillColor("#ABCDEF");
 
                 Stylesheet stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
                 Cell cell = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single();
@@ -1570,7 +1570,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksVolatileDependencyMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("volatile dependency metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Volatile dependencies");
+                sheet.Cell(1, 1).SetValue("Volatile dependencies");
                 document.WorkbookPartRoot.AddNewPart<VolatileDependenciesPart>();
             });
         }
@@ -1578,7 +1578,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksRevisionOrUserDataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("revision or user data", (document, sheet) => {
-                sheet.CellValue(1, 1, "Revision tracking");
+                sheet.Cell(1, 1).SetValue("Revision tracking");
                 document.WorkbookPartRoot.AddNewPart<WorkbookRevisionHeaderPart>();
             });
         }
@@ -1586,7 +1586,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksAttachedToolbarsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("attached toolbars", (document, sheet) => {
-                sheet.CellValue(1, 1, "Attached toolbar");
+                sheet.Cell(1, 1).SetValue("Attached toolbar");
                 document.WorkbookPartRoot.AddNewPart<ExcelAttachedToolbarsPart>();
             });
         }
@@ -1594,7 +1594,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDigitalSignatureOriginPartsBeforeWriting() {
             AssertNativeXlsSignedSaveBlocked((document, sheet) => {
-                sheet.CellValue(1, 1, "Signed workbook");
+                sheet.Cell(1, 1).SetValue("Signed workbook");
                 document._spreadSheetDocument.AddDigitalSignatureOriginPart();
                 DigitalSignatureOriginPart originPart = document._spreadSheetDocument.DigitalSignatureOriginPart!;
                 XmlSignaturePart signaturePart = originPart.AddNewPart<XmlSignaturePart>();
@@ -1607,7 +1607,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDigitalSignatureApplicationPropertiesBeforeWriting() {
             AssertNativeXlsSignedSaveBlocked((document, sheet) => {
-                sheet.CellValue(1, 1, "Signed workbook metadata");
+                sheet.Cell(1, 1).SetValue("Signed workbook metadata");
                 ExtendedFilePropertiesPart appPart = document._spreadSheetDocument.ExtendedFilePropertiesPart
                     ?? document._spreadSheetDocument.AddExtendedFilePropertiesPart();
                 appPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
@@ -1619,7 +1619,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksDirectWorksheetImagePartsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("drawings, images, or charts", (document, sheet) => {
-                sheet.CellValue(1, 1, "Direct image relationship");
+                sheet.Cell(1, 1).SetValue("Direct image relationship");
                 ImagePart imagePart = sheet.WorksheetPart.AddImagePart(ImagePartType.Png);
                 using var stream = new MemoryStream(new byte[] { 0x89, 0x50, 0x4E, 0x47 });
                 imagePart.FeedData(stream);
@@ -1629,7 +1629,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksModel3DReferencesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("drawings, images, or charts", (document, sheet) => {
-                sheet.CellValue(1, 1, "3D model relationship");
+                sheet.Cell(1, 1).SetValue("3D model relationship");
                 sheet.WorksheetPart.AddNewPart<Model3DReferenceRelationshipPart>();
             });
         }
@@ -1637,7 +1637,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSingleCellTablesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("tables", (document, sheet) => {
-                sheet.CellValue(1, 1, "Single-cell table");
+                sheet.Cell(1, 1).SetValue("Single-cell table");
                 sheet.WorksheetPart.AddNewPart<SingleCellTablePart>();
             });
         }
@@ -1645,8 +1645,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetTablesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("tables", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 sheet.AddTable("A1:A2", hasHeader: true, name: "NativeTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             });
         }
@@ -1654,8 +1654,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksTableDefinitionPartsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("tables", (document, sheet) => {
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alpha");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alpha");
                 TableDefinitionPart tablePart = sheet.WorksheetPart.AddNewPart<TableDefinitionPart>("rIdTableDefinition");
                 tablePart.Table = new Table {
                     Id = 1U,
@@ -1670,7 +1670,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedCustomNumberFormatsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("custom number format lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, 123.45d);
+                sheet.Cell(1, 1).SetValue(123.45d);
                 WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
                     ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
                 Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
@@ -1704,7 +1704,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksNamedSheetViewsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("named sheet views", (document, sheet) => {
-                sheet.CellValue(1, 1, "Named sheet view");
+                sheet.Cell(1, 1).SetValue("Named sheet view");
                 sheet.WorksheetPart.AddNewPart<NamedSheetViewsPart>();
             });
         }
@@ -1712,7 +1712,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetSortMapsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet sort maps", (document, sheet) => {
-                sheet.CellValue(1, 1, "Sort map");
+                sheet.Cell(1, 1).SetValue("Sort map");
                 sheet.WorksheetPart.AddNewPart<WorksheetSortMapPart>();
             });
         }
@@ -1720,7 +1720,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetCustomPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet custom properties", (document, sheet) => {
-                sheet.CellValue(1, 1, "Worksheet custom property");
+                sheet.Cell(1, 1).SetValue("Worksheet custom property");
                 sheet.WorksheetPart.AddNewPart<CustomPropertyPart>("application/vnd.openxmlformats-officedocument.spreadsheetml.customProperty+xml");
             });
         }
@@ -1728,7 +1728,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksInlinePhoneticTextCellsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("phonetic cell text", (document, sheet) => {
-                sheet.CellValue(1, 1, "Inline phonetic text");
+                sheet.Cell(1, 1).SetValue("Inline phonetic text");
                 Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                     .Single(item => string.Equals(item.CellReference?.Value, "A1", StringComparison.OrdinalIgnoreCase));
                 cell.DataType = CellValues.InlineString;
@@ -1744,7 +1744,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksSharedStringPhoneticTextCellsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("phonetic cell text", (document, sheet) => {
-                sheet.CellValue(1, 1, "Shared phonetic text");
+                sheet.Cell(1, 1).SetValue("Shared phonetic text");
                 SharedStringTablePart sharedStringPart = document.WorkbookPartRoot.SharedStringTablePart
                     ?? document.WorkbookPartRoot.AddNewPart<SharedStringTablePart>();
                 sharedStringPart.SharedStringTable = new SharedStringTable(
@@ -1766,7 +1766,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedCellTextBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cell text lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized text");
+                sheet.Cell(1, 1).SetValue("Oversized text");
                 Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                     .Single(item => string.Equals(item.CellReference?.Value, "A1", StringComparison.OrdinalIgnoreCase));
                 cell.DataType = CellValues.InlineString;
@@ -1780,7 +1780,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedCachedFormulaTextBeforeWriting() {
             AssertNativeXlsSaveNotSupported("cached formula text lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Formula text");
+                sheet.Cell(1, 1).SetValue("Formula text");
                 Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                     .Single(item => string.Equals(item.CellReference?.Value, "A1", StringComparison.OrdinalIgnoreCase));
                 cell.DataType = CellValues.String;
@@ -1795,7 +1795,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedHyperlinkPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("hyperlink payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized internal link");
+                sheet.Cell(1, 1).SetValue("Oversized internal link");
                 Hyperlinks hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault()
                     ?? sheet.WorksheetPart.Worksheet.AppendChild(new Hyperlinks());
                 hyperlinks.Append(new Hyperlink {
@@ -1810,7 +1810,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedHyperlinkTooltipsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("hyperlink tooltips outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Oversized tooltip");
+                sheet.Cell(1, 1).SetValue("Oversized tooltip");
                 AddExternalHyperlink(sheet, "A1", "https://officeimo.net/legacy-xls", UriKind.Absolute, tooltip: new string('T', 256));
             });
         }
@@ -1818,7 +1818,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksHyperlinkCollectionMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("hyperlink collection metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Hyperlink metadata");
+                sheet.Cell(1, 1).SetValue("Hyperlink metadata");
                 Hyperlinks hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault()
                     ?? sheet.WorksheetPart.Worksheet.AppendChild(new Hyperlinks());
                 hyperlinks.SetAttribute(new OpenXmlAttribute("customMetadata", string.Empty, "present"));
@@ -1833,7 +1833,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksHyperlinkUnsupportedMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("hyperlink metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Hyperlink metadata");
+                sheet.Cell(1, 1).SetValue("Hyperlink metadata");
                 Hyperlinks hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault()
                     ?? sheet.WorksheetPart.Worksheet.AppendChild(new Hyperlinks());
                 var hyperlink = new Hyperlink {
@@ -1849,7 +1849,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksWorksheetImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("drawings, images, or charts", (document, sheet) => {
-                sheet.CellValue(1, 1, "Worksheet image");
+                sheet.Cell(1, 1).SetValue("Worksheet image");
                 sheet.AddImage(2, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(24),
@@ -1861,12 +1861,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksChartsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("drawings, images, or charts", (document, sheet) => {
-                sheet.CellValue(1, 1, "Month");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "Jan");
-                sheet.CellValue(2, 2, 10d);
-                sheet.CellValue(3, 1, "Feb");
-                sheet.CellValue(3, 2, 15d);
+                sheet.Cell(1, 1).SetValue("Month");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Jan");
+                sheet.Cell(2, 2).SetValue(10d);
+                sheet.Cell(3, 1).SetValue("Feb");
+                sheet.Cell(3, 2).SetValue(15d);
                 sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, HasHeaders = true, Title = "Chart" });
             });
         }
@@ -1874,17 +1874,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksNonCommentVmlShapesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("legacy VML drawings or shapes", (document, sheet) => {
-                sheet.CellValue(1, 1, "Comment plus shape");
+                sheet.Cell(1, 1).SetValue("Comment plus shape");
                 sheet.SetLegacyComment(1, 1, "Supported comment", "Reviewer", visible: false, anchor: null);
                 AddVmlDrawing(sheet, "Button", row: 1, column: 0);
             });
         }
 
         private static void AppendAutoFilterColumn(ExcelSheet sheet, OpenXmlElement criteria) {
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 1, "Alpha");
-            sheet.CellValue(3, 1, "Beta");
-            sheet.CellValue(4, 1, "Gamma");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(3, 1).SetValue("Beta");
+            sheet.Cell(4, 1).SetValue("Gamma");
             sheet.AutoFilterAdd("A1:A4");
 
             AutoFilter autoFilter = Assert.Single(sheet.WorksheetPart.Worksheet.Elements<AutoFilter>());
@@ -1895,8 +1895,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AppendDataValidation(ExcelSheet sheet, DataValidation validation) {
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 5d);
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(5d);
             sheet.WorksheetPart.Worksheet.Append(new DataValidations(validation) { Count = 1U });
             sheet.WorksheetPart.Worksheet.Save();
         }

@@ -4,19 +4,25 @@ using System.Globalization;
 using OfficeIMO.Spreadsheet;
 using OfficeIMO.Drawing;
 
+// Cell and range setters mirror each other, so paired overloads with optional arguments are intended.
+#pragma warning disable RS0026, RS0027
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Lightweight object model wrapper for a single worksheet cell.
+    /// A worksheet cell handle: the sheet plus a 1-based row and column. It stores no cell state, so creating one
+    /// in a loop allocates nothing; every member reads or writes the worksheet directly.
     /// </summary>
-    public sealed partial class ExcelCell {
+    public readonly partial struct ExcelCell : IEquatable<ExcelCell> {
+        private readonly ExcelSheet? _sheet;
+
         internal ExcelCell(ExcelSheet sheet, int row, int column) {
-            Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
+            _sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             Row = row;
             Column = column;
         }
 
         /// <summary>Gets the worksheet that owns the cell.</summary>
-        public ExcelSheet Sheet { get; }
+        /// <exception cref="InvalidOperationException">The handle is <c>default</c> and has no worksheet.</exception>
+        public ExcelSheet Sheet => _sheet ?? throw new InvalidOperationException("The cell handle is not attached to a worksheet. Use ExcelSheet.Cell(...).");
         /// <summary>Gets the 1-based row index.</summary>
         public int Row { get; }
         /// <summary>Gets the 1-based column index.</summary>
@@ -73,15 +79,57 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the cell value.
+        /// Sets the cell value, inferring the stored type. Dates and times get a date or duration number format
+        /// unless the cell already has one.
         /// </summary>
-        public ExcelCell SetValue(object? value) {
-            Sheet.CellValue(Row, Column, value);
-            return this;
-        }
+        public ExcelCell SetValue(object? value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(string value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(double value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(float value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(decimal value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(int value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(long value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(short value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(uint value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(ulong value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(ushort value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(byte value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(sbyte value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(bool value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(DateTime value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(DateTimeOffset value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(TimeSpan value) { Sheet.CellValue(Row, Column, value); return this; }
+#if NET6_0_OR_GREATER
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(DateOnly value) { Sheet.CellValue(Row, Column, value); return this; }
+        /// <inheritdoc cref="SetValue(object)" />
+        public ExcelCell SetValue(TimeOnly value) { Sheet.CellValue(Row, Column, value); return this; }
+#endif
+        /// <summary>Sets the cell value from a nullable value; <c>null</c> writes an empty value.</summary>
+        public ExcelCell SetValue<T>(T? value) where T : struct { Sheet.CellValue(Row, Column, value); return this; }
+
+        /// <summary>Writes a native Excel error value, such as <c>#N/A</c> or <c>#DIV/0!</c>.</summary>
+        public ExcelCell SetError(string errorText) { Sheet.CellError(Row, Column, errorText); return this; }
 
         /// <summary>
-        /// Sets the cell formula.
+        /// Sets the cell formula while keeping any existing value as its cached result. This is not a redaction
+        /// API: rebuild the workbook from approved data to remove sensitive historic content.
         /// </summary>
         public ExcelCell SetFormula(string formula) {
             Sheet.CellFormula(Row, Column, formula);
@@ -194,6 +242,24 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Sets the horizontal alignment.</summary>
+        public ExcelCell SetHorizontalAlignment(ExcelHorizontalAlignment alignment) {
+            Sheet.CellAlign(Row, Column, alignment);
+            return this;
+        }
+
+        /// <summary>Sets the vertical alignment.</summary>
+        public ExcelCell SetVerticalAlignment(ExcelVerticalAlignment alignment) {
+            Sheet.CellVerticalAlign(Row, Column, alignment);
+            return this;
+        }
+
+        /// <summary>Sets or clears text wrapping.</summary>
+        public ExcelCell SetWrapText(bool wrapText = true) {
+            Sheet.CellWrapText(Row, Column, wrapText);
+            return this;
+        }
+
         /// <summary>
         /// Sets or clears shrink-to-fit text alignment.
         /// </summary>
@@ -211,10 +277,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets the fill color using a hex color value.
+        /// Sets the solid fill color using a hex value, <c>#RRGGBB</c> or <c>#AARRGGBB</c>.
         /// </summary>
         public ExcelCell SetFillColor(string hexColor) {
             Sheet.CellBackground(Row, Column, hexColor);
+            return this;
+        }
+
+        /// <summary>Sets the solid fill color. Theme colors stay linked to the workbook theme.</summary>
+        public ExcelCell SetFillColor(OfficeColor color) {
+            Sheet.CellBackground(Row, Column, color);
             return this;
         }
 
@@ -293,7 +365,12 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Replaces the cell contents with rich inline text runs.
         /// </summary>
-        public ExcelCell SetRichText(params ExcelRichTextRun[] runs) {
+        public ExcelCell SetRichText(params ExcelRichTextRun[] runs) => SetRichText((IEnumerable<ExcelRichTextRun>)runs);
+
+        /// <summary>
+        /// Replaces the cell contents with rich inline text runs.
+        /// </summary>
+        public ExcelCell SetRichText(IEnumerable<ExcelRichTextRun> runs) {
             Sheet.SetRichText(Row, Column, runs);
             return this;
         }
@@ -302,6 +379,26 @@ namespace OfficeIMO.Excel {
         /// Gets rich inline text runs from the cell.
         /// </summary>
         public IReadOnlyList<ExcelRichTextRun> GetRichText() => Sheet.GetRichText(Row, Column);
+
+        /// <summary>Returns whether both handles address the same cell of the same worksheet object.</summary>
+        public bool Equals(ExcelCell other) => ReferenceEquals(_sheet, other._sheet) && Row == other.Row && Column == other.Column;
+
+        /// <inheritdoc />
+        public override bool Equals(object? obj) => obj is ExcelCell other && Equals(other);
+
+        /// <inheritdoc />
+        public override int GetHashCode() {
+            unchecked {
+                int hash = _sheet == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_sheet);
+                return (hash * 397 ^ Row) * 397 ^ Column;
+            }
+        }
+
+        /// <summary>Returns whether both handles address the same cell.</summary>
+        public static bool operator ==(ExcelCell left, ExcelCell right) => left.Equals(right);
+
+        /// <summary>Returns whether the handles address different cells.</summary>
+        public static bool operator !=(ExcelCell left, ExcelCell right) => !left.Equals(right);
     }
 
     /// <summary>
@@ -320,6 +417,19 @@ namespace OfficeIMO.Excel {
             LastColumn = bounds.c2;
         }
 
+        internal ExcelRange(ExcelSheet sheet, int firstRow, int firstColumn, int lastRow, int lastColumn) {
+            Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
+            if (firstRow < 1 || firstRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(firstRow));
+            if (firstColumn < 1 || firstColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(firstColumn));
+            if (lastRow < firstRow || lastRow > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(lastRow));
+            if (lastColumn < firstColumn || lastColumn > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(lastColumn));
+            FirstRow = firstRow;
+            FirstColumn = firstColumn;
+            LastRow = lastRow;
+            LastColumn = lastColumn;
+            Address = ToRangeAddress(firstRow, firstColumn, lastRow, lastColumn);
+        }
+
         /// <summary>Gets the worksheet that owns the range.</summary>
         public ExcelSheet Sheet { get; }
         /// <summary>Gets the A1 range address.</summary>
@@ -336,7 +446,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Gets a wrapper for the top-left cell.
         /// </summary>
-        public ExcelCell FirstCell => Sheet.CellAt(FirstRow, FirstColumn);
+        public ExcelCell FirstCell => new ExcelCell(Sheet, FirstRow, FirstColumn);
 
         /// <summary>
         /// Builds data validation rules for the range.
@@ -455,6 +565,48 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRange SetGradientFill(string fromHexColor, string toHexColor, double degree = 0) {
             Sheet.FillRangeGradient(Address, fromHexColor, toHexColor, degree);
+            return this;
+        }
+
+        /// <summary>Applies a solid fill color to every cell in the range. Theme colors stay linked to the workbook theme.</summary>
+        public ExcelRange SetFillColor(OfficeColor color) {
+            ForEachCell((row, column) => Sheet.CellBackground(row, column, color));
+            return this;
+        }
+
+        /// <summary>Sets the horizontal alignment of every cell in the range.</summary>
+        public ExcelRange SetHorizontalAlignment(ExcelHorizontalAlignment alignment) {
+            ForEachCell((row, column) => Sheet.CellAlign(row, column, alignment));
+            return this;
+        }
+
+        /// <summary>Sets the vertical alignment of every cell in the range.</summary>
+        public ExcelRange SetVerticalAlignment(ExcelVerticalAlignment alignment) {
+            ForEachCell((row, column) => Sheet.CellVerticalAlign(row, column, alignment));
+            return this;
+        }
+
+        /// <summary>Sets or clears text wrapping for every cell in the range.</summary>
+        public ExcelRange SetWrapText(bool wrapText = true) {
+            ForEachCell((row, column) => Sheet.CellWrapText(row, column, wrapText));
+            return this;
+        }
+
+        /// <summary>Applies a border style to every edge of every cell in the range.</summary>
+        public ExcelRange SetBorder(ExcelBorderStyle style, string? hexColor = null) {
+            ForEachCell((row, column) => Sheet.CellBorder(row, column, style, hexColor));
+            return this;
+        }
+
+        /// <summary>Sets selected border edges of every cell in the range while preserving other edges and styles.</summary>
+        public ExcelRange SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null) {
+            ForEachCell((row, column) => Sheet.CellBorder(row, column, borders, style, hexColor));
+            return this;
+        }
+
+        /// <summary>Applies diagonal borders to every cell in the range.</summary>
+        public ExcelRange SetDiagonalBorder(ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+            ForEachCell((row, column) => Sheet.CellDiagonalBorder(row, column, style, hexColor, diagonalUp, diagonalDown));
             return this;
         }
 
@@ -982,3 +1134,4 @@ namespace OfficeIMO.Excel {
         }
     }
 }
+#pragma warning restore RS0026, RS0027

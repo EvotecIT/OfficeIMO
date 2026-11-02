@@ -59,14 +59,14 @@ internal static class ArtifactWriter {
                 var sheet = workbook.AddSheet(table.Name);
                 for (int column = 0; column < table.Columns.Count; column++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    sheet.CellValue(1, column + 1, table.Columns[column]);
+                    sheet.Cell(1, column + 1).SetValue(table.Columns[column]);
                 }
                 for (int row = 0; row < table.Rows.Count; row++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     csv.AddRow(table.Rows[row].Cast<object>().ToArray());
                     for (int column = 0; column < table.Columns.Count; column++) {
                         cancellationToken.ThrowIfCancellationRequested();
-                        sheet.CellValue(row + 2, column + 1, table.Rows[row][column]);
+                        sheet.Cell(row + 2, column + 1).SetValue(table.Rows[row][column]);
                     }
                 }
                 using var csvBytes = new MemoryStream();
@@ -85,11 +85,11 @@ internal static class ArtifactWriter {
             var sheet = reopened.Sheets[index];
             for (int column = 0; column < table.Columns.Count; column++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (sheet.CellAt(1, column + 1).GetValue<string>() != table.Columns[column])
+                if (sheet.Cell(1, column + 1).GetValue<string>() != table.Columns[column])
                     throw new InvalidDataException("Workbook readback changed a column heading.");
                 for (int row = 0; row < table.Rows.Count; row++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if ((sheet.CellAt(row + 2, column + 1).GetValue<string>() ?? "") != table.Rows[row][column])
+                    if ((sheet.Cell(row + 2, column + 1).GetValue<string>() ?? "") != table.Rows[row][column])
                         throw new InvalidDataException("Workbook readback changed an extracted value.");
                 }
             }

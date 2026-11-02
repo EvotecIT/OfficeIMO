@@ -186,12 +186,12 @@ public sealed class ReaderDocumentReadResultTests {
         try {
             using (var workbook = ExcelDocument.Create(path)) {
                 var sheet = workbook.AddSheet("Data");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "Alpha");
-                sheet.Cell(2, 2, 1);
-                sheet.Cell(3, 1, "Beta");
-                sheet.Cell(3, 2, 2);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(1);
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(3, 2).SetValue(2);
                 workbook.Save();
             }
 
@@ -254,14 +254,14 @@ public sealed class ReaderDocumentReadResultTests {
         try {
             using (var workbook = ExcelDocument.Create(path)) {
                 var sheet = workbook.AddSheet("Data");
-                sheet.Cell(1, 1, "Name");
-                sheet.Cell(1, 2, "Value");
-                sheet.Cell(2, 1, "Alpha");
-                sheet.Cell(2, 2, 1);
-                sheet.Cell(3, 1, "Beta");
-                sheet.Cell(3, 2, 2);
-                sheet.Cell(4, 1, "Gamma");
-                sheet.Cell(4, 2, 3);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(1);
+                sheet.Cell(3, 1).SetValue("Beta");
+                sheet.Cell(3, 2).SetValue(2);
+                sheet.Cell(4, 1).SetValue("Gamma");
+                sheet.Cell(4, 2).SetValue(3);
                 workbook.Save();
             }
 
@@ -283,11 +283,11 @@ public sealed class ReaderDocumentReadResultTests {
         try {
             using (var workbook = ExcelDocument.Create(path)) {
                 var zSheet = workbook.AddSheet("Z");
-                zSheet.Cell(1, 1, "Name");
-                zSheet.Cell(2, 1, "Zulu");
+                zSheet.Cell(1, 1).SetValue("Name");
+                zSheet.Cell(2, 1).SetValue("Zulu");
                 var aSheet = workbook.AddSheet("A");
-                aSheet.Cell(1, 1, "Name");
-                aSheet.Cell(2, 1, "Alpha");
+                aSheet.Cell(1, 1).SetValue("Name");
+                aSheet.Cell(2, 1).SetValue("Alpha");
                 workbook.Save();
             }
 

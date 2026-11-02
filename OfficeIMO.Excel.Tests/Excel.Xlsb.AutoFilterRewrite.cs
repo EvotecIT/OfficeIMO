@@ -13,12 +13,12 @@ namespace OfficeIMO.Tests {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(1, 2, "Owner");
-                sheet.CellValue(2, 1, "Open");
-                sheet.CellValue(2, 2, "Ada");
-                sheet.CellValue(3, 1, "Closed");
-                sheet.CellValue(3, 2, "Grace");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(1, 2).SetValue("Owner");
+                sheet.Cell(2, 1).SetValue("Open");
+                sheet.Cell(2, 2).SetValue("Ada");
+                sheet.Cell(3, 1).SetValue("Closed");
+                sheet.Cell(3, 2).SetValue("Grace");
                 sheet.AddAutoFilter("A1:B3", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Open");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Open");
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
@@ -92,9 +92,9 @@ namespace OfficeIMO.Tests {
                 byte[] source;
                 using (ExcelDocument document = ExcelDocument.Create()) {
                     ExcelSheet sheet = document.AddSheet("Report");
-                    sheet.CellValue(1, 1, "Status");
-                    sheet.CellValue(2, 1, "Open");
-                    sheet.CellValue(3, 1, "Closed");
+                    sheet.Cell(1, 1).SetValue("Status");
+                    sheet.Cell(2, 1).SetValue("Open");
+                    sheet.Cell(3, 1).SetValue("Closed");
                     sheet.AddAutoFilter("A1:A3", new Dictionary<uint, IEnumerable<string>> {
                         [0U] = new[] { "Open" }
                     });
@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Open");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Open");
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
                 payload: new byte[] { 0x00, 0x00 });
             using (ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(nonCanonical, writable: false))) {
                 ExcelSheet sheet = Assert.Single(loaded.Sheets);
-                sheet.CellValue(2, 1, "Edited");
+                sheet.Cell(2, 1).SetValue("Edited");
                 byte[] rewritten = loaded.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
                 IReadOnlyList<XlsbRecord> records = ReadWorksheetRecords(rewritten);
                 int begin = records.ToList().FindIndex(record => record.Type == 161);
@@ -162,8 +162,8 @@ namespace OfficeIMO.Tests {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Open");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Open");
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
                     [0U] = new[] { "Open" }
                 });
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_AllowsRelationshipQualifiedHyperlinkIdButRejectsUnqualifiedId() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "OfficeIMO");
+            sheet.Cell(1, 1).SetValue("OfficeIMO");
             sheet.SetHyperlink(
                 1,
                 1,
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_RejectsUnqualifiedPageSetupId() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Status");
+            sheet.Cell(1, 1).SetValue("Status");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
             PageSetup pageSetup = Assert.IsType<PageSetup>(
                 sheet.WorksheetPart.Worksheet.GetFirstChild<PageSetup>());
@@ -230,8 +230,8 @@ namespace OfficeIMO.Tests {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Status");
-                sheet.CellValue(2, 1, "Open");
+                sheet.Cell(1, 1).SetValue("Status");
+                sheet.Cell(2, 1).SetValue("Open");
                 sheet.AddAutoFilter("A1:A2");
                 source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             }

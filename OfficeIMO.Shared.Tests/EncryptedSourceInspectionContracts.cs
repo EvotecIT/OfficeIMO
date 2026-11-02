@@ -180,7 +180,7 @@ public sealed class EncryptedSourceInspectionContracts {
             source.Save(output,new OfficeIMO.Word.WordSaveOptions{Password=Password});
         } else if (format == "excel") {
             using ExcelDocument source = ExcelDocument.Create();
-            source.AddSheet("Evidence").CellValue(1, 1, "Source evidence");
+            source.AddSheet("Evidence").Cell(1, 1).SetValue("Source evidence");
             source.Save(output,new OfficeIMO.Excel.ExcelSaveOptions{Password=Password});
         } else {
             using PowerPointDocument source = PowerPointDocument.Create();

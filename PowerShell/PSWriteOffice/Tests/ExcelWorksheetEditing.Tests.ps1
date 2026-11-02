@@ -66,12 +66,12 @@ Describe 'Excel worksheet editing' {
         $workbook = New-OfficeExcel -Path (Join-Path $TestDrive 'Rejected.xlsx')
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-            $usedRange = $sheet.UsedRangeA1
+            $usedRange = $sheet.UsedRange.Address
             { & $Command -Worksheet $sheet -Document $workbook @Options } | Should -Throw '*either -Worksheet or -Document*'
             { & $Command -Document $workbook -Sheet Data -SheetIndex 0 @Options } | Should -Throw '*either -Sheet or -SheetIndex*'
             { & $Command -Sheet Data @Options } | Should -Throw '*together with -Document*'
             { & $Command -Document $workbook -SheetIndex 5 @Options } | Should -Throw '*SheetIndex is out of range*'
-            $sheet.UsedRangeA1 | Should -Be $usedRange
+            $sheet.UsedRange.Address | Should -Be $usedRange
             $text = $null
             $sheet.TryGetCellText(1, 1, [ref] $text) | Should -BeFalse
         } finally {

@@ -96,7 +96,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
     public void LoadedExcelProjectionSnapshotsOptionsBeforeCallerConverterRuns() {
         using ExcelDocument document = ExcelDocument.Create();
         var sheet = document.AddSheet("Evidence");
-        sheet.CellValue(1, 1, "Header"); sheet.CellFormula(2, 1, "1+1"); sheet.CellValue(3, 1, "Stable value");
+        sheet.Cell(1, 1).SetValue("Header"); sheet.Cell(2, 1).SetFormula("1+1"); sheet.Cell(3, 1).SetValue("Stable value");
         var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, ResourceLimits = new ReaderResourceLimits { MaxChunkCharacters = 1000 } };
         var format = new ReaderExcelOptions { SheetName = "Evidence", A1Range = "A1:A3", ChunkRows = 0, ReadOptions = new ExcelReaderOptions() };
         int calls = 0;
@@ -128,7 +128,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
         if (format == "excel") {
             ExcelDocument document = ExcelDocument.Create();
             var sheet = document.AddSheet("Evidence");
-            sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Current model evidence");
+            sheet.Cell(1, 1).SetValue("Header"); sheet.Cell(2, 1).SetValue("Current model evidence");
             sheet.AddImage(1, 1, Pixel, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(1), Height = OfficeIMO.OfficeLength.Pixels(1) });
             AddPayload(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
             return new Fixture(document, (options, token) => document.ReadDocument("archive!/current-model", options, cancellationToken: token), () => document.InspectEmbeddedPayloads());

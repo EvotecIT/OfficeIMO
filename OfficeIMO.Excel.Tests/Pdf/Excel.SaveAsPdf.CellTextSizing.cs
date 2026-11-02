@@ -15,18 +15,18 @@ public partial class Excel {
         sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(15));
         sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(45)));
         sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-        sheet.Cell(1, 1, "Neighbor1");
-        sheet.Cell(1, 2, "The quick brown fox jumps over the lazy dog with enough words to wrap.");
-        sheet.Cell(1, 3, "Amount");
-        sheet.CellWrapText(1, 2);
-        sheet.Cell(2, 1, "Neighbor2");
-        sheet.Cell(2, 2, "Normal");
-        sheet.Cell(2, 3, "Shrink this long cell text");
-        sheet.CellShrinkToFit(2, 3);
+        sheet.Cell(1, 1).SetValue("Neighbor1");
+        sheet.Cell(1, 2).SetValue("The quick brown fox jumps over the lazy dog with enough words to wrap.");
+        sheet.Cell(1, 3).SetValue("Amount");
+        sheet.Cell(1, 2).SetWrapText();
+        sheet.Cell(2, 1).SetValue("Neighbor2");
+        sheet.Cell(2, 2).SetValue("Normal");
+        sheet.Cell(2, 3).SetValue("Shrink this long cell text");
+        sheet.Cell(2, 3).SetShrinkToFit();
         for (int row = 1; row <= 2; row++) {
             for (int column = 1; column <= 3; column++) {
-                sheet.CellFontSize(row, column, global::OfficeIMO.OfficeLength.Points(11));
-                sheet.CellFontName(row, column, "Arial");
+                sheet.Cell(row, column).SetFontSize(global::OfficeIMO.OfficeLength.Points(11));
+                sheet.Cell(row, column).SetFontName("Arial");
             }
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {

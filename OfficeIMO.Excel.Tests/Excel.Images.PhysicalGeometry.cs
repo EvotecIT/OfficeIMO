@@ -55,7 +55,7 @@ public partial class Excel {
 
         stream.Position = 0;
         using var loaded = ExcelDocument.Load(stream);
-        loaded.Sheets[0].CellValue(3, 3, "edited");
+        loaded.Sheets[0].Cell(3, 3).SetValue("edited");
         using var saved = SpreadsheetDocument.Open(new MemoryStream(loaded.ToBytes()), false);
         DrawingsPart savedDrawing = saved.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
         string vectorId = savedDrawing.WorksheetDrawing!.Descendants<DocumentFormat.OpenXml.Office2019.Drawing.SVG.SVGBlip>().Single().Embed!.Value!;
@@ -152,7 +152,7 @@ public partial class Excel {
         using var source = new MemoryStream();
         using (var original = ExcelDocument.Create()) {
             var sheet = original.AddSheet("Copy images");
-            sheet.CellValue(1, 1, "Seed");
+            sheet.Cell(1, 1).SetValue("Seed");
             sheet.AddImage("A1:B3", bytes, new OfficeIMO.Excel.ExcelImageOptions { EndOffsetX = OfficeLength.Emus(-1), EndOffsetY = OfficeLength.Emus(-2) });
             original.Save(source);
         }
@@ -162,8 +162,8 @@ public partial class Excel {
         var image = Assert.Single(target.Images);
         var width = image.Width;
         var height = image.Height;
-        if (transpose) target.TransposeRange("A1:B3", "E5");
-        else target.CopyRange("A1:B3", "E5");
+        if (transpose) target.Range("A1:B3").TransposeTo("E5");
+        else target.Range("A1:B3").CopyTo("E5");
         var copy = Assert.Single(target.Images, value => value.RowIndex == 5 && value.ColumnIndex == 5);
         Assert.Equal(transpose ? height : width, copy.Width);
         Assert.Equal(transpose ? width : height, copy.Height);

@@ -370,12 +370,12 @@ public sealed class OpenDocumentConversionContracts {
     public void ExcelAndOdsRoundTripTypedCellsFormulaMergeAndSparseLimits() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue("Amount").SetBold();
-        sheet.CellAt(2, 1).SetValue(12.5m);
-        sheet.CellAt(2, 2).SetFormula("SUM(A2:A2)");
+        sheet.Cell(1, 1).SetValue("Amount").SetBold();
+        sheet.Cell(2, 1).SetValue(12.5m);
+        sheet.Cell(2, 2).SetFormula("SUM(A2:A2)");
         sheet.SetHyperlink(3, 1, "https://example.com", "Example");
-        sheet.MergeRange("A4:B4");
-        sheet.CellAt(4, 1).SetValue("Merged");
+        sheet.Range("A4:B4").Merge();
+        sheet.Cell(4, 1).SetValue("Merged");
         source.SetNamedRange("Amounts", "'Data'!$A$2:$A$2", save: false);
 
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();

@@ -105,16 +105,16 @@ public class HtmlExcelReportValues {
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
-        Assert.True(sheet.GetCellStyle(1, 1).Bold);
-        Assert.True(sheet.GetCellStyle(1, 2).Bold);
-        Assert.True(sheet.GetCellStyle(1, 2).Italic);
-        Assert.True(sheet.GetCellStyle(1, 2).Underline);
-        Assert.True(sheet.GetCellStyle(1, 2).Strikethrough);
-        Assert.False(sheet.GetCellStyle(1, 3).Bold);
-        Assert.False(sheet.GetCellStyle(1, 3).Italic);
-        Assert.False(sheet.GetCellStyle(1, 4).Bold);
-        Assert.False(sheet.GetCellStyle(1, 4).Italic);
-        Assert.False(sheet.GetCellStyle(1, 5).Bold);
+        Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
+        Assert.True(sheet.Cell(1, 2).GetStyle().Bold);
+        Assert.True(sheet.Cell(1, 2).GetStyle().Italic);
+        Assert.True(sheet.Cell(1, 2).GetStyle().Underline);
+        Assert.True(sheet.Cell(1, 2).GetStyle().Strikethrough);
+        Assert.False(sheet.Cell(1, 3).GetStyle().Bold);
+        Assert.False(sheet.Cell(1, 3).GetStyle().Italic);
+        Assert.False(sheet.Cell(1, 4).GetStyle().Bold);
+        Assert.False(sheet.Cell(1, 4).GetStyle().Italic);
+        Assert.False(sheet.Cell(1, 5).GetStyle().Bold);
     }
 
     [Theory]
@@ -123,14 +123,14 @@ public class HtmlExcelReportValues {
     [InlineData("First\t", "Second")]
     public void SemanticRichTextPreservesWhitespaceAndRunFormatting(string first, string second) {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        source.AddSheet("Notes").CellAt(1, 1).SetRichText(
+        source.AddSheet("Notes").Cell(1, 1).SetRichText(
             new ExcelRichTextRun(first) { Bold = true },
             new ExcelRichTextRun(second) { Italic = true });
         string html = source.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });
         using ExcelDocument imported = HtmlConversionDocument.Parse(html).ToExcelDocument();
         using MemoryStream artifact = new System.IO.MemoryStream(imported.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
-        ExcelCell cell = Assert.Single(reopened.Sheets).CellAt(1, 1);
+        ExcelCell cell = Assert.Single(reopened.Sheets).Cell(1, 1);
         Assert.Equal(first + second, cell.GetValue<string>());
         Assert.Contains(cell.GetRichText(), run => run.Text == first && run.Bold);
         Assert.Contains(cell.GetRichText(), run => run.Text == second && run.Italic);
@@ -145,7 +145,7 @@ public class HtmlExcelReportValues {
             + "</tr></table></section>";
         using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
             new HtmlToExcelOptions { Mode = mode, ImportTypedCellValues = true });
-        Assert.Equal("A B", Assert.Single(workbook.Sheets).CellAt(1, 1).GetValue<string>());
+        Assert.Equal("A B", Assert.Single(workbook.Sheets).Cell(1, 1).GetValue<string>());
     }
 
     [Theory]
@@ -175,11 +175,11 @@ public class HtmlExcelReportValues {
         Assert.Equal(ExcelCellValueKind.Text, Snapshot(sheet, 2, 1).Kind);
         Assert.Equal("00127", Snapshot(sheet, 2, 1).Text);
         Assert.Equal(ExcelCellValueKind.Number, Snapshot(sheet, 2, 2).Kind);
-        Assert.Equal(12.5D, sheet.CellAt(2, 2).GetValue<double>());
-        Assert.True(sheet.GetCellStyle(2, 2).Bold);
-        Assert.Equal("FFA12030", sheet.GetCellStyle(2, 2).FontColorArgb);
+        Assert.Equal(12.5D, sheet.Cell(2, 2).GetValue<double>());
+        Assert.True(sheet.Cell(2, 2).GetStyle().Bold);
+        Assert.Equal("FFA12030", sheet.Cell(2, 2).GetStyle().FontColorArgb);
         Assert.Equal(ExcelCellValueKind.Boolean, Snapshot(sheet, 2, 3).Kind);
-        Assert.True(sheet.CellAt(2, 3).GetValue<bool>());
+        Assert.True(sheet.Cell(2, 3).GetValue<bool>());
         Assert.Equal(ExcelCellValueKind.DateTime, Snapshot(sheet, 2, 4).Kind);
         Assert.Equal(new DateTime(2026, 9, 1), Snapshot(sheet, 2, 4).DateTimeValue);
     }
@@ -231,10 +231,10 @@ public class HtmlExcelReportValues {
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
 
-        Assert.Equal("A1:B1", sheet.UsedRangeA1);
+        Assert.Equal("A1:B1", sheet.UsedRange.Address);
         Assert.Equal(ExcelCellValueKind.Text, Snapshot(sheet, 1, 1).Kind);
         Assert.Equal("Calculated elsewhere", Snapshot(sheet, 1, 1).Text);
-        Assert.Equal(42D, sheet.CellAt(1, 2).GetValue<double>());
+        Assert.Equal(42D, sheet.Cell(1, 2).GetValue<double>());
         Assert.Equal(0, result.Formulas);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.SemanticValueInvalid);
     }
@@ -306,9 +306,9 @@ public class HtmlExcelReportValues {
         Assert.Equal("Review required", Snapshot(sheet, 3, 2).Text);
         Assert.False(sheet.TryGetCellValueSnapshot(2, 1, out _));
         Assert.False(sheet.TryGetCellValueSnapshot(3, 1, out _));
-        ExcelRichTextRun run = Assert.Single(sheet.CellAt(3, 2).GetRichText());
+        ExcelRichTextRun run = Assert.Single(sheet.Cell(3, 2).GetRichText());
         Assert.True(run.Bold);
-        Assert.Equal("FFA12030", sheet.GetCellStyle(3, 2).FontColorArgb);
+        Assert.Equal("FFA12030", sheet.Cell(3, 2).GetStyle().FontColorArgb);
         Assert.Equal("https://example.test/review", sheet.GetHyperlinks()["B3"].Target);
     }
 

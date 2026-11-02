@@ -133,7 +133,7 @@ public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutat
                 cells.Add((Row, StartColumn + i, value));
             }
 
-            sheet.CellValues(cells);
+            sheet.SetValues(cells);
         }
 
         if (hasLayout) {

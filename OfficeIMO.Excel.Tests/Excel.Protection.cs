@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "NA");
-                sheet.CellValue(2, 2, 100);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("NA");
+                sheet.Cell(2, 2).SetValue(100);
                 sheet.AddTable("A1:B2", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 sheet.ProtectTableEditing();
                 document.Save();

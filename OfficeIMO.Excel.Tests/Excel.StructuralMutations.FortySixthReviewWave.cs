@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
         public void Test_PartialFormulaRecalculation_KeepsFailedCachedFormulasDirty() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Calc");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellFormula(1, 2, "A1+1");
-            sheet.CellFormula(1, 3, "UNSUPPORTED(A1)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(1, 2).SetFormula("A1+1");
+            sheet.Cell(1, 3).SetFormula("UNSUPPORTED(A1)");
             Cell supported = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B1");
             Cell unsupported = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             document.MarkFormulaSheetRecalculated(
                 sheet.WorksheetPart,
                 document.CaptureFormulaInputMutationVersion());
-            sheet.CellValue(1, 1, 2d);
+            sheet.Cell(1, 1).SetValue(2d);
             Assert.All(sheet.GetFormulaCells(), formula =>
                 Assert.True(formula.State.HasFlag(ExcelFormulaState.Dirty)));
 

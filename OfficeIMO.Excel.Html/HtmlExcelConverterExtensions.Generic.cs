@@ -95,8 +95,8 @@ public static partial class HtmlExcelConverterExtensions {
                     // A generated title such as "Imported 1" names the section; it is not document content.
                     if (section.TitleSource != HtmlSemanticSectionTitleSource.Generated
                         && TrySetCellTextValue(narrativeSheet, row, 1, section.Title, result, budget)) {
-                        narrativeSheet.CellAt(row, 1).SetBold();
-                        narrativeSheet.CellWrapText(row, 1);
+                        narrativeSheet.Cell(row, 1).SetBold();
+                        narrativeSheet.Cell(row, 1).SetWrapText();
                         row++;
                         result.Cells++;
                         narrativeCells++;
@@ -121,7 +121,7 @@ public static partial class HtmlExcelConverterExtensions {
                         if (TrySetCellTextValue(narrativeSheet, row, 1, block.Text, result, budget)) {
                             ApplySemanticCellFormatting(narrativeSheet, row, 1, block.Runs,
                                 block.Kind == HtmlSemanticBlockKind.Heading, block.Style, result, budget);
-                            narrativeSheet.CellWrapText(row, 1);
+                            narrativeSheet.Cell(row, 1).SetWrapText();
                             if (block.Kind == HtmlSemanticBlockKind.Form) {
                                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                                     "An HTML form was imported as editable visible text without its interactive controls.",
@@ -145,7 +145,7 @@ public static partial class HtmlExcelConverterExtensions {
             ExcelSheet imageSheet = narrativeSheet ?? workbook.Sheets[0];
             int imageRow = narrativeSheet != null ? row : 2;
             if (narrativeSheet == null
-                && ExcelA1.TryParseRange(imageSheet.UsedRangeA1, out _, out _, out int lastRow, out _)) {
+                && ExcelA1.TryParseRange(imageSheet.UsedRange.Address, out _, out _, out int lastRow, out _)) {
                 imageRow = Math.Min(ExcelA1.MaxRows, lastRow + 2);
             }
             ImportGenericImages(document, imageSheet, result, budget, placedImages, ref imageRow);
@@ -192,7 +192,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
             var occupied = new List<EditableLayoutCellBounds>();
             if (sheet.EnumerateCells().Any()
-                && ExcelA1.TryParseRange(sheet.UsedRangeA1, out int usedFirstRow, out int usedFirstColumn,
+                && ExcelA1.TryParseRange(sheet.UsedRange.Address, out int usedFirstRow, out int usedFirstColumn,
                     out int usedLastRow, out int usedLastColumn)) {
                 occupied.Add(new EditableLayoutCellBounds(usedFirstRow, usedFirstColumn, usedLastRow, usedLastColumn));
             }
@@ -261,12 +261,12 @@ public static partial class HtmlExcelConverterExtensions {
             if (!TrySetCellTextValue(sheet, firstRow, firstColumn, region.SourceText, result, budget)) {
                 continue;
             }
-            ExcelCell cell = sheet.CellAt(firstRow, firstColumn);
-            sheet.CellWrapText(firstRow, firstColumn);
+            ExcelCell cell = sheet.Cell(firstRow, firstColumn);
+            sheet.Cell(firstRow, firstColumn).SetWrapText();
             if (region.BackgroundColor.HasValue) cell.SetFillColor(region.BackgroundColor.Value.ToRgbHex());
             if (lastRow > firstRow || lastColumn > firstColumn) {
                 string range = BuildCellReference(firstRow, firstColumn) + ":" + BuildCellReference(lastRow, lastColumn);
-                sheet.MergeRange(range);
+                sheet.Range(range).Merge();
                 result.MergedRanges++;
             }
             result.Cells++;
@@ -546,7 +546,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlImportBudget budget,
         bool allowRichText = true,
         string? expectedText = null) {
-        ExcelCell cell = sheet.CellAt(row, column);
+        ExcelCell cell = sheet.Cell(row, column);
         if (allowRichText && runs.Count > 0 && runs.Any(IsFormattedRun)) {
             string richText = string.Concat(runs.Select(run => run.Text));
             if (expectedText != null && !string.Equals(expectedText, richText, StringComparison.Ordinal)) {

@@ -43,10 +43,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_ImageExportPreservesOnePixelTwoCellAnchors() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("TinyAnchor");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(
                 document,
@@ -62,10 +62,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_ImageExportRefreshesTwoCellGeometryAfterWorksheetMutation() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("MutableGeometry");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(
                 document,
@@ -85,10 +85,10 @@ namespace OfficeIMO.Tests {
         public void ExcelChart_ImageExportUsesCustomRowGeometryAfterInitialIndexBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("LateGeometry");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "Value");
-            sheet.CellValue(2, 1, "Only");
-            sheet.CellValue(2, 2, 1);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Only");
+            sheet.Cell(2, 2).SetValue(1);
             ExcelChart chart = sheet.AddChart(OfficeIMO.OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 3 });
             ReplaceChartAnchorWithTwoCell(
                 document,
@@ -112,18 +112,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ScatterXY");
-            sheet.CellValue(1, 1, "X1");
-            sheet.CellValue(1, 2, "Y1");
-            sheet.CellValue(1, 3, "X2");
-            sheet.CellValue(1, 4, "Y2");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(2, 3, 100);
-            sheet.CellValue(3, 3, 200);
-            sheet.CellValue(2, 4, 30);
-            sheet.CellValue(3, 4, 40);
+            sheet.Cell(1, 1).SetValue("X1");
+            sheet.Cell(1, 2).SetValue("Y1");
+            sheet.Cell(1, 3).SetValue("X2");
+            sheet.Cell(1, 4).SetValue("Y2");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(2, 3).SetValue(100);
+            sheet.Cell(3, 3).SetValue(200);
+            sheet.Cell(2, 4).SetValue(30);
+            sheet.Cell(3, 4).SetValue(40);
             sheet.AddScatterChartFromRanges(
                 new[] {
                     new ExcelChartSeriesRange("First", "A2:A3", "B2:B3"),
@@ -150,20 +150,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ScatterVariable");
-            sheet.CellValue(1, 1, "X1");
-            sheet.CellValue(1, 2, "Y1");
-            sheet.CellValue(1, 3, "X2");
-            sheet.CellValue(1, 4, "Y2");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
-            sheet.CellValue(4, 1, 3);
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(4, 2, 30);
-            sheet.CellValue(2, 3, 100);
-            sheet.CellValue(3, 3, 200);
-            sheet.CellValue(2, 4, 40);
-            sheet.CellValue(3, 4, 50);
+            sheet.Cell(1, 1).SetValue("X1");
+            sheet.Cell(1, 2).SetValue("Y1");
+            sheet.Cell(1, 3).SetValue("X2");
+            sheet.Cell(1, 4).SetValue("Y2");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
+            sheet.Cell(4, 1).SetValue(3);
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(4, 2).SetValue(30);
+            sheet.Cell(2, 3).SetValue(100);
+            sheet.Cell(3, 3).SetValue(200);
+            sheet.Cell(2, 4).SetValue(40);
+            sheet.Cell(3, 4).SetValue(50);
             sheet.AddScatterChartFromRanges(
                 new[] {
                     new ExcelChartSeriesRange("First", "A2:A4", "B2:B4"),
@@ -189,12 +189,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ScatterMarkers");
-            sheet.CellValue(1, 1, "X");
-            sheet.CellValue(1, 2, "Y");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
+            sheet.Cell(1, 1).SetValue("X");
+            sheet.Cell(1, 2).SetValue("Y");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddScatterChartFromRanges(
                 new[] { new ExcelChartSeriesRange("Points", "A2:A3", "B2:B3") },
                 row: 1,
@@ -214,12 +214,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ScatterMarkerOnly");
-            sheet.CellValue(1, 1, "X");
-            sheet.CellValue(1, 2, "Y");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
+            sheet.Cell(1, 1).SetValue("X");
+            sheet.Cell(1, 2).SetValue("Y");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddScatterChartFromRanges(
                 new[] { new ExcelChartSeriesRange("Points", "A2:A3", "B2:B3") },
                 row: 1,
@@ -320,8 +320,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReferencedNumberReaderPreservesBlankPoints() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("BlankPoints");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(4, 2, 30);
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(4, 2).SetValue(30);
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
             System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             object budget = CreateChartDataPointBudget(utilities);
@@ -384,9 +384,9 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportSharesOneAggregateBudgetAcrossChartReferences() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("AggregateBudget");
-            sheet.CellValue(1, 1, 1);
-            sheet.CellValue(2, 1, 2);
-            sheet.CellValue(1, 2, 3);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(2);
+            sheet.Cell(1, 2).SetValue(3);
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
             System.Reflection.MethodInfo method = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             object budget = CreateChartDataPointBudget(utilities);
@@ -404,15 +404,15 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportDoesNotChargeUnusedSeriesCaches() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("SourceBudget");
-            sheet.CellValue(1, 1, "Category");
-            sheet.CellValue(1, 2, "First");
-            sheet.CellValue(1, 3, "Second");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(2, 2, 10D);
-            sheet.CellValue(3, 2, 20D);
-            sheet.CellValue(2, 3, 30D);
-            sheet.CellValue(3, 3, 40D);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("First");
+            sheet.Cell(1, 3).SetValue("Second");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(2, 2).SetValue(10D);
+            sheet.Cell(3, 2).SetValue(20D);
+            sheet.Cell(2, 3).SetValue(30D);
+            sheet.Cell(3, 3).SetValue(40D);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Source budget" });
 
             ChartPart chartPart = GetFirstChartPart(document);
@@ -467,12 +467,12 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRestoresUnusedReadsAfterInvalidChartSourceFallback() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "not-a-number");
-            sheet.CellValue(2, 1, 20D);
-            sheet.CellValue(3, 1, 30D);
-            sheet.CellValue(4, 1, 40D);
-            sheet.CellValue(1, 2, 50D);
-            sheet.CellValue(2, 2, 60D);
+            sheet.Cell(1, 1).SetValue("not-a-number");
+            sheet.Cell(2, 1).SetValue(20D);
+            sheet.Cell(3, 1).SetValue(30D);
+            sheet.Cell(4, 1).SetValue(40D);
+            sheet.Cell(1, 2).SetValue(50D);
+            sheet.Cell(2, 2).SetValue(60D);
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
             System.Reflection.MethodInfo readReference = utilities.GetMethod("TryReadReferencedNumberValues", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
             System.Reflection.MethodInfo readCache = utilities.GetMethod("TryReadNumberPoints", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
@@ -503,10 +503,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReusesFirstScatterXValuesWithinAggregateBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("ScatterBudget");
-            sheet.CellValue(1, 1, 1D);
-            sheet.CellValue(2, 1, 2D);
-            sheet.CellValue(1, 3, 10D);
-            sheet.CellValue(2, 3, 20D);
+            sheet.Cell(1, 1).SetValue(1D);
+            sheet.Cell(2, 1).SetValue(2D);
+            sheet.Cell(1, 3).SetValue(10D);
+            sheet.Cell(2, 3).SetValue(20D);
             sheet.AddScatterChartFromRanges(
                 new[] { new ExcelChartSeriesRange("Points", "A1:A2", "C1:C2") },
                 row: 1,
@@ -541,7 +541,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("ScatterXYBudget");
             for (int column = 1; column <= 8; column++) {
-                sheet.CellValue(1, column, column);
+                sheet.Cell(1, column).SetValue(column);
             }
             sheet.AddScatterChartFromRanges(
                 new[] {
@@ -581,11 +581,11 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportDoesNotChargeReferencedSeriesNamesToDataPointBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("CaptionBudget");
-            sheet.CellValue(1, 1, 1D);
-            sheet.CellValue(2, 1, 2D);
-            sheet.CellValue(1, 2, "Referenced caption");
-            sheet.CellValue(1, 3, 10D);
-            sheet.CellValue(2, 3, 20D);
+            sheet.Cell(1, 1).SetValue(1D);
+            sheet.Cell(2, 1).SetValue(2D);
+            sheet.Cell(1, 2).SetValue("Referenced caption");
+            sheet.Cell(1, 3).SetValue(10D);
+            sheet.Cell(2, 3).SetValue(20D);
             sheet.AddScatterChartFromRanges(
                 new[] { new ExcelChartSeriesRange("Placeholder", "A1:A2", "C1:C2") },
                 row: 1,
@@ -655,18 +655,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("VerticalGap");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Wrong");
-            sheet.CellValue(1, 3, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(2, 2, 999);
-            sheet.CellValue(3, 2, 999);
-            sheet.CellValue(4, 2, 999);
-            sheet.CellValue(2, 3, 10);
-            sheet.CellValue(3, 3, 20);
-            sheet.CellValue(4, 3, 30);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Wrong");
+            sheet.Cell(1, 3).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(2, 2).SetValue(999);
+            sheet.Cell(3, 2).SetValue(999);
+            sheet.Cell(4, 2).SetValue(999);
+            sheet.Cell(2, 3).SetValue(10);
+            sheet.Cell(3, 3).SetValue(20);
+            sheet.Cell(4, 3).SetValue(30);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Vertical Gap" });
             SetFirstBarSeriesValueFormula(document, "VerticalGap!$C$2:$C$4");
 
@@ -681,18 +681,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ComboScatter");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(1, 3, "Trend");
-            sheet.CellValue(1, 4, "Trend X");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(2, 3, 30);
-            sheet.CellValue(3, 3, 40);
-            sheet.CellValue(2, 4, 100);
-            sheet.CellValue(3, 4, 200);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(1, 3).SetValue("Trend");
+            sheet.Cell(1, 4).SetValue("Trend X");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(2, 3).SetValue(30);
+            sheet.Cell(3, 3).SetValue(40);
+            sheet.Cell(2, 4).SetValue(100);
+            sheet.Cell(3, 4).SetValue(200);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Combo Scatter" });
             ConvertSecondBarSeriesToScatter(document);
 
@@ -709,18 +709,18 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ComboScatter");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(1, 3, "Trend");
-            sheet.CellValue(1, 4, "Trend X");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(2, 3, 30);
-            sheet.CellValue(3, 3, 40);
-            sheet.CellValue(2, 4, 100);
-            sheet.CellValue(3, 4, 200);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(1, 3).SetValue("Trend");
+            sheet.Cell(1, 4).SetValue("Trend X");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(2, 3).SetValue(30);
+            sheet.Cell(3, 3).SetValue(40);
+            sheet.Cell(2, 4).SetValue(100);
+            sheet.Cell(3, 4).SetValue(200);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Combo Scatter" });
             ConvertSecondBarSeriesToScatter(document);
 
@@ -738,14 +738,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NumericCats");
-            sheet.CellValue(1, 1, "Week");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
-            sheet.CellValue(4, 1, 3);
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 2, 20);
-            sheet.CellValue(4, 2, 30);
+            sheet.Cell(1, 1).SetValue("Week");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
+            sheet.Cell(4, 1).SetValue(3);
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.Cell(4, 2).SetValue(30);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Numeric Cats" });
             ReplaceFirstChartCategoryWithNumberReference(document, "NumericCats!$A$2:$A$4", 1D, 2D, 3D);
 
@@ -762,21 +762,21 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("RowChart");
-            sheet.CellValue(1, 2, "Jan");
-            sheet.CellValue(1, 3, "Feb");
-            sheet.CellValue(1, 4, "Mar");
-            sheet.CellValue(2, 1, "Actual");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(2, 3, 20);
-            sheet.CellValue(2, 4, 30);
-            sheet.CellValue(5, 1, "Month");
-            sheet.CellValue(5, 2, "Placeholder");
-            sheet.CellValue(6, 1, "Jan");
-            sheet.CellValue(6, 2, 1);
-            sheet.CellValue(7, 1, "Feb");
-            sheet.CellValue(7, 2, 2);
-            sheet.CellValue(8, 1, "Mar");
-            sheet.CellValue(8, 2, 3);
+            sheet.Cell(1, 2).SetValue("Jan");
+            sheet.Cell(1, 3).SetValue("Feb");
+            sheet.Cell(1, 4).SetValue("Mar");
+            sheet.Cell(2, 1).SetValue("Actual");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(2, 3).SetValue(20);
+            sheet.Cell(2, 4).SetValue(30);
+            sheet.Cell(5, 1).SetValue("Month");
+            sheet.Cell(5, 2).SetValue("Placeholder");
+            sheet.Cell(6, 1).SetValue("Jan");
+            sheet.Cell(6, 2).SetValue(1);
+            sheet.Cell(7, 1).SetValue("Feb");
+            sheet.Cell(7, 2).SetValue(2);
+            sheet.Cell(8, 1).SetValue("Mar");
+            sheet.Cell(8, 2).SetValue(3);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A5:B8", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 6, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Row Chart" });
             PointFirstChartAtHorizontalData(document);
 
@@ -947,12 +947,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartOverlap");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 20);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1, Width = OfficeLength.Pixels(260), Height = OfficeLength.Pixels(170), Title = "Overlap" });
 
             ExcelRangeVisualInfo snapshot = sheet.Range("B1:D8").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -967,12 +967,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartOffset");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 20);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(20);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 2, Width = OfficeLength.Pixels(160), Height = OfficeLength.Pixels(90), Title = "Offset" });
             SetFirstChartAnchorOffset(document, offsetXPixels: 23, offsetYPixels: 17);
 
@@ -989,14 +989,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartBodyText");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Body Text" });
             chart.SetLegendTextStyle(color: OfficeColor.Parse("0F766E"));
             chart.SetDataLabels(
@@ -1052,14 +1052,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartLabelBox");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Label Boxes" });
             chart.SetDataLabels(
                 showLegendKey: false,
@@ -1119,14 +1119,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartThemeColor");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Theme Series" });
             SetFirstChartSeriesSchemeFill(document, A.SchemeColorValues.Accent2);
 
@@ -1160,14 +1160,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisText");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Text" });
             chart.SetCategoryAxisTitle("Month");
             chart.SetValueAxisTitle("Actual");
@@ -1219,14 +1219,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartTextSizes");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Text Sizes" });
             chart.SetLegend(OfficeChartLegendPosition.Right);
             chart.SetLegendTextStyle(fontSize: OfficeLength.Points(9D), color: OfficeColor.Parse("0F766E"));
@@ -1271,14 +1271,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartFont");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Missing Font" });
             chart.SetTitleTextStyle(fontName: "OfficeIMO Missing Chart Font", color: OfficeColor.Parse("BE123C"));
 
@@ -1307,10 +1307,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartFont");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Scoped Font" });
             chart.SetTitleTextStyle(
                 fontName: "OfficeIMO Scoped Chart Font",
@@ -1355,14 +1355,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisFormat");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 1200);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 1800);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 1600);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(1200);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(1800);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Format" });
             chart.SetValueAxisNumberFormat("#,##0.0");
 
@@ -1389,14 +1389,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartBarAxisFormat");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 1200);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 1800);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 1600);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(1200);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(1800);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.BarClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Bar Axis Format" });
             chart.SetValueAxisNumberFormat("#,##0.0");
 
@@ -1450,14 +1450,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisFormatDiag");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 1200);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 1800);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 1600);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(1200);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(1800);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Format Diagnostic" });
             chart.SetValueAxisNumberFormat("yyyy-mm-dd");
 
@@ -1475,14 +1475,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartCategoryFormat");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "1");
-            sheet.CellValue(2, 2, 1200);
-            sheet.CellValue(3, 1, "2");
-            sheet.CellValue(3, 2, 1800);
-            sheet.CellValue(4, 1, "3");
-            sheet.CellValue(4, 2, 1600);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("1");
+            sheet.Cell(2, 2).SetValue(1200);
+            sheet.Cell(3, 1).SetValue("2");
+            sheet.Cell(3, 2).SetValue(1800);
+            sheet.Cell(4, 1).SetValue("3");
+            sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Category Axis Format" });
             chart.SetCategoryAxisNumberFormat("0.0");
 
@@ -1507,14 +1507,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartCategoryFormatDiag");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "1");
-            sheet.CellValue(2, 2, 1200);
-            sheet.CellValue(3, 1, "2");
-            sheet.CellValue(3, 2, 1800);
-            sheet.CellValue(4, 1, "3");
-            sheet.CellValue(4, 2, 1600);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("1");
+            sheet.Cell(2, 2).SetValue(1200);
+            sheet.Cell(3, 1).SetValue("2");
+            sheet.Cell(3, 2).SetValue(1800);
+            sheet.Cell(4, 1).SetValue("3");
+            sheet.Cell(4, 2).SetValue(1600);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Category Axis Format Diagnostic" });
             chart.SetCategoryAxisNumberFormat("yyyy-mm-dd");
 
@@ -1532,14 +1532,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoCategoryLabels");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "No Category Labels" })
                 .SetCategoryAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.None);
 
@@ -1564,14 +1564,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoValueLabels");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "No Value Labels" })
                 .SetValueAxisNumberFormat("0.0")
                 .SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.None);
@@ -1601,14 +1601,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("NoLegend");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "No Legend" })
                 .HideLegend();
 
@@ -1628,14 +1628,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("DeletedAxes");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Deleted Axes" });
             SetFirstChartAxisDeleted<CategoryAxis>(document);
             SetFirstChartAxisDeleted<ValueAxis>(document);
@@ -1663,14 +1663,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisTicks");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Ticks" });
             chart.SetValueAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High);
 
@@ -1709,14 +1709,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartTickMarks");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Tick Marks" });
             SetFirstChartValueAxisMajorTickMark(document, TickMarkValues.Outside);
 
@@ -1761,14 +1761,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartMinorTicks");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Minor Ticks" });
             SetFirstChartValueAxisMinorTickMark(document, TickMarkValues.Outside);
 
@@ -1814,14 +1814,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisCrossing");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Crossing" });
             chart.SetValueAxisCrossing(OfficeChartAxisCrossingPosition.Maximum);
 
@@ -1860,14 +1860,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartCategoryCrossing");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Category Crossing" });
             chart.SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Maximum);
 
@@ -1906,14 +1906,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisScale");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Scale" });
             chart.SetValueAxisScale(minimum: 100D, maximum: 220D, majorUnit: 40D, minorUnit: 20D);
             chart.SetValueAxisGridlines(showMajor: false, showMinor: true, lineColor: OfficeColor.Parse("14B8A6"), lineWidth: OfficeLength.Points(1.5D));
@@ -1966,12 +1966,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("AxisBudget");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 20);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 80);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(20);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(80);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Budget" });
             chart.SetValueAxisScale(minimum: 0D, maximum: 100D, majorUnit: 4D);
             SetFirstChartValueAxisMinorTickMark(document, TickMarkValues.Outside);
@@ -1990,14 +1990,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartDisplayUnits");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120000);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180000);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160000);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120000);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180000);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160000);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Display Units" });
             chart.SetValueAxisDisplayUnits(OfficeChartDisplayUnit.Thousands, "Thousands", showLabel: true);
 
@@ -2022,14 +2022,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartAxisReverse");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Axis Reverse" });
             chart.SetCategoryAxisReverseOrder();
 
@@ -2068,14 +2068,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("BarOrder");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.BarClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Bar Order" });
             chart.SetCategoryAxisReverseOrder(false);
 
@@ -2110,9 +2110,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ConditionalPriority");
-            sheet.CellValue(1, 1, 10);
-            sheet.CellValue(2, 1, 20);
-            sheet.CellValue(3, 1, 30);
+            sheet.Cell(1, 1).SetValue(10);
+            sheet.Cell(2, 1).SetValue(20);
+            sheet.Cell(3, 1).SetValue(30);
             sheet.AddConditionalDataBar("A1:A3", OfficeColor.Blue);
             sheet.AddConditionalRule(
                 "A1:A3",
@@ -2136,14 +2136,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("ChartTextConflict");
-            sheet.CellValue(1, 1, "Month");
-            sheet.CellValue(1, 2, "Actual");
-            sheet.CellValue(2, 1, "Jan");
-            sheet.CellValue(2, 2, 120);
-            sheet.CellValue(3, 1, "Feb");
-            sheet.CellValue(3, 2, 180);
-            sheet.CellValue(4, 1, "Mar");
-            sheet.CellValue(4, 2, 160);
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(120);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(180);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Text Conflict" });
             chart.SetLegendTextStyle(color: OfficeColor.Parse("0F766E"));
             chart.SetDataLabels(

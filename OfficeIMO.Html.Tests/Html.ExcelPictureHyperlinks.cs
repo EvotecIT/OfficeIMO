@@ -83,7 +83,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
     public void VisualReviewRetainsSafePictureTargetsAndReportsUnsafeOmission(string target, bool interactive) {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
-        sheet.Cell(1, 1, "Photo");
+        sheet.Cell(1, 1).SetValue("Photo");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = "image/png",

@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Report");
                 for (int row = 1; row <= 40; row++) {
-                    sheet.CellValue(row, 1, "Row " + row);
-                    sheet.CellValue(row, 2, row);
+                    sheet.Cell(row, 1).SetValue("Row " + row);
+                    sheet.Cell(row, 2).SetValue(row);
                 }
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Rows");
-                foreach (int row in new[] { 2, 5, 9 }) sheet.CellValue(row, 1, "Row " + row);
+                foreach (int row in new[] { 2, 5, 9 }) sheet.Cell(row, 1).SetValue("Row " + row);
                 foreach (int row in new[] { 10, 3, 7, 1, 9, 4, 12, 6 }) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20 + row)));
                 sheet.InsertRows(4, 2);
                 foreach (int row in new[] { 4, 15, 8 }) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50 + row)));
@@ -89,9 +89,9 @@ namespace OfficeIMO.Tests {
 
             stream.Position = 0;
             using var reopened = ExcelDocument.Load(stream);
-            Assert.Equal("Row 2", reopened.Sheets[0].CellAt(2, 1).GetValue<string>());
-            Assert.Equal("Row 5", reopened.Sheets[0].CellAt(7, 1).GetValue<string>());
-            Assert.Equal("Row 9", reopened.Sheets[0].CellAt(11, 1).GetValue<string>());
+            Assert.Equal("Row 2", reopened.Sheets[0].Cell(2, 1).GetValue<string>());
+            Assert.Equal("Row 5", reopened.Sheets[0].Cell(7, 1).GetValue<string>());
+            Assert.Equal("Row 9", reopened.Sheets[0].Cell(11, 1).GetValue<string>());
         }
 
         [Fact]
@@ -99,11 +99,11 @@ namespace OfficeIMO.Tests {
             string[] fills = { "#F8D7DA", "#E6F4EA", "#FFF3CD" };
             void WriteRow(ExcelSheet sheet, int row) {
                 for (int column = 1; column <= 3; column++) {
-                    sheet.CellValue(row, column, row % 7 == 0 && column == 3 ? "Two" + Environment.NewLine + "lines" : "Value " + row);
+                    sheet.Cell(row, column).SetValue(row % 7 == 0 && column == 3 ? "Two" + Environment.NewLine + "lines" : "Value " + row);
                 }
-                sheet.CellAt(row, 1).SetFillColor(fills[row % fills.Length]).SetBold(true);
-                sheet.CellAt(row, 2).SetItalic(true).SetUnderline(true).SetFontColor("#1F4E79");
-                sheet.CellAt(row, 3).SetBold(row % 2 == 0);
+                sheet.Cell(row, 1).SetFillColor(fills[row % fills.Length]).SetBold(true);
+                sheet.Cell(row, 2).SetItalic(true).SetUnderline(true).SetFontColor("#1F4E79");
+                sheet.Cell(row, 3).SetBold(row % 2 == 0);
             }
             (string Worksheet, string Styles, int StyleSaves) Write(bool batch) {
                 using var stream = new MemoryStream();
@@ -111,8 +111,8 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(stream)) {
                     ExcelSheet sheet = document.AddSheet("Styled");
                     for (int column = 1; column <= 3; column++) {
-                        sheet.CellValue(1, column, "Header " + column);
-                        sheet.CellAt(1, column).HeaderStyle();
+                        sheet.Cell(1, column).SetValue("Header " + column);
+                        sheet.Cell(1, column).HeaderStyle();
                     }
                     Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
                     if (batch) {
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
                     } else {
                         for (int row = 2; row <= 60; row++) WriteRow(sheet, row);
                     }
-                    for (int column = 1; column <= 3; column++) sheet.WrapCells(1,60,column);
+                    for (int column = 1; column <= 3; column++) sheet.Range(1, column, 60, column).SetWrapText();
                     styleSaves = saves();
                     document.Save(stream);
                 }
@@ -152,14 +152,14 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream)) {
                 ExcelSheet data = document.AddSheet("Data");
                 ExcelSheet summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Total");
-                summary.CellValue(1, 2, 5);
+                summary.Cell(1, 1).SetValue("Total");
+                summary.Cell(1, 2).SetValue(5);
                 // The workbook gets its styles part with the first styled cell.
-                summary.CellAt(1, 1).SetFontColor("#1F4E79");
+                summary.Cell(1, 1).SetFontColor("#1F4E79");
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
 
                 data.Batch(sheet => {
-                    for (int row = 1; row <= 20; row++) sheet.CellValue(row, 1, row);
+                    for (int row = 1; row <= 20; row++) sheet.Cell(row, 1).SetValue(row);
                 });
                 Assert.Equal(0, saves());
 
@@ -170,9 +170,9 @@ namespace OfficeIMO.Tests {
 
             stream.Position = 0;
             using var reopened = ExcelDocument.Load(stream);
-            Assert.Equal(20D, reopened.Sheets[0].CellAt(20, 1).GetValue<double>());
-            Assert.True(reopened.Sheets[1].CellAt(1, 1).GetStyle().Bold);
-            Assert.True(reopened.Sheets[1].CellAt(1, 2).GetStyle().Bold);
+            Assert.Equal(20D, reopened.Sheets[0].Cell(20, 1).GetValue<double>());
+            Assert.True(reopened.Sheets[1].Cell(1, 1).GetStyle().Bold);
+            Assert.True(reopened.Sheets[1].Cell(1, 2).GetStyle().Bold);
         }
 
         private static Func<int> TrackPartSaves(ExcelDocument document, OpenXmlPart part) {

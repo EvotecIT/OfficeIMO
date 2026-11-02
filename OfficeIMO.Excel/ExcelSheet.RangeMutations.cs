@@ -50,15 +50,15 @@ namespace OfficeIMO.Excel {
             PlanRangeTransfer(sourceRange, destinationTopLeft, move: false, transpose: true, options);
 
         /// <summary>Copies cells, styles, formulas, and cell-anchored images.</summary>
-        public ExcelMutationResult CopyRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        internal ExcelMutationResult CopyRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
             PlanCopyRange(sourceRange, destinationTopLeft, options).Apply(cancellationToken);
 
         /// <summary>Moves cells, styles, formulas, and cell-anchored images.</summary>
-        public ExcelMutationResult MoveRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        internal ExcelMutationResult MoveRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
             PlanMoveRange(sourceRange, destinationTopLeft, options).Apply(cancellationToken);
 
         /// <summary>Copies a range with rows and columns transposed.</summary>
-        public ExcelMutationResult TransposeRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
+        internal ExcelMutationResult TransposeRange(string sourceRange, string destinationTopLeft, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) =>
             PlanTransposeRange(sourceRange, destinationTopLeft, options).Apply(cancellationToken);
 
         private ExcelStructuralMutationPlan PlanCellShift(

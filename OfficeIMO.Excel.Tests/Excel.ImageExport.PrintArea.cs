@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelWorkbookRejectsPredictableOutputCountBeforeConsumerSideEffects() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            document.AddSheet("One").CellValue(1, 1, "one");
-            document.AddSheet("Two").CellValue(1, 1, "two");
+            document.AddSheet("One").Cell(1, 1).SetValue("one");
+            document.AddSheet("Two").Cell(1, 1).SetValue("two");
             int consumed = 0;
 
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
@@ -30,11 +30,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Outside");
-            sheet.CellValue(2, 2, "North");
-            sheet.CellValue(2, 3, 10);
-            sheet.CellValue(3, 2, "South");
-            sheet.CellValue(3, 3, 20);
+            sheet.Cell(1, 1).SetValue("Outside");
+            sheet.Cell(2, 2).SetValue("North");
+            sheet.Cell(2, 3).SetValue(10);
+            sheet.Cell(3, 2).SetValue("South");
+            sheet.Cell(3, 3).SetValue(20);
             document.SetPrintArea(sheet, "B2:C3", save: false);
 
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelImageExportOptions {
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Print");
-            sheet.CellValue(3, 3, "Explicit");
+            sheet.Cell(1, 1).SetValue("Print");
+            sheet.Cell(3, 3).SetValue("Explicit");
             document.SetPrintArea(sheet, "A1:A1", save: false);
 
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelImageExportOptions {
@@ -82,8 +82,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(2, 2, "Value");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 2).SetValue("Value");
 
             OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
                 UsePrintArea = true
@@ -99,9 +99,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Used");
-                sheet.CellValue(2, 2, "First");
-                sheet.CellValue(2, 4, "Second");
+                sheet.Cell(1, 1).SetValue("Used");
+                sheet.Cell(2, 2).SetValue("First");
+                sheet.Cell(2, 4).SetValue("Second");
                 document.Save();
             }
 
@@ -125,9 +125,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(1, 1, "Used");
-                sheet.CellValue(2, 2, "First");
-                sheet.CellValue(2, 4, "Second");
+                sheet.Cell(1, 1).SetValue("Used");
+                sheet.Cell(2, 2).SetValue("First");
+                sheet.Cell(2, 4).SetValue("Second");
                 document.Save();
             }
 
@@ -158,8 +158,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(2, 2, "First");
-                sheet.CellValue(2, 4, "Second");
+                sheet.Cell(2, 2).SetValue("First");
+                sheet.Cell(2, 4).SetValue("Second");
                 document.Save();
             }
 
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PrintAreaResultBudgetWinsBeforeUnboundedNormalization() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Report").CellValue(1, 1, "safe");
+                document.AddSheet("Report").Cell(1, 1).SetValue("safe");
                 document.Save();
             }
 
@@ -205,10 +205,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.CellValue(1, 1, "Print");
-            summary.CellValue(4, 4, "Outside");
+            summary.Cell(1, 1).SetValue("Print");
+            summary.Cell(4, 4).SetValue("Outside");
             ExcelSheet details = document.AddSheet("Details");
-            details.CellValue(1, 1, "No print area");
+            details.Cell(1, 1).SetValue("No print area");
             document.SetPrintArea(summary, "A1:A1", save: false);
             Assert.Equal("$A$1", summary.GetPrintArea());
             OfficeImageExportResult directSummary = summary.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -233,8 +233,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Report");
-                sheet.CellValue(2, 2, "First");
-                sheet.CellValue(2, 4, "Second");
+                sheet.Cell(2, 2).SetValue("First");
+                sheet.Cell(2, 4).SetValue("Second");
                 document.Save();
             }
 
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(report);
             report.AddManualRowPageBreak(2, save: false);
             ExcelSheet reportTwo = document.AddSheet("Report-2");
-            reportTwo.CellValue(1, 1, "Overlapping sheet name");
+            reportTwo.Cell(1, 1).SetValue("Overlapping sheet name");
 
             string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.Excel.Images." + Guid.NewGuid().ToString("N"));
             OfficeIMO.OfficeConversionReport results = document.SaveAsImages(folderPath, new ExcelImageExportOptions {
@@ -482,7 +482,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.CellBackground(3, 4, "#00FF00");
+            sheet.Cell(3, 4).SetFillColor("#00FF00");
             for (int column = 1; column <= 4; column++) {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
@@ -682,7 +682,7 @@ namespace OfficeIMO.Tests {
         private static void FillPageBreakGrid(ExcelSheet sheet) {
             for (int row = 1; row <= 4; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellValue(row, column, ExcelA1.CellReference(row, column));
+                    sheet.Cell(row, column).SetValue(ExcelA1.CellReference(row, column));
                 }
             }
         }

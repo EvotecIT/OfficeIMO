@@ -70,8 +70,8 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-        sheet.Cell(1, 1, 0); sheet.Cell(2, 2, 50); sheet.Cell(4, 4, 100);
-        sheet.MergeRange("B2:C3");
+        sheet.Cell(1, 1).SetValue(0); sheet.Cell(2, 2).SetValue(50); sheet.Cell(4, 4).SetValue(100);
+        sheet.Range("B2:C3").Merge();
         if (bar) sheet.AddConditionalDataBar("A1:D4", "FF5B9BD5");
         else sheet.AddConditionalColorScale("A1:D4", "FFFF0000", "FF00FF00");
         document.SetPrintArea(sheet, "A1:D4");
@@ -96,9 +96,9 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-        sheet.Cell(1, 1, "Start"); sheet.Cell(2, 2, "End");
-        sheet.MergeRange("B2:C3");
-        sheet.CellDiagonalBorder(2, 2, ExcelBorderStyle.Thin, "B91C1C", diagonalUp: true, diagonalDown: true);
+        sheet.Cell(1, 1).SetValue("Start"); sheet.Cell(2, 2).SetValue("End");
+        sheet.Range("B2:C3").Merge();
+        sheet.Cell(2, 2).SetDiagonalBorder(ExcelBorderStyle.Thin, "B91C1C", diagonalUp: true, diagonalDown: true);
         document.SetPrintArea(sheet, "A1:D4");
         sheet.AddManualRowPageBreak(2); sheet.AddManualColumnPageBreak(2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -118,12 +118,12 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-        sheet.Cell(1, 1, "Start"); sheet.Cell(4, 4, "End");
-        sheet.MergeRange("A2:B3");
-        sheet.Cell(2, 1, "WrapOne\nWrapTwo\nWrapThree\nWrapFour");
-        sheet.CellAlign(2, 1, ExcelHorizontalAlignment.Center);
-        sheet.CellVerticalAlign(2, 1, ExcelVerticalAlignment.Center);
-        sheet.CellFontName(2, 1, "Arial"); sheet.CellFontSize(2, 1, global::OfficeIMO.OfficeLength.Points(11)); sheet.CellWrapText(2, 1);
+        sheet.Cell(1, 1).SetValue("Start"); sheet.Cell(4, 4).SetValue("End");
+        sheet.Range("A2:B3").Merge();
+        sheet.Cell(2, 1).SetValue("WrapOne\nWrapTwo\nWrapThree\nWrapFour");
+        sheet.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+        sheet.Cell(2, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
+        sheet.Cell(2, 1).SetFontName("Arial"); sheet.Cell(2, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(11)); sheet.Cell(2, 1).SetWrapText();
         document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new ExcelPdfExportOptions {
             IncludeSheetHeadings = false, HeaderRowCount = 0, WorksheetLayout = layout,
@@ -145,11 +145,11 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-        sheet.Cell(1, 1, "Start");
-        sheet.Cell(2, 2, "End");
-        sheet.CellAlign(2, 2, ExcelHorizontalAlignment.Right);
-        sheet.CellVerticalAlign(2, 2, ExcelVerticalAlignment.Bottom);
-        sheet.MergeRange("B2:C3");
+        sheet.Cell(1, 1).SetValue("Start");
+        sheet.Cell(2, 2).SetValue("End");
+        sheet.Cell(2, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
+        sheet.Cell(2, 2).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
+        sheet.Range("B2:C3").Merge();
         document.SetPrintArea(sheet, "A1:D4");
         sheet.AddManualRowPageBreak(2);
         sheet.AddManualColumnPageBreak(2);
@@ -175,11 +175,11 @@ public partial class Excel {
         ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-        sheet.Cell(1, 1, "FirstPage");
-        sheet.Cell(4, 4, "LastPage");
-        sheet.Cell(rowBreak ? 2 : 1, rowBreak ? 1 : 2, "Merged");
-        if (explicitAlignment) sheet.CellVerticalAlign(rowBreak ? 2 : 1, rowBreak ? 1 : 2, ExcelVerticalAlignment.Bottom);
-        sheet.MergeRange(rowBreak ? "A2:A3" : "B1:C1");
+        sheet.Cell(1, 1).SetValue("FirstPage");
+        sheet.Cell(4, 4).SetValue("LastPage");
+        sheet.Cell(rowBreak ? 2 : 1, rowBreak ? 1 : 2).SetValue("Merged");
+        if (explicitAlignment) sheet.Cell(rowBreak ? 2 : 1, rowBreak ? 1 : 2).SetVerticalAlignment(ExcelVerticalAlignment.Bottom);
+        sheet.Range(rowBreak ? "A2:A3" : "B1:C1").Merge();
         document.SetPrintArea(sheet, "A1:D4");
         if (rowBreak) sheet.AddManualRowPageBreak(2);
         else sheet.AddManualColumnPageBreak(2);
@@ -202,9 +202,9 @@ public partial class Excel {
     public void SaveAsPdf_ManualBreakIsRetainedWhenNextMergeDoesNotCrossItsAxis(ExcelPdfWorksheetLayoutMode layout, bool rowBreak) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "BeforeBreak");
-        sheet.Cell(rowBreak ? 3 : 1, rowBreak ? 1 : 3, "AfterBreak");
-        sheet.MergeRange(rowBreak ? "A3:B3" : "C1:C2");
+        sheet.Cell(1, 1).SetValue("BeforeBreak");
+        sheet.Cell(rowBreak ? 3 : 1, rowBreak ? 1 : 3).SetValue("AfterBreak");
+        sheet.Range(rowBreak ? "A3:B3" : "C1:C2").Merge();
         document.SetPrintArea(sheet, "A1:D4");
         if (rowBreak) {
             document.SetPrintTitles(sheet, firstRow: 3, lastRow: 3, firstCol: null, lastCol: null);

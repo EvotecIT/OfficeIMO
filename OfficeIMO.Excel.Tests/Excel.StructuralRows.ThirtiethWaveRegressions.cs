@@ -43,8 +43,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedMergesSparklinesAndComments() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue(1);
-            sheet.CellAt(1, 2).SetValue(2);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(1, 2).SetValue(2);
             sheet.WorksheetPart.Worksheet.Append(
                 new MergeCells(new MergeCell { Reference = "A1:B2" }) {
                     Count = 1U
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet other = document.AddSheet("Other");
-            other.CellAt(2, 1).SetValue(1);
-            other.CellAt(3, 1).SetValue(2);
+            other.Cell(2, 1).SetValue(1);
+            other.Cell(3, 1).SetValue(2);
             AppendSharedFormulaGroup(
                 other,
                 sharedIndex: 71U,

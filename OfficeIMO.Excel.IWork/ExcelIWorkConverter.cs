@@ -178,7 +178,7 @@ public static partial class ExcelIWorkConverter {
                                 IWorkCellKind.Duration when cell.Value is double seconds => seconds / 86_400d,
                                 _ => cell.Value
                             };
-                            ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
+                            ExcelCell targetCell = sheet.Cell(cell.Row, cell.Column);
                             // Reconstructed worksheets start unfilled; explicit no-fill keeps that state.
                             if (cell.Fill?.Color is { } fillColor) targetCell.SetFillColor(fillColor.RgbHex);
                             bool formulaWritten = false;
@@ -188,7 +188,7 @@ public static partial class ExcelIWorkConverter {
                             if (hasErrorValue) {
                                 string errorText = ErrorText(cell);
                                 if (IsNativeExcelError(errorText)) {
-                                    sheet.CellError(cell.Row, cell.Column, errorText);
+                                    sheet.Cell(cell.Row, cell.Column).SetError(errorText);
                                 } else if (cell.Kind == IWorkCellKind.Formula
                                     && formula != null
                                     && !string.IsNullOrEmpty(formula)) {
@@ -230,25 +230,25 @@ public static partial class ExcelIWorkConverter {
                                 ApplyUniformFormulaTextStyle(sheet, targetCell, formulaText,
                                     false, defaultStyle);
                             }
-                            if (cell.VerticalAlignment is { } vertical) sheet.CellVerticalAlign(cell.Row, cell.Column, vertical switch {
+                            if (cell.VerticalAlignment is { } vertical) sheet.Cell(cell.Row, cell.Column).SetVerticalAlignment(vertical switch {
                                 IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
                                 IWorkCellVerticalAlignment.Middle => ExcelVerticalAlignment.Center,
                                 _ => ExcelVerticalAlignment.Bottom
                             });
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                             if (cell.NumberFormat is { } numberFormat)
-                                sheet.FormatCell(cell.Row, cell.Column, numberFormat.ToSpreadsheetFormatCode());
+                                sheet.Cell(cell.Row, cell.Column).SetNumberFormat(numberFormat.ToSpreadsheetFormatCode());
                         }
                         foreach (var merge in table.ResolveMergedBorders(cancellationToken)) {
-                            var anchor = sheet.CellAt(merge.Range.FirstRow, merge.Range.FirstColumn);
+                            var anchor = sheet.Cell(merge.Range.FirstRow, merge.Range.FirstColumn);
                             // An absent perimeter edge must clear any physical interior edge already applied to this anchor.
                             anchor.SetBorder(ExcelCellBorders.All, ExcelBorderStyle.None);
                             ApplyTableBorders(anchor, merge.Borders);
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             cancellationToken.ThrowIfCancellationRequested();
-                            sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
-                                + ":" + CellReference(merge.LastRow, merge.LastColumn));
+                            sheet.Range(CellReference(merge.FirstRow, merge.FirstColumn)
+                                + ":" + CellReference(merge.LastRow, merge.LastColumn)).Merge();
                         }
                         if (table.DefaultRowHeight is > 0) {
                             sheet.SetDefaultRowHeightExact(table.DefaultRowHeight.Value);

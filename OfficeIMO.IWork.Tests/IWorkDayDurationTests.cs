@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal("1.75", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(1.75d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(1.75d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Equal("2d", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
     }
 
@@ -46,8 +46,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DURATION_DISPLAY_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
-        Assert.Equal(seconds / 86400, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal("0\"d\"", reopened.Sheets[0].CellAt(1, 1).GetStyle().NumberFormatCode);
+        Assert.Equal(seconds / 86400, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal("0\"d\"", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal(expected, Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         package.Position = 0;
         var read = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build().ReadDocument(package, "days.numbers");

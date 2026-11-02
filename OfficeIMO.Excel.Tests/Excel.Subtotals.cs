@@ -12,21 +12,21 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SubtotalSummary.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(1, 3, "Units");
-                sheet.CellValue(2, 1, "NA");
-                sheet.CellValue(2, 2, 100);
-                sheet.CellValue(2, 3, 2);
-                sheet.CellValue(3, 1, "NA");
-                sheet.CellValue(3, 2, 150);
-                sheet.CellValue(3, 3, 3);
-                sheet.CellValue(4, 1, "EMEA");
-                sheet.CellValue(4, 2, 200);
-                sheet.CellValue(4, 3, 4);
-                sheet.CellValue(5, 1, "EMEA");
-                sheet.CellValue(5, 2, 50);
-                sheet.CellValue(5, 3, 1);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(1, 3).SetValue("Units");
+                sheet.Cell(2, 1).SetValue("NA");
+                sheet.Cell(2, 2).SetValue(100);
+                sheet.Cell(2, 3).SetValue(2);
+                sheet.Cell(3, 1).SetValue("NA");
+                sheet.Cell(3, 2).SetValue(150);
+                sheet.Cell(3, 3).SetValue(3);
+                sheet.Cell(4, 1).SetValue("EMEA");
+                sheet.Cell(4, 2).SetValue(200);
+                sheet.Cell(4, 3).SetValue(4);
+                sheet.Cell(5, 1).SetValue("EMEA");
+                sheet.Cell(5, 2).SetValue(50);
+                sheet.Cell(5, 3).SetValue(1);
 
                 ExcelSubtotalResult result = sheet.AddSubtotalSummary(new ExcelSubtotalOptions {
                     DataEndRow = 5,
@@ -67,10 +67,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SubtotalSummaryBounds.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "NA");
-                sheet.CellValue(2, 2, 100);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("NA");
+                sheet.Cell(2, 2).SetValue(100);
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddSubtotalSummary(new ExcelSubtotalOptions {
                     DataEndRow = 2,

@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Existing");
+                sheet.Cell(1, 1).SetValue("Existing");
 
                 var source = new ThrowingTabularRowSource();
                 var exception = Assert.Throws<InvalidOperationException>(() =>
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(10, 1, "Existing");
+                sheet.Cell(10, 1).SetValue("Existing");
 
                 string range = sheet.InsertTabularRowSourceAsTable(
                     new TypedTabularRowSource(recorded, duration),
@@ -745,10 +745,10 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Sales");
-                sheet.CellValue(1, 1, "Column1");
-                sheet.CellValue(1, 2, "Column2");
-                sheet.CellValue(2, 1, "first");
-                sheet.CellValue(2, 2, "second");
+                sheet.Cell(1, 1).SetValue("Column1");
+                sheet.Cell(1, 2).SetValue("Column2");
+                sheet.Cell(2, 1).SetValue("first");
+                sheet.Cell(2, 2).SetValue("second");
                 sheet.AddTable("A1:B2", true, "ColumnNamedSales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9);
 
                 var append = new DataTable();
@@ -815,7 +815,7 @@ namespace OfficeIMO.Tests {
                 table.Rows.Add("NA", 100);
                 sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
-                sheet.CellFormula(3, 2, "SUM(B2:B2)");
+                sheet.Cell(3, 2).SetFormula("SUM(B2:B2)");
 
                 var append = new DataTable();
                 append.Columns.Add("Region", typeof(string));
@@ -955,7 +955,7 @@ namespace OfficeIMO.Tests {
                 table.Rows.Add("NA", 100);
                 sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { Name = "SalesTable" }, row: 1, column: 1);
 
-                sheet.CellValue(3, 1, "Existing");
+                sheet.Cell(3, 1).SetValue("Existing");
 
                 var append = new DataTable();
                 append.Columns.Add("Region", typeof(string));

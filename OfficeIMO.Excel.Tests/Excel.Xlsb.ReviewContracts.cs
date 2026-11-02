@@ -45,23 +45,23 @@ namespace OfficeIMO.Tests {
         public void Xlsb_NewWorkbook_ProjectsComparisonBeforeConcatenationWithoutSemanticLoss() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Formula");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "A");
-            sheet.CellValue(1, 3, " suffix");
-            sheet.CellFormula(2, 1, "(A1=B1)&C1");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("A");
+            sheet.Cell(1, 3).SetValue(" suffix");
+            sheet.Cell(2, 1).SetFormula("(A1=B1)&C1");
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
-            Assert.Equal("(A1=B1)&C1", reloaded.Sheets[0].CellAt(2, 1).GetValue().Formula);
+            Assert.Equal("(A1=B1)&C1", reloaded.Sheets[0].Cell(2, 1).GetValue().Formula);
         }
 
         [Fact]
         public void Xlsb_NewWorkbook_PreservesRectangularMergedRangeCoordinates() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Merge");
-            sheet.CellValue(2, 2, "Merged");
-            sheet.MergeRange("B2:D4");
+            sheet.Cell(2, 2).SetValue("Merged");
+            sheet.Range("B2:D4").Merge();
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
 

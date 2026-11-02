@@ -10,12 +10,12 @@ public partial class Excel {
     public void SaveAsPdf_PivotWithoutRenderedCellsIsCalculatedFromItsCache() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Sales");
-        sheet.Cell(1, 1, "Region");
-        sheet.Cell(1, 2, "Revenue");
+        sheet.Cell(1, 1).SetValue("Region");
+        sheet.Cell(1, 2).SetValue("Revenue");
         string[] regions = { "North", "South", "North", "East" };
         for (int index = 0; index < regions.Length; index++) {
-            sheet.Cell(index + 2, 1, regions[index]);
-            sheet.Cell(index + 2, 2, 100d * (index + 1));
+            sheet.Cell(index + 2, 1).SetValue(regions[index]);
+            sheet.Cell(index + 2, 2).SetValue(100d * (index + 1));
         }
 
         sheet.AddPivotTable(sourceRange: "A1:B5", destinationCell: "D1", new ExcelPivotTableOptions { Name = "RevenuePivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") } });
@@ -46,13 +46,13 @@ public partial class Excel {
     public void SaveAsPdf_MediumTableStyleHasNoVerticalInnerLines() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Table");
-        sheet.Cell(1, 1, "Name");
-        sheet.Cell(1, 2, "Value");
-        sheet.Cell(1, 3, "Other");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(1, 3).SetValue("Other");
         for (int row = 2; row <= 4; row++) {
-            sheet.Cell(row, 1, "Row " + row);
-            sheet.Cell(row, 2, row);
-            sheet.Cell(row, 3, row * 2);
+            sheet.Cell(row, 1).SetValue("Row " + row);
+            sheet.Cell(row, 2).SetValue(row);
+            sheet.Cell(row, 3).SetValue(row * 2);
         }
 
         sheet.AddTable("A1:C4", true, "Values", ExcelTableStyle.TableStyleMedium2);
@@ -73,14 +73,14 @@ public partial class Excel {
     public void AutoFitColumns_AllowsForBoldTableHeaderAndFilterButton() {
         using ExcelDocument plain = ExcelDocument.Create();
         ExcelSheet plainSheet = plain.AddSheet("Plain");
-        plainSheet.CellValue(1, 1, "Classification");
-        plainSheet.CellValue(2, 1, "A");
+        plainSheet.Cell(1, 1).SetValue("Classification");
+        plainSheet.Cell(2, 1).SetValue("A");
         plainSheet.AutoFitColumns();
 
         using ExcelDocument table = ExcelDocument.Create();
         ExcelSheet tableSheet = table.AddSheet("Table");
-        tableSheet.CellValue(1, 1, "Classification");
-        tableSheet.CellValue(2, 1, "A");
+        tableSheet.Cell(1, 1).SetValue("Classification");
+        tableSheet.Cell(2, 1).SetValue("A");
         tableSheet.AddTable("A1:A2", true, "Classes", ExcelTableStyle.TableStyleMedium2);
         tableSheet.AutoFitColumns();
 
@@ -94,11 +94,11 @@ public partial class Excel {
     public void SaveAsPdf_WideChartPrintsAtFullScaleAcrossPages() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Chart");
-        sheet.Cell(1, 1, "Quarter");
-        sheet.Cell(1, 2, "Value");
+        sheet.Cell(1, 1).SetValue("Quarter");
+        sheet.Cell(1, 2).SetValue("Value");
         for (int row = 2; row <= 5; row++) {
-            sheet.Cell(row, 1, "Q" + (row - 1));
-            sheet.Cell(row, 2, row * 10);
+            sheet.Cell(row, 1).SetValue("Q" + (row - 1));
+            sheet.Cell(row, 2).SetValue(row * 10);
         }
 
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B5", new ExcelChartOptions { Row = 7, Column = 1, Width = OfficeLength.Pixels(1100), Height = OfficeLength.Pixels(300), Title = "Wide chart" });
@@ -113,7 +113,7 @@ public partial class Excel {
     public void SaveAsPdf_HeaderPictureStaysInsideTheTopMargin() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "FirstRow");
+        sheet.Cell(1, 1).SetValue("FirstRow");
         sheet.SetHeaderFooter(headerCenter: "Logo Header");
         sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateMinimalRgbPng(), "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(40));
 

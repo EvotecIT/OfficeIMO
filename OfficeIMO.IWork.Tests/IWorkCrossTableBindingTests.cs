@@ -21,8 +21,8 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("SUM('" + target.Replace("'", "''") + "'!$A$1:$B$2)", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(13d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[1].Cell(1, 1).GetValue<double>());
         Assert.Same(result.Projection.Sheets[0].Tables[0], result.Projection.Sheets[0].Drawables[0].Table);
     }
 
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Null(reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -151,7 +151,7 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal("SUM(" + address + ")", reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.FormulaIsComplete);
         Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(13d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(13d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_TABLE_BODY_RANGE_APPROXIMATED");
     }
 

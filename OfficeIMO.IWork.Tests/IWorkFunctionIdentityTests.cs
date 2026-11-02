@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         Assert.Null(reopened.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(42d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -65,10 +65,10 @@ public sealed partial class IWorkBoundaryTests {
             JsonElement cache = expected.GetProperty("cachedValue");
             if (cache.ValueKind == JsonValueKind.String) {
                 Assert.Equal(cache.GetString(), cell.Value);
-                Assert.Equal(cache.GetString(), destination.CellAt(row, column).GetValue<string>());
+                Assert.Equal(cache.GetString(), destination.Cell(row, column).GetValue<string>());
             } else {
                 Assert.Equal(cache.GetDouble(), cell.Value);
-                Assert.Equal(cache.GetDouble(), destination.CellAt(row, column).GetValue<double>());
+                Assert.Equal(cache.GetDouble(), destination.Cell(row, column).GetValue<double>());
             }
         }
     }

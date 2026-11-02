@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
-            Assert.Equal("Value", result.Value.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Value", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
             return;
         }
         saved.Position = 0;

@@ -10,7 +10,7 @@ public sealed class ExcelPdfAsyncContractTests {
     [Fact]
     public async Task PdfAsyncSavesPerformIoAndDoNotTurnCancellationIntoFailureResults() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddSheet("Data").CellValue(1, 1, "Async Excel PDF");
+        workbook.AddSheet("Data").Cell(1, 1).SetValue("Async Excel PDF");
         using var output = new MemoryStream();
 
         await workbook.SaveAsPdfAsync(output);
@@ -26,10 +26,10 @@ public sealed class ExcelPdfAsyncContractTests {
     public async Task PdfAsyncSaveMethodTokenStopsSynchronousConversionAtTheNextCheckpoint() {
         using ExcelDocument workbook = ExcelDocument.Create();
         ExcelSheet first = workbook.AddSheet("First");
-        first.CellValue(1, 1, "First sheet");
+        first.Cell(1, 1).SetValue("First sheet");
         first.SetHeaderFooter(headerCenter: "&D");
         ExcelSheet second = workbook.AddSheet("Second");
-        second.CellValue(1, 1, "Second sheet");
+        second.Cell(1, 1).SetValue("Second sheet");
         second.SetHeaderFooter(headerCenter: "&D");
         using var cancellation = new CancellationTokenSource();
         int providerCalls = 0;

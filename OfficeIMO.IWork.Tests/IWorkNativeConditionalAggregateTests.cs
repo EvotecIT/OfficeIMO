@@ -31,13 +31,13 @@ public sealed partial class IWorkBoundaryTests {
         Verify(sheet, edited: false, sourceToo: true);
         Assert.Equal(20, reopened.Calculate());
         Verify(sheet, edited: false, sourceToo: false);
-        sheet.CellValue(2, 3, 40d);
+        sheet.Cell(2, 3).SetValue(40d);
         Assert.Equal(20, reopened.Calculate());
         Verify(sheet, edited: true, sourceToo: false);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
         Verify(final.Sheets[0], edited: true, sourceToo: false);
-        Assert.Equal(40d, final.Sheets[0].CellAt(2, 3).GetValue<double>());
+        Assert.Equal(40d, final.Sheets[0].Cell(2, 3).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
 
         void Verify(ExcelSheet destination, bool edited, bool sourceToo) {
@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
                 }
                 string reference = edited ? "excelEditedXlsx" : "excelRecalculatedXlsx";
                 double value = double.Parse(expected.GetProperty(reference).GetProperty("value").GetString()!, CultureInfo.InvariantCulture);
-                Assert.Equal(value, destination.CellAt(row, column).GetValue<double>(), precision: 12);
+                Assert.Equal(value, destination.Cell(row, column).GetValue<double>(), precision: 12);
             }
         }
     }

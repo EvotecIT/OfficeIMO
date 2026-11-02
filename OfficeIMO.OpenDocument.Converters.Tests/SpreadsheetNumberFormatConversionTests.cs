@@ -283,8 +283,8 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void Conversion_Loss_Policy_Distinguishes_Approximation_From_Skipped_Or_Unsupported_Content() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue(1D);
-        sheet.CellAt(1, 2).SetFormula("A1+1");
+        sheet.Cell(1, 1).SetValue(1D);
+        sheet.Cell(1, 2).SetFormula("A1+1");
 
         OdfConversionResult<OdsDocument> accepted = source.ToOpenDocumentResult(
             new ExcelOpenDocumentConversionOptions {
@@ -305,7 +305,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Quoted_Percent_Is_Not_Converted_To_Percentage_Scaling() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").Cell(1, 1);
         cell.SetValue(0.5D);
         cell.SetNumberFormat("0.00\"%\"");
 
@@ -321,7 +321,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Excel_Thousands_Scaling_Comma_Is_Not_Misreported_As_Grouping() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").Cell(1, 1);
         cell.SetValue(12000D);
         cell.SetNumberFormat("#,##0,");
 
@@ -460,7 +460,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [InlineData("[$-409]0.00")]
     public void ExcelFormatsFlattenedByOdfProjectionAreReportedUnsupported(string numberFormat) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").Cell(1, 1);
         cell.SetValue(12345D);
         cell.SetNumberFormat(numberFormat);
 
@@ -479,9 +479,9 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void UnprojectedExcelTextLayoutAndDecorationAreReportedUnsupported() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        ExcelCell cell = sheet.CellAt(1, 1).SetValue("Formatted").SetShrinkToFit();
-        sheet.CellStrikethrough(1, 1);
-        sheet.CellWrapText(1, 1);
+        ExcelCell cell = sheet.Cell(1, 1).SetValue("Formatted").SetShrinkToFit();
+        sheet.Cell(1, 1).SetStrikethrough();
+        sheet.Cell(1, 1).SetWrapText();
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
 
@@ -502,7 +502,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
 
         OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
         using ExcelDocument target = conversion.Value;
-        object? projected = target.Sheets.Single().CellAt(1, 1).GetValue().Value;
+        object? projected = target.Sheets.Single().Cell(1, 1).GetValue().Value;
         double serial = projected is DateTime dateTime
             ? dateTime.ToOADate()
             : Convert.ToDouble(projected, CultureInfo.InvariantCulture);

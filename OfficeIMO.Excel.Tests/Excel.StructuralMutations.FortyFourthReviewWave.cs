@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
         public void Test_InCellImageMutations_InvalidateFormulaAndTextCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Images");
-            sheet.CellValue(1, 1, "Header");
-            sheet.CellFormula(2, 1, "A1");
+            sheet.Cell(1, 1).SetValue("Header");
+            sheet.Cell(2, 1).SetFormula("A1");
             Cell formulaCell = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A2");
             formulaCell.CellValue = new CellValue("Header");

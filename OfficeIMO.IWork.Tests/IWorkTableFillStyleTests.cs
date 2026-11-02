@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
             for (int i = 0; i < positions.Length; i++) {
                 var (row, column) = positions[i];
-                Assert.Equal(expected[i] == null ? null : "FF" + expected[i], reopened.Sheets[0].GetCellStyle(row, column).FillColorArgb);
+                Assert.Equal(expected[i] == null ? null : "FF" + expected[i], reopened.Sheets[0].Cell(row, column).GetStyle().FillColorArgb);
             }
             Assert.True(reopened.Sheets[0].TryGetCellValueSnapshot(3, 2, out var value));
             Assert.Equal(OfficeIMO.Excel.ExcelCellValueKind.Number, value!.Kind); Assert.Equal("42", value.RawValue);

@@ -19,16 +19,16 @@ internal static class NativeNumbersIntegerReferenceSmoke {
         ExcelSheet sheet = reopened.Sheets.Single();
         Require(sheet.GetFormulaText(2, 7) == "GCD(B2,C2,D2)"
             && sheet.GetFormulaText(2, 8) == "LCM($B$2,$C$2:$D$2,1)"
-            && sheet.CellAt(2, 7).GetValue<double>() == 6 && sheet.CellAt(2, 8).GetValue<double>() == 180
+            && sheet.Cell(2, 7).GetValue<double>() == 6 && sheet.Cell(2, 8).GetValue<double>() == 180
             && reopened.Calculate() == 39, "Native reference forms/caches did not survive saved conversion.");
-        sheet.CellValue(2, 2, 24d);
-        Require(reopened.Calculate() == 39 && sheet.CellAt(2, 5).GetValue<double>() == 12
-            && sheet.CellAt(2, 7).GetValue<double>() == 12 && sheet.CellAt(2, 6).GetValue<double>() == 360
-            && sheet.CellAt(2, 8).GetValue<double>() == 360, "Saved reference operands did not recalculate.");
+        sheet.Cell(2, 2).SetValue(24d);
+        Require(reopened.Calculate() == 39 && sheet.Cell(2, 5).GetValue<double>() == 12
+            && sheet.Cell(2, 7).GetValue<double>() == 12 && sheet.Cell(2, 6).GetValue<double>() == 360
+            && sheet.Cell(2, 8).GetValue<double>() == 360, "Saved reference operands did not recalculate.");
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Require(final.Sheets[0].CellAt(2, 7).GetValue<double>() == 12
-            && final.Sheets[0].CellAt(2, 8).GetValue<double>() == 360 && !final.ValidateOpenXml().Any()
+        Require(final.Sheets[0].Cell(2, 7).GetValue<double>() == 12
+            && final.Sheets[0].Cell(2, 8).GetValue<double>() == 360 && !final.ValidateOpenXml().Any()
             && Hash(path) == expectedHash, "Final integer reference save or input immutability failed.");
         Console.WriteLine("PASS | native Numbers integer references | " + expectedHash
             + " | numeric ranges, single/absolute/mixed reference arguments, native caches, saved operand edits and incompatible-cache retention");

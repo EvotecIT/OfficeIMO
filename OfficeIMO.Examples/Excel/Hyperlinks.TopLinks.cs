@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 string safeTitle = links[rowIndex - headerRow - 1].Title.Replace("\"", "\"\"");
                 string urlRef = IndexToCol(urlColumn) + rowIndex.ToString();
-                s.Sheet.CellFormula(rowIndex, titleColumn, $"HYPERLINK({urlRef},\"{safeTitle}\")");
+                s.Sheet.Cell(rowIndex, titleColumn).SetFormula($"HYPERLINK({urlRef},\"{safeTitle}\")");
             }
 
             s.Finish(autoFitColumns: false);

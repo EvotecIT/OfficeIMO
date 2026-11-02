@@ -44,15 +44,15 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = ExcelDocument.Load(output);
         ExcelSheet formulaSheet = reopened.Sheets.Single(s => s.Name == destinationName);
         Assert.Equal(stored, formulaSheet.GetFormulaText(16, 1));
-        Assert.Equal(cache, formulaSheet.CellAt(16, 1).GetValue<string>());
-        reopened.Sheets.Single(s => s.Name == targetName).CellValue(1, 2, "lion");
+        Assert.Equal(cache, formulaSheet.Cell(16, 1).GetValue<string>());
+        reopened.Sheets.Single(s => s.Name == targetName).Cell(1, 2).SetValue("lion");
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal("lion,dog,hamster", formulaSheet.CellAt(16, 1).GetValue<string>());
-        reopened.Sheets.Single(s => s.Name == targetName).CellValue(1, 2, string.Empty);
-        formulaSheet.CellFormula(18, 1, "TEXTJOIN(\",\",TRUE,'" + targetName.Replace("'", "''") + "'!" + address + ")");
+        Assert.Equal("lion,dog,hamster", formulaSheet.Cell(16, 1).GetValue<string>());
+        reopened.Sheets.Single(s => s.Name == targetName).Cell(1, 2).SetValue(string.Empty);
+        formulaSheet.Cell(18, 1).SetFormula("TEXTJOIN(\",\",TRUE,'" + targetName.Replace("'", "''") + "'!" + address + ")");
         Assert.True(reopened.Calculate() > 0);
-        Assert.Equal(",dog,hamster", formulaSheet.CellAt(16, 1).GetValue<string>());
-        Assert.Equal("dog,hamster", formulaSheet.CellAt(18, 1).GetValue<string>());
+        Assert.Equal(",dog,hamster", formulaSheet.Cell(16, 1).GetValue<string>());
+        Assert.Equal("dog,hamster", formulaSheet.Cell(18, 1).GetValue<string>());
     }
 
     [Fact]

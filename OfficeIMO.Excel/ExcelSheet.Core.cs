@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Returns the used range of this worksheet as an A1 string by leveraging the read bridge.
         /// </summary>
-        private string GetUsedRangeA1() {
+        internal string GetUsedRangeA1() {
             if (_excelDocument.TryGetDirectTabularSaveCandidateRange(this, out string pendingRange)) {
                 return pendingRange;
             }

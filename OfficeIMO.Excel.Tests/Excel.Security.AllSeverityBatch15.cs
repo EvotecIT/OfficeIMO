@@ -14,7 +14,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
         string path = Path.Combine(Path.GetTempPath(), "officeimo-sheet-fast-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddSheet("Data").CellValue(1, 1, "safe");
+                document.AddSheet("Data").Cell(1, 1).SetValue("safe");
                 document.Save();
             }
 
@@ -71,10 +71,10 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     public void TableTotalsRetainLastCaseInsensitiveDuplicate() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(1, 2, "Value");
-        sheet.CellValue(2, 1, "A");
-        sheet.CellValue(2, 2, 1);
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(2, 1).SetValue("A");
+        sheet.Cell(2, 2).SetValue(1);
         sheet.AddTable("A1:B2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
         var totals = new Dictionary<string, ExcelTableTotalsFunction>(StringComparer.Ordinal) {
             ["Name"] = ExcelTableTotalsFunction.Count,
@@ -158,11 +158,11 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     public void ParallelRowAutoFitAndRowMutationsSerializeOpenXmlTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        for (int row = 1; row <= 100; row++) sheet.CellValue(row, 1, "row " + row);
+        for (int row = 1; row <= 100; row++) sheet.Cell(row, 1).SetValue("row " + row);
 
         Parallel.Invoke(
             () => {
-                for (int row = 101; row <= 600; row++) sheet.CellValue(row, 1, "row " + row);
+                for (int row = 101; row <= 600; row++) sheet.Cell(row, 1).SetValue("row " + row);
             },
             () => {
                 for (int pass = 0; pass < 8; pass++) sheet.AutoFitRows(ExcelExecutionMode.Parallel);

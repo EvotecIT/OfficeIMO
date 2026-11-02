@@ -22,7 +22,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Links" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
+            sheet.Cell(1, 1).SetValue("Name");
             sheet.SetHyperlink(2, 1, linkUri, display: "OfficeIMO");
 
             ExcelHyperlinkInfo hyperlink = Assert.Single(sheet.GetHyperlinks()).Value;
@@ -60,12 +60,12 @@ public partial class Excel {
         byte[] summaryOnlyBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.Cell(1, 1, "Name");
+            summary.Cell(1, 1).SetValue("Name");
             summary.SetInternalLink(2, 1, "Details!B3", display: "Open Details B3");
             ExcelSheet details = document.AddSheet("Details");
-            details.Cell(1, 1, "Details Target");
-            details.Cell(2, 1, "DestinationValue");
-            details.Cell(3, 2, "CellSpecificTarget");
+            details.Cell(1, 1).SetValue("Details Target");
+            details.Cell(2, 1).SetValue("DestinationValue");
+            details.Cell(3, 2).SetValue("CellSpecificTarget");
 
             ExcelHyperlinkInfo hyperlink = Assert.Single(summary.GetHyperlinks()).Value;
             Assert.False(hyperlink.IsExternal);
@@ -113,7 +113,7 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Links" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Top Target");
+            sheet.Cell(1, 1).SetValue("Top Target");
             sheet.SetInternalLink(2, 1, "A1", display: "Back to Top");
             document.Save();
 
@@ -139,12 +139,12 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.Cell(1, 1, "Name");
+            summary.Cell(1, 1).SetValue("Name");
             summary.SetInternalLink(2, 1, "Details!B200", display: "Open Details B200");
             ExcelSheet details = document.AddSheet("Details");
-            details.Cell(1, 1, "Details Header");
-            details.Cell(2, 1, "Visible Detail");
-            details.Cell(200, 2, "Hidden Target");
+            details.Cell(1, 1).SetValue("Details Header");
+            details.Cell(2, 1).SetValue("Visible Detail");
+            details.Cell(200, 2).SetValue("Hidden Target");
             document.SetPrintArea(details, "A1:B2");
             document.Save();
 

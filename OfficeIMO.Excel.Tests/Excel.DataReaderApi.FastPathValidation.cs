@@ -380,9 +380,9 @@ public partial class Excel {
             $"OfficeIMO.Excel.FastPathValidation.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 42);
-            sheet.CellValue(3, 1, 43);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(42);
+            sheet.Cell(3, 1).SetValue(43);
             document.Save();
         }
         return path;

@@ -14,7 +14,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 6; column++) {
-            sheet.Cell(1, column, "Column" + column);
+            sheet.Cell(1, column).SetValue("Column" + column);
             sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         }
         sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
@@ -50,7 +50,7 @@ public partial class Excel {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
-        sheet.Cell(1, 1, "Title"); sheet.Cell(1, 12, "FinalBody");
+        sheet.Cell(1, 1).SetValue("Title"); sheet.Cell(1, 12).SetValue("FinalBody");
         // M lies directly after the body; O additionally includes the real empty N column.
         sheet.AddImage(2, 13, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = "image/png",

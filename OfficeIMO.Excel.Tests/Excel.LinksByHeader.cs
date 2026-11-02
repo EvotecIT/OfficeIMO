@@ -18,10 +18,10 @@ namespace OfficeIMO.Tests {
             {
                 var s = doc.AddSheet("Summary");
                 // Header
-                s.Cell(1, 1, "Domain");
+                s.Cell(1, 1).SetValue("Domain");
                 // Two rows
-                s.Cell(2, 1, "domain-001.example");
-                s.Cell(3, 1, "domain-002.example");
+                s.Cell(2, 1).SetValue("domain-001.example");
+                s.Cell(3, 1).SetValue("domain-002.example");
                 // Create destination sheets
                 doc.AddSheet("domain-001.example");
                 doc.AddSheet("domain-002.example");
@@ -75,8 +75,8 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(filePath))
             {
                 var s = doc.AddSheet("Summary");
-                s.Cell(1, 1, "RFC");
-                s.Cell(2, 1, "rfc7208");
+                s.Cell(1, 1).SetValue("RFC");
+                s.Cell(2, 1).SetValue("rfc7208");
 
                 s.LinkByHeaderToUrls(
                     header: "RFC",
@@ -129,9 +129,9 @@ namespace OfficeIMO.Tests {
             {
                 var s = doc.AddSheet("Summary");
                 // Build a 2-column table with headers Domain, RFC and two data rows
-                s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
-                s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
-                s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
+                s.Cell(1, 1).SetValue("Domain"); s.Cell(1, 2).SetValue("RFC");
+                s.Cell(2, 1).SetValue("domain-001.example"); s.Cell(2, 2).SetValue("rfc7208");
+                s.Cell(3, 1).SetValue("domain-002.example"); s.Cell(3, 2).SetValue("rfc6376");
                 s.AddTable("A1:B3", hasHeader: true, name: "TblSummary", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 // Destination sheets
                 doc.AddSheet("domain-001.example");
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
             {
                 var s = doc.AddSheet("Summary");
                 // Header + rows (no table)
-                s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
-                s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
-                s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
+                s.Cell(1, 1).SetValue("Domain"); s.Cell(1, 2).SetValue("RFC");
+                s.Cell(2, 1).SetValue("domain-001.example"); s.Cell(2, 2).SetValue("rfc7208");
+                s.Cell(3, 1).SetValue("domain-002.example"); s.Cell(3, 2).SetValue("rfc6376");
                 // Destination sheets
                 doc.AddSheet("domain-001.example");
                 doc.AddSheet("domain-002.example");
@@ -215,8 +215,8 @@ namespace OfficeIMO.Tests {
                 var s = doc.AddSheet("Summary");
                 var target = doc.AddSheet("domain-001??");
 
-                s.Cell(1, 1, "Domain");
-                s.Cell(2, 1, "domain-001??");
+                s.Cell(1, 1).SetValue("Domain");
+                s.Cell(2, 1).SetValue("domain-001??");
 
                 s.LinkByHeaderToInternalSheetsInRange("A1:A2", "Domain", targetA1: "A1", styled: false);
                 doc.Save();

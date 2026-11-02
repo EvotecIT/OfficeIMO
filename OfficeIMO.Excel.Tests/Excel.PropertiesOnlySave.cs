@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, 42);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue(42);
                 document.BuiltinDocumentProperties.Subject = "Kept";
                 document.Save(source);
             }
@@ -57,14 +57,14 @@ namespace OfficeIMO.Tests {
         public void A_later_cell_edit_is_not_lost_when_properties_changed_first() {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
-                document.AddSheet("Data").CellValue(1, 1, "Before");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Before");
                 document.Save(source);
             }
 
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Load(new MemoryStream(source.ToArray()))) {
                 document.BuiltinDocumentProperties.Title = "Title";
-                document.Sheets[0].CellValue(1, 1, "After");
+                document.Sheets[0].Cell(1, 1).SetValue("After");
                 document.Save(output);
             }
 
@@ -79,22 +79,22 @@ namespace OfficeIMO.Tests {
         public void Saving_a_loaded_workbook_twice_keeps_cell_edits_and_added_sheets() {
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source)) {
-                document.AddSheet("Edited").CellValue(1, 1, "Before");
-                document.AddSheet("Untouched").CellValue(1, 1, "Same");
+                document.AddSheet("Edited").Cell(1, 1).SetValue("Before");
+                document.AddSheet("Untouched").Cell(1, 1).SetValue("Same");
                 document.Save(source);
             }
             byte[] original = source.ToArray();
 
             using var cellEdit = new MemoryStream();
             using (var document = ExcelDocument.Load(new MemoryStream(original))) {
-                document.Sheets[0].CellValue(1, 1, "After");
+                document.Sheets[0].Cell(1, 1).SetValue("After");
                 document.Save(cellEdit);
             }
 
             using var added = new MemoryStream();
             using (var document = ExcelDocument.Load(new MemoryStream(cellEdit.ToArray()))) {
-                document.AddSheet("Added").CellValue(1, 1, "New");
-                document.Sheets[1].CellValue(2, 1, "Also");
+                document.AddSheet("Added").Cell(1, 1).SetValue("New");
+                document.Sheets[1].Cell(2, 1).SetValue("Also");
                 document.Save(added);
             }
 
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public async Task Saving_a_loaded_workbook_leaves_unchanged_entries_as_the_source_had_them(bool toFile, bool asynchronous) {
             using var authored = new MemoryStream();
             using (var document = ExcelDocument.Create(authored)) {
-                document.AddSheet("Edited").CellValue(1, 1, "Before");
+                document.AddSheet("Edited").Cell(1, 1).SetValue("Before");
                 document.Save(authored);
             }
             string relationships = "xl/_rels/workbook.xml.rels";
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllBytes(path, authored.ToArray());
             using var target = new MemoryStream();
             using (var document = ExcelDocument.Load(path)) {
-                document.Sheets[0].CellValue(1, 1, "After");
+                document.Sheets[0].Cell(1, 1).SetValue("After");
                 if (toFile && asynchronous) await document.SaveAsync(path);
                 else if (toFile) document.Save(path);
                 else if (asynchronous) await document.SaveAsync(target);

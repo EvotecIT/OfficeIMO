@@ -105,7 +105,7 @@ namespace OfficeIMO.Examples.Excel {
                     (32, 1, 2d), (32, 2, 4d), (32, 3, 2d), (32, 4, 5d),
                     (33, 1, 3d), (33, 2, 3d), (33, 3, 5d), (33, 4, 6d)
                 };
-                sheet.CellValues(rangeCells, null);
+                sheet.SetValues(rangeCells, null);
 
                 sheet.AddScatterChartFromRanges(new[] {
                     new ExcelChartSeriesRange("Series 1", "A31:A33", "B31:B33"),

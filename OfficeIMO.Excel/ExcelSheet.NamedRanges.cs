@@ -34,13 +34,15 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Gets the A1 range for the given defined name, scoped to this sheet when applicable.
+        /// Gets the range a defined name refers to, preferring a name local to this sheet over a workbook name.
         /// </summary>
         /// <param name="name">Defined name to resolve.</param>
-        /// <returns>A1 range (e.g. "A1:B5") or null if not found.</returns>
-        public string? GetNamedRange(string name) {
+        /// <returns>The range, or null when the name is missing or is not one cell range on an existing worksheet.</returns>
+        public ExcelRange? GetNamedRange(string name) {
             return _excelDocument.GetNamedRange(name, this);
         }
+
+        internal string? GetNamedRangeText(string name) => _excelDocument.GetNamedRangeText(name, this);
 
         /// <summary>
         /// Returns all defined names visible to this sheet with their A1 ranges.

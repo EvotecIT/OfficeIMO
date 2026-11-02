@@ -28,7 +28,7 @@ public sealed class HtmlSemanticTableContractTests {
         Assert.Equal(1, source.SemanticDocument.RootTables.Single().Table!.Rows[0].Cells[0].RowSpan);
         using var excel = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcelDocument(source,
             new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
-        Assert.Equal("B", excel.Sheets[0].CellAt(2, 1).GetValue<string>());
+        Assert.Equal("B", excel.Sheets[0].Cell(2, 1).GetValue<string>());
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class HtmlSemanticTableContractTests {
         using var excel = OfficeIMO.Excel.Html.HtmlExcelConverterExtensions.ToExcelDocument(source,
             new OfficeIMO.Excel.Html.HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         Assert.Equal("A1:A2", Assert.Single(excel.Sheets[0].GetMergedRanges()).A1Range);
-        Assert.Equal("Next", excel.Sheets[0].CellAt(3, 1).GetValue<string>());
+        Assert.Equal("Next", excel.Sheets[0].Cell(3, 1).GetValue<string>());
         using var slides = OfficeIMO.PowerPoint.Html.HtmlPowerPointConverterExtensions.ToPowerPointDocument(source,
             new OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         Assert.Equal("Next", Assert.Single(slides.Slides.SelectMany(slide => slide.Tables)).GetCell(2, 0).Text);

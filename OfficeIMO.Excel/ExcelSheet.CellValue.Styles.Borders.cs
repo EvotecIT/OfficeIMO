@@ -12,7 +12,7 @@ public partial class ExcelSheet {
     /// <param name="borders">The rectangular edges to change.</param>
     /// <param name="style">The border style.</param>
     /// <param name="hexColor">Optional RGB or ARGB hex color.</param>
-    public void CellBorder(int row, int column, ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null) {
+    internal void CellBorder(int row, int column, ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null) {
         if ((borders & ~ExcelCellBorders.All) != 0) throw new ArgumentOutOfRangeException(nameof(borders));
         if (borders == ExcelCellBorders.None) return;
         BorderStyleValues value = style.ToOpenXml();

@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
         public void Combinations_replace_stale_caches_and_preserve_saved_typed_results(string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Combinations");
-            sheet.CellValue(1, 1, 42d); sheet.CellFormula(1, 1, formula);
+            sheet.Cell(1, 1).SetValue(42d); sheet.Cell(1, 1).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             Assert.Equal(expected, Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
@@ -42,8 +42,8 @@ namespace OfficeIMO.Tests {
         public void Unqualified_combinations_preserve_existing_cache(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Combinations");
-            sheet.CellValue(1, 1, 8d); sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, formula);
+            sheet.Cell(1, 1).SetValue(8d); sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(42d); sheet.Cell(1, 2).SetFormula(formula);
             Assert.Equal(0, document.Calculate());
             Assert.Equal("42", Assert.Single(sheet.InspectFormulas().Formulas).CachedValue);
         }
@@ -55,11 +55,11 @@ namespace OfficeIMO.Tests {
         public void Combinations_recalculate_large_finite_results_after_operand_edits(double n, double k, double expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Combinations");
-            sheet.CellValue(1, 1, 8d); sheet.CellValue(2, 1, 2d); sheet.CellFormula(1, 2, "COMBIN(A1,A2)");
-            Assert.Equal(1, document.Calculate()); Assert.Equal(28d, sheet.CellAt(1, 2).GetValue<double>());
-            sheet.CellValue(1, 1, n); sheet.CellValue(2, 1, k);
+            sheet.Cell(1, 1).SetValue(8d); sheet.Cell(2, 1).SetValue(2d); sheet.Cell(1, 2).SetFormula("COMBIN(A1,A2)");
+            Assert.Equal(1, document.Calculate()); Assert.Equal(28d, sheet.Cell(1, 2).GetValue<double>());
+            sheet.Cell(1, 1).SetValue(n); sheet.Cell(2, 1).SetValue(k);
             Assert.Equal(1, document.Calculate());
-            Assert.InRange(Math.Abs(sheet.CellAt(1, 2).GetValue<double>() / expected - 1), 0, 1e-13);
+            Assert.InRange(Math.Abs(sheet.Cell(1, 2).GetValue<double>() / expected - 1), 0, 1e-13);
             Assert.Contains("COMBIN", document.InspectFormulas().Capabilities.SupportedFunctions);
         }
     }

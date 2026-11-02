@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
+                        sheet.Cell(row + 1, column + 1).SetValue(numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
                     pivotOptions1.RowFields.Add("Quantity");
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B7");
             using (var document = ExcelDocument.Load(PivotNumericGroupOraclePath)) {
                 var source = document.GetSheet("Source");
-                source.CellValue(2, 1, 15d);
-                source.CellValue(3, 1, 31d);
+                source.Cell(2, 1).SetValue(15d);
+                source.Cell(3, 1).SetValue(31d);
                 var sheet = document.GetSheet("Grouped");
                 Assert.Equal("A4:B9", sheet.MaterializePivotTable("PivotGrouped").OutputRange);
                 var selections = new IReadOnlyDictionary<string, object?>[] {
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
-                        sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
+                        sheet.Cell(row + 1, column + 1).SetValue(sourceValues[row, column]);
                 {
                     var pivotOptions2 = new ExcelPivotTableOptions();
                     pivotOptions2.RowFields.Add("Quantity");

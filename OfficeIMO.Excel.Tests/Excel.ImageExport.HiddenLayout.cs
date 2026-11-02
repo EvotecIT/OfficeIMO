@@ -9,15 +9,15 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Hidden");
-            sheet.CellValue(1, 1, "Visible A");
-            sheet.CellValue(1, 2, "Hidden B");
-            sheet.CellValue(1, 3, "Visible C");
-            sheet.CellValue(2, 1, "Hidden Row");
-            sheet.CellValue(2, 2, 10);
-            sheet.CellValue(2, 3, 20);
-            sheet.CellValue(3, 1, "Visible Row");
-            sheet.CellValue(3, 2, 30);
-            sheet.CellValue(3, 3, 40);
+            sheet.Cell(1, 1).SetValue("Visible A");
+            sheet.Cell(1, 2).SetValue("Hidden B");
+            sheet.Cell(1, 3).SetValue("Visible C");
+            sheet.Cell(2, 1).SetValue("Hidden Row");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(2, 3).SetValue(20);
+            sheet.Cell(3, 1).SetValue("Visible Row");
+            sheet.Cell(3, 2).SetValue(30);
+            sheet.Cell(3, 3).SetValue(40);
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
@@ -74,9 +74,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("DefaultHidden");
-            sheet.CellValue(1, 1, "Hidden by default");
-            sheet.CellValue(2, 1, "Visible override");
-            sheet.CellValue(3, 1, "Hidden by default too");
+            sheet.Cell(1, 1).SetValue("Hidden by default");
+            sheet.Cell(2, 1).SetValue("Visible override");
+            sheet.Cell(3, 1).SetValue("Hidden by default too");
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)),hidden: true);
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("HiddenAnchor");
-            sheet.CellValue(1, 1, "Visible");
+            sheet.Cell(1, 1).SetValue("Visible");
             sheet.SetColumnHidden(10, true);
             sheet.AddImage(1, 10, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("DefaultHiddenAnchor");
-            sheet.CellValue(1, 1, "Visible");
+            sheet.Cell(1, 1).SetValue("Visible");
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)),hidden: true);
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.AddImage(10, 1, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), new OfficeIMO.Excel.ExcelImageOptions {
@@ -144,9 +144,9 @@ namespace OfficeIMO.Tests {
             ExcelSheet visible = document.AddSheet("Visible");
             ExcelSheet hidden = document.AddSheet("Hidden");
             ExcelSheet veryHidden = document.AddSheet("VeryHidden");
-            visible.CellValue(1, 1, "Visible");
-            hidden.CellValue(1, 1, "Hidden");
-            veryHidden.CellValue(1, 1, "Very hidden");
+            visible.Cell(1, 1).SetValue("Visible");
+            hidden.Cell(1, 1).SetValue("Hidden");
+            veryHidden.Cell(1, 1).SetValue("Very hidden");
             hidden.SetHidden(true);
             veryHidden.SetVeryHidden(true);
 
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("VisibleExtent");
-            sheet.CellValue(1, 1, "Visible");
+            sheet.Cell(1, 1).SetValue("Visible");
             sheet.SetColumnHidden(2, true);
             sheet.AddImage(1, 1, CreateSolidPng(120, 18, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
@@ -189,7 +189,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("OffsetImage");
-            sheet.CellValue(1, 1, "Visible");
+            sheet.Cell(1, 1).SetValue("Visible");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
             sheet.AddImage(1, 1, CreateSolidPng(80, 18, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_TwoCellImageUsedRangeFollowsExportGridMarkers(double columnWidth, double rowHeight) {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("GridImage");
-            sheet.CellValue(1, 1, "Only cell");
+            sheet.Cell(1, 1).SetValue("Only cell");
             sheet.AddImage("B2:C3", CreateSolidPng(2, 2, OfficeColor.SteelBlue), new ExcelImageOptions { ContentType = "image/png" });
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false, DefaultColumnWidth = OfficeLength.Pixels(columnWidth), DefaultRowHeight = OfficeLength.Pixels(rowHeight)
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("unsupported-image");
-            sheet.CellValue(1, 1, "Visible");
+            sheet.Cell(1, 1).SetValue("Visible");
             sheet.AddImage(12, 8, CreateMinimalJpegHeader(), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/jpeg",
                 Width = OfficeIMO.OfficeLength.Pixels(64),
@@ -256,8 +256,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("MergeCf");
-            sheet.CellValue(1, 1, 20);
-            sheet.MergeRange("A1:B1");
+            sheet.Cell(1, 1).SetValue(20);
+            sheet.Range("A1:B1").Merge();
             sheet.AddConditionalRule("A1:B1", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "C6EFCE");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("B1:C1").CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });

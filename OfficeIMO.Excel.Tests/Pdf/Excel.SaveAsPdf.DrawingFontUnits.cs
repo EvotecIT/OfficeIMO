@@ -14,7 +14,7 @@ public partial class Excel {
     public void DrawingText_PreservesPointSizeAcrossPdfAndImageCoordinates(int percent) {
         string path = Path.Combine(_directoryWithFiles, "DrawingFontUnits" + percent + ".xlsx");
         using (var document = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Shapes" })) {
-            document.Sheets[0].CellValue(1, 1, "Body");
+            document.Sheets[0].Cell(1, 1).SetValue("Body");
             document.Sheets[0].SetPageSetup(scale: (uint)percent);
             document.Save();
         }

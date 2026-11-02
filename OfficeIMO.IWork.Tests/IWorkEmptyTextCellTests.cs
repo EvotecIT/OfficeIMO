@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         var sheet = reopened.Sheets.Single();
         Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out var value));
         Assert.Equal(formula ? ExcelCellValueKind.Formula : ExcelCellValueKind.Text, value!.Kind);
-        Assert.Equal(string.Empty, sheet.CellAt(1, 1).GetValue<string>());
+        Assert.Equal(string.Empty, sheet.Cell(1, 1).GetValue<string>());
         if (formula) Assert.Equal("\"\"", sheet.GetFormulaText(1, 1));
         Assert.Empty(reopened.ValidateOpenXml());
     }

@@ -31,12 +31,12 @@ public sealed partial class IWorkBoundaryTests {
                 var cache = expected.GetProperty("nativeNumericCache");
                 if (cache.ValueKind == JsonValueKind.Number) {
                     Assert.Equal(cache.GetDouble(), cell.Value);
-                    Assert.Equal(cache.GetDouble(), destination.CellAt(row, 5).GetValue<double>());
+                    Assert.Equal(cache.GetDouble(), destination.Cell(row, 5).GetValue<double>());
                 } else {
                     // Native Numbers emits no XLSX error code for these cells. Retain
                     // the diagnosed source display cache rather than inventing equivalence.
                     Assert.Equal("#ERROR", cell.Value);
-                    Assert.Equal("#ERROR", destination.CellAt(row, 5).GetValue<string>());
+                    Assert.Equal("#ERROR", destination.Cell(row, 5).GetValue<string>());
                     Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED");
                 }
             }
@@ -47,16 +47,16 @@ public sealed partial class IWorkBoundaryTests {
                 string formula = expected.GetProperty("formula").GetString()!;
                 var cache = expected.GetProperty("nativeNumericCache");
                 if (cache.ValueKind != JsonValueKind.Number || formula == "RANDBETWEEN(1,10)") continue;
-                Assert.Equal(cache.GetDouble(), destination.CellAt(row, 5).GetValue<double>(), precision: 12);
+                Assert.Equal(cache.GetDouble(), destination.Cell(row, 5).GetValue<double>(), precision: 12);
             }
-            Assert.InRange(destination.CellAt(8, 5).GetValue<double>(), 1d, 10d);
-            destination.CellValue(4, 1, 20d); reopened.Calculate();
-            Assert.Equal(20d, destination.CellAt(5, 5).GetValue<double>());
-            Assert.Equal(24d, destination.CellAt(6, 5).GetValue<double>());
-            Assert.Equal(0d, destination.CellAt(2, 5).GetValue<double>());
+            Assert.InRange(destination.Cell(8, 5).GetValue<double>(), 1d, 10d);
+            destination.Cell(4, 1).SetValue(20d); reopened.Calculate();
+            Assert.Equal(20d, destination.Cell(5, 5).GetValue<double>());
+            Assert.Equal(24d, destination.Cell(6, 5).GetValue<double>());
+            Assert.Equal(0d, destination.Cell(2, 5).GetValue<double>());
             using var recalculated = new MemoryStream(); reopened.Save(recalculated); recalculated.Position = 0;
             using var final = ExcelDocument.Load(recalculated);
-            Assert.Equal(24d, final.Sheets[0].CellAt(6, 5).GetValue<double>());
+            Assert.Equal(24d, final.Sheets[0].Cell(6, 5).GetValue<double>());
             Assert.True(final.Sheets[0].TryGetCachedFormulaValue(9, 5, out string? unequal));
             Assert.Equal("#N/A", unequal); // Excel's evaluation contract, not a native error-cache mapping.
         }

@@ -30,7 +30,7 @@ internal static class NativeNumbersCrossTableIntegerSmoke {
         using var reopened = ExcelDocument.Load(bytes);
         Verify(reopened, changed);
         Require(reopened.Calculate() == 9, "Cross-table calculation count changed."); Verify(reopened, changed);
-        reopened.Sheets[0].CellValue(2, 2, 24d);
+        reopened.Sheets[0].Cell(2, 2).SetValue(24d);
         Require(reopened.Calculate() == 9, "Edited cross-table calculation count changed."); Verify(reopened, true);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes); Verify(final, true);
@@ -55,7 +55,7 @@ internal static class NativeNumbersCrossTableIntegerSmoke {
         foreach (var cell in cells) {
             var sheet = document.Sheets[cell.Sheet];
             Require(sheet.GetFormulaText(cell.Row, cell.Column) == cell.Formula
-                && sheet.CellAt(cell.Row, cell.Column).GetValue<double>() == cell.Value,
+                && sheet.Cell(cell.Row, cell.Column).GetValue<double>() == cell.Value,
                 "Cross-table formula text, native cache or recalculated value changed.");
         }
     }

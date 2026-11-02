@@ -30,8 +30,8 @@ public sealed class ExcelPictureHyperlinkTests {
         var target = new Uri("../photos/control.png?item=1&view=full", UriKind.Relative);
         original.HyperlinkUri = target;
 
-        if (transpose) sheet.TransposeRange("A1:B2", "D4");
-        else sheet.CopyRange("A1:B2", "D4");
+        if (transpose) sheet.Range("A1:B2").TransposeTo("D4");
+        else sheet.Range("A1:B2").CopyTo("D4");
 
         ExcelImage copy = sheet.Images.Single(image => image.RowIndex == 4 && image.ColumnIndex == 4);
         Assert.Equal(target.OriginalString, copy.HyperlinkUri?.OriginalString);
@@ -217,7 +217,7 @@ public sealed class ExcelPictureHyperlinkTests {
     public void TemplateSheetsRetainSharedPictureLinksHoverAndMediaWithoutIdCollisions() {
         using var document = ExcelDocument.Create();
         ExcelSheet template = document.AddSheet("Template");
-        template.CellValue(1, 1, "Region {{Name}}");
+        template.Cell(1, 1).SetValue("Region {{Name}}");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         var target = new Uri("https://example.org/template#photo");
         ExcelImage first = template.AddImage(3, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
@@ -241,8 +241,8 @@ public sealed class ExcelPictureHyperlinkTests {
         drawing.WorksheetDrawing.Descendants<Xdr.NonVisualDrawingProperties>().First()
             .AddChild(new A.HyperlinkOnHover { Id = "rId1" }, true);
         drawing.DeleteReferenceRelationship(drawing.HyperlinkRelationships.Single(item => item.Id == originalId));
-        template.CellValue(8, 1, "Metric"); template.CellValue(8, 2, "Value");
-        template.CellValue(9, 1, "Sales"); template.CellValue(9, 2, 10);
+        template.Cell(8, 1).SetValue("Metric"); template.Cell(8, 2).SetValue("Value");
+        template.Cell(9, 1).SetValue("Sales"); template.Cell(9, 2).SetValue(10);
         template.AddChart(OfficeChartType.ColumnClustered, "A8:B9", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 3, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(180), HasHeaders = true });
         document.ApplyTemplateSheets("Template", new IDictionary<string, object?>[] {
             new Dictionary<string, object?> { ["Name"] = "North" },
@@ -275,7 +275,7 @@ public sealed class ExcelPictureHyperlinkTests {
         byte[] red = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         using var original = ExcelDocument.Create();
         ExcelSheet template = original.AddSheet("Template");
-        template.CellValue(1, 1, "Region {{Name}}");
+        template.Cell(1, 1).SetValue("Region {{Name}}");
         var target = new Uri("https://example.org/template#photo");
         template.AddImage(3, 1, blue, new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = "image/png",

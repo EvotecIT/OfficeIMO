@@ -16,8 +16,8 @@ public sealed class ReaderIncrementalTests {
         try {
             using (var workbook = ExcelDocument.Create(path)) {
                 var sheet = workbook.AddSheet("Data");
-                sheet.Cell(1, 1, "Name");
-                for (int row = 2; row <= 20; row++) sheet.Cell(row, 1, "row " + row);
+                sheet.Cell(1, 1).SetValue("Name");
+                for (int row = 2; row <= 20; row++) sheet.Cell(row, 1).SetValue("row " + row);
                 workbook.Save();
             }
             var reader = new OfficeDocumentReaderBuilder().AddExcelHandler(new ReaderExcelOptions { ChunkRows = 4 }).Build();

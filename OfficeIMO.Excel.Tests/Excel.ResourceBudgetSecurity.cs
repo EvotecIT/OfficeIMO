@@ -109,10 +109,10 @@ public sealed class ExcelResourceBudgetSecurityTests {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "A");
-                sheet.CellValue(1, 2, "B");
-                sheet.CellValue(2, 1, 1);
-                sheet.CellValue(2, 2, 2);
+                sheet.Cell(1, 1).SetValue("A");
+                sheet.Cell(1, 2).SetValue("B");
+                sheet.Cell(2, 1).SetValue(1);
+                sheet.Cell(2, 2).SetValue(2);
                 sheet.AddTable("A1:B2", hasHeader: true, name: "BudgetTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 document.Save();
             }
@@ -172,10 +172,10 @@ public sealed class ExcelResourceBudgetSecurityTests {
             string header = new string('H', 25_000);
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, header + "1");
-                sheet.CellValue(1, 2, header + "2");
-                sheet.CellValue(1, 3, header + "3");
-                sheet.CellValue(2, 1, "value");
+                sheet.Cell(1, 1).SetValue(header + "1");
+                sheet.Cell(1, 2).SetValue(header + "2");
+                sheet.Cell(1, 3).SetValue(header + "3");
+                sheet.Cell(2, 1).SetValue("value");
                 document.Save();
             }
 
@@ -201,9 +201,9 @@ public sealed class ExcelResourceBudgetSecurityTests {
         string path = GetTemporaryWorkbookPath();
         using var document = ExcelDocument.Create(path);
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
+        sheet.Cell(1, 1).SetValue("Name");
         for (int row = 2; row <= rowCount; row++) {
-            sheet.CellValue(row, 1, "Row" + row.ToString(CultureInfo.InvariantCulture));
+            sheet.Cell(row, 1).SetValue("Row" + row.ToString(CultureInfo.InvariantCulture));
         }
 
         document.Save();

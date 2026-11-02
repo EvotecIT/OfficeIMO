@@ -40,15 +40,15 @@ namespace OfficeIMO.Excel.Benchmarks {
             using (ExcelDocument document = ExcelDocument.Create(stream)) {
                 ExcelSheet sheet = document.AddSheet("Report");
                 for (int column = 1; column <= Columns; column++) {
-                    sheet.CellValue(1, column, "Header " + column);
-                    sheet.CellAt(1, column).HeaderStyle();
+                    sheet.Cell(1, column).SetValue("Header " + column);
+                    sheet.Cell(1, column).HeaderStyle();
                 }
                 if (StyleInBatch) sheet.Batch(WriteRows); else WriteRows(sheet);
                 sheet.Range("A1:L" + (RowCount + 1)).CreateTable("Report", hasHeader: true, ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                 sheet.Freeze(1, 0);
                 for (int column = 1; column <= Columns; column++) {
                     sheet.SetColumnWidth(column, OfficeIMO.Excel.ExcelColumnWidth.Characters(18 + column));
-                    sheet.WrapCells(1,RowCount + 1,column);
+                    sheet.Range(1, column, RowCount + 1, column).SetWrapText();
                 }
                 for (int row = 2; row <= RowCount + 1; row++) sheet.SetRowHeight(row, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
                 sheet.SetGridlinesVisible(false);
@@ -63,9 +63,9 @@ namespace OfficeIMO.Excel.Benchmarks {
         private void WriteRows(ExcelSheet sheet) {
             for (int row = 2; row <= RowCount + 1; row++) {
                 for (int column = 1; column <= Columns; column++) {
-                    sheet.CellValue(row, column, _values[(row * 31 + column * 7) % _values.Length]);
+                    sheet.Cell(row, column).SetValue(_values[(row * 31 + column * 7) % _values.Length]);
                 }
-                sheet.CellAt(row, 2).SetFillColor(Fills[(row / 50) % Fills.Length]).SetBold(true);
+                sheet.Cell(row, 2).SetFillColor(Fills[(row / 50) % Fills.Length]).SetBold(true);
             }
         }
 

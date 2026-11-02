@@ -103,8 +103,8 @@ public sealed class ReaderReliabilityRegressionTests {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddSheet("Data");
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(2, 1, "alpha");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(2, 1).SetValue("alpha");
             document.Save();
         }
         var policy = new ExcelReaderOptions();

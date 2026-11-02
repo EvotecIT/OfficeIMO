@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             var (row, column) = ExcelA1.ParseCellRef(anchor);
             using (var document = ExcelDocument.Load(path, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document[sheetName];
-                Assert.Equal(expected, sheet.CellAt(row, column).GetValue().Value);
+                Assert.Equal(expected, sheet.Cell(row, column).GetValue().Value);
                 Assert.True(sheet.TryGetCellText(row, column, out string text));
                 Assert.Equal(expected, text);
                 Assert.True(sheet.TryGetCachedFormulaValue(row, column, out string? cached));
@@ -65,16 +65,16 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ModernErrors.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 1d);
-                sheet.CellValue(1, 2, 0d); sheet.CellValue(2, 2, 0d);
+                sheet.Cell(1, 1).SetValue(1d); sheet.Cell(2, 1).SetValue(1d);
+                sheet.Cell(1, 2).SetValue(0d); sheet.Cell(2, 2).SetValue(0d);
                 if (includeImage) sheet.SetInCellImage(1, 4, TinyPng, altText: "Retained image");
                 sheet.SetArrayFormula("G1:G1", formula);
-                sheet.CellFormula(1, 9, "G1");
-                sheet.CellFormula(1, 10, "IFERROR(G1,\"empty\")");
+                sheet.Cell(1, 9).SetFormula("G1");
+                sheet.Cell(1, 10).SetFormula("IFERROR(G1,\"empty\")");
                 Assert.Equal(3, document.Calculate());
-                Assert.Equal("#CALC!", sheet.CellAt(1, 7).GetValue().Value);
-                Assert.Equal("#CALC!", sheet.CellAt(1, 9).GetValue().Value);
-                Assert.Equal("empty", sheet.CellAt(1, 10).GetValue().Value);
+                Assert.Equal("#CALC!", sheet.Cell(1, 7).GetValue().Value);
+                Assert.Equal("#CALC!", sheet.Cell(1, 9).GetValue().Value);
+                Assert.Equal("empty", sheet.Cell(1, 10).GetValue().Value);
                 int valueCount = document.WorkbookPartRoot.RdRichValueParts.Single().RichValueData!.ChildElements.Count;
                 Assert.Equal(3, document.Calculate());
                 Assert.Equal(valueCount, document.WorkbookPartRoot.RdRichValueParts.Single().RichValueData!.ChildElements.Count);
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
             }
             using (var document = ExcelDocument.Load(path)) {
-                Assert.Equal("#CALC!", document["Data"].CellAt(1, 7).GetValue().Value);
+                Assert.Equal("#CALC!", document["Data"].Cell(1, 7).GetValue().Value);
                 if (includeImage) Assert.Equal(TinyPng, Assert.Single(document["Data"].GetInCellImages()).Bytes);
                 Assert.Empty(document.ValidateOpenXml());
             }
@@ -115,14 +115,14 @@ namespace OfficeIMO.Tests {
                 sheet.SetInCellImage(1, 4, TinyPng, altText: "Retained image");
                 sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
                 Assert.Equal(1, document.Calculate());
-                Assert.Equal("#CALC!", sheet.CellAt(1, 7).GetValue().Value);
+                Assert.Equal("#CALC!", sheet.Cell(1, 7).GetValue().Value);
                 if (mode == "sheet") sheet.ClearCachedFormulaResults();
                 else if (mode == "document") document.ClearCachedFormulaResults();
                 else if (mode == "array") sheet.ClearArrayFormula("G1");
                 document.Save(new ExcelSaveOptions { ClearCachedFormulaResultsBeforeSave = mode == "save" });
                 sheet = document["Data"];
                 Assert.False(sheet.TryGetCachedFormulaValue(1, 7, out _));
-                Assert.Null(sheet.CellAt(1, 7).GetValue().Value);
+                Assert.Null(sheet.Cell(1, 7).GetValue().Value);
                 Assert.Null(sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "G1").ValueMetaIndex);
                 Assert.Equal(TinyPng, Assert.Single(sheet.GetInCellImages()).Bytes);
             }
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
                 document.WorkbookPartRoot.GetPartsOfType<DocumentFormat.OpenXml.Packaging.RdRichValueStructurePart>().Single()
             };
             Assert.All(parts, part => Assert.False(part.IsRootElementLoaded));
-            Assert.Throws<InvalidDataException>(() => document["EmptyUnique"].CellAt(1, 7).GetValue());
+            Assert.Throws<InvalidDataException>(() => document["EmptyUnique"].Cell(1, 7).GetValue());
             Assert.All(parts, part => Assert.False(part.IsRootElementLoaded));
         }
 
@@ -201,10 +201,10 @@ namespace OfficeIMO.Tests {
             File.Copy(Path.Combine(_directoryDocuments, "ExcelFormulaCorpus", "dynamic-spills.xlsx"), path);
             using var document = ExcelDocument.Load(path);
             var sheet = document["EmptyUnique"];
-            Assert.Equal("#CALC!", sheet.CellAt(1, 7).GetValue().Value);
+            Assert.Equal("#CALC!", sheet.Cell(1, 7).GetValue().Value);
             Rich.RichValueData values = document.WorkbookPartRoot.RdRichValueParts.Single().RichValueData!;
             values.Elements<Rich.RichValue>().First().Elements<Rich.Value>().First().Text = "8";
-            Assert.Equal("#SPILL!", sheet.CellAt(1, 7).GetValue().Value);
+            Assert.Equal("#SPILL!", sheet.Cell(1, 7).GetValue().Value);
         }
 
         [Fact]
@@ -215,16 +215,16 @@ namespace OfficeIMO.Tests {
             var sheet = document["EmptyUnique"];
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference?.Value == "G1");
             cell.ValueMetaIndex = uint.MaxValue;
-            Assert.Equal("#VALUE!", sheet.CellAt(1, 7).GetValue().Value);
+            Assert.Equal("#VALUE!", sheet.Cell(1, 7).GetValue().Value);
             cell.ValueMetaIndex = 1;
             var metadata = document.WorkbookPartRoot.CellMetadataPart!.Metadata!;
             metadata.GetFirstChild<ValueMetadata>()!.Elements<MetadataBlock>().First().Elements<MetadataRecord>().First().RemoveAttribute("v", "");
-            Assert.Equal("#VALUE!", sheet.CellAt(1, 7).GetValue().Value);
+            Assert.Equal("#VALUE!", sheet.Cell(1, 7).GetValue().Value);
             metadata.GetFirstChild<ValueMetadata>()!.Elements<MetadataBlock>().First().Elements<MetadataRecord>().First().Val = 0;
             document.WorkbookPartRoot.GetPartsOfType<DocumentFormat.OpenXml.Packaging.RdRichValueStructurePart>()
                 .Single().RichValueStructures!.Elements<Rich.RichValueStructure>().First()
                 .Elements<Rich.Key>().Single(key => key.N?.Value == "errorType").RemoveAttribute("t", "");
-            Assert.Equal("#VALUE!", sheet.CellAt(1, 7).GetValue().Value);
+            Assert.Equal("#VALUE!", sheet.Cell(1, 7).GetValue().Value);
         }
     }
 }

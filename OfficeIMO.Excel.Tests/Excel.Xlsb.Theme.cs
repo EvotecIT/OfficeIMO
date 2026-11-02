@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
         [InlineData("staged", true)]
         public void Xlsb_NewWorkbookRetainsItsDrawingMlThemeOnEveryWriterPath(string route, bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "Theme evidence");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Theme evidence");
             document.ResetWorkbookTheme("Custom & bounded theme");
             XDocument source = XDocument.Parse(document.GetWorkbookThemeXml()!);
             XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             document.SetWorkbookThemeXml(source.ToString());
             using var destination = new MemoryStream();
             if (route == "general") {
-                document.AddSheet("Other").CellValue(1, 1, "Second sheet");
+                document.AddSheet("Other").Cell(1, 1).SetValue("Second sheet");
                 document.Save(destination, ExcelFileFormat.Xlsb, new ExcelSaveOptions { XlsbUseSharedStrings = sharedStrings });
             } else {
                 var rows = new SnapshotXlsbRows(aboveCaptureLimit: route == "staged");
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             byte[] theme = ReadPackageEntry(original, "xl/theme/theme1.xml");
             using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
             Assert.True(XNode.DeepEquals(XDocument.Parse(System.Text.Encoding.UTF8.GetString(theme)), XDocument.Parse(document.GetWorkbookThemeXml()!)));
-            document.Sheets[0].CellValue(1, 1, "Edited theme evidence");
+            document.Sheets[0].Cell(1, 1).SetValue("Edited theme evidence");
             byte[] edited = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
             Assert.Equal(theme, ReadPackageEntry(edited, "xl/theme/theme1.xml"));
         }
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWriterRefusesToDropRelatedThemePartsBeforeWriting() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "Theme evidence");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Theme evidence");
             document.EnsureWorkbookTheme();
             document.WorkbookPartRoot.ThemePart!.AddExternalRelationship("urn:unsupported-theme-carrier", new Uri("https://example.invalid/inert"));
             using var destination = new MemoryStream();

@@ -65,9 +65,9 @@ namespace OfficeIMO.Tests
                 if (NumericLabelFormat(kind) is string format)
                     Assert.Equal(kind.StartsWith("currency-", StringComparison.Ordinal) ? "\\" + format
                             : kind == "parenthesized-negative" ? "#,##0.00;\\(#,##0.00\\)" : format,
-                        grouped.GetCellStyle(5, 1).NumberFormatCode);
+                        grouped.Cell(5, 1).GetStyle().NumberFormatCode);
                 if (kind.StartsWith("duplicate-caption-", StringComparison.Ordinal))
-                    Assert.Equal("0.0", grouped.GetCellStyle(6, 1).NumberFormatCode);
+                    Assert.Equal("0.0", grouped.Cell(6, 1).GetStyle().NumberFormatCode);
                 var lookups = document.GetSheet("Lookups");
                 lookups.ClearCachedFormulaResults();
                 Assert.Equal(lookupRows, lookups.RecalculateSupportedFormulas());
@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Item");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Item");
+                source.Cell(1, 2).SetValue("Sales");
                 double[] keys = kind == "midpoint-positive" ? new[]
                 {
                     2.5d,
@@ -276,8 +276,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < keys.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, keys[index]);
-                    source.CellValue(index + 2, 2, 10 * (index + 1));
+                    source.Cell(index + 2, 1).SetValue(keys[index]);
+                    source.Cell(index + 2, 2).SetValue(10 * (index + 1));
                 }
 
                 var builder = new ExcelPivotTableOptions();
@@ -299,7 +299,7 @@ namespace OfficeIMO.Tests
                 Assert.True(result.Mutation.PackageIsValid, string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
                 if (NumericLabelFormat(kind)is string outputFormat)
-                    Assert.Equal(outputFormat, source.GetCellStyle(5, 4).NumberFormatCode);
+                    Assert.Equal(outputFormat, source.Cell(5, 4).GetStyle().NumberFormatCode);
                 var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
                 Assert.False(pivot.PivotFields!.Elements<PivotField>().First().ShowAll!.Value);
                 if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative" or "decimal-two" or "percent-one" or "decimal-midpoint" or "decimal-three" or "grouped-three-decimal" or "currency-positive" or "currency-negative" or "grouped-two-decimal" or "percent-two-decimal" or "currency-zero-decimal" or "parenthesized-negative")
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
             if (NumericLabelFormat(kind)is string savedFormat)
-                Assert.Equal(savedFormat, reopened.GetSheet("Source").GetCellStyle(5, 4).NumberFormatCode);
+                Assert.Equal(savedFormat, reopened.GetSheet("Source").Cell(5, 4).GetStyle().NumberFormatCode);
         }
 
         private static string? NumericLabelFormat(string kind) => kind switch {
@@ -342,12 +342,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Source");
-            source.CellValue(1, 1, "Item");
-            source.CellValue(1, 2, "Sales");
-            source.CellValue(2, 1, 1.2d);
-            source.CellValue(2, 2, 10d);
-            source.CellValue(3, 1, 2.3d);
-            source.CellValue(3, 2, 20d);
+            source.Cell(1, 1).SetValue("Item");
+            source.Cell(1, 2).SetValue("Sales");
+            source.Cell(2, 1).SetValue(1.2d);
+            source.Cell(2, 2).SetValue(10d);
+            source.Cell(3, 1).SetValue(2.3d);
+            source.Cell(3, 2).SetValue(20d);
             {
                 var pivotOptions1 = new ExcelPivotTableOptions();
                 pivotOptions1.RowFields.Add("Item");
@@ -380,8 +380,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Item");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Item");
+                source.Cell(1, 2).SetValue("Sales");
                 double[] keys =
                 {
                     1.21d,
@@ -390,8 +390,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < keys.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, keys[index]);
-                    source.CellValue(index + 2, 2, 10d * (index + 1));
+                    source.Cell(index + 2, 1).SetValue(keys[index]);
+                    source.Cell(index + 2, 2).SetValue(10d * (index + 1));
                 }
 
                 var builder = new ExcelPivotTableOptions();
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests
                 var result = grouped.MaterializePivotTable("LabelPivot");
                 Assert.Equal("A4:C10", result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
-                Assert.Equal("#,##0", grouped.GetCellStyle(5, 1).NumberFormatCode);
+                Assert.Equal("#,##0", grouped.Cell(5, 1).GetStyle().NumberFormatCode);
                 var lookups = document.GetSheet("Lookups");
                 lookups.ClearCachedFormulaResults();
                 Assert.Equal(4, lookups.RecalculateSupportedFormulas());
@@ -471,18 +471,18 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Quantity");
-                source.CellValue(1, 2, "Product");
-                source.CellValue(1, 3, "Sales");
-                source.CellValue(2, 1, 1000d);
-                source.CellValue(2, 2, "A");
-                source.CellValue(2, 3, 10d);
-                source.CellValue(3, 1, 1000d);
-                source.CellValue(3, 2, "B");
-                source.CellValue(3, 3, 20d);
-                source.CellValue(4, 1, 2000d);
-                source.CellValue(4, 2, "A");
-                source.CellValue(4, 3, 30d);
+                source.Cell(1, 1).SetValue("Quantity");
+                source.Cell(1, 2).SetValue("Product");
+                source.Cell(1, 3).SetValue("Sales");
+                source.Cell(2, 1).SetValue(1000d);
+                source.Cell(2, 2).SetValue("A");
+                source.Cell(2, 3).SetValue(10d);
+                source.Cell(3, 1).SetValue(1000d);
+                source.Cell(3, 2).SetValue("B");
+                source.Cell(3, 3).SetValue(20d);
+                source.Cell(4, 1).SetValue(2000d);
+                source.Cell(4, 2).SetValue("A");
+                source.Cell(4, 3).SetValue(30d);
                 {
                     var pivotOptions2 = new ExcelPivotTableOptions();
                     pivotOptions2.RowFields.Add("Quantity");
@@ -515,18 +515,18 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Source");
-            source.CellValue(1, 1, "Quantity");
-            source.CellValue(1, 2, "Product");
-            source.CellValue(1, 3, "Sales");
-            source.CellValue(2, 1, 1000d);
-            source.CellValue(2, 2, "A");
-            source.CellValue(2, 3, 10d);
-            source.CellValue(3, 1, 1000d);
-            source.CellValue(3, 2, "B");
-            source.CellValue(3, 3, 20d);
-            source.CellValue(4, 1, 2000d);
-            source.CellValue(4, 2, "A");
-            source.CellValue(4, 3, 30d);
+            source.Cell(1, 1).SetValue("Quantity");
+            source.Cell(1, 2).SetValue("Product");
+            source.Cell(1, 3).SetValue("Sales");
+            source.Cell(2, 1).SetValue(1000d);
+            source.Cell(2, 2).SetValue("A");
+            source.Cell(2, 3).SetValue(10d);
+            source.Cell(3, 1).SetValue(1000d);
+            source.Cell(3, 2).SetValue("B");
+            source.Cell(3, 3).SetValue(20d);
+            source.Cell(4, 1).SetValue(2000d);
+            source.Cell(4, 2).SetValue("A");
+            source.Cell(4, 3).SetValue(30d);
             {
                 var pivotOptions3 = new ExcelPivotTableOptions();
                 pivotOptions3.RowFields.Add("Quantity");

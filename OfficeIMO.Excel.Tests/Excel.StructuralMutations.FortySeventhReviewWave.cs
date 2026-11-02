@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests
             }));
 
             Assert.Empty(sheet.WorksheetPart.TableDefinitionParts);
-            Assert.Null(sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Null(sheet.Cell(1, 1).GetValue<string>());
             Assert.Single(connectionsPart.Connections.Elements<Connection>());
         }
 
@@ -100,10 +100,10 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
-            data.CellValue(1, 1, "OrderDate");
-            data.CellValue(1, 2, "Sales");
-            data.CellValue(2, 1, new DateTime(2026, 1, 2));
-            data.CellValue(2, 2, 10d);
+            data.Cell(1, 1).SetValue("OrderDate");
+            data.Cell(1, 2).SetValue("Sales");
+            data.Cell(2, 1).SetValue(new DateTime(2026, 1, 2));
+            data.Cell(2, 2).SetValue(10d);
             data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "OrderDate" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             _ = document.Sheets;
             ReaderWriterLockSlim workbookLock = document.EnsureLock();

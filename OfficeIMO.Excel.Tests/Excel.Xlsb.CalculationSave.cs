@@ -20,7 +20,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
     public void Save_calculation_policy_preserves_native_chart_and_VBA_graphs(string mode, bool encryptedOutput) {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "ExcelPreservationCorpus", "excel-populated-macro.xlsb");
         using var document = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(path)));
-        var sheet = document.Sheets[0]; sheet.CellFormula(200, 4, "1+2");
+        var sheet = document.Sheets[0]; sheet.Cell(200, 4).SetFormula("1+2");
         sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "D200").CellValue = new CellValue("99");
         var options = new ExcelSaveOptions {
             EvaluateFormulasBeforeSave = mode == "evaluate", ClearCachedFormulaResultsBeforeSave = mode == "clear",
@@ -46,14 +46,14 @@ public sealed class ExcelXlsbCalculationSaveTests {
     [Fact]
     public void Fresh_workbooks_and_document_level_calculation_settings_apply_to_native_saves() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
-        sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
+        sheet.Cell(1, 1).SetFormula("1+2"); sheet.RecalculateSupportedFormulas();
         byte[] cleared = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  ClearCachedFormulaResultsBeforeSave = true });
         using var blank = ExcelDocument.Load(new MemoryStream(cleared));
         Assert.Equal(string.Empty, blank.Sheets[0].GetCellText(blank.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single()));
         Assert.True(blank.WorkbookRoot.CalculationProperties?.FullCalculationOnLoad?.Value);
         blank.Calculation.EvaluateFormulasBeforeSave = true;
         using var calculated = ExcelDocument.Load(new MemoryStream(blank.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })));
-        Assert.Equal(3D, calculated.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(3D, calculated.Sheets[0].Cell(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -61,7 +61,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
     [InlineData(true)]
     public void Clearing_opaque_native_formula_cache_keeps_tokens_on_a_subsequent_edit(bool encryptedOutput) {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
-        sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
+        sheet.Cell(1, 1).SetFormula("1+2"); sheet.RecalculateSupportedFormulas();
         byte[] source = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         byte[] refError = { 0x4A, 0, 0, 0, 0, 0, 0 }; // Valid BIFF12 PtgRefErrV, deliberately outside the text projection subset.
         using var edited = new MemoryStream(); edited.Write(source, 0, source.Length);
@@ -88,7 +88,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
         using var readback = encryptedOutput ? ExcelDocument.LoadEncrypted(cleared, "test-password") : ExcelDocument.Load(cleared);
         var first = XlsbWorkbookReader.Load(readback.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })).Worksheets[0].Cells.Single();
         Assert.Equal(refError, first.FormulaBytes); Assert.Equal(string.Empty, first.Value);
-        document.Sheets[0].CellValue(2, 1, "later edit");
+        document.Sheets[0].Cell(2, 1).SetValue("later edit");
         var second = XlsbWorkbookReader.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb })).Worksheets[0].Cells.Single(cell => cell.Row == 1);
         Assert.Equal(refError, second.FormulaBytes); Assert.Equal(string.Empty, second.Value);
     }

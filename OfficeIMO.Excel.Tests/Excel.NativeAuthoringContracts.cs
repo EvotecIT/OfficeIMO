@@ -102,8 +102,8 @@ public sealed class ExcelNativeAuthoringContracts {
         table.Resize(headers ? "A1:B4" : "A1:B3").SetTotals(new Dictionary<string, ExcelTableTotalsFunction> {
             ["Revenue"] = ExcelTableTotalsFunction.Sum
         });
-        sheet.CellValue(headers ? 4 : 3, 1, "Total");
-        sheet.CellValue(headers ? 4 : 3, 2, 30d);
+        sheet.Cell(headers ? 4 : 3, 1).SetValue("Total");
+        sheet.Cell(headers ? 4 : 3, 2).SetValue(30d);
         sheet.AddChart(OfficeChartType.Column, "RevenueTable", new ExcelChartOptions { IncludeCachedData = cache });
         using var output = Save(workbook);
         using var package = SpreadsheetDocument.Open(output, false);
@@ -123,7 +123,7 @@ public sealed class ExcelNativeAuthoringContracts {
             new ExcelChartSeries("Points", new[] { 20d, 40d }, new[] { 1d, 3d }, OfficeChartType.Scatter)
         });
         sheet.AddChart(OfficeChartType.Scatter, scatter);
-        sheet.CellValues(new[] { (1, 1, (object)1d), (2, 1, (object)3d),
+        sheet.SetValues(new[] { (1, 1, (object)1d), (2, 1, (object)3d),
             (1, 2, (object)20d), (2, 2, (object)40d), (1, 3, (object)4d), (2, 3, (object)8d) });
         sheet.AddScatterChartFromRanges(new[] { new ExcelChartSeriesRange("XY", "A1:A2", "B1:B2") }, 20, 1);
         sheet.AddBubbleChartFromRanges(new[] { new ExcelChartSeriesRange("Sized", "A1:A2", "B1:B2", "C1:C2") }, 40, 1);

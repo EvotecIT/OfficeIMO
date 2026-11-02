@@ -72,10 +72,10 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 var summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Label");
-                summary.CellValue(1, 2, "Value");
-                summary.CellValue(2, 1, "Status");
-                summary.CellValue(2, 2, "Open");
+                summary.Cell(1, 1).SetValue("Label");
+                summary.Cell(1, 2).SetValue("Value");
+                summary.Cell(2, 1).SetValue("Status");
+                summary.Cell(2, 2).SetValue("Open");
                 summary.SetComment(2, 2, "Line 1\nLine 2", author: "Tester", initials: "TT");
                 summary.SetHyperlink(3, 1, "https://example.org", display: "Example");
                 summary.SetInternalLink(4, 1, "'Summary'!A1", display: "Back to top");
@@ -86,22 +86,22 @@ namespace OfficeIMO.Tests
                 }
 
                 var data = document.AddSheet("Data");
-                data.CellValue(1, 1, "Category");
-                data.CellValue(1, 2, "Amount");
-                data.CellValue(1, 3, "Trend1");
-                data.CellValue(1, 4, "Trend2");
-                data.CellValue(2, 1, "A");
-                data.CellValue(2, 2, 10);
-                data.CellValue(2, 3, 3d);
-                data.CellValue(2, 4, 5d);
-                data.CellValue(3, 1, "B");
-                data.CellValue(3, 2, 20);
-                data.CellValue(3, 3, 4d);
-                data.CellValue(3, 4, 6d);
-                data.CellValue(4, 1, "A");
-                data.CellValue(4, 2, 15);
-                data.CellValue(4, 3, 5d);
-                data.CellValue(4, 4, 7d);
+                data.Cell(1, 1).SetValue("Category");
+                data.Cell(1, 2).SetValue("Amount");
+                data.Cell(1, 3).SetValue("Trend1");
+                data.Cell(1, 4).SetValue("Trend2");
+                data.Cell(2, 1).SetValue("A");
+                data.Cell(2, 2).SetValue(10);
+                data.Cell(2, 3).SetValue(3d);
+                data.Cell(2, 4).SetValue(5d);
+                data.Cell(3, 1).SetValue("B");
+                data.Cell(3, 2).SetValue(20);
+                data.Cell(3, 3).SetValue(4d);
+                data.Cell(3, 4).SetValue(6d);
+                data.Cell(4, 1).SetValue("A");
+                data.Cell(4, 2).SetValue(15);
+                data.Cell(4, 3).SetValue(5d);
+                data.Cell(4, 4).SetValue(7d);
                 data.AddAutoFilter("A1:D4");
                 data.AddTable("A1:D4", hasHeader: true, name: "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, includeAutoFilter: true);
                 data.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
@@ -156,14 +156,14 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "ID");
-                sheet.CellValue(1, 2, "Description");
+                sheet.Cell(1, 1).SetValue("ID");
+                sheet.Cell(1, 2).SetValue("Description");
                 for (int r = 2; r <= 6; r++) {
-                    sheet.CellValue(r, 1, $"Row {r}");
-                    sheet.CellValue(r, 2, "Wrapped column should stay narrow even when auto-fit runs on neighbours.");
+                    sheet.Cell(r, 1).SetValue($"Row {r}");
+                    sheet.Cell(r, 2).SetValue("Wrapped column should stay narrow even when auto-fit runs on neighbours.");
                 }
 
-                sheet.WrapCells(2,6,2, ExcelColumnWidth.Characters(24));
+                sheet.Range(2, 2, 6, 2).SetWrapText(); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
                 sheet.AutoFitColumnsFor(new[] { 1 });
                 document.Save();
             }
@@ -188,12 +188,12 @@ namespace OfficeIMO.Tests
             {
                 var composer = document.AddSheet("Report").Report();
                 var sheet = composer.Sheet;
-                sheet.CellValue(1, 1, "Wrap");
-                sheet.CellValue(1, 2, "Auto");
+                sheet.Cell(1, 1).SetValue("Wrap");
+                sheet.Cell(1, 2).SetValue("Auto");
                 for (int r = 2; r <= 10; r++)
                 {
-                    sheet.CellValue(r, 1, "Long wrapped content that should stay constrained.");
-                    sheet.CellValue(r, 2, "Extremely long value that benefits from auto-fitting to show full content without manual width tweaks.");
+                    sheet.Cell(r, 1).SetValue("Long wrapped content that should stay constrained.");
+                    sheet.Cell(r, 2).SetValue("Extremely long value that benefits from auto-fitting to show full content without manual width tweaks.");
                 }
 
                 composer.ApplyColumnSizing("A1:B10", opts =>
@@ -234,13 +234,13 @@ namespace OfficeIMO.Tests
 
         private static void SeedWideContent(ExcelSheet sheet, string label, ref int tableIndex) {
             // Intentionally write cells out of order across the alphabet boundary to exercise ordering logic.
-            sheet.CellValue(1, 1, $"{label} Report");
-            sheet.CellValue(1, 27, "AA marker");
-            sheet.CellValue(1, 28, "AB marker");
-            sheet.CellValue(1, 53, "BA marker");
-            sheet.CellValue(1, 19, "S marker");
-            sheet.CellValue(9, 15, "Detail O9");
-            sheet.CellValue(9, 29, "Detail AC9");
+            sheet.Cell(1, 1).SetValue($"{label} Report");
+            sheet.Cell(1, 27).SetValue("AA marker");
+            sheet.Cell(1, 28).SetValue("AB marker");
+            sheet.Cell(1, 53).SetValue("BA marker");
+            sheet.Cell(1, 19).SetValue("S marker");
+            sheet.Cell(9, 15).SetValue("Detail O9");
+            sheet.Cell(9, 29).SetValue("Detail AC9");
 
             var safeLabel = label.Replace(' ', '_');
             AddTable(sheet, 11, 1, 4, 11, $"{safeLabel}_Primary_{tableIndex++}");
@@ -249,12 +249,12 @@ namespace OfficeIMO.Tests
 
         private static void AddTable(ExcelSheet sheet, int startRow, int startColumn, int rows, int columns, string tableName) {
             for (int c = 0; c < columns; c++) {
-                sheet.CellValue(startRow, startColumn + c, $"Header {c + 1}");
+                sheet.Cell(startRow, startColumn + c).SetValue($"Header {c + 1}");
             }
 
             for (int r = 1; r < rows; r++) {
                 for (int c = 0; c < columns; c++) {
-                    sheet.CellValue(startRow + r, startColumn + c, $"R{r}C{c}");
+                    sheet.Cell(startRow + r, startColumn + c).SetValue($"R{r}C{c}");
                 }
             }
 

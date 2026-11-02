@@ -45,8 +45,8 @@ internal static class NativeNumbersCellEditingSmoke {
         Require(conversion.Report.Diagnostics.Any(item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"), "XLSX padding loss was hidden.");
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var saved = ExcelDocument.Load(output);
-        Require(saved.Sheets.Count == 3 && !saved.ValidateOpenXml().Any() && saved.Sheets[0].CellAt(2, 2).GetValue<double>() == number
-            && !saved.Sheets[0].CellAt(2, 3).GetValue<bool>() && saved.Sheets[1].CellAt(2, 1).GetValue<bool>(), "Saved edited XLSX lost typed content.");
+        Require(saved.Sheets.Count == 3 && !saved.ValidateOpenXml().Any() && saved.Sheets[0].Cell(2, 2).GetValue<double>() == number
+            && !saved.Sheets[0].Cell(2, 3).GetValue<bool>() && saved.Sheets[1].Cell(2, 1).GetValue<bool>(), "Saved edited XLSX lost typed content.");
     }
 
     private static IWorkTable[] Tables(IWorkSourceDocument source) => source.ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables).ToArray();

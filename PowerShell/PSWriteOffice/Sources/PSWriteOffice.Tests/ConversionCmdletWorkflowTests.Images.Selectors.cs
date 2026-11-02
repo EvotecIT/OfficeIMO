@@ -80,10 +80,10 @@ public sealed partial class ConversionCmdletWorkflowTests {
         string root = Directory.CreateTempSubdirectory("officeimo-native-image-sheets-").FullName;
         using var book = ExcelDocument.Create();
         var sheet = book.AddSheet("Dashboard");
-        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Revenue");
-        sheet.CellValue(2, 1, "East"); sheet.CellValue(2, 2, 3);
-        sheet.CellValue(3, 1, "West"); sheet.CellValue(3, 2, 6);
-        book.AddSheet("Other").CellValue(1, 1, "Other sheet");
+        sheet.Cell(1, 1).SetValue("Region"); sheet.Cell(1, 2).SetValue("Revenue");
+        sheet.Cell(2, 1).SetValue("East"); sheet.Cell(2, 2).SetValue(3);
+        sheet.Cell(3, 1).SetValue("West"); sheet.Cell(3, 2).SetValue(6);
+        book.AddSheet("Other").Cell(1, 1).SetValue("Other sheet");
         var chart = sheet.AddChart(OfficeChartType.BarClustered, "A1:B3", new ExcelChartOptions { Row = 2, Column = 5 });
         chart.Name = "Revenue";
         try {
@@ -109,7 +109,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
             Assert.Equal(chart.ExportImage(OfficeImageExportFormat.Svg, new ExcelImageExportOptions { TargetDpi = 144 }).Bytes, actualChart.Bytes);
             Assert.Equal(outputPath, actualChart.SavedPath);
             Assert.False(Directory.Exists(Path.GetDirectoryName(invalidPath)));
-            Assert.Equal("East", sheet.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("East", sheet.Cell(2, 1).GetValue<string>());
         } finally { Directory.Delete(root, true); }
     }
 

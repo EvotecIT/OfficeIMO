@@ -97,10 +97,10 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     public void SecondaryValueAxis_ResolvesLinkedNumberFormatFromItsWorksheetValues() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Results");
-        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Count"); sheet.CellValue(1, 3, "Ratio");
-        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, 100); sheet.CellValue(2, 3, .5);
-        sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, 200); sheet.CellValue(3, 3, .75);
-        sheet.CellAt(2, 3).Percent(0); sheet.CellAt(3, 3).Percent(0);
+        sheet.Cell(1, 1).SetValue("Region"); sheet.Cell(1, 2).SetValue("Count"); sheet.Cell(1, 3).SetValue("Ratio");
+        sheet.Cell(2, 1).SetValue("North"); sheet.Cell(2, 2).SetValue(100); sheet.Cell(2, 3).SetValue(.5);
+        sheet.Cell(3, 1).SetValue("South"); sheet.Cell(3, 2).SetValue(200); sheet.Cell(3, 3).SetValue(.75);
+        sheet.Cell(2, 3).Percent(0); sheet.Cell(3, 3).Percent(0);
         var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "North", "South" }, new[] {
                 new OfficeSeries("Count", new[] { 100d, 200d }),
                 new OfficeSeries("Ratio", new[] { .5, .75 }, null, null, null, true,

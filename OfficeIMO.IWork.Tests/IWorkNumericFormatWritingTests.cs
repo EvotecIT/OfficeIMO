@@ -59,9 +59,9 @@ public sealed class IWorkNumericFormatWritingTests {
                 formats[styles.CellFormats!.Elements<S.CellFormat>().ElementAt((int)cell.StyleIndex!.Value).NumberFormatId!.Value]));
         }
         output.Position = 0; using var reopened = ExcelDocument.Load(output);
-        Assert.Equal(-1234.5, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
-        Assert.Equal(-0.125, reopened.Sheets[0].CellAt(2, 1).GetValue<double>());
-        Assert.Equal(1234.5, reopened.Sheets[0].CellAt(3, 1).GetValue<double>());
+        Assert.Equal(-1234.5, reopened.Sheets[0].Cell(1, 1).GetValue<double>());
+        Assert.Equal(-0.125, reopened.Sheets[0].Cell(2, 1).GetValue<double>());
+        Assert.Equal(1234.5, reopened.Sheets[0].Cell(3, 1).GetValue<double>());
     }
 
     [Fact]

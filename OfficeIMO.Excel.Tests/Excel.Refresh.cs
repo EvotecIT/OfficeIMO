@@ -18,12 +18,12 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "East");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "West");
-                sheet.CellValue(3, 2, 20);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("East");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("West");
+                sheet.Cell(3, 2).SetValue(20);
                 sheet.AddPivotTable("A1:B3", "E2", options: new ExcelPivotTableOptions { RefreshOnOpen = false, SaveSourceData = true, Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales") } });
                 document.AddWorkbookConnectionMetadata(connectionXml);
                 ExcelRefreshOnOpenResult result = document.SetRefreshOnOpen(savePivotSourceData: false);

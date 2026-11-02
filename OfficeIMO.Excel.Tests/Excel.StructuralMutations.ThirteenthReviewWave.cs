@@ -13,13 +13,13 @@ namespace OfficeIMO.Tests {
         public void Test_ColumnDeletion_VisitsRowsAfterRemovingAnEmptyRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Remove");
-            sheet.CellValue(2, 2, "Shift");
+            sheet.Cell(1, 1).SetValue("Remove");
+            sheet.Cell(2, 2).SetValue("Shift");
 
-            sheet.DeleteColumns(1);
+            sheet.DeleteColumnsTransactional(1);
 
-            Assert.Equal("Shift", sheet.CellAt(2, 1).GetValue<string>());
-            Assert.True(sheet.CellAt(2, 2).GetValue().IsBlank);
+            Assert.Equal("Shift", sheet.Cell(2, 1).GetValue<string>());
+            Assert.True(sheet.Cell(2, 2).GetValue().IsBlank);
         }
 
         [Theory]
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterState_AppliesDefaultCellColorMode() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            sheet.Cell(1, 1).SetValue("Value");
             sheet.WorksheetPart.Worksheet.Append(new AutoFilter(
                 new FilterColumn(new ColorFilter { FormatId = 0U }) { ColumnId = 0U }) {
                 Reference = "A1:A2"
@@ -65,10 +65,10 @@ namespace OfficeIMO.Tests {
             var options = new ExcelMutationPlanOptions { MaximumSnapshotCharacters = 128_000 };
 
             InvalidOperationException copy = Assert.Throws<InvalidOperationException>(() =>
-                sheet.CopyRange("A1", "B1", options));
+                sheet.Range("A1").CopyTo("B1", options));
 
             Assert.Contains("MaximumSnapshotCharacters", copy.Message, StringComparison.Ordinal);
-            sheet.MoveRange("A1", "B1", options);
+            sheet.Range("A1").MoveTo("B1", options);
             ExcelImage moved = Assert.Single(sheet.Images);
             Assert.Equal(1, moved.RowIndex);
             Assert.Equal(2, moved.ColumnIndex);

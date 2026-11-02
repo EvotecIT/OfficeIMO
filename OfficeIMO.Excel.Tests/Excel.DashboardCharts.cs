@@ -10,12 +10,12 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(1, 2, "Revenue");
-                sheet.CellValue(2, 1, "EU");
-                sheet.CellValue(2, 2, 100);
-                sheet.CellValue(3, 1, "US");
-                sheet.CellValue(3, 2, 120);
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(1, 2).SetValue("Revenue");
+                sheet.Cell(2, 1).SetValue("EU");
+                sheet.Cell(2, 2).SetValue(100);
+                sheet.Cell(3, 1).SetValue("US");
+                sheet.Cell(3, 2).SetValue(120);
 
                 ExcelChart chart = sheet.AddDashboardChart(new ExcelDashboardChartOptions {
                     Preset = ExcelDashboardChartPreset.CompactComparison,

@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkNumberFormatKind.Scientific, projected.NumberFormat!.Kind);
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
-        var cache = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        var cache = reopened.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(global::OfficeIMO.Excel.ExcelCellDataKind.Formula, cache.Kind);
         Assert.Equal(-0.0625d, cache.Value);
         Assert.Equal("-6.250E-02", Assert.Single(reopened.Sheets[0].Range("A1:A1").CreateVisualSnapshot().Cells).Text);
