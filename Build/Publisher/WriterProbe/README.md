@@ -679,7 +679,7 @@ input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
 The earlier blank, borderless-table and merged-table bytes remain unchanged.
-Decorated merges, fill utility allocation, new drawing/cluster creation, broader native visibility definitions,
+Decorated merges, utility allocation beyond the initialization profile below, cluster rollover, broader native visibility definitions,
 larger/composed utility drawings, native cell editing and repair-free acceptance
 remain open; public native creation remains gated.
 
@@ -693,7 +693,7 @@ independent, generated and native-resaved input: ten cell/grid inventories and
 ten native PDF pairs match controls at 100 dpi. The unsupported complex-peer
 regression is fixed and confirmed; post-fix output bytes match every native-
 validated input. Non-solid/transparent paint, ambiguous/unsupported boolean
-roles, missing local visibility ownership, fill utility allocation/removal, broader
+roles, missing local visibility ownership, fill utility allocation in populated drawings/removal, broader
 native producers and repair-free acceptance remain outside this profile.
 
 The `tableBorderTopology` record qualifies adding, clearing and replacing shared
@@ -701,7 +701,7 @@ edges within an existing direct utility drawing and current SPID cluster. New
 ranges use cell edges to match native joins. Counts exclude background shapes,
 while IDs, allocation cursors and used slots retain their history after deletion.
 Re-addition uses fresh IDs. Unsupported or conflicting ownership, invalid counts
-or cursors, missing drawings and required new clusters refuse output. Planning
+or cursors, missing drawings outside the initialization profile below and required new clusters refuse output. Planning
 reuses source-bound artwork without decoding unrelated images again and retains
 the original read options for structural rewriting.
 
@@ -712,6 +712,25 @@ PDF pairs match the controls at 100 dpi. The shared border encoder retains both
 decorated creation specimens' exact previous bytes. Native cell editing, broader
 paint/producer profiles, merged/composed decoration and repair-free acceptance
 remain unqualified; public native creation remains gated.
+
+The `tableUtilityInitialization` record qualifies first fills and borders in
+borderless rectangular tables from compact sources and native-normalized empty
+utility scopes. Source initialization and fresh decorated creation share the same
+utility encoder. Guarded allocation retains ordinary drawings, existing empty
+roots/background, inherited defaults and unrelated logical storage. Four native
+controls isolate border-only, border/text, fill-only and cleared-border states.
+Ten source workflows complete Full validation: twenty cell/grid/style inventories
+and twenty native PDF pairs match independent controls at 100 dpi. Final public
+outputs retain all ten qualified byte sequences; both decorated creation specimens
+also retain their earlier bytes. Eight PowerShell edits match those PUB inputs,
+and ten PDF workflows retain text and colored primitive counts/colors.
+
+Final-size border checks reject styles wider than their perpendicular table
+extent in both source save paths and fresh encoding. Unsupported default opacity,
+ambiguous counts/history, missing cell utilities in populated drawings, cluster
+rollover, merged/composed decoration and broader producers remain outside this
+profile. Native cell mutation, managed/native text-baseline parity, repair-free
+acceptance and public source-free native creation remain unqualified.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

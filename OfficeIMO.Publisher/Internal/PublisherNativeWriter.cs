@@ -116,7 +116,10 @@ internal sealed partial class PublisherNativeWriter {
         if (writer._hasTableFillProperties) diagnostics.Add(Finding("PUB_NATIVE_TABLE_FILL_UNQUALIFIED",
             "Existing cell utility visibility or a local solid-color property changed. Filled use-bits retain unrelated boolean uses; color insertion rewrites enclosing OfficeArt lengths while preserving unrelated records and drawing instances. Native repair-free acceptance and broader producer/style behavior remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Escher/tables"));
-        if (writer._tableBorderRecords?.IsEmpty == false) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED",
+        if (writer._tableBorderRecords?.AllocationRecord != null) diagnostics.Add(Finding("PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED",
+            "Fresh rectangular table utilities and auxiliary/utility drawings were allocated from the current model. Original ordinary drawing records are retained; allocation metadata, instance prefixes and enclosing lengths change. Broader producer/layout and repair-free acceptance remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/tables"));
+        else if (writer._tableBorderRecords?.IsEmpty == false) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED",
             "Existing utility edges were removed or new solid shared ranges appended. Native SPID allocation history is retained while active shape counts and enclosing lengths change. Reloaded border order follows native records; broader producer/layout and repair-free fidelity remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Escher/tables"));
         if (writer._hasTableBounds) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED",

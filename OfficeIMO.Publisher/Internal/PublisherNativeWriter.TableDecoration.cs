@@ -4,12 +4,24 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherNativeWriter {
     private readonly Dictionary<uint, IReadOnlyList<PublisherTableBorderSegment>> _tableBorderTargets = new();
+    private readonly Dictionary<uint, PublisherTableState> _newTableUtilityTargets = new();
     private PublisherEscherShapeEdits? _tableBorderRecords;
     /// <summary>Edits utility fills and shared edges within the qualified existing drawing and allocation cluster.</summary>
     private void CompareTableDecoration(PublisherTableState before, PublisherTableState after) {
-        if (before.CellFills.SequenceEqual(after.CellFills) && before.BorderSegments.SequenceEqual(after.BorderSegments)) return;
         string location = "Contents/object/" + before.Id;
+        foreach (var edge in after.BorderSegments) {
+            _token.ThrowIfCancellationRequested();
+            if (edge.Side.Width > (edge.FirstRow == edge.LastRow ? after.Height : after.Width)) {
+                Reject(location, "Native shared-border width exceeds the final table's perpendicular extent."); return;
+            }
+        }
+        if (before.CellFills.SequenceEqual(after.CellFills) && before.BorderSegments.SequenceEqual(after.BorderSegments)) return;
         PublisherTableArtwork[] artwork = _imported.Artwork.TableArtwork.Where(item => item.TableId == before.Id).ToArray();
+        if (artwork.Length == 0 && before.CellFills.All(fill => !fill.HasValue) && before.BorderSegments.Count == 0) {
+            if (!DisjointBorders(after.BorderSegments)) { Reject(location, "New table utilities require non-overlapping shared grid ownership."); return; }
+            _newTableUtilityTargets.Add(before.Id, after);
+            return;
+        }
         for (int i = 0; i < before.CellFills.Count; i++) {
             _token.ThrowIfCancellationRequested();
             if (before.CellFills[i] == after.CellFills[i]) continue;
@@ -107,8 +119,15 @@ internal sealed partial class PublisherNativeWriter {
     }
 
     private void PlanTableBorderRecords() {
-        if (_tableBorderTargets.Count == 0) return;
+        if (_newTableUtilityTargets.Count == 0 && _tableBorderTargets.Count == 0) return;
         var context = new PublisherParseContext(_sourceOptions, _token);
+        if (_newTableUtilityTargets.Count != 0) {
+            if (_tableBorderTargets.Count != 0) { Reject("Escher/tables", "Missing table utilities cannot be combined with an unqualified existing drawing scope."); return; }
+            _tableBorderRecords = PublisherEscherTableUtilityPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _newTableUtilityTargets, context, out var scalars);
+            if (_tableBorderRecords == null) Reject("Escher/tables", "New table utilities require qualified ordinary source bindings, compact or empty utility scopes, simple inherited defaults and unambiguous allocation history.");
+            else foreach (var edit in scalars) Patch(edit.Slot, edit.Value);
+            return;
+        }
         PublisherEscherTableBorderPlan? plan = PublisherEscherTableBorderPlan.Create(_imported.NativeSource!.EscherBytes, _imported.Artwork, _tableBorderTargets, context);
         if (plan == null) { Reject("Escher/tables", "Utility edits require one existing direct utility drawing, consistent shape/allocation counts and room in its current SPID cluster."); return; }
         foreach (var edit in plan.Scalars) Patch(edit.Slot, edit.Value);

@@ -34200,7 +34200,7 @@
     "codec": {
       "ownership": "Exact retained source bindings for every projected/shared utility edge; unsupported paint, duplicate ownership and overlapping source ranges refuse output.",
       "ranges": "Retain existing source ranges; emit newly authored ranges as unit cell edges to match native joins. Reload record order/segmentation may differ; shared unit-grid coverage is the style contract.",
-      "allocation": "Validate FDG/FDGG active counts (excluding background shapes), unique SPIDs, current cluster ownership/used slots and cursor. Keep allocation history when deleting; additions consume fresh current-cluster slots. Update active counts, cursor/used slots, maximum ID and enclosing lengths. Refuse missing utility drawings, new clusters, inconsistent counts/cursors or exhausted allocation.",
+      "allocation": "Validate FDG/FDGG active counts (excluding background shapes), unique SPIDs, current cluster ownership/used slots and cursor. Keep allocation history when deleting; additions consume fresh current-cluster slots. Update active counts, cursor/used slots, maximum ID and enclosing lengths. Refuse missing utility drawings outside tableUtilityInitialization, new clusters, inconsistent counts/cursors or exhausted allocation.",
       "preservation": "Remove whole source-bound utility records and append new ones; retain unrelated records, drawing-instance separators and logical storage. Fixed scalar patches precede range/FOPT surgery; Quill owns text growth. Stale-preview invalidation remains explicit.",
       "resourceLimits": "Reuse retained artwork rather than decoding unrelated image stores again. Source-bound structural contexts retain the original read options.",
       "defaultFill": "An active cell fill without local RGB inherits the utility drawing cell default; native automatic FFFFFFFF is table white rather than the document theme accent.",
@@ -34681,6 +34681,548 @@
       "No universal repair-free predicate from absent selected diagnostics/messages.",
       "Cancelled repair-request-control.pub trust/recovery flow is untouched; no trust/security consent automated.",
       "Other producer/generation, companion and silent-normalization paths remain unqualified."
+    ]
+  },
+  "tableUtilityInitialization": {
+    "sourceBaseCommit": "50695ec3fc49c909e5a8ba4abd058968abec0c7b",
+    "scope": "First solid fills and shared borders for unmerged rectangular tables in compact sources and native-normalized empty utility scopes; later fills/clear/re-add and text composition.",
+    "publicOperations": [
+      "SetTableCellFillColor",
+      "SetTableBorderStyle",
+      "ToPubBytes"
+    ],
+    "codec": {
+      "sharedOwner": "PublisherTableUtilityDrawingEncoding serves source initialization and fresh internal decorated authoring.",
+      "compactSource": "One ordinary drawing/cluster 1; exact active counts, unique identifiers and current allocation cursor. Insert utility drawing 3 and auxiliary drawing 2 with prefixes 2/1/0.",
+      "nativeNormalizedSource": "Existing root-only utility 3 plus auxiliary 2 root/background, ordinary drawing 1, simple global defaults and one declared cluster. Preserve roots/background and materialize qualified cluster entries.",
+      "allocation": "Fresh cell/default/edge identifiers; active counts exclude background shapes. Retain used history on clearing and consume fresh identifiers on re-add. Unit cell edges retain shared coverage and native joins.",
+      "preservation": "Original ordinary drawing bytes and unrelated logical storage retained; Quill owns text growth and preview invalidation is explicit.",
+      "guards": "Reject ambiguous source bindings/counts/history, unsupported inherited opacity/paint or complex/BLIP-role defaults, merged tables, exhausted clusters and borders exceeding final perpendicular table extent, including bounds-only existing styles.",
+      "diagnostic": "PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED"
+    },
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a"
+    },
+    "controls": [
+      {
+        "case": "TableBordersOnly",
+        "license": "MIT",
+        "files": [
+          {
+            "name": "native-tablebordersonly.pub",
+            "bytes": 93696,
+            "sha256": "55850ee2722f1282d99d56dbd2957ae9d94d9a72e320f2d0cb5ac1465f68481a"
+          },
+          {
+            "name": "native-tablebordersonly.pdf",
+            "bytes": 111540,
+            "sha256": "5db4a51cfabc2bff2a65a37c0646fc7c93ebb5a6b5fca16b69c767047f6d0bc7"
+          },
+          {
+            "name": "native-tablebordersonly.json",
+            "bytes": 10017,
+            "sha256": "acf8dba71c19e3be27f8876f7145d8ee3473b91912ccf6e897a798ff4a06378e"
+          }
+        ]
+      },
+      {
+        "case": "TableBordersOnlyText",
+        "license": "MIT",
+        "files": [
+          {
+            "name": "native-tablebordersonlytext.pub",
+            "bytes": 93696,
+            "sha256": "bcec49f156d3d77057518b181ff6090bed1dbab1af5d1329bd1f753220a86887"
+          },
+          {
+            "name": "native-tablebordersonlytext.pdf",
+            "bytes": 113268,
+            "sha256": "dac420a5978686c24a58ca4231ebce75b411afa7b304591b58a24506a003d45f"
+          },
+          {
+            "name": "native-tablebordersonlytext.json",
+            "bytes": 10028,
+            "sha256": "8077365f144a928ce4f960bce7930b85860addb6209aeec76636d86bc6322496"
+          }
+        ]
+      },
+      {
+        "case": "TableFillsOnly",
+        "license": "MIT",
+        "files": [
+          {
+            "name": "native-tablefillsonly.pub",
+            "bytes": 91648,
+            "sha256": "63fc46216caf1a6c239d5f7c57943aa4b12445e302fcbc99092913add54d1d21"
+          },
+          {
+            "name": "native-tablefillsonly.pdf",
+            "bytes": 111572,
+            "sha256": "55b034e3693853ea27bce953f648752cf6068be4aeebb3db414deea5b54f457c"
+          },
+          {
+            "name": "native-tablefillsonly.json",
+            "bytes": 10027,
+            "sha256": "d924ff16d9d8786d907a91201e2ac61991c35474a15398c166fffcf366353c92"
+          }
+        ]
+      },
+      {
+        "case": "TableBordersOnlyCleared",
+        "license": "MIT",
+        "files": [
+          {
+            "name": "native-tablebordersonlycleared.pub",
+            "bytes": 91648,
+            "sha256": "471d1d4691089939f316dc045eca8cb2f7a6203b47d9da795281902e98226f97"
+          },
+          {
+            "name": "native-tablebordersonlycleared.pdf",
+            "bytes": 111391,
+            "sha256": "fbb3f5784aa687fae3bffd183c9669d7808d9ad29db2141a3c8303ce42e68b71"
+          },
+          {
+            "name": "native-tablebordersonlycleared.json",
+            "bytes": 10051,
+            "sha256": "61a9ed2671e47307a7010234a31a87b73cbd18c7df7fb357024847b32283180f"
+          }
+        ]
+      }
+    ],
+    "cases": [
+      {
+        "case": "borders",
+        "sha256": "0a1e2cb89c64b635dd674496d1d378ef8ea76f4e0dfff7813156c81963141c1a",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-borders/candidate-input.pub",
+            "sha256": "0a1e2cb89c64b635dd674496d1d378ef8ea76f4e0dfff7813156c81963141c1a"
+          },
+          {
+            "path": "native-borders/native-initial-inventory.json",
+            "sha256": "7996793bc01a9413e001b53c76baff55783e1ce444ee142927bbdac0d78506ef"
+          },
+          {
+            "path": "native-borders/native-initial.pdf",
+            "sha256": "d922e82086ea6b4b4a3aa3c046074a7e9a1f5f3259e079e93bf34b376a0ed7a9"
+          },
+          {
+            "path": "native-borders/native-resaved-inventory.json",
+            "sha256": "214ec9d4d02e39df8572c8c350be005deffba3ec328552259c0b4f286e640484"
+          },
+          {
+            "path": "native-borders/native-resaved.pdf",
+            "sha256": "d62bb8cb07947411ea209a3627af3655c4f88f289c3261bcec143a04e01834b1"
+          },
+          {
+            "path": "native-borders/native-resaved.pub",
+            "sha256": "11ef07bfc832b50d93b93a97246e742bf91f458e0af5a87da3df983f3467e868"
+          },
+          {
+            "path": "native-borders/native-validation.json",
+            "sha256": "29bfbbdc9cb794fdefd127bf3cd827e06199b26eec6d1ceb4c48c153258f3d34"
+          }
+        ]
+      },
+      {
+        "case": "fills",
+        "sha256": "b23c9a62079127233b27497fb2860d08d5f8e3c77e5634981f79786a06efc7b2",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-fills/candidate-input.pub",
+            "sha256": "b23c9a62079127233b27497fb2860d08d5f8e3c77e5634981f79786a06efc7b2"
+          },
+          {
+            "path": "native-fills/native-initial-inventory.json",
+            "sha256": "0d6ea3897b2a2c359b0faf6a5e761681a586795be280909537ac5eb2c1a35009"
+          },
+          {
+            "path": "native-fills/native-initial.pdf",
+            "sha256": "04a24c5a741e8b459221beb8d7f2a0da0eedb251d75bb78a8c34b235c78d8d63"
+          },
+          {
+            "path": "native-fills/native-resaved-inventory.json",
+            "sha256": "d8367fe05816367d6e84bb05516f9bff98731af581b255b5e526d91502228ec1"
+          },
+          {
+            "path": "native-fills/native-resaved.pdf",
+            "sha256": "cfb5e3a20031d16845ffd6eda537ebc01a6026740cb76edce82ff69b3a2ff0c5"
+          },
+          {
+            "path": "native-fills/native-resaved.pub",
+            "sha256": "9813b7da353f4531ca05ffeec9b5196831a875eaaec3d668ccbc27fdd276a1ed"
+          },
+          {
+            "path": "native-fills/native-validation.json",
+            "sha256": "ce71af378d1905c51324ab30f9121dcd6c7451eac0447f17ae0c9dbafed3bb21"
+          }
+        ]
+      },
+      {
+        "case": "both",
+        "sha256": "a2fbc2e5e562f81f917323329bef7ff9c9c8bd2612848736cdb34da7df6bd2d6",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-both/candidate-input.pub",
+            "sha256": "a2fbc2e5e562f81f917323329bef7ff9c9c8bd2612848736cdb34da7df6bd2d6"
+          },
+          {
+            "path": "native-both/native-initial-inventory.json",
+            "sha256": "a70f82bf4ed4c08fa1cc4ef90f556917bc9b28996314480354183a3a5d91ef6f"
+          },
+          {
+            "path": "native-both/native-initial.pdf",
+            "sha256": "a6f7bee3ac7d94cfaa3d3d8dfcbbc88431949774ab6a2fc6a0f464c1d93d48af"
+          },
+          {
+            "path": "native-both/native-resaved-inventory.json",
+            "sha256": "367e756dddcda3e862840ff514d746d416c1aef5149125177a6d3045d03666c6"
+          },
+          {
+            "path": "native-both/native-resaved.pdf",
+            "sha256": "d0189f1dd45d0cf9e0c46a78e8288ac0f3ecb1ea41d54959aa97ad819f31d8ae"
+          },
+          {
+            "path": "native-both/native-resaved.pub",
+            "sha256": "1b70367e98c6c7b6143ad5933952aeab984735a25a046ff163db330151de3ee7"
+          },
+          {
+            "path": "native-both/native-validation.json",
+            "sha256": "febb653d124572f76e4f0b7fe27557a31d016193fed9be81ecfebb85d8f1087d"
+          }
+        ]
+      },
+      {
+        "case": "text",
+        "sha256": "9c2da0d62ac824fb1d83acb251392eb57e2d6de285b3f9382fd15e68ff901e16",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-text/candidate-input.pub",
+            "sha256": "9c2da0d62ac824fb1d83acb251392eb57e2d6de285b3f9382fd15e68ff901e16"
+          },
+          {
+            "path": "native-text/native-initial-inventory.json",
+            "sha256": "a85e7306aec2737700c49db8e0d05ad65d80158143be594f5b867a949a567288"
+          },
+          {
+            "path": "native-text/native-initial.pdf",
+            "sha256": "f4541b4f43bfc89de2c723f7ca89821d97334ea561e6faaf8dbd3cd963935b51"
+          },
+          {
+            "path": "native-text/native-resaved-inventory.json",
+            "sha256": "9d8e74f0a09270be5137135fe0c4902b50b3594d993f7e921d479b0c50efd589"
+          },
+          {
+            "path": "native-text/native-resaved.pdf",
+            "sha256": "f8b2179bcb0e991d21bf4c552e41de46f6b1bb0a13baa8c4c9b55a6bcb80ffb8"
+          },
+          {
+            "path": "native-text/native-resaved.pub",
+            "sha256": "e88a3f78f3130917796523bbe20c4cdcdec537f862cade319c1d8949d05acf5f"
+          },
+          {
+            "path": "native-text/native-validation.json",
+            "sha256": "d462517cc24f8e7fd0dcc3d4bd6f9ceba93e53ffadf71dd6e78c62592911013e"
+          }
+        ]
+      },
+      {
+        "case": "bordertext",
+        "sha256": "5e44ac8f23313aebc0ea9ab89877931e3be30ff267c40655829c1a178271e102",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-bordertext/candidate-input.pub",
+            "sha256": "5e44ac8f23313aebc0ea9ab89877931e3be30ff267c40655829c1a178271e102"
+          },
+          {
+            "path": "native-bordertext/native-initial-inventory.json",
+            "sha256": "f70cbde3670b97e03eda85cacabe781db796d8a56dd7ff5ecf0a51489dc9e608"
+          },
+          {
+            "path": "native-bordertext/native-initial.pdf",
+            "sha256": "17ab3279d21e20c283846c282061cc5332e836da9ba27366afb332221d4d1fd9"
+          },
+          {
+            "path": "native-bordertext/native-resaved-inventory.json",
+            "sha256": "19871d03ba04eb76e36d79be00585e2f63dbb492a6e804d884da93cdb08620f8"
+          },
+          {
+            "path": "native-bordertext/native-resaved.pdf",
+            "sha256": "3f97849388d9c8cd5ba07a78b8e541c08cec07aaf3690516ded1683fce3e82c5"
+          },
+          {
+            "path": "native-bordertext/native-resaved.pub",
+            "sha256": "05c4dbc77e19f5a5f02309a65261ffa758e039b0a8e1e2e16f2489994c810cf0"
+          },
+          {
+            "path": "native-bordertext/native-validation.json",
+            "sha256": "4e0d2be9ba96ab6938ffff8639e4657eac1f8822ec7bc26f9efb67d717f2538a"
+          }
+        ]
+      },
+      {
+        "case": "topology",
+        "sha256": "383380be4c68535982804643de23f2a1af3622bc8157be28c6237a12966dc8c9",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-topology/candidate-input.pub",
+            "sha256": "383380be4c68535982804643de23f2a1af3622bc8157be28c6237a12966dc8c9"
+          },
+          {
+            "path": "native-topology/native-initial-inventory.json",
+            "sha256": "f8566affd93bd5d6d3a706b001acb04c1259d7eef790814fa62b4ff8a80a3827"
+          },
+          {
+            "path": "native-topology/native-initial.pdf",
+            "sha256": "d12d5387697f05e2ceb56378a6d95c4b019118111b4602fbddd945d49a025335"
+          },
+          {
+            "path": "native-topology/native-resaved-inventory.json",
+            "sha256": "624bf53ff47dab91a8107e1a1208a529cf11478741d80927ef0ffd89eef81e5a"
+          },
+          {
+            "path": "native-topology/native-resaved.pdf",
+            "sha256": "b0ce6e64ddebd9ca66d540d239dfb9f68227bde6388ce20b1ee8d1c3a3ede5d9"
+          },
+          {
+            "path": "native-topology/native-resaved.pub",
+            "sha256": "d54c7c6feae8bc4141b20bfb60c37271165d23687c9eb829bf398d2264d0b008"
+          },
+          {
+            "path": "native-topology/native-validation.json",
+            "sha256": "abdc7a5495d795852b25a0507d04f593a56306b2a8293914b4dd137ef795ccfb"
+          }
+        ]
+      },
+      {
+        "case": "normalized",
+        "sha256": "1a3d09657dc6254eac3ef55edaec22ae25095ba78fcc406cef04f89ae46540e9",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "native-normalized-empty-utility-scopes",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-normalized/candidate-input.pub",
+            "sha256": "1a3d09657dc6254eac3ef55edaec22ae25095ba78fcc406cef04f89ae46540e9"
+          },
+          {
+            "path": "native-normalized/native-initial-inventory.json",
+            "sha256": "1f68ef820e9c2ceb820bf24c485f31f6a8e3624c1944065763c704d8bcb6f71f"
+          },
+          {
+            "path": "native-normalized/native-initial.pdf",
+            "sha256": "951519584e118106052062eb6ce4eada05197e646708c42748283473ae78b7f5"
+          },
+          {
+            "path": "native-normalized/native-resaved-inventory.json",
+            "sha256": "d2b4fa0e0e869df48ac73d83c92248168e990ff8e5f88f99990bb422561d76e5"
+          },
+          {
+            "path": "native-normalized/native-resaved.pdf",
+            "sha256": "f82223faf337b125aa549f03c0fe0f60fd891b4dec868bb94c0d39ffe8340137"
+          },
+          {
+            "path": "native-normalized/native-resaved.pub",
+            "sha256": "2d1ba2f6a68730216694180f66edc2739e3f9d92387440f6f58c425d00ceae36"
+          },
+          {
+            "path": "native-normalized/native-validation.json",
+            "sha256": "22d03325348be19aef539ec83c4c5461a2628b3ccdb1a6b1ca57b3b517a0a3f6"
+          }
+        ]
+      },
+      {
+        "case": "filledlater",
+        "sha256": "a2fbc2e5e562f81f917323329bef7ff9c9c8bd2612848736cdb34da7df6bd2d6",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-filledlater/candidate-input.pub",
+            "sha256": "a2fbc2e5e562f81f917323329bef7ff9c9c8bd2612848736cdb34da7df6bd2d6"
+          },
+          {
+            "path": "native-filledlater/native-initial-inventory.json",
+            "sha256": "a70f82bf4ed4c08fa1cc4ef90f556917bc9b28996314480354183a3a5d91ef6f"
+          },
+          {
+            "path": "native-filledlater/native-initial.pdf",
+            "sha256": "37a0b4c246e005745c5855798493a82f313f444300e7ac06a2b6ef33839b9dbb"
+          },
+          {
+            "path": "native-filledlater/native-resaved-inventory.json",
+            "sha256": "367e756dddcda3e862840ff514d746d416c1aef5149125177a6d3045d03666c6"
+          },
+          {
+            "path": "native-filledlater/native-resaved.pdf",
+            "sha256": "c5b7cc9772d3ea3f72c7152b96474bd8afdbe29dd0ceb421df6105e7feadb7e0"
+          },
+          {
+            "path": "native-filledlater/native-resaved.pub",
+            "sha256": "b5fa9107912cc9538a24e351364bd46d467ff5e534e1088f9a075c5082bb518e"
+          },
+          {
+            "path": "native-filledlater/native-validation.json",
+            "sha256": "aadc7465821feb827bd50e28158c7c18bc214e08b33d957d1194169d84e3d5c5"
+          }
+        ]
+      },
+      {
+        "case": "cleared",
+        "sha256": "571b46ac9124690d59dd600c553696487b09aa722a4c495470ac30296b0006bf",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-cleared/candidate-input.pub",
+            "sha256": "571b46ac9124690d59dd600c553696487b09aa722a4c495470ac30296b0006bf"
+          },
+          {
+            "path": "native-cleared/native-initial-inventory.json",
+            "sha256": "13b3730ce0a05d9d0dcbd52addbecf6f0caed97dcf7096a228dc53cc247c0892"
+          },
+          {
+            "path": "native-cleared/native-initial.pdf",
+            "sha256": "62280968c5dc86e5ddf335385089703bcf92ca37fea6d0ee1f302866ba7d39e1"
+          },
+          {
+            "path": "native-cleared/native-resaved-inventory.json",
+            "sha256": "c72fda1f8277b356a999ec01c6d6da3a9d66aff57a23f38e4dc4796c4b40a4b6"
+          },
+          {
+            "path": "native-cleared/native-resaved.pdf",
+            "sha256": "bc7cd2ab924bb340d816ce723134aa5a2d029fb0b47ca2d74a44fdb2edc0a117"
+          },
+          {
+            "path": "native-cleared/native-resaved.pub",
+            "sha256": "fb378e3907b68f1d2a05ee3057576ff9df1fb2c3001b574a1dae5d25afefe221"
+          },
+          {
+            "path": "native-cleared/native-validation.json",
+            "sha256": "e63b3debf48ecd79d4112d1ddf44e2037643c19e20b1ab42e4fd40171fa2fb81"
+          }
+        ]
+      },
+      {
+        "case": "restored",
+        "sha256": "45c77f575f4f9e6275b51476842cb8b3d75ff2f1024c4b2ed9182a170abc042c",
+        "byteIdenticalToNativeQualifiedInput": true,
+        "sourceProfile": "compact-or-subsequently-initialized",
+        "nativeStatus": "OpenedExportedResavedAndReopened",
+        "repairStatus": "Unassessed: COM Open success does not expose whether native repair occurred.",
+        "files": [
+          {
+            "path": "native-restored/candidate-input.pub",
+            "sha256": "45c77f575f4f9e6275b51476842cb8b3d75ff2f1024c4b2ed9182a170abc042c"
+          },
+          {
+            "path": "native-restored/native-initial-inventory.json",
+            "sha256": "bbe0e449a5b55e3d4f95fcc3e52201892273a2a85bf5effa006ae45504b458fc"
+          },
+          {
+            "path": "native-restored/native-initial.pdf",
+            "sha256": "3ccbc5d0ddb502b086a03d6cf8d2734acdfebb57eb62fa63905d28f356f98d23"
+          },
+          {
+            "path": "native-restored/native-resaved-inventory.json",
+            "sha256": "604f7972befd8075e9c5b6a755716c2bdfe0c11ca1e0686896d9d7cb866e7cad"
+          },
+          {
+            "path": "native-restored/native-resaved.pdf",
+            "sha256": "481a2437002ea4ccb5fe98b9be431e8edffd696d43546dfb0fd2bed7e083e138"
+          },
+          {
+            "path": "native-restored/native-resaved.pub",
+            "sha256": "867059ad2ff8870afe57d11f2743340841b197b0eabd14372bb55851c0bf680c"
+          },
+          {
+            "path": "native-restored/native-validation.json",
+            "sha256": "d18a7547aaacae262c9792c10a946db3465b9afa61329e4580e2c1703ea510a4"
+          }
+        ]
+      }
+    ],
+    "nativeComparison": {
+      "completeInventories": 20,
+      "pdfPairs": 20,
+      "dpi": 100,
+      "changedPixels": 0,
+      "postReviewInputIdentity": true,
+      "nativeCellMutationPerformed": false,
+      "repairFreeQualified": false
+    },
+    "powerShell": {
+      "version": "7.6.9",
+      "styleEdits": 8,
+      "pdfWorkflows": 10,
+      "textAndColoredPrimitiveComparison": "All ten pass; no managed/native pixel parity claim."
+    },
+    "freshAuthoringIdentity": [
+      {
+        "kind": "table-decorated",
+        "sha256": "4386154305b4fa7ff0d97785832fe1e91a012e25891c3e1107159bfa50642900",
+        "matchesPreviousQualifiedBytes": true
+      },
+      {
+        "kind": "table-decorated-edited",
+        "sha256": "4e43b55045155329ab1c79abab9904e675ee5e1dd5a1aa9c0f7cbcfa66dfbcfe",
+        "matchesPreviousQualifiedBytes": true
+      }
+    ],
+    "validation": {
+      "focusedPassed": 32,
+      "net10FullPassed": 1156,
+      "net8TablePassed": 139,
+      "net472TablePassed": 139,
+      "netstandardBuild": "Passed",
+      "powershellBuild": "Passed",
+      "nativeToolingParse": "PowerShell 7.6.9 and Windows PowerShell 5.1.26100.9711 pass"
+    },
+    "localReview": {
+      "result": "No remaining actionable findings after targeted confirmation.",
+      "fixedDefect": "Borders could exceed final table extent after resizing and disappear on reload. Reproduced four source cases; final-size guards cover both source paths and the shared fresh encoder; six regressions pass."
+    },
+    "limitations": [
+      "Missing cell utilities in populated drawings and other source profiles",
+      "Cluster rollover and arbitrary allocation history",
+      "Decorated merges and larger/composed layouts",
+      "Broader paint/producers/generations",
+      "Actual native cell mutation",
+      "Managed/native text-baseline parity",
+      "Positive repair/recovery control and repair-free acceptance",
+      "Public source-free native creation remains gated"
     ]
   }
 }

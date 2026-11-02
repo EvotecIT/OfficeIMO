@@ -14,6 +14,7 @@ internal sealed class PublisherEscherSourceWriter {
     private bool _imageStoreSeen;
     private readonly PublisherEscherShapeEdits? _shapes;
     private int _removedSeen, _appendedSeen;
+    private bool _allocationSeen, _drawingSeen;
 
     private PublisherEscherSourceWriter(byte[] source, IReadOnlyDictionary<int, IReadOnlyDictionary<ushort, OfficeArtProperty>> changes,
         PublisherNativeStreamEdit? imageStore, PublisherParseContext context, PublisherEscherShapeEdits? shapes) {
@@ -27,6 +28,7 @@ internal sealed class PublisherEscherSourceWriter {
         var writer = new PublisherEscherSourceWriter(source, changes, imageStore, context, shapes);
         if (!writer.Visit(0, source.Length, 0, out _) || writer._seen != changes.Count || imageStore != null && !writer._imageStoreSeen) return null;
         if (shapes != null && (writer._removedSeen != shapes.Removed.Count || writer._appendedSeen != shapes.Appended.Count)) return null;
+        if (shapes?.AllocationRecord != null && !writer._allocationSeen || shapes?.DrawingInsertion != null && !writer._drawingSeen) return null;
         return PublisherNativeStreamEdit.Apply(source, writer._edits, maximumBytes, context.Token);
     }
 
@@ -35,7 +37,15 @@ internal sealed class PublisherEscherSourceWriter {
         foreach (PublisherEscherRecord record in _reader.Records(start, end)) {
             int delta = 0;
             bool replaced = false;
-            if (record.Kind == 0xF001 && _imageStore != null && record.Offset - 8 == _imageStore.Offset) {
+            if (depth == 0 && record.Kind == 0xF002 && _shapes?.DrawingInsertion is { } insertion && insertion.Offset == record.Offset - 12) {
+                if (_drawingSeen || insertion.Length != 0) return false;
+                _drawingSeen = true; _edits.Add(insertion);
+            }
+            if (record.Kind == 0xF006 && _shapes?.AllocationRecord is { } allocation && allocation.Offset == record.Offset - 8) {
+                if (_allocationSeen || allocation.Length != record.Length + 8) return false;
+                _allocationSeen = true; _edits.Add(allocation); replaced = true;
+                delta = allocation.Bytes.Length - allocation.Length;
+            } else if (record.Kind == 0xF001 && _imageStore != null && record.Offset - 8 == _imageStore.Offset) {
                 if (_imageStore.Length != record.Length + 8 || _imageStoreSeen) return false;
                 _imageStoreSeen = true; _edits.Add(_imageStore); replaced = true;
                 delta = _imageStore.Bytes.Length - _imageStore.Length;

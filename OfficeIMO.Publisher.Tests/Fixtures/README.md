@@ -44,6 +44,13 @@ text/fill edits. TableBorderDefaultFill retains the automatic white cell fill
 activated by native border authoring. Each control retains its producer metadata,
 native PDF and provenance hashes in its `NativeComparison` directory.
 
+TableBordersOnly and TableBordersOnlyText keep every cell fill invisible while
+authoring six shared edges, with first-cell paragraph growth in the latter.
+TableFillsOnly authors three solid fills without borders. TableBordersOnlyCleared
+removes all six edges and then hides every fill: native zero-weight border edits
+can reactivate a white cell fill. These controls qualify first utility creation,
+later fill activation and edge removal independently of the source writer.
+
 TextPages has independent Arial 12/18-point stories on the first and last of
 three pages, with an empty middle page and explicit zero column spacing. It
 qualifies physical-page ownership in template-free native writer specimens.

@@ -82,17 +82,6 @@ public sealed class PublisherTableBorderTopologyTests {
     }
 
     [Fact]
-    public void Border_insertion_without_an_existing_utility_drawing_refuses_instead_of_seeding_one() {
-        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/GeneratedTable/generated-table.pub"));
-        PublisherDocument document = PublisherDocument.Load(source);
-        PublisherTable table = document.Pages[0].Tables[0];
-        Assert.Empty(table.BorderSegments);
-        document.SetTableBorderStyle(table.Id, 0, 0, 0, 1, new OfficeBorderSide(OfficeColor.Black, 1));
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
-    }
-
-    [Fact]
     public void Native_automatic_table_cell_default_is_white_and_remains_editable() {
         byte[] source = Fixture("TableBorderDefaultFill");
         PublisherDocument document = PublisherDocument.Load(source);

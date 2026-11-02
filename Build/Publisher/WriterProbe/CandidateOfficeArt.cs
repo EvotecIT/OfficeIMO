@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing.Binary;
+using OfficeIMO.Publisher.Internal;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 using static OfficeIMO.Publisher.WriterProbe.NativePublicationGraph;
 
@@ -61,7 +62,7 @@ internal static partial class CandidateOfficeArt {
         // Native table controls serialize utility instance 2, empty instance 1,
         // then ordinary instance 0; SPID drawing identifiers remain 3, 2 and 1.
         return tableDrawing.HasValue ? Join(dgg, Bytes(writer => writer.Write(2U)), tableDrawing.Value.Bytes,
-            Bytes(writer => writer.Write(1U)), Drawing(2, new[] { DrawingRoot(2) }, 2U << 10), new byte[4], drawing)
+            Bytes(writer => writer.Write(1U)), PublisherTableUtilityDrawingEncoding.EmptyDrawing(2), new byte[4], drawing)
             : Join(dgg, new byte[4], drawing);
     }
 

@@ -605,10 +605,14 @@ local owning field. Existing shared-border color/width edits use qualified local
 scalars. Shared edges can also be added, cleared and replaced within one existing
 utility drawing and its current SPID allocation cluster. New ranges use native cell
 edges; reopened segmentation and record order can differ while retaining shared
-grid coverage. Missing utility drawings, new clusters, inconsistent allocation
-metadata, unsupported paint and widths without an exact signed-EMU representation
-refuse saving. Fill utility allocation, gradients, cell-specific padding and broader
-native appearances remain separate profiles.
+grid coverage. First fills and borders can also initialize utilities for qualified
+borderless rectangular tables in compact sources and native-normalized empty
+utility scopes. The writer retains ordinary drawing bytes and validates counts,
+identifiers, inherited defaults and allocation history. Populated drawings with
+missing cell utilities, cluster rollover, inconsistent metadata, unsupported paint
+and widths without an exact signed-EMU representation refuse saving. A border
+must fit the table's final perpendicular extent, including after resizing.
+Gradients, cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
 
 Fill visibility changes compose with supported cell-paragraph growth. Native
@@ -618,12 +622,11 @@ shared-border profiles](SUPPORT.md#native-cell-fills-and-shared-borders) for exa
 
 ```csharp
 var styledTable = publication.Pages[0].Tables.First();
-var filledCell = styledTable.Cells.First(cell => cell.FillColor.HasValue);
-publication.SetTableCellFillColor(styledTable.Id, filledCell.RowIndex,
-    filledCell.ColumnIndex, OfficeColor.FromRgb(192, 224, 192));
-var edge = styledTable.BorderSegments.First();
-publication.SetTableBorderStyle(styledTable.Id, edge.FirstRow, edge.FirstColumn,
-    edge.LastRow, edge.LastColumn, new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 1));
+var cell = styledTable.Cells.First();
+publication.SetTableCellFillColor(styledTable.Id, cell.RowIndex,
+    cell.ColumnIndex, OfficeColor.FromRgb(192, 224, 192));
+publication.SetTableBorderStyle(styledTable.Id, 0, 0, 0, styledTable.ColumnWidths.Count,
+    new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 1));
 ```
 
 ```csharp

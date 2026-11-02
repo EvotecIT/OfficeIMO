@@ -18,11 +18,15 @@ function Add-NativeTableDecorationControl {
     Clears all six original edges while keeping cell fills and text.
     .PARAMETER DefaultCellFill
     Retains the native white-fill activation caused by adding an edge to the previously unfilled cell.
+    .PARAMETER BorderOnly
+    Leaves every cell fill invisible after adding the six original borders.
+    .PARAMETER FillOnly
+    Sets the three cell fills without adding borders.
     .OUTPUTS
     The physical page count.
     #>
     param($FirstPage, [switch] $Edited, [switch] $TextEdited, [switch] $FillVisibility, [switch] $RestoreFillVisibility,
-        [switch] $BorderTopology, [switch] $ClearBorders, [switch] $DefaultCellFill)
+        [switch] $BorderTopology, [switch] $ClearBorders, [switch] $DefaultCellFill, [switch] $BorderOnly, [switch] $FillOnly)
 
     $null = Add-NativeTableCreationControl -FirstPage $FirstPage
     $shape = $FirstPage.Shapes.Item('AuthoredTable')
@@ -34,6 +38,7 @@ function Add-NativeTableDecorationControl {
         @{ row = 1; column = 2; rgb = 0x00FFE0A0 },
         @{ row = 2; column = 2; rgb = 0x00B4F0B4 }
     )
+    if ($BorderOnly) { $fills = @() }
     foreach ($fill in $fills) {
         $range = $table.Cells($fill.row, $fill.column, $fill.row, $fill.column)
         $cell = $range.Item(1)
@@ -56,6 +61,7 @@ function Add-NativeTableDecorationControl {
         @{ row = 2; column = 2; side = 'BorderRight'; rgb = 0x00FF00FF; width = 4 },
         @{ row = 2; column = 2; side = 'BorderBottom'; rgb = 0x00FFFF00; width = 2 }
     )
+    if ($FillOnly) { $borders = @() }
     foreach ($border in $borders) {
         $range = $table.Cells($border.row, $border.column, $border.row, $border.column)
         $cell = $range.Item(1)
@@ -92,6 +98,19 @@ function Add-NativeTableDecorationControl {
             $color.RGB = $change.rgb
         }
         $format.Weight = $change.width
+    }
+    if ($BorderOnly) {
+        foreach ($row in 1..2) {
+            foreach ($column in 1..2) {
+                $range = $table.Cells($row, $column, $row, $column)
+                $cell = $range.Item(1)
+                $format = $cell.Fill
+                $objects.Add($range)
+                $objects.Add($cell)
+                $objects.Add($format)
+                $format.Visible = 0
+            }
+        }
     }
     if ($BorderTopology -and -not $DefaultCellFill) {
         $range = $table.Cells(2, 1, 2, 1)
