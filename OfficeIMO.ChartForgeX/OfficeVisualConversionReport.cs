@@ -37,7 +37,7 @@ public sealed class OfficeVisualConversionReport : OfficeConversionReport {
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when the conversion reported possible fidelity loss.</summary>
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("ChartForgeX visual conversion reported possible fidelity loss. Inspect FidelityDiagnostics for details.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("ChartForgeX visual conversion reported possible fidelity loss. Inspect Diagnostics for details.", this);
 
     internal void Warn(string code, string message, OfficeConversionLossKind lossKind, string? location = null) {
         _warnings.Add(message);

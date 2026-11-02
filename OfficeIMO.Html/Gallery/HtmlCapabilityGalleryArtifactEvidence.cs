@@ -46,7 +46,7 @@ public sealed class HtmlCapabilityGalleryArtifactEvidence : OfficeConversionRepo
     protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
     private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The HTML capability artifact reported fidelity loss. Inspect FidelityDiagnostics for details.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The HTML capability artifact reported fidelity loss. Inspect Diagnostics for details.", this);
 }
 
 /// <summary>Result of an executed check, rather than an unexecuted capability expectation.</summary>

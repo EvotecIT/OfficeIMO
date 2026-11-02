@@ -24,5 +24,5 @@ public sealed class PublisherReadReport : OfficeConversionReport {
     /// <inheritdoc />
     public override bool HasLoss => FidelityDiagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Publisher recovery contains approximated, omitted, or unassessed source content. Inspect FidelityDiagnostics.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Publisher recovery contains approximated, omitted, or unassessed source content. Inspect Diagnostics.", this);
 }

@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source import report for details.", this);
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT import reported content loss. Inspect Diagnostics and the source import report for details.", this);
 
         /// <summary>Throws when import produced errors.</summary>
         public LegacyPptLoadResult EnsureNoImportErrors() {

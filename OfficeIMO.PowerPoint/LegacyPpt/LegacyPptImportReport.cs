@@ -390,7 +390,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT import reported content loss. Inspect FidelityDiagnostics and the source diagnostics for details.", this);
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy PPT import reported content loss. Inspect Diagnostics and the source diagnostics for details.", this);
 
         private static int CountSpecialMasterShapes(LegacyPptSpecialMaster? master) =>
             master?.Shapes.Count ?? 0;

@@ -62,5 +62,5 @@ public sealed class OfficeImageExportReport : OfficeConversionReport {
     }
 
     /// <summary>Throws when any export diagnostic represents fidelity loss.</summary>
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Image export reported fidelity loss. Inspect FidelityDiagnostics.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Image export reported fidelity loss. Inspect Diagnostics.", this);
 }

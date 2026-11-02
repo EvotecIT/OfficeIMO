@@ -96,7 +96,7 @@ namespace OfficeIMO.Word.LegacyDoc {
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy DOC import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.", this);
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy DOC import reported content loss. Inspect Diagnostics and the source import collections for details.", this);
 
         /// <summary>
         /// Throws when the legacy DOC import produced error diagnostics.

@@ -57,7 +57,7 @@ public sealed class OfficeVisioVisualConversionReport : OfficeConversionReport {
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when native Visio projection reported possible fidelity loss.</summary>
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("ChartForgeX native Visio projection reported possible fidelity loss. Inspect FidelityDiagnostics for details.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("ChartForgeX native Visio projection reported possible fidelity loss. Inspect Diagnostics for details.", this);
 
     /// <summary>Gets human-readable warning messages for logging and interactive display.</summary>
     public IReadOnlyList<string> Warnings => _diagnostics

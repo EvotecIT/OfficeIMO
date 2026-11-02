@@ -90,7 +90,7 @@ public sealed class OfficeImageMetadataReport : OfficeConversionReport {
     private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <inheritdoc />
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Image optimization lost requested metadata. Inspect FidelityDiagnostics for the omitted categories.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Image optimization lost requested metadata. Inspect Diagnostics for the omitted categories.", this);
 
     private static IEnumerable<OfficeImageMetadataKinds> EnumerateKinds(OfficeImageMetadataKinds kinds) {
         foreach (OfficeImageMetadataKinds kind in new[] {

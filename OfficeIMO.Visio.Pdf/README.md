@@ -75,7 +75,7 @@ throws instead of ignoring settings.
 
 `SourceConversionReports` retains the typed `VisioDrawingConversionReport`.
 `ThrowIfLoss` on drawing options rejects reported loss before PDF composition;
-`SaveLossless` on the PDF result rejects it before writing the destination.
+`Save(path, failOnLoss: true)` on the PDF result rejects it before writing the destination.
 `SaveAsPdfResult` and `SaveAsPdfResultAsync` retain the source report and its
 page-qualified fidelity diagnostics when strict projection fails. Their failure
 result exposes `HasLoss` and leaves the destination unchanged.

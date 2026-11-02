@@ -82,5 +82,5 @@ public sealed class PdfConversionProofReport : OfficeConversionReport {
     }
 
     /// <inheritdoc />
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The PDF conversion proof includes conversion-stage fidelity loss. Inspect FidelityDiagnostics for details.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The PDF conversion proof includes conversion-stage fidelity loss. Inspect Diagnostics for details.", this);
 }

@@ -17,5 +17,5 @@ public sealed class PublisherConversionReport : OfficeConversionReport {
     /// <inheritdoc />
     public override bool HasLoss => FidelityDiagnostics.Any(item => item.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Publisher SVG conversion reported possible fidelity loss. Inspect FidelityDiagnostics.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("Publisher SVG conversion reported possible fidelity loss. Inspect Diagnostics.", this);
 }

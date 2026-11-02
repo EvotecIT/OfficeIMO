@@ -49,6 +49,6 @@ namespace OfficeIMO.Excel.LegacyXls {
             diagnostic.LossKind != OfficeConversionLossKind.None);
 
         /// <inheritdoc />
-        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy XLS import summary reported content loss. Inspect FidelityDiagnostics for details.", this);
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The legacy XLS import summary reported content loss. Inspect Diagnostics for details.", this);
     }
 }

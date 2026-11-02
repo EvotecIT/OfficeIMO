@@ -60,5 +60,5 @@ public sealed class DjVuPdfConversionReport : OfficeConversionReport {
     /// <inheritdoc />
     public override bool HasLoss => FidelityDiagnostics.Any(d => d.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("DjVu PDF conversion reported fidelity loss. Inspect FidelityDiagnostics.", this);
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("DjVu PDF conversion reported fidelity loss. Inspect Diagnostics.", this);
 }
