@@ -833,7 +833,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         whiteSpace == "pre" || whiteSpace == "nowrap";
 
     private void ApplyDefaultMargins(string tag, double fontSize, HtmlRenderBoxStyle style) {
-        if (tag == "body" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser) {
+        if (tag == "body" && (_options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Browser || _options.UsesBrowserBodyMargin)) {
             style.MarginTop = 8D;
             style.MarginRight = 8D;
             style.MarginBottom = 8D;
@@ -944,6 +944,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             ReportUnsupportedColor(element, pseudoElement, "background-color", computed.GetValue("background-color"));
         }
         ApplyBackgroundLayers(computed, style, backgroundShorthand);
+        ApplyBorderImage(computed, style);
+        ReportUnimplementedProperties(element, computed);
         ApplyOpacity(computed.GetValue("opacity"), style);
         style.Transform = NormalizeCssValue(computed.GetValue("transform"), "none");
         if (HtmlCssTransformParser.TryParseIndividualScale(computed.GetValue("scale"), out string scale)
@@ -1002,6 +1004,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         bool hasDeclaredBackgroundImage = false;
         int unsupportedLayerCount = 0;
         int gradientStopLimitExceededCount = 0;
+        var textClipLayers = new List<string>();
         for (int index = 0; index < sourceLayers.Count; index++) {
             string sourceLayer = sourceLayers[index];
             IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(sourceLayer);
@@ -1020,6 +1023,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             string origin = GetLayerValue(originLayers, index, shorthandOrigin, "padding-box");
             string clip = GetLayerValue(clipLayers, index, shorthandClip, "border-box");
             string attachment = GetLayerValue(attachmentLayers, index, ExtractBackgroundAttachment(sourceLayer), "scroll");
+            if (string.Equals(clip.Trim(), "text", StringComparison.OrdinalIgnoreCase)) {
+                textClipLayers.Add(sourceLayer);
+                continue;
+            }
             if (urls.Count == 0) {
                 if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linearGradient, out bool linearStopLimitExceeded)
                     && linearGradient != null) {
@@ -1056,6 +1063,80 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
         style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
         style.BackgroundImageLayers = layers.AsReadOnly();
+        ApplyBackgroundClipText(computed, style, textClipLayers);
+    }
+
+    // Text cannot yet clip a paint server, so it takes the gradient's mean color rather than
+    // leaving a filled bar over transparent text.
+    private void ApplyBackgroundClipText(HtmlComputedStyle computed, HtmlRenderBoxStyle style, IReadOnlyList<string> layers) {
+        bool clipsSolidColor = layers.Count == 0 && style.BackgroundColor.HasValue
+            && computed.GetValue("background-clip").IndexOf("text", StringComparison.OrdinalIgnoreCase) >= 0;
+        if (layers.Count == 0 && !clipsSolidColor) return;
+        OfficeColor? fill = clipsSolidColor ? style.BackgroundColor : TryCreateGradientLayer(layers[0])?.MeanGradientColor;
+        if (clipsSolidColor) style.BackgroundColor = null;
+        string textFill = computed.GetValue("-webkit-text-fill-color").Trim();
+        if (fill.HasValue && (style.Color.A == 0 || string.Equals(textFill, "transparent", StringComparison.OrdinalIgnoreCase))) {
+            style.Color = fill.Value;
+        }
+        _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+            "background-clip:text is approximated: text takes the gradient's mean color, and other backgrounds are omitted.",
+            HtmlDiagnosticSeverity.Warning, "background-clip", "background-clip=" + computed.GetValue("background-clip"), OfficeConversionLossKind.Approximation);
+    }
+
+    // Gradient sources paint across the whole border area. Slicing and url() sources are not implemented.
+    private void ApplyBorderImage(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        string source = computed.GetValue("border-image-source");
+        if (source.Length == 0) source = computed.GetValue("border-image");
+        string trimmed = source.Trim();
+        if (trimmed.Length == 0 || trimmed.Equals("none", StringComparison.OrdinalIgnoreCase)
+            || trimmed.Equals("initial", StringComparison.OrdinalIgnoreCase)) return;
+        int start = trimmed.IndexOf("gradient(", StringComparison.OrdinalIgnoreCase);
+        if (start >= 0) {
+            while (start > 0 && (char.IsLetter(trimmed[start - 1]) || trimmed[start - 1] == '-')) start--;
+            int depth = 0;
+            for (int index = start; index < trimmed.Length; index++) {
+                if (trimmed[index] == '(') depth++;
+                if (trimmed[index] == ')' && --depth == 0) {
+                    style.BorderImageLayer = TryCreateGradientLayer(trimmed.Substring(start, index - start + 1));
+                    break;
+                }
+            }
+        }
+        if (style.BorderImageLayer == null) {
+            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "A border-image source is not supported; the ordinary border was painted instead.",
+                HtmlDiagnosticSeverity.Warning, "border-image", "border-image=" + source, OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private static readonly string[] UnimplementedProperties = {
+        "shape-outside", "text-emphasis", "text-emphasis-style", "-webkit-text-emphasis", "-webkit-text-emphasis-style"
+    };
+
+    private void ReportUnimplementedProperties(IElement element, HtmlComputedStyle computed) {
+        foreach (string property in UnimplementedProperties) {
+            string value = computed.GetValue(property).Trim();
+            if (value.Length == 0 || value.Equals("none", StringComparison.OrdinalIgnoreCase)
+                || !_reportedUnimplementedProperties.Add(property)) continue;
+            _diagnostics.Add("OfficeIMO.Html", HtmlRenderDiagnosticCodes.CssPropertyUnsupported,
+                "The CSS property " + property + " is not implemented and had no effect.",
+                HtmlDiagnosticSeverity.Warning, DescribeSource(element), property + "=" + value, OfficeConversionLossKind.Omission);
+        }
+    }
+
+    private readonly HashSet<string> _reportedUnimplementedProperties = new(StringComparer.Ordinal);
+
+    private HtmlRenderBackgroundLayer? TryCreateGradientLayer(string value) {
+        const string position = "0% 0%", repeat = "no-repeat", size = "100% 100%", box = "border-box", attachment = "scroll";
+        if (HtmlCssLinearGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssLinearGradientDefinition? linear, out _) && linear != null) {
+            return new HtmlRenderBackgroundLayer(linear, position, repeat, size, box, box, attachment);
+        }
+        if (HtmlCssRadialGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssRadialGradientDefinition? radial, out _) && radial != null) {
+            return new HtmlRenderBackgroundLayer(radial, position, repeat, size, box, box, attachment);
+        }
+        return HtmlCssConicGradientParser.TryParse(value, _options.MaxGradientStops, out HtmlCssConicGradientDefinition? conic, out _) && conic != null
+            ? new HtmlRenderBackgroundLayer(conic, position, repeat, size, box, box, attachment)
+            : null;
     }
 
     private static string GetLayerValue(IReadOnlyList<string> values, int index, string shorthandValue, string fallback) {

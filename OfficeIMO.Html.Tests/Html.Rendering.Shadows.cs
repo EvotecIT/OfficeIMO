@@ -22,6 +22,51 @@ public sealed partial class HtmlRenderingTests {
             shape => shape.Source == "div#tail").Y, 6);
     }
 
+    [Theory]
+    [InlineData("transparent", 255)]
+    [InlineData("rgba(0,0,255,0.25)", 191)]
+    public void HtmlShadows_OuterShadowStaysOutsideTransparentBorderBox(string background, int centerRed) {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 160D, ViewportHeight = 120D, Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(
+            "<div style='margin:20px;width:80px;height:60px;box-shadow:0 0 0 6px #000;background:" + background + "'></div>"), options);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+
+        Assert.InRange(raster.GetPixel(60, 50).R, centerRed - 2, centerRed + 2);
+        Assert.Equal(OfficeColor.Black, raster.GetPixel(17, 50));
+    }
+
+    [Fact]
+    public void HtmlBorders_GradientBorderImagePaintsTheBorderAreaOnly() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 120D, ViewportHeight = 80D, Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(
+            "<div style='margin:10px;width:60px;height:30px;border:6px solid transparent;border-image:linear-gradient(red,red) 1'></div>"), options);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(13, 30));
+        Assert.Equal(OfficeColor.White, raster.GetPixel(40, 30));
+    }
+
+    [Fact]
+    public void HtmlBackgrounds_ClipTextShowsTextInsteadOfAFilledBarAndReportsIt() {
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous, ViewportWidth = 200D, ViewportHeight = 60D, Margins = HtmlRenderMargins.All(0D)
+        };
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(
+            "<p style='margin:0;background:linear-gradient(90deg,#ff0000,#0000ff);background-clip:text;color:transparent'>Word</p>"), options);
+
+        OfficeDrawingText text = Assert.Single(DrawingTestTraversal.Elements(rendered.Pages[0].CreateDrawing()).OfType<OfficeDrawingText>());
+        Assert.Equal(255, text.Color!.Value.A);
+        Assert.InRange(text.Color!.Value.R, 120, 135);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null);
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
     [Fact]
     public void HtmlShadows_SmallEllipticalSpreadAdjustsEachAxis() {
         HtmlRenderPage page = RenderShadowSpread("2px 12px 0 2px / 12px 2px 12px 2px", 8);
@@ -246,7 +291,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlShadows_LayerLimitIsBoundedAndCataloged() {
-        const string html = "<div id='limited' style='width:20px;height:20px;box-shadow:0 1px red,0 2px green,0 3px blue'></div>";
+        const string html = "<div id='limited' style='width:20px;height:20px;background:white;box-shadow:0 1px red,0 2px green,0 3px blue'></div>";
         var options = new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 40D,

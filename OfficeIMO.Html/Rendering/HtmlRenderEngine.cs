@@ -210,9 +210,9 @@ public static class HtmlRenderEngine {
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
-        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
+        HtmlRenderDocument rendered = LayOutWithContainerSizes(styles, current => new HtmlRenderLayoutEngine(
             document,
-            styles,
+            current,
             resolved,
             diagnostics,
             resources,
@@ -220,7 +220,7 @@ public static class HtmlRenderEngine {
             fonts,
             limits: limits,
             operationBudget: operationBudget,
-            cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+            cancellationToken: cancellationToken, fontUsage: fontUsage), diagnostics, document, resolved, limits);
         return CompleteRender(rendered.WithSourceAccessibilityEvidence(imagesMissingNames), resolved);
     }
 
@@ -395,8 +395,8 @@ public static class HtmlRenderEngine {
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
-        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
-            limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+        HtmlRenderDocument rendered = LayOutWithContainerSizes(styles, current => new HtmlRenderLayoutEngine(document, current, resolved, diagnostics, resources, pageRules, fonts,
+            limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage), diagnostics, document, resolved, limits);
         return CompleteRender(rendered.WithSourceAccessibilityEvidence(imagesMissingNames), resolved);
     }
 
@@ -404,6 +404,27 @@ public static class HtmlRenderEngine {
 
     internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
+
+    /// <summary>
+    /// Style resolution can only estimate a query container's width, and flex or grid sizing decides it
+    /// during layout. When an estimate was wrong, styles are recomputed once from the measured widths.
+    /// </summary>
+    private static HtmlRenderDocument LayOutWithContainerSizes(
+        HtmlComputedStyleSet styles,
+        Func<HtmlComputedStyleSet, HtmlRenderLayoutEngine> createEngine,
+        HtmlDiagnosticReport diagnostics,
+        IHtmlDocument document,
+        HtmlRenderOptions resolved,
+        HtmlConversionLimits limits) {
+        HtmlDiagnosticReport before = diagnostics.Snapshot();
+        HtmlRenderLayoutEngine engine = createEngine(styles);
+        HtmlRenderDocument rendered = engine.Render();
+        if (!engine.ContainerEstimatesDiffer(styles)) return rendered;
+        resolved.ContainerInlineSizes = engine.MeasuredContainerWidths;
+        diagnostics.Clear();
+        diagnostics.AddRange(before);
+        return createEngine(HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits)).Render();
+    }
 
     private static HtmlRenderDocument CompleteRender(HtmlRenderDocument rendered, HtmlRenderOptions options) =>
         options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss

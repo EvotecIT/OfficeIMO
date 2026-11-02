@@ -230,7 +230,8 @@ internal static class HtmlHeadToHeadRunner {
             try {
                 HtmlPdfRenderRequestResult result = HtmlConversionDocument.Parse(File.ReadAllText(file)).RenderToPdfResult(
                     HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions()));
-                report[name] = result.RenderResult.LossDiagnostics
+                report[name] = result.Output.Report.Warnings
+                    .Where(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None)
                     .GroupBy(diagnostic => diagnostic.Code + ": " + diagnostic.Message)
                     .Select(group => new { Diagnostic = group.Key, Count = group.Count() }).ToArray();
             } catch (Exception exception) {

@@ -113,6 +113,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal HtmlRenderBorderInsets BorderInsets => TableCollapsedBorderInsets ?? Borders.Insets;
     internal bool BorderDeclared;
     internal string UnsupportedBorderPaint = string.Empty;
+    internal HtmlRenderBackgroundLayer? BorderImageLayer;
     internal string BorderRadius = "0";
     internal string BorderTopLeftRadius = string.Empty;
     internal string BorderTopRightRadius = string.Empty;

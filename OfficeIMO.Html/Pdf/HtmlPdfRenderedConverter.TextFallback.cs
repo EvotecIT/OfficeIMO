@@ -50,6 +50,85 @@ internal static partial class HtmlPdfRenderedConverter {
         return retained?.ToString() ?? text;
     }
 
+    /// <summary>
+    /// Replaces each text element no available font can encode, so one character costs one
+    /// visible box rather than the whole document. Strict rendering keeps the encoding failure.
+    /// </summary>
+    private static string ReplaceUnpaintableTextElements(
+        string text,
+        HtmlRenderText visual,
+        RegisteredWebFonts webFonts,
+        Func<string, PdfCore.PdfTextRun[]> createRuns,
+        CancellationToken cancellationToken) {
+        if (webFonts.FidelityPolicy != HtmlRenderFidelityPolicy.AllowDiagnosedLoss
+            || !RequiresUnicodeFont(text)
+            || !ContainsEmojiJoinerSequence(text) && IsPaintable(text, visual, webFonts, createRuns)) return text;
+        var retained = new StringBuilder(text.Length);
+        foreach (string element in OfficeTextElements.Enumerate(text)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            // The PDF text route can't join a ZWJ sequence, and native saving rejects the attempt.
+            // Color fonts that do join them take the outline route and never reach this point.
+            if (!RequiresUnicodeFont(element)
+                || !ContainsEmojiJoinerSequence(element) && IsPaintable(element, visual, webFonts, createRuns)) {
+                retained.Append(element);
+                continue;
+            }
+            // A base character without its emoji modifiers still says more than a box.
+            string baseScalar = element.Substring(0, ScalarLength(element, 0));
+            string replacement = new[] { baseScalar }.Concat(UnpaintableTextReplacements)
+                .First(candidate => IsPaintable(candidate, visual, webFonts, createRuns));
+            retained.Append(replacement);
+            string codePoints = string.Join(" ", ScalarNames(element));
+            string family = visual.Font.FamilyName ?? string.Empty;
+            if (webFonts.ReportedUnpaintableText.Add(family + "\0" + codePoints)) {
+                webFonts.Diagnostics.Add(
+                    "OfficeIMO.Html.Pdf",
+                    HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced,
+                    "No available font can paint " + codePoints + "; a simpler or replacement glyph was painted and the source text kept for extraction.",
+                    HtmlDiagnosticSeverity.Warning,
+                    visual.Source ?? "html-text",
+                    family,
+                    OfficeConversionLossKind.Approximation);
+            }
+        }
+        return retained.ToString();
+    }
+
+    private static bool ContainsEmojiJoinerSequence(string text) {
+        int joiner = text.IndexOf('\u200D');
+        while (joiner > 0) {
+            int start = char.IsLowSurrogate(text[joiner - 1]) && joiner > 1 ? joiner - 2 : joiner - 1;
+            if (text[joiner - 1] == '\uFE0F' && start > 0) start = char.IsLowSurrogate(text[start - 1]) && start > 1 ? start - 2 : start - 1;
+            if (CharUnicodeInfo.GetUnicodeCategory(text, start) is UnicodeCategory.OtherSymbol or UnicodeCategory.ModifierSymbol) return true;
+            joiner = text.IndexOf('\u200D', joiner + 1);
+        }
+        return false;
+    }
+
+    private static readonly string[] UnpaintableTextReplacements = { "\u25A1", "\uFFFD", "?" };
+
+    private static bool IsPaintable(
+        string text,
+        HtmlRenderText visual,
+        RegisteredWebFonts webFonts,
+        Func<string, PdfCore.PdfTextRun[]> createRuns) {
+        OfficeFontStyle style = (visual.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (visual.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        foreach (OfficeFontFallbackRun run in webFonts.Faces.PlanFallbackRuns(text, visual.Font.FamilyName, style)) {
+            if (webFonts.Faces.TryResolveFaceForText(run.Text, run.FamilyRequest, style, out OfficeFontFace? face)
+                && face?.Program is OfficeTrueTypeFont program
+                && program.ContainsUnpaintableColorGlyph(run.Text)) return false;
+        }
+        return PdfCore.PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+            createRuns(text), webFonts.Options, PdfCore.PdfStandardFont.Helvetica).Count == 0;
+    }
+
+    private static IEnumerable<string> ScalarNames(string text) {
+        for (int index = 0; index < text.Length; index += ScalarLength(text, index)) {
+            yield return "U+" + char.ConvertToUtf32(text, index).ToString("X4", CultureInfo.InvariantCulture);
+        }
+    }
+
     private static string? FilterLogicalPrivateUseGlyphs(
         string logicalText,
         IEnumerable<HtmlRenderVisual> visuals,

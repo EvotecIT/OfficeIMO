@@ -272,7 +272,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
     public void HtmlPdfOutlinedGlyphGeometryDoesNotAbsorbCssLetterSpacing() {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         string encodedFont = Convert.ToBase64String(fontData);
-        string prefix = "<html><style>@font-face{font-family:'Spacing Variable';src:url('data:font/ttf;base64," +
+        string prefix = "<html><style>body{margin:0}@font-face{font-family:'Spacing Variable';src:url('data:font/ttf;base64," +
             encodedFont + "')}p{font-family:'Spacing Variable';font-size:28px;font-variation-settings:'wght' 725;margin:0";
         HtmlConversionDocument plain = HtmlConversionDocument.Parse(prefix + "}</style><p>A</p></html>");
         HtmlConversionDocument spaced = HtmlConversionDocument.Parse(prefix + ";letter-spacing:18px}</style><p>A</p></html>");

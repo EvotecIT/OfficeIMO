@@ -38,6 +38,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     public HtmlToPdfOptions() {
         Mode = HtmlRenderMode.Paged;
         UrlPolicy = HtmlUrlPolicy.CreateHyperlinkProfile();
+        UsesBrowserBodyMargin = true;
     }
 
     /// <summary>

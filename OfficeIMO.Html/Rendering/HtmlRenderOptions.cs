@@ -106,6 +106,13 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// </summary>
     public HtmlRenderUserAgentStyleMode UserAgentStyles { get; set; } = HtmlRenderUserAgentStyleMode.Document;
 
+    // HTML-to-PDF output is read against a browser's print output, so its Document mode keeps the
+    // body's eight-pixel inset. Scene, image and editable projections keep the uninset body.
+    internal bool UsesBrowserBodyMargin { get; set; }
+
+    // Used content widths of query containers from a first layout, so their queries see real sizes.
+    internal IReadOnlyDictionary<AngleSharp.Dom.IElement, double>? ContainerInlineSizes { get; set; }
+
     /// <summary>
     /// Selects the bounded browser user-agent defaults and a generic serif fallback.
     /// Authored CSS continues to override these defaults.
@@ -296,6 +303,8 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target._defaultLineHeight = _defaultLineHeight;
         target._hasExplicitDefaultLineHeight = _hasExplicitDefaultLineHeight;
         target.UserAgentStyles = UserAgentStyles;
+        target.UsesBrowserBodyMargin = UsesBrowserBodyMargin;
+        target.ContainerInlineSizes = ContainerInlineSizes;
         target.TextHyphenationCallback = TextHyphenationCallback;
         target.MediaFeatures = (MediaFeatures ?? new HtmlRenderMediaFeatures()).Clone();
         target._additionalStylesheets.Clear();

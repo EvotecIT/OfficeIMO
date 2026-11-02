@@ -3569,6 +3569,10 @@ The HTML engine gives `p` elements browser-default margins of `1em` above and
 below, with adjacent margin collapse. Explicit CSS overrides these defaults.
 Use `p { margin-top: 0 }` to keep the previous top spacing.
 
+## HTML-to-PDF body margin
+
+`new HtmlToPdfOptions()`, and the conversions that start from it, keep the browser's eight CSS-pixel `body` margin, so pages wrap as they do in a browser. Add `body{margin:0}` to keep the previous edge-to-edge layout. Image export, the render scene and editable projections still use an uninset body in `Document` user-agent mode.
+
 ## Word new-document defaults
 
 New documents take their heading styles from the default `OfficeTheme`: Heading 1
@@ -4666,7 +4670,7 @@ CSS `box-shadow` retains authored zero blur and spread values. Sharp inset shado
 
 ## Static HTML rendering and capability profiles
 
-Existing `ToPdfBytes()` calls retain print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. For site-bundle image and display-list output, `ResourcePolicy.AllowEmbeddedPackageResources` controls archive reads separately from host reads. Permission changes on request snapshots apply to synchronous and asynchronous rendering. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
+`ToPdf()` keeps print-paged output. Use `HtmlRenderRequest.Create()` with `PrintPaged`, `ScreenMediaPaged`, or `ScreenSnapshotPaged` when selecting a layout contract explicitly. The API and `officeimo html convert --profile` use the same request; `officeimo html render` writes selected PNG or SVG pages and their manifest to an archive. MHTML and site-bundle inputs retain bounded archive resources without permitting network or local-file reads by default. For site-bundle image and display-list output, `ResourcePolicy.AllowEmbeddedPackageResources` controls archive reads separately from host reads. Permission changes on request snapshots apply to synchronous and asynchronous rendering. See the [HTML package](OfficeIMO.Html/README.md) and [PDF adapter](OfficeIMO.Html.Pdf/README.md) for examples and profile limits.
 
 `HtmlRenderCapability.SupportLevel` and `HtmlRenderSupportLevel` are replaced by `HtmlRenderCapability.ProfileBindings` and the versioned profile contract. Inspect the selected binding's coverage, handling, maturity, and promotion independently. Custom capability entries pass `HtmlCapabilityStage` and their profile bindings to the constructor; a single support value no longer describes every media, layout, and output profile.
 

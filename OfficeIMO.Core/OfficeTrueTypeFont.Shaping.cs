@@ -70,6 +70,8 @@ public sealed partial class OfficeTrueTypeFont {
 
     bool IOfficeColorFontProgram.HasColorGlyph(int glyphId) => _colorGlyphs?.HasColorGlyph(glyphId) == true;
 
+    bool IOfficeColorFontProgram.IsColorGlyphApproximated(int glyphId) => _colorGlyphs?.IsApproximated(glyphId) == true;
+
     bool IOfficeColorFontProgram.TryGetColorLayers(
         int glyphId,
         string? palette,

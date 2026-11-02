@@ -104,6 +104,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlCssRunningStringPageContext? _currentRunningStringPage;
     private HtmlCssPageGeometry _activePageGeometry;
     private IElement? _activeSubgridOwner;
+    private readonly Dictionary<IElement, double[]> _measuredRowSubgridRows = new();
     private IReadOnlyList<double>? _activeSubgridColumnSizes;
     private IReadOnlyDictionary<string, int>? _activeSubgridColumnLineNames;
     private double _activeSubgridColumnGap;

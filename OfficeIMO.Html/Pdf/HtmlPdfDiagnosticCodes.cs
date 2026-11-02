@@ -14,6 +14,12 @@ public static class HtmlPdfDiagnosticCodes {
     /// <summary>A private-use glyph could not be painted with the available PDF fonts or outline path.</summary>
     public const string UnavailablePrivateUseGlyphOmitted = "HtmlPdfUnavailablePrivateUseGlyphOmitted";
 
+    /// <summary>No available font covered a text element, so a simpler or replacement glyph was painted and the source text kept for extraction.</summary>
+    public const string UnavailableTextGlyphReplaced = "HtmlPdfUnavailableTextGlyphReplaced";
+
+    /// <summary>A color font glyph used gradients or blend modes that were painted as flat color layers.</summary>
+    public const string ColorGlyphApproximated = "HtmlPdfColorGlyphApproximated";
+
     /// <summary>An image payload could not be embedded and was omitted from the PDF.</summary>
     public const string ImagePayloadOmitted = "HtmlPdfImagePayloadOmitted";
 

@@ -480,16 +480,24 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeFontFace italic = FindFace(faces, OfficeFontStyle.Italic) ?? regular;
         OfficeFontFace boldItalic = FindFace(faces, OfficeFontStyle.Bold | OfficeFontStyle.Italic) ?? bold;
         cancellationToken.ThrowIfCancellationRequested();
-        var embedded = new PdfCore.PdfEmbeddedFontFamily(
-            family,
-            regular.DataSnapshot,
-            bold.DataSnapshot,
-            italic.DataSnapshot,
-            boldItalic.DataSnapshot);
+        // Margin boxes can retain only the installed regular face. Registering that as the
+        // whole family would paint all bold text regular, so take the family's real faces.
+        var embedded = (ReferenceEquals(bold, regular) || ReferenceEquals(italic, regular)
+                ? TryCompleteInstalledFamily(family, regular.DataSnapshot) : null)
+            ?? new PdfCore.PdfEmbeddedFontFamily(
+                family,
+                regular.DataSnapshot,
+                bold.DataSnapshot,
+                italic.DataSnapshot,
+                boldItalic.DataSnapshot);
         if (!string.Equals(family, regular.FamilyName, StringComparison.OrdinalIgnoreCase))
             embedded = embedded.WithProgramFontNames();
         return pdf.Options.TryRegisterNamedFontFamily(embedded);
     }
+
+    private static PdfCore.PdfEmbeddedFontFamily? TryCompleteInstalledFamily(string family, byte[] regular) =>
+        PdfCore.PdfEmbeddedFontFamily.TryFromSystem(family, out PdfCore.PdfEmbeddedFontFamily? installed)
+            && installed != null && installed.Regular.AsSpan().SequenceEqual(regular) ? installed : null;
 
     private static OfficeFontFace? FindFace(IReadOnlyList<OfficeFontFace> faces, OfficeFontStyle style) {
         OfficeFontStyle normalized = style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic);
@@ -539,7 +547,9 @@ internal static partial class HtmlPdfRenderedConverter {
         internal bool AllowInstalledFontFaces { get; set; }
         internal OfficeFontFaceCollection Faces { get; }
         internal PdfCore.PdfCreateOptions Options { get; }
+        internal HtmlRenderFidelityPolicy FidelityPolicy { get; set; }
         internal HashSet<string> ReportedPrivateUseOmissions { get; } = new(StringComparer.Ordinal);
+        internal HashSet<string> ReportedUnpaintableText { get; } = new(StringComparer.Ordinal);
         internal bool OutlineBudgetApproximationReported { get; set; }
         internal Dictionary<string, bool> PrivateUsePaintability { get; } = new(StringComparer.Ordinal);
         internal HtmlDiagnosticReport Diagnostics { get; }
