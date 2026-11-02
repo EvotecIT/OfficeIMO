@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
         private ExcelPackageReadSnapshot? AcquireSnapshot(object? identity) {
             lock (_readSnapshotGate) {
                 if (identity == null) {
-                    ReleaseReadSnapshot();
+                    ReleaseReadSnapshotOnEdit();
                     return null;
                 }
 

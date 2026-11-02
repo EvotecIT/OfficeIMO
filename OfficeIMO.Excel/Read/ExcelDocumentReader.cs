@@ -32,7 +32,8 @@ namespace OfficeIMO.Excel {
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
         private readonly ExcelPackageReadSnapshot? _snapshot;
         private readonly bool _readsEditedPackage;
-        private readonly bool _sharedStringsFromSnapshot;
+        private SharedStringCache? _editedSharedStrings;
+        private StylesCacheProvider? _editedStyles;
         private int _snapshotReleased;
         private bool _qualifyEditedWorksheets;
         private Func<ExcelDocumentReader>? _createSdkReader;
@@ -60,12 +61,8 @@ namespace OfficeIMO.Excel {
             ValidateSdkMetadataLimits();
             _dateSystem = GetWorkbookDateSystem(doc);
             _readsEditedPackage = readsEditedPackage;
-            _sharedStringsFromSnapshot = snapshot != null
-                && !(readsEditedPackage && doc.WorkbookPart?.SharedStringTablePart?.IsRootElementLoaded == true);
-            _sst = _sharedStringsFromSnapshot ? snapshot!.RentSharedStrings(_opt) : SharedStringCache.Build(doc, _opt);
-            _styles = snapshot != null && !(readsEditedPackage && doc.WorkbookPart?.WorkbookStylesPart?.IsRootElementLoaded == true)
-                ? snapshot.Styles
-                : new StylesCacheProvider(doc);
+            _sst = snapshot?.RentSharedStrings(_opt) ?? SharedStringCache.Build(doc, _opt);
+            _styles = snapshot?.Styles ?? new StylesCacheProvider(doc);
             _snapshot = snapshot;
             _opt.CancellationToken.ThrowIfCancellationRequested();
         }
@@ -191,10 +188,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelSheetReader CreateSheetReader(string sheetName, WorksheetPart worksheetPart) {
             if (_readsEditedPackage) {
-                WorksheetPart? unchanged = worksheetPart.IsRootElementLoaded ? null : _snapshot!.FindWorksheetPart(worksheetPart.Uri);
-                return unchanged != null && (!_qualifyEditedWorksheets || _snapshot!.QualifiesForTabularReaders(unchanged, _opt))
-                    ? new ExcelSheetReader(sheetName, unchanged, _sst, _styles, _opt, _dateSystem, canStreamWorksheetPart: true, _snapshot!.PartBufferReader)
-                    : new ExcelSheetReader(sheetName, worksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
+                return CreateEditedSheetReader(sheetName, worksheetPart);
             }
 
             if (_createSdkReader != null && !_snapshot!.QualifiesForTabularReaders(worksheetPart, _opt)) {
@@ -203,6 +197,25 @@ namespace OfficeIMO.Excel {
             }
 
             return new ExcelSheetReader(sheetName, worksheetPart, _sst, _styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
+        }
+
+        /// <summary>
+        /// An unchanged part reads wholly from the package it came from, whose strings and formats its indexes
+        /// name. A part with a loaded root reads the live document, and so do any table or stylesheet an edit loaded.
+        /// </summary>
+        private ExcelSheetReader CreateEditedSheetReader(string sheetName, WorksheetPart worksheetPart) {
+            WorksheetPart? unchanged = worksheetPart.IsRootElementLoaded ? null : _snapshot!.FindWorksheetPart(worksheetPart.Uri);
+            if (unchanged != null && (!_qualifyEditedWorksheets || _snapshot!.QualifiesForTabularReaders(unchanged, _opt))) {
+                return new ExcelSheetReader(sheetName, unchanged, _sst, _styles, _opt, _dateSystem, canStreamWorksheetPart: true, _snapshot!.PartBufferReader);
+            }
+
+            SharedStringCache sharedStrings = _doc.WorkbookPart?.SharedStringTablePart?.IsRootElementLoaded == true
+                ? _editedSharedStrings ??= SharedStringCache.Build(_doc, _opt)
+                : _sst;
+            StylesCacheProvider styles = _doc.WorkbookPart?.WorkbookStylesPart?.IsRootElementLoaded == true
+                ? _editedStyles ??= new StylesCacheProvider(_doc)
+                : _styles;
+            return new ExcelSheetReader(sheetName, worksheetPart, sharedStrings, styles, _opt, _dateSystem, _canStreamWorksheetParts, _partBufferReader);
         }
 
         /// <summary>
@@ -633,11 +646,8 @@ namespace OfficeIMO.Excel {
             if (_snapshot != null) {
                 if (Interlocked.Exchange(ref _snapshotReleased, 1) == 0) {
                     _sdkReader?.Dispose();
-                    if (_sharedStringsFromSnapshot) {
-                        _snapshot.ReturnSharedStrings(_sst);
-                    } else {
-                        _sst.Dispose();
-                    }
+                    _editedSharedStrings?.Dispose();
+                    _snapshot.ReturnSharedStrings(_sst);
                     _snapshot.Release();
                 }
                 return;
