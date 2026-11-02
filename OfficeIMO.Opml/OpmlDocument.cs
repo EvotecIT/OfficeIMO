@@ -82,9 +82,10 @@ public sealed partial class OpmlDocument {
     /// <summary>Loads an OPML file.</summary>
     public static OpmlDocument Load(string path, OpmlReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        using var stream = File.OpenRead(path);
+        string fullPath = Path.GetFullPath(path);
+        using var stream = File.OpenRead(fullPath);
         var document = Load(stream, options, cancellationToken);
-        document._filePath = Path.GetFullPath(path);
+        document._filePath = fullPath;
         return document;
     }
 

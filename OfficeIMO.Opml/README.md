@@ -61,3 +61,5 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 
 The complete rows for `OfficeIMO.Opml` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->
+
+`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; loading bytes or a stream leaves the document detached.

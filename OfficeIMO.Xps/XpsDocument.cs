@@ -42,9 +42,10 @@ public sealed partial class XpsDocument {
     }
     /// <summary>Loads from a file without retaining handles.</summary>
     public static XpsDocument Load(string path, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
-        using var stream = File.OpenRead(path);
+        string fullPath = Path.GetFullPath(path);
+        using var stream = File.OpenRead(fullPath);
         var document = Load(stream, options, cancellationToken);
-        document._filePath = Path.GetFullPath(path);
+        document._filePath = fullPath;
         return document;
     }
     /// <summary>Loads from bytes with bounded package and XML expansion.</summary>

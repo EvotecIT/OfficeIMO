@@ -15,7 +15,9 @@ public sealed class NativeSaveLifecycleTests {
             string first = Path.Combine(directory, "first.opml");
             document.Save(first);
             Assert.Equal(Path.GetFullPath(first), document.FilePath);
-            Assert.ThrowsAny<IOException>(() => document.Save(Path.Combine(directory, "missing", "file.opml")));
+            string blocked = Path.Combine(directory, "blocked");
+            File.WriteAllText(blocked, "occupied");
+            Assert.ThrowsAny<IOException>(() => document.Save(Path.Combine(blocked, "file.opml")));
             Assert.Equal(Path.GetFullPath(first), document.FilePath);
             using var output = new MemoryStream();
             document.Save(output);
