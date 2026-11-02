@@ -23,7 +23,7 @@ public sealed class MsgProtectedContentTests {
         });
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes);
 
         Assert.Equal(expectedKind, result.Document.Protection.Kind);
         Assert.True(result.Document.Protection.IsProtected);
@@ -40,7 +40,7 @@ public sealed class MsgProtectedContentTests {
             Subject = "Missing payload"
         };
 
-        EmailReadResult result = new EmailDocumentReader().Read(
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         Assert.Equal(EmailProtectionKind.SmimeOpaque, result.Document.Protection.Kind);
@@ -74,7 +74,7 @@ public sealed class MsgProtectedContentTests {
             Length = winmail.Length
         });
 
-        EmailDocument result = new EmailDocumentReader().Read(
+        EmailDocument result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
 
         EmailAttachment original = Assert.Single(result.Attachments);

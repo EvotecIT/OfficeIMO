@@ -60,8 +60,8 @@ internal static partial class FixtureCorpus {
         HtmlConversionDocument.Parse(html).SaveAsPdf(Path.Combine(output, "service-review.pdf"), new HtmlToPdfOptions(rendering));
         var visio = VisioDocument.Create(Path.Combine(output, "service-review.vsdx"));
         for (int number = 1; number <= 2; number++) {
-            var page = visio.AddPage("Review " + number).Size(5, 320D / 96);
-            var shape = page.AddRectangle(2.5, 2, 4, 1, "SERVICE REVIEW " + number);
+            var page = visio.AddPage("Review " + number).Size(OfficeLength.Inches(5), OfficeLength.Inches(320D / 96));
+            var shape = page.AddRectangle(OfficeLength.Inches(2.5), OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1), "SERVICE REVIEW " + number);
             shape.TextStyle = new VisioTextStyle { FontFamily = family, Size = 12 };
         }
         visio.Save();

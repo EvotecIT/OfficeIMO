@@ -19,7 +19,7 @@ public class RtfNestedTableTests {
 
     [Fact]
     public void Read_Models_Word_Nested_Table_And_Preserves_Source() {
-        RtfReadResult result = RtfDocument.Read(WordCompatibleNestedRtf);
+        RtfReadResult result = RtfDocument.ParseResult(WordCompatibleNestedRtf);
 
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(result.Document.Blocks));
         RtfTableCell outerCell = Assert.Single(Assert.Single(outer.Rows).Cells);
@@ -40,7 +40,7 @@ public class RtfNestedTableTests {
         RtfDocument document = CreateNestedDocument();
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable nested = Assert.Single(Assert.Single(Assert.Single(outer.Rows).Cells).Blocks.OfType<RtfTable>());
 
@@ -48,7 +48,7 @@ public class RtfNestedTableTests {
         Assert.Contains(@"\nestcell", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\nesttableprops", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\nestrow", rtf, StringComparison.Ordinal);
-        Assert.Single(RtfDocument.Read(roundTrip.ToRtf()).Document.Blocks);
+        Assert.Single(RtfDocument.ParseResult(roundTrip.ToRtf()).Document.Blocks);
         Assert.Equal(new[] { "Inner A", "Inner B" }, nested.Rows[0].Cells.Select(cell => cell.Paragraphs[0].ToPlainText()));
     }
 
@@ -60,7 +60,7 @@ public class RtfNestedTableTests {
         secondRow.AddCell(2400).AddParagraph("Inner C");
         secondRow.AddCell(4800).AddParagraph("Inner D");
 
-        RtfDocument roundTrip = RtfDocument.Read(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
         RtfTable roundTripOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable roundTripNested = Assert.Single(Assert.Single(Assert.Single(roundTripOuter.Rows).Cells).Blocks.OfType<RtfTable>());
 
@@ -77,7 +77,7 @@ public class RtfNestedTableTests {
         outerCell.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("First nested table");
         outerCell.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Second nested table");
 
-        RtfDocument roundTrip = RtfDocument.Read(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
         RtfTable readOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable[] nestedTables = Assert.Single(Assert.Single(readOuter.Rows).Cells).Blocks.OfType<RtfTable>().ToArray();
 
@@ -97,7 +97,7 @@ public class RtfNestedTableTests {
         levelThree.Rows[0].Cells[0].AddParagraph("Level 3");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfTable readOuter = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTable readLevelTwo = Assert.Single(Assert.Single(Assert.Single(readOuter.Rows).Cells).Blocks.OfType<RtfTable>());
         RtfTable readLevelThree = Assert.Single(Assert.Single(Assert.Single(readLevelTwo.Rows).Cells).Blocks.OfType<RtfTable>());
@@ -118,7 +118,7 @@ public class RtfNestedTableTests {
         nested.Rows[0].Cells[0].Paragraphs[0].AddNoteReference(note, "1");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Equal(1, CountOccurrences(rtf, @"{\footnote"));
         Assert.Equal("Nested note", Assert.Single(roundTrip.Notes).ToPlainText());

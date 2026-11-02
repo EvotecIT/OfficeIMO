@@ -187,3 +187,5 @@ presenting changed content with stale signatures. This package does not validate
 signatures or decrypt protected packages.
 
 Targets: .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows.
+
+`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; loading bytes or a stream leaves the document detached.

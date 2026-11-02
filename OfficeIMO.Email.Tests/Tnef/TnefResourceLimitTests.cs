@@ -13,7 +13,7 @@ public sealed class TnefResourceLimitTests {
         byte[] bytes = new EmailDocumentWriter().ToBytes(parent, EmailFileFormat.Tnef);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));
+            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
         Assert.True(exception.ActualValue > 512);
@@ -26,7 +26,7 @@ public sealed class TnefResourceLimitTests {
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(
                 maxAttachmentBytes: 512,
-                includeAttachmentContent: false)).Read(bytes));
+                includeAttachmentContent: false)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
         Assert.Equal(1024, exception.ActualValue);
@@ -40,7 +40,7 @@ public sealed class TnefResourceLimitTests {
         byte[] bytes = CreateTnef((TnefAttributeLevel.Message, TnefConstants.MessageProperties, properties));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxDecodedPropertyBytes: 512)).Read(bytes));
+            new EmailDocumentReader(new EmailReaderOptions(maxDecodedPropertyBytes: 512)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxDecodedPropertyBytes), exception.LimitName);
         Assert.Equal(1024, exception.ActualValue);
@@ -54,7 +54,7 @@ public sealed class TnefResourceLimitTests {
         byte[] bytes = CreateTnef((TnefAttributeLevel.Message, TnefConstants.RecipientTable, recipients));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxDecodedPropertyBytes: 512)).Read(bytes));
+            new EmailDocumentReader(new EmailReaderOptions(maxDecodedPropertyBytes: 512)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxDecodedPropertyBytes), exception.LimitName);
         Assert.Equal(1024, exception.ActualValue);
@@ -73,7 +73,7 @@ public sealed class TnefResourceLimitTests {
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(
                 maxAttachmentBytes: 512,
-                includeAttachmentContent: false)).Read(bytes));
+                includeAttachmentContent: false)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
         Assert.Equal(1024, exception.ActualValue);
@@ -93,7 +93,7 @@ public sealed class TnefResourceLimitTests {
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(
                 maxAttachmentBytes: 6,
-                includeAttachmentContent: false)).Read(bytes));
+                includeAttachmentContent: false)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
         Assert.Equal(8, exception.ActualValue);
@@ -113,7 +113,7 @@ public sealed class TnefResourceLimitTests {
         EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(
             maxDecodedPropertyBytes: 64,
             maxAttachmentBytes: 2048,
-            maxTotalAttachmentBytes: 2048)).Read(bytes).Document;
+            maxTotalAttachmentBytes: 2048)).ReadDocument(bytes).Document;
 
         Assert.Equal(payload, Assert.Single(document.Attachments).Content);
     }
@@ -130,7 +130,7 @@ public sealed class TnefResourceLimitTests {
             (TnefAttributeLevel.Attachment, TnefConstants.AttachData, new byte[] { 1, 2 }),
             (TnefAttributeLevel.Attachment, TnefConstants.AttachmentProperties, properties));
 
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(bytes).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(bytes).Document.Attachments);
 
         Assert.Equal(mapiPayload, attachment.Content);
         Assert.Equal(mapiPayload.Length, attachment.Length);
@@ -152,8 +152,8 @@ public sealed class TnefResourceLimitTests {
             maxTotalAttachmentBytes: mapiPayload.Length);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(restrictiveOptions).ReadStreaming(
-                new MemoryStream(bytes, writable: false), "dual-payload.dat"));
+            new EmailDocumentReader(restrictiveOptions).ReadDocument(
+                new MemoryStream(bytes, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "dual-payload.dat"));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
         Assert.Equal(5, exception.ActualValue);
@@ -161,8 +161,8 @@ public sealed class TnefResourceLimitTests {
         var permissiveOptions = new EmailReaderOptions(
             maxAttachmentBytes: mapiPayload.Length,
             maxTotalAttachmentBytes: 5);
-        using EmailReadResult result = new EmailDocumentReader(permissiveOptions).ReadStreaming(
-            new MemoryStream(bytes, writable: false), "dual-payload.dat");
+        using EmailReadResult result = new EmailDocumentReader(permissiveOptions).ReadDocument(
+            new MemoryStream(bytes, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "dual-payload.dat");
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
 
         Assert.Equal(mapiPayload, attachment.Content);
@@ -182,8 +182,8 @@ public sealed class TnefResourceLimitTests {
             includeAttachmentContent: false);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(options).ReadStreaming(
-                new MemoryStream(bytes, writable: false), "repeated-attach-data.dat"));
+            new EmailDocumentReader(options).ReadDocument(
+                new MemoryStream(bytes, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "repeated-attach-data.dat"));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
         Assert.Equal(200, exception.ActualValue);
@@ -198,7 +198,7 @@ public sealed class TnefResourceLimitTests {
         };
         source.Body.Html = "<p>日本語の本文</p>";
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef)).Document;
 
         Assert.Equal(932, roundTrip.OutlookCodePage);

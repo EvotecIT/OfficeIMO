@@ -19,7 +19,7 @@ public class RtfParsedParagraphStateTests {
     public void Parsed_Implicit_Spacing_Is_Single_With_Or_Without_A_Stylesheet(string stylesheet) {
         string header = stylesheet == "none" ? string.Empty : Styles;
         string selection = stylesheet == "selected" ? @"\s1" : string.Empty;
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi" + header + @"\pard" + selection + @" Plain\par}").Document;
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi" + header + @"\pard" + selection + @" Plain\par}").Document;
         RtfParagraph paragraph = Assert.Single(source.Paragraphs);
         RtfParagraph effective = source.ResolveParagraphFormatting(paragraph);
 
@@ -63,7 +63,7 @@ public class RtfParsedParagraphStateTests {
         authoredStyle.SpaceAfterTwips = 240;
         authoredStyle.AddTabStop(4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
         RtfParagraph authoredParagraph = authored.AddParagraph("Plain").SetStyle(1);
-        RtfDocument parsed = RtfDocument.Read(@"{\rtf1\ansi" + Styles + @"\pard\s1 Plain\par}").Document;
+        RtfDocument parsed = RtfDocument.ParseResult(@"{\rtf1\ansi" + Styles + @"\pard\s1 Plain\par}").Document;
         RtfParagraph parsedParagraph = Assert.Single(parsed.Paragraphs);
 
         RtfParagraph authoredEffective = authored.ResolveParagraphFormatting(authoredParagraph);
@@ -97,7 +97,7 @@ public class RtfParsedParagraphStateTests {
     [InlineData(@"\sl360\slmult1", 360, true, WordLineSpacingRule.Auto)]
     public void Parsed_Direct_Line_And_Tab_Controls_Override_Style_Declarations(
         string controls, int line, bool multiple, WordLineSpacingRule rule) {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi" + Styles + @"\pard\s1" + controls +
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi" + Styles + @"\pard\s1" + controls +
             @"\tqdec\tlhyph\tx2880 Direct\tab 12.5\par}").Document;
         RtfParagraph paragraph = Assert.Single(source.Paragraphs);
         RtfParagraph effective = source.ResolveParagraphFormatting(paragraph);
@@ -129,7 +129,7 @@ public class RtfParsedParagraphStateTests {
     [InlineData(true)]
     public void Parsed_Default_State_Survives_Clone_Html_Metadata_And_Materialized_Rtf(bool hasStyles) {
         string styleControls = hasStyles ? Styles + @"\pard\s1" : @"\pard";
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi" + styleControls + @" Plain\par}").Document;
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi" + styleControls + @" Plain\par}").Document;
         RtfDocument cloned = source.Clone();
         AssertParsedState(cloned);
         string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
@@ -140,7 +140,7 @@ public class RtfParsedParagraphStateTests {
             Assert.Equal(4320, Assert.Single(Assert.Single(fromHtml.Styles, style => style.Id == 1).TabStops).PositionTwips);
         }
 
-        RtfDocument materialized = RtfDocument.Read(source.ToRtf()).Document;
+        RtfDocument materialized = RtfDocument.ParseResult(source.ToRtf()).Document;
         RtfParagraph written = Assert.Single(materialized.Paragraphs);
         Assert.Equal(240, written.LineSpacingTwips);
         Assert.True(written.LineSpacingMultiple);
@@ -167,9 +167,9 @@ public class RtfParsedParagraphStateTests {
 
     [Fact]
     public void Parsed_Default_Normalization_Is_Not_Reported_As_Lost_Style_Inheritance() {
-        RtfDocument parsed = RtfDocument.Read(@"{\rtf1\ansi\pard Plain\par}").Document;
+        RtfDocument parsed = RtfDocument.ParseResult(@"{\rtf1\ansi\pard Plain\par}").Document;
         parsed.ToRtfResult().RequireNoLoss();
-        RtfDocument parsedStyleZero = RtfDocument.Read(@"{\rtf1\ansi{\stylesheet{\s0\sb0\sa0 Normal;}}\pard Plain\par}").Document;
+        RtfDocument parsedStyleZero = RtfDocument.ParseResult(@"{\rtf1\ansi{\stylesheet{\s0\sb0\sa0 Normal;}}\pard Plain\par}").Document;
         Assert.Contains(parsedStyleZero.ToRtfResult().Report.Diagnostics,
             diagnostic => diagnostic.Code == "RtfNormalizationFormattingInheritanceMaterialized");
         RtfDocument authored = RtfDocument.Create();
@@ -183,7 +183,7 @@ public class RtfParsedParagraphStateTests {
 
     [Fact]
     public void Parsed_Default_State_Reaches_Cell_And_Footnote_Paragraphs() {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\ftnbj" + Styles +
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi\ftnbj" + Styles +
             @"\pard Body{\footnote\pard\s1 Note\par}\par\trowd\cellx2400\pard\intbl\s1 Cell\cell\row}").Document;
         RtfParagraph cell = Assert.Single(Assert.Single(source.Blocks.OfType<RtfTable>()).Rows[0].Cells[0].Paragraphs);
         RtfNote parsedNote = Assert.Single(source.Notes);
@@ -227,7 +227,7 @@ public class RtfParsedParagraphStateTests {
     [InlineData(false, true)]
     public void Parsed_Automatic_Spacing_Remains_Explicit_While_Other_Default_Gaps_Are_Zero(bool beforeAuto, bool afterAuto) {
         string controls = (beforeAuto ? @"\sbauto1" : @"\sbauto0") + (afterAuto ? @"\saauto1" : @"\saauto0");
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\pard" + controls + @" Plain\par}").Document;
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi\pard" + controls + @" Plain\par}").Document;
         RtfParagraph paragraph = Assert.Single(source.Paragraphs);
         RtfParagraph effective = source.ResolveParagraphFormatting(paragraph);
         Assert.Null(paragraph.SpaceBeforeTwips);

@@ -36,7 +36,7 @@ public class RtfPictureLayoutRegressionTests {
         inline.AddText(" tail");
         string native = document.ToRtf();
         Assert.Contains("}\\par", native, StringComparison.Ordinal);
-        RtfDocument reopened = RtfDocument.Read(native).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(native).Document;
         Assert.Collection(reopened.Blocks,
             block => Assert.Equal("Before", Assert.IsType<RtfParagraph>(block).ToPlainText()),
             block => Assert.IsType<RtfImage>(block),
@@ -52,7 +52,7 @@ public class RtfPictureLayoutRegressionTests {
     public void Native_Picture_Transforms_Survive_Normalization_Cloning_And_Image_Replacement() {
         RtfDocument document = CreatePicture();
         RtfImage source = Assert.IsType<RtfImage>(document.Blocks[0]);
-        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.Read(document.ToRtf()).Document.Blocks[0]);
+        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.ParseResult(document.ToRtf()).Document.Blocks[0]);
         Assert.Equal(150, reopened.ScaleXPercent);
         Assert.Equal(200, reopened.ScaleYPercent);
         Assert.Equal(200, reopened.CropLeftTwips);
@@ -64,7 +64,7 @@ public class RtfPictureLayoutRegressionTests {
         RtfImage clone = Assert.IsType<RtfImage>(document.Clone().Blocks[0]);
         clone.CropLeftTwips = 0;
         Assert.Equal(200, source.CropLeftTwips);
-        RtfLosslessEditor editor = RtfDocument.Read(document.ToRtf()).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(document.ToRtf()).EditLossless();
         Assert.True(editor.ReplaceImage(0, source));
         Assert.Equal(2100, Assert.IsType<RtfImage>(editor.ToReadResult().Document.Blocks[0]).ResolveLayout().VisibleWidthTwips);
     }

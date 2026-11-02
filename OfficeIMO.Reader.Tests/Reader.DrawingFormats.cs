@@ -22,13 +22,13 @@ public class ReaderDrawingFormatTests {
         using var stream = new MemoryStream();
         if (extension == "fodg") drawing.SaveFlatXml(stream); else drawing.Save(stream);
         var reader = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler().Build();
-        ReaderChunk chunk = Assert.Single(reader.Read(stream.ToArray(), "drawing." + extension));
+        ReaderChunk chunk = Assert.Single(reader.Enumerate(stream.ToArray(), "drawing." + extension));
         Assert.Equal("First" + Environment.NewLine + "Nested" + Environment.NewLine + "Caption", chunk.Text);
         Assert.Equal(1, chunk.Location.Page);
         Assert.Contains(chunk.Warnings!, warning => warning.Contains("hidden layers"));
         // The page name and the two original labels fit; the image caption must also charge the budget.
         var bounded = new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(new ReaderOpenDocumentOptions { MaxExtractedCharacters = 18 }).Build();
-        var error = Assert.Throws<ReaderResourceLimitException>(() => bounded.Read(stream.ToArray(), "drawing." + extension).ToArray());
+        var error = Assert.Throws<ReaderResourceLimitException>(() => bounded.Enumerate(stream.ToArray(), "drawing." + extension).ToArray());
         Assert.Equal("OpenDocument.MaxExtractedCharacters", error.LimitName);
         Assert.Equal(18, error.Maximum);
     }
@@ -39,15 +39,15 @@ public class ReaderDrawingFormatTests {
     [InlineData("vsx", VisioPackageType.Stencil)]
     public void LegacyHandlerDispatchesFamiliesAndCarriesImportDiagnostics(string extension, VisioPackageType family) {
         VisioDocument drawing = VisioDocument.Create(family);
-        if (family == VisioPackageType.Stencil) drawing.RegisterMaster("Box", new VisioShape("1", 1, 1, 2, 1, "Reusable box"));
-        else drawing.AddPage("Workflow").Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start workflow"));
+        if (family == VisioPackageType.Stencil) drawing.RegisterMaster("Box", new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Reusable box"));
+        else drawing.AddPage("Workflow").Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start workflow"));
         byte[] bytes = drawing.ToLegacyXmlResult().Value;
         var reader = new OfficeDocumentReaderBuilder().AddVisioHandler().Build();
         using var stream = new MemoryStream(bytes);
         OfficeDocumentReadResult result = reader.ReadDocument(stream, "workflow." + extension);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "VDX_MODEL_PROFILE");
         if (family != VisioPackageType.Stencil) {
-            ReaderChunk chunk = Assert.Single(reader.Read(bytes, "workflow." + extension));
+            ReaderChunk chunk = Assert.Single(reader.Enumerate(bytes, "workflow." + extension));
             Assert.Contains("Start workflow", chunk.Text);
             Assert.Contains(chunk.Warnings!, warning => warning.Contains("existing Visio model"));
         }

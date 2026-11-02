@@ -10,7 +10,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
         IncludeMarkdown = true
     })
     .Build();
-List<ReaderChunk> chunks = reader.Read(stream, "scores.csv").ToList();
+List<ReaderChunk> chunks = reader.Enumerate(stream, "scores.csv").ToList();
 
 if (chunks.Count == 0 || chunks.Any(chunk => chunk.Kind != ReaderInputKind.Csv)) {
     throw new InvalidOperationException("Reader did not emit normalized CSV chunks.");
@@ -33,6 +33,6 @@ if (restored.NestedDocuments.Count != 1 || restored.NestedDocuments[0].Document.
 if (!textReader.GetCapabilityManifestJson().Contains("formatQualifications", StringComparison.Ordinal))
     throw new InvalidOperationException("NativeAOT capability transport lost format qualification.");
 using var incremental = new MemoryStream(Encoding.UTF8.GetBytes(new string('x', 600)));
-if (textReader.EnumerateChunks(incremental, "large.txt", new ReaderOptions { ComputeHashes = false, MaxChars = 256 }).Count() != 3)
+if (textReader.Enumerate(incremental, "large.txt", new ReaderOptions { ComputeHashes = false, MaxChars = 256 }).Count() != 3)
     throw new InvalidOperationException("NativeAOT incremental text extraction lost chunks.");
 Console.WriteLine("PASS | Reader incremental text and nested transport");

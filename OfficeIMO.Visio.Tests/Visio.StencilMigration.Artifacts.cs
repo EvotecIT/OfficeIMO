@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("First", page => page
-                    .Stencil("worker", VisioStencils.Flowchart.Get("process"), 2, 5, "Worker A=B\\C"))
-                .Page("Second", page => page
-                    .Stencil("queue", VisioStencils.Flowchart.Get("data"), 2, 5, "Queue\nLine 2"))
+                .AddPage("First", page => page
+                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Worker A=B\\C"))
+                .AddPage("Second", page => page
+                    .AddStencilShape(id: "queue", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Queue\nLine 2"))
                 .End()
                 .Save();
 
@@ -55,8 +55,8 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Empty Text", page => page
-                    .Rect("empty", 2, 5, 1.6, 0.7, string.Empty))
+                .AddPage("Empty Text", page => page
+                    .AddRectangle("empty", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), string.Empty))
                 .End()
                 .Save();
 

@@ -161,7 +161,7 @@ encrypted.Save("protected-copy.ppt",
 
 `InspectSignatures()` detects Open XML and legacy binary signature metadata. The safe default blocks a
 mutating save of signed content; callers must explicitly choose whether invalidated signature markup should
-be removed or preserved. `SignPackageSignature(...)` and `ValidatePackageSignatures(...)` use an explicitly
+be removed or preserved. `SignPackage(...)` and `ValidateSignatures(...)` use an explicitly
 supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation without adding a transitive
 `OfficeIMO.Security` dependency.
 

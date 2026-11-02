@@ -55,7 +55,7 @@ public sealed class XpsStyleTests {
                 new XElement(ns + "LinearGradientBrush.GradientStops", new XElement(ns + "GradientStop", new XAttribute("Offset", "0"), new XAttribute("Color", "#80FF0000")),
                     new XElement(ns + "GradientStop", new XAttribute("Offset", "1"), new XAttribute("Color", "#80FF0000"))))));
         }
-        page.ReplaceMarkup(xml); byte[] bytes = XpsDocument.Load(doc.Save()).Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
+        page.ReplaceMarkup(xml); byte[] bytes = XpsDocument.Load(doc.ToBytes()).Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
         Assert.True(OfficeRasterImageDecoder.TryDecode(bytes, out var raster));
         byte minimum = 255;
         for (int y = 0; y < raster!.Height; y++) for (int x = 0; x < raster.Width; x++) minimum = Math.Min(minimum, raster.GetPixel(x, y).G);

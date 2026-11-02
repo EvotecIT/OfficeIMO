@@ -13,6 +13,10 @@ namespace OfficeIMO.Opml;
 
 /// <summary>A source-preserving OPML 1.0/2.0 document with typed editing helpers.</summary>
 public sealed partial class OpmlDocument {
+    private string? _filePath;
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+
     private readonly XDocument _xml;
     private readonly byte[]? _originalBytes;
     private readonly string? _originalText;
@@ -78,8 +82,11 @@ public sealed partial class OpmlDocument {
     /// <summary>Loads an OPML file.</summary>
     public static OpmlDocument Load(string path, OpmlReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        using var stream = File.OpenRead(path);
-        return Load(stream, options, cancellationToken);
+        string fullPath = Path.GetFullPath(path);
+        using var stream = File.OpenRead(fullPath);
+        var document = Load(stream, options, cancellationToken);
+        document._filePath = fullPath;
+        return document;
     }
 
     /// <summary>Loads OPML from a caller-owned stream without changing a seekable stream's position.</summary>
@@ -242,26 +249,43 @@ public sealed partial class OpmlDocument {
     }
 
     /// <summary>Writes OPML to a caller-owned stream and rewinds a seekable destination.</summary>
-    public void Write(Stream destination, OpmlWriteOptions? options = null) =>
-        OfficeStreamWriter.WriteAllBytes(destination, GetBytes(options));
+    public void Save(Stream destination, OpmlWriteOptions? options = null) =>
+        OfficeStreamWriter.WriteAllBytes(destination, ToBytes(options));
 
     /// <summary>Writes OPML asynchronously to a caller-owned stream.</summary>
-    public Task WriteAsync(Stream destination, OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeStreamWriter.WriteAllBytesAsync(destination, GetBytes(options), cancellationToken);
+    public Task SaveAsync(Stream destination, OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeStreamWriter.WriteAllBytesAsync(destination, ToBytes(options), cancellationToken);
 
-    /// <summary>Saves OPML through an atomic same-directory file commit.</summary>
-    public void Save(string path, OpmlWriteOptions? options = null) => OfficeFileCommit.WriteAllBytes(path, GetBytes(options));
+    /// <summary>Saves to the associated path, failing when no destination is associated.</summary>
+    public void Save(OpmlWriteOptions? options = null) =>
+        Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options);
 
-    /// <summary>Saves OPML asynchronously through an atomic same-directory file commit.</summary>
-    public Task SaveAsync(string path, OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeFileCommit.WriteAllBytesAsync(path, GetBytes(options), cancellationToken: cancellationToken);
+    /// <summary>Atomically saves native output and associates the successfully written path.</summary>
+    public void Save(string path, OpmlWriteOptions? options = null) {
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAllBytes(fullPath, ToBytes(options));
+        _filePath = fullPath;
+    }
+
+    /// <summary>Asynchronously saves to the associated path.</summary>
+    public Task SaveAsync(OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) =>
+        SaveAsync(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options, cancellationToken);
+
+    /// <summary>Atomically saves native output asynchronously and associates the successfully written path.</summary>
+    public async Task SaveAsync(string path, OpmlWriteOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, ToBytes(options), cancellationToken: cancellationToken).ConfigureAwait(false);
+        _filePath = fullPath;
+    }
 
     internal void MarkModified() => _modified = true;
 
     internal IEnumerable<OpmlOutline> Descendants() =>
         BodyElement.Descendants("outline").Select(e => new OpmlOutline(this, e));
 
-    private byte[] GetBytes(OpmlWriteOptions? options) {
+    /// <summary>Serializes native bytes, preserving an unchanged source when requested.</summary>
+    public byte[] ToBytes(OpmlWriteOptions? options = null) {
         options ??= new OpmlWriteOptions();
         if (!HasChanges && options.PreserveUnchangedSource && _originalBytes != null) return (byte[])_originalBytes.Clone();
         return Serialize(options);

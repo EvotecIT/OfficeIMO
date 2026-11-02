@@ -26,7 +26,7 @@ public class RtfToHtmlComparisonBenchmarks {
 
     /// <summary>Parses RTF and renders HTML through OfficeIMO's public format owners.</summary>
     [Benchmark(Baseline = true, Description = "OfficeIMO")]
-    public string OfficeIMO() => RtfDocument.Read(_rtf).Document.ToHtml();
+    public string OfficeIMO() => RtfDocument.ParseResult(_rtf).Document.ToHtml();
 
     /// <summary>Parses the same RTF and renders HTML through RtfPipe.</summary>
     [Benchmark(Description = "RtfPipe")]

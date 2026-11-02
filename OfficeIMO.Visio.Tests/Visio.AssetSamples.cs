@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
-            VisioPage page = document.AddPage("Page-1", 21, 29.7, VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Page-1", OfficeLength.Centimeters(21), OfficeLength.Centimeters(29.7), scaleUnit: VisioMeasurementUnit.Centimeters);
             page.ViewCenterX = 4.1233127451916;
             page.ViewCenterY = 5.8492688900245;
             document.Save();
@@ -40,14 +40,14 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(target);
             document.UseMastersByDefault = true;
-            VisioPage page = document.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Page-1", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
             page.ViewCenterX = 5.8424184863857;
             page.ViewCenterY = 4.133858091015;
             page.Shapes.Add(new VisioShape("1") {
                 NameU = "Rectangle",
-                PinX = 2.047244040636296,
-                PinY = 6.73228320203895
-            });
+                PinX = OfficeLength.Inches(2.047244040636296),
+                PinY = OfficeLength.Inches(6.73228320203895
+            )});
             document.Save();
 
             using ZipArchive actual = ZipFile.OpenRead(target);
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
 
             double pinX = GetCellValue(shape, "PinX");
             double pinY = GetCellValue(shape, "PinY");
-            AssertApproximately(2.047244040636296, pinX);
-            AssertApproximately(6.73228320203895, pinY);
+            AssertApproximately(OfficeLength.Inches(2.047244040636296).ToInches(), pinX);
+            AssertApproximately(OfficeLength.Inches(6.73228320203895).ToInches(), pinY);
         }
 
         private static XDocument LoadXml(ZipArchive zip, string entryPath) {

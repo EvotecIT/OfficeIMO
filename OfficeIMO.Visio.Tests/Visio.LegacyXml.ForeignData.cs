@@ -58,7 +58,7 @@ public class VisioLegacyForeignDataTests {
         var document = VisioDocument.LoadLegacyXml(stream, family).Value;
         var root = document.Masters.Single().Shape;
         root.Text = "Edited image master";
-        root.Width = 4;
+        root.Width = OfficeLength.Inches(4);
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             var xml = XDocument.Load(new MemoryStream(candidate.ToLegacyXmlResult().Value));
             XElement savedRoot = xml.Descendants(Ns + "Master").Single().Element(Ns + "Shapes")!.Element(Ns + "Shape")!;
@@ -90,11 +90,11 @@ public class VisioLegacyForeignDataTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(input.ToString()));
         var document = VisioDocument.LoadLegacyXml(stream, VisioPackageType.Stencil).Value;
         var shape = document.Masters.Single().Shape;
-        double localX = shape.LocPinX, localY = shape.LocPinY;
-        shape.Width = 4; shape.Height = 5;
+        double localX = shape.LocPinX.ToInches(), localY = shape.LocPinY.ToInches();
+        shape.Width = OfficeLength.Inches(4); shape.Height = OfficeLength.Inches(5);
         var reopened = VisioDocument.Load(new MemoryStream(document.ToBytes())).Masters.Single().Shape;
-        Assert.Equal(localX, reopened.LocPinX);
-        Assert.Equal(localY, reopened.LocPinY);
+        Assert.Equal(localX, reopened.LocPinX.ToInches());
+        Assert.Equal(localY, reopened.LocPinY.ToInches());
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public sealed class XpsTiffUnsigned16Tests {
             var document = XpsDocument.Create(format);
             string source = document.AddResource("Images/source.tif", File.ReadAllBytes(Path.Combine(Corpus, fields[0])), "image/tiff");
             document.AddPage(57, 39).AddImage(source, 0, 0, 57, 39);
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             if (fields[3] == "5" && fields[5] == "0") {
                 Assert.Contains("CMYK image requires a usable ICC profile", page.ToSvg(true).Diagnostics);
                 Assert.Throws<NotSupportedException>(() => page.ToDrawing());

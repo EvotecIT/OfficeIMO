@@ -236,7 +236,7 @@ public sealed class ReaderNativeLeanProjectionTests {
         var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, OpenXmlMaxPartUncompressedBytes = 1 };
         try {
             await Assert.ThrowsAsync<ReaderResourceLimitException>(() => reader.ReadDocumentsDetailedAsync(new[] { path }, options));
-            Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolder(directory, options: options).ToArray());
+            Assert.Throws<ReaderResourceLimitException>(() => reader.EnumerateFolder(directory, options: options).ToArray());
             File.WriteAllBytes(path, new byte[] { 0, 1, 2, 3 });
             ReaderDocumentReadOutcome malformed = Assert.Single(await reader.ReadDocumentsDetailedAsync(new[] { path }, new ReaderOptions {
                 Projection = ReaderProjection.TextAndMetadata, OpenXmlMaxPartUncompressedBytes = 1024 * 1024

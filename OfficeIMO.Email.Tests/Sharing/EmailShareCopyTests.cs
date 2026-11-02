@@ -77,7 +77,7 @@ public sealed class EmailShareCopyTests {
         const string text = "From: Secret Person <secret@example.test>\r\nTo: hidden@example.test\r\nBcc: private@example.test\r\n" +
             "Subject: Secret subject\r\nDKIM-Signature: original-signature\r\nReceived: confidential-route\r\nMessage-ID: <secret@example.test>\r\n" +
             "Content-Type: text/plain; charset=utf-8\r\n\r\nPublic body";
-        using var read = new EmailDocumentReader().Read(new MemoryStream(Encoding.UTF8.GetBytes(text)));
+        using var read = new EmailDocumentReader().ReadDocument(new MemoryStream(Encoding.UTF8.GetBytes(text)));
         var result = EmailShareCopy.Create(read.Document);
         Assert.Equal("Public body", result.Document.Body.Text);
         Assert.Null(result.Document.From);
@@ -97,7 +97,7 @@ public sealed class EmailShareCopyTests {
         Assert.DoesNotContain("confidential-route", artifact);
         Assert.DoesNotContain("original-signature", artifact);
         output.Position = 0;
-        using var reopened = new EmailDocumentReader().Read(output);
+        using var reopened = new EmailDocumentReader().ReadDocument(output);
         Assert.Equal("Public body", reopened.Document.Body.Text);
         Assert.NotEmpty(read.Document.Headers);
     }

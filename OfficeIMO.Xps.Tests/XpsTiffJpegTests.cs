@@ -74,7 +74,7 @@ public sealed class XpsTiffJpegTests {
                     "{ColorConvertedBitmap " + resource + " " + profileUri + "}");
                 originalPage.ReplaceMarkup(markup);
             }
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             if (hasAlphaCorpus) {
                 Assert.True(OfficeTiffCodec.TryDecode(File.ReadAllBytes(Path.Combine(corpus, fields[0])), out var source));
                 var transparent = OfficeDrawingRasterRenderer.Render(page.ToDrawing());

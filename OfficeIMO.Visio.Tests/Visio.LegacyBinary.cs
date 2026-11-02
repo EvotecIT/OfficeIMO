@@ -41,13 +41,13 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(33, shapes.Length);
                 Assert.Equal(originals.Select(shape => shape.Id), shapes.Select(shape => shape.Id));
                 for (int shapeIndex = 0; shapeIndex < shapes.Length; shapeIndex++) {
-                    Assert.Equal(originals[shapeIndex].PinX, shapes[shapeIndex].PinX, 8);
-                    Assert.Equal(originals[shapeIndex].PinY, shapes[shapeIndex].PinY, 8);
-                    Assert.Equal(originals[shapeIndex].Width, shapes[shapeIndex].Width, 8);
-                    Assert.Equal(originals[shapeIndex].Height, shapes[shapeIndex].Height, 8);
+                    Assert.Equal(originals[shapeIndex].PinX.ToInches(), shapes[shapeIndex].PinX.ToInches(), 8);
+                    Assert.Equal(originals[shapeIndex].PinY.ToInches(), shapes[shapeIndex].PinY.ToInches(), 8);
+                    Assert.Equal(originals[shapeIndex].Width.ToInches(), shapes[shapeIndex].Width.ToInches(), 8);
+                    Assert.Equal(originals[shapeIndex].Height.ToInches(), shapes[shapeIndex].Height.ToInches(), 8);
                 }
-                Assert.Equal(expected.Pages[index].Width, imported.Value.Pages[index].Width, 8);
-                Assert.Equal(expected.Pages[index].Height, imported.Value.Pages[index].Height, 8);
+                Assert.Equal(expected.Pages[index].Width.ToInches(), imported.Value.Pages[index].Width.ToInches(), 8);
+                Assert.Equal(expected.Pages[index].Height.ToInches(), imported.Value.Pages[index].Height.ToInches(), 8);
                 Assert.Contains(shapes, shape => (shape.Text ?? "").Contains("Office"));
                 Assert.Contains(shapes, shape => (shape.Text ?? "").Contains("80 sq. ft."));
             }

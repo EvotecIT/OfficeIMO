@@ -21,7 +21,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
                 document.Save();
             }
 
-            IReadOnlyList<OfficeDocumentAsset> assets = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadAssets(path);
+            IReadOnlyList<OfficeDocumentAsset> assets = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path).ExtractAssets();
 
             OfficeDocumentAsset asset = Assert.Single(assets);
             Assert.Equal("word-image-0000", asset.Id);
@@ -53,7 +53,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
             Assets = new[] { image, preview }
         };
 
-        IReadOnlyList<OfficeDocumentAsset> assets = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractAssets(result, asset => asset.Kind == "image");
+        IReadOnlyList<OfficeDocumentAsset> assets = result.ExtractAssets(asset => asset.Kind == "image");
 
         OfficeDocumentAsset asset = Assert.Single(assets);
         Assert.Same(image, asset);

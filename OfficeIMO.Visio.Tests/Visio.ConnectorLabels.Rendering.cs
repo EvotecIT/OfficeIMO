@@ -62,7 +62,7 @@ public sealed class VisioConnectorLabelRenderingTests {
         VisioConnector connector = Assert.Single(page.Connectors);
         connector.Label = "Review!";
         connector.PlaceLabel(0.5, width: 0.4, height: 0.12);
-        VisioShape obstacle = page.AddRectangle(1.73, 1.5, 0.08, 0.1, string.Empty);
+        VisioShape obstacle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.73, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.08, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.1, page.DefaultUnit)), string.Empty);
 
         XDocument svg = XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions {
             PixelsPerInch = 100,
@@ -73,13 +73,13 @@ public sealed class VisioConnectorLabelRenderingTests {
 
         Assert.Equal("true", (string?)background.Attribute("data-officeimo-label-adjusted"));
         double labelLeft = double.Parse(background.Attribute("x")!.Value, CultureInfo.InvariantCulture);
-        Assert.True(labelLeft >= (obstacle.PinX + obstacle.Width / 2) * 100,
+        Assert.True(labelLeft >= (obstacle.PinX.ToInches() + obstacle.Width.ToInches() / 2) * 100,
             "The adjusted label still intersects the obstacle.");
     }
 
     private static VisioDocument CreateLabelDocument() {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Short label").Size(4, 3);
+        VisioPage page = document.AddPage("Short label").Size(OfficeLength.Inches(4), OfficeLength.Inches(3));
         VisioConnector connector = page.AddConnector("label", new OfficePoint(1, 1.5), new OfficePoint(3, 1.5));
         connector.LinePattern = 0;
         connector.Label = "X";
@@ -97,7 +97,7 @@ public sealed class VisioConnectorLabelRenderingTests {
     private static void AssertRenderedCenter(VisioPage page, double centerX, double centerY, bool resolveOverlaps) {
         const double pixelsPerInch = 100;
         double expectedX = centerX * pixelsPerInch;
-        double expectedY = (page.Height - centerY) * pixelsPerInch;
+        double expectedY = (page.Height.ToInches() - centerY) * pixelsPerInch;
         XDocument svg = XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions {
             PixelsPerInch = pixelsPerInch,
             ResolveConnectorLabelOverlaps = resolveOverlaps

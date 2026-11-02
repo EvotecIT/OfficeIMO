@@ -20,7 +20,7 @@ public class RtfHtmlTableFormatTests {
         Assert.Contains(@"\rtlrow", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ltrrow", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.Equal(RtfTableRowDirection.RightToLeft, roundTripTable.Rows[0].Direction);
         Assert.Equal(RtfTableRowDirection.LeftToRight, roundTripTable.Rows[1].Direction);
         Assert.Null(roundTripTable.Rows[2].Direction);
@@ -64,7 +64,7 @@ public class RtfHtmlTableFormatTests {
         Assert.Contains(@"\cltxbtlr", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cltxtbrlv", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.Equal(RtfTableCellTextFlow.TopToBottomRightToLeft, roundTripTable.Rows[0].Cells[0].TextFlow);
         Assert.Equal(RtfTableCellTextFlow.BottomToTopLeftToRight, roundTripTable.Rows[0].Cells[1].TextFlow);
         Assert.Equal(RtfTableCellTextFlow.TopToBottomRightToLeftVertical, roundTripTable.Rows[0].Cells[2].TextFlow);
@@ -106,7 +106,7 @@ public class RtfHtmlTableFormatTests {
         Assert.Contains(@"\clhidemark\clNoWrap\clFitText", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clNoWrap", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.True(roundTripTable.Rows[0].Cells[0].HideCellMark);
         Assert.True(roundTripTable.Rows[0].Cells[0].NoWrap);
         Assert.True(roundTripTable.Rows[0].Cells[0].FitText);
@@ -161,7 +161,7 @@ public class RtfHtmlTableFormatTests {
         Assert.Contains(@"\clshdng3750", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clbgdkfdiag", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.Equal(RtfShadingPattern.DarkDiagonalCross, roundTripTable.Rows[0].ShadingPattern);
         Assert.Equal(6250, roundTripTable.Rows[0].ShadingPatternPercent);
         Assert.Equal(7, roundTripTable.Rows[0].ShadingPatternValue);

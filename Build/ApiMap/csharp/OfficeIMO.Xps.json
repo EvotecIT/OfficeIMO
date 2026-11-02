@@ -1,0 +1,15 @@
+{
+  "package": "OfficeIMO.Xps",
+  "changes": [
+    {
+      "old": "XpsDocument.Save(CancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "XpsDocument.ToBytes(CancellationToken)",
+      "replacement": "Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation.",
+      "category": "lifecycle",
+      "reason": "Persistence and byte serialization have distinct names; PDF and Visio already implement this contract.",
+      "applied": true
+    }
+  ]
+}

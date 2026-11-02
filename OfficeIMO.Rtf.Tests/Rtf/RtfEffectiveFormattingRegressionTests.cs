@@ -32,7 +32,7 @@ public class RtfEffectiveFormattingRegressionTests {
 
     [Fact]
     public void Docx_Contains_Explicit_Off_Values_Underneath_Inherited_Styles() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         using WordDocument word = document.ToWordDocument();
         using var bytes = new MemoryStream();
         word.Save(bytes);
@@ -52,9 +52,9 @@ public class RtfEffectiveFormattingRegressionTests {
     [Fact]
     public void Default_Style_Zero_And_Explicit_Plain_Color_And_Border_Resets_Survive_Normalization() {
         const string input = @"{\rtf1\ansi{\stylesheet{\s0\b\fs36\cf1\qc\brdrt\brdrs Normal;}}{\colortbl;\red255\green0\blue0;}\pard Inherited {\b0\cf0 Cleared} {\plain Default}\par\pard\brdrt\brdrnil NoBorder\par}";
-        RtfDocument source = RtfDocument.Read(input).Document;
+        RtfDocument source = RtfDocument.ParseResult(input).Document;
         AssertDefaults(source);
-        AssertDefaults(RtfDocument.Read(source.ToRtf()).Document);
+        AssertDefaults(RtfDocument.ParseResult(source.ToRtf()).Document);
         string html = source.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true, FragmentOnly = false });
         AssertDefaults(HtmlConversionDocument.Parse(html).ToRtfDocument());
 
@@ -76,7 +76,7 @@ public class RtfEffectiveFormattingRegressionTests {
 
     [Fact]
     public void Resolver_Applies_Kind_Specific_Bases_And_Explicit_Default_Overrides() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         RtfParagraph first = document.Paragraphs[0];
         Assert.Null(first.DirectAlignment);
         RtfParagraph effective = document.ResolveParagraphFormatting(first);
@@ -100,8 +100,8 @@ public class RtfEffectiveFormattingRegressionTests {
 
     [Fact]
     public void Normalized_Save_Retains_Inheritance_For_Subsequent_Style_Edits() {
-        RtfDocument original = RtfDocument.Read(Input).Document;
-        RtfDocument document = RtfDocument.Read(original.ToRtf(new RtfWriteOptions { MaterializeStyleFormatting = false })).Document;
+        RtfDocument original = RtfDocument.ParseResult(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(original.ToRtf(new RtfWriteOptions { MaterializeStyleFormatting = false })).Document;
         Assert.Null(document.Paragraphs[0].DirectAlignment);
         RtfRun inherited = document.Paragraphs[0].Runs.Single(run => run.Text == "Inherited ");
         Assert.Null(inherited.DirectBold);
@@ -113,7 +113,7 @@ public class RtfEffectiveFormattingRegressionTests {
 
     [Fact]
     public void Html_And_Markdown_Render_Resolved_Formatting_While_Html_Metadata_Retains_Authored_Overrides() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
         Assert.Contains("text-align:center", html, StringComparison.Ordinal);
         Assert.Contains("<strong><em>Inherited ", html, StringComparison.Ordinal);
@@ -127,7 +127,7 @@ public class RtfEffectiveFormattingRegressionTests {
 
     [Fact]
     public void Pdf_And_Word_Use_Resolved_Style_Formatting() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         OfficeIMO.Pdf.PdfDocument pdf = document.ToPdf();
         OfficeIMO.Pdf.RichParagraphBlock paragraph = Assert.IsType<OfficeIMO.Pdf.RichParagraphBlock>(pdf.Blocks.First());
         Assert.True(paragraph.Runs.First(run => run.Text == "Inherited ").Bold);

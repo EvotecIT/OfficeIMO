@@ -65,9 +65,7 @@ public sealed class NewOfficeVisioCommand : OfficeNewLifecycleCmdlet<VisioDocume
             document.Author = Author;
             document.UseMastersByDefault = UseMastersByDefault.IsPresent;
             if (RequestRecalcOnOpen) document.RequestRecalcOnOpen();
-            VisioPage page = document.AddPage(PageName, Width.ToInches(), Height.ToInches());
-            page.DefaultUnit = DisplayUnit;
-            page.ScaleMeasurementUnit = DisplayUnit;
+            document.AddPage(PageName, Width, Height, scaleUnit: DisplayUnit);
             return document;
         },
         (document, path, allowLoss) => { document.Save(path); return null; });

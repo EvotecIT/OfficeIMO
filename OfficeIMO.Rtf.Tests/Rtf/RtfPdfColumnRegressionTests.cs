@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Rtf;
 public class RtfPdfColumnRegressionTests {
     [Fact]
     public void ExplicitPageBreakDoesNotBalanceThePrecedingPageAcrossColumns() {
-        RtfDocument document = RtfDocument.Read(@"{\rtf1\ansi\paperw12240\paperh15840\margl1440\margr1440
+        RtfDocument document = RtfDocument.ParseResult(@"{\rtf1\ansi\paperw12240\paperh15840\margl1440\margr1440
 \sectd\cols2\colsx480\pard Before01\line Before02\line Before03\line Before04\line Before05\line Before06\line Before07\line Before08\page After marker\par}").Document;
         using var read = UglyToad.PdfPig.PdfDocument.Open((document.ToPdf(PortableOptions())).ToBytes());
         Assert.Equal(2, read.NumberOfPages);

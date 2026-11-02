@@ -216,9 +216,9 @@ public partial class VisioDocument {
         if (fromShape != null && startPoint.HasValue) connector.StartAttachment = new VisioConnectorAttachment(fromShape, startPoint.Value);
         if (toShape != null && endPoint.HasValue) connector.EndAttachment = new VisioConnectorAttachment(toShape, endPoint.Value);
         VisioShape frame = new("connector-frame") {
-            PinX = GetCellValue(connectorElement, vNs, "PinX"), PinY = GetCellValue(connectorElement, vNs, "PinY"),
-            Width = GetCellValue(connectorElement, vNs, "Width"), Height = GetCellValue(connectorElement, vNs, "Height"),
-            LocPinX = GetCellValue(connectorElement, vNs, "LocPinX"), LocPinY = GetCellValue(connectorElement, vNs, "LocPinY"),
+            PinXInches = GetCellValue(connectorElement, vNs, "PinX"), PinYInches = GetCellValue(connectorElement, vNs, "PinY"),
+            WidthInches = GetCellValue(connectorElement, vNs, "Width"), HeightInches = GetCellValue(connectorElement, vNs, "Height"),
+            LocPinXInches = GetCellValue(connectorElement, vNs, "LocPinX"), LocPinYInches = GetCellValue(connectorElement, vNs, "LocPinY"),
             Angle = GetCellValue(connectorElement, vNs, "Angle")
         };
         connector.NativeGeometry = new VisioConnectorNativeGeometry(frame, startPoint ?? connector.StartPoint, endPoint ?? connector.EndPoint,

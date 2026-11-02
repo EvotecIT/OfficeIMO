@@ -14,16 +14,16 @@ namespace OfficeIMO.Examples.Visio {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.RequestRecalcOnOpen();
-            VisioPage page = document.AddPage("Page-1", 8.5, 11);
+            VisioPage page = document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
             
-            VisioShape start = new("1", 1, 1, 2, 1, "Start") { 
+            VisioShape start = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start") { 
                 NameU = "Rectangle",
                 FillColor = Color.LightGreen,
                 LineColor = Color.DarkGreen,
                 LineWeight = 0.025
             };
             
-            VisioShape end = new("2", 4, 1, 2, 1, "End") { 
+            VisioShape end = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "End") { 
                 NameU = "Rectangle",
                 FillColor = Color.LightCoral,
                 LineColor = Color.DarkRed,

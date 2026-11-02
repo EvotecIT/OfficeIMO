@@ -38,7 +38,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     })
     .Build();
 
-foreach (var chunk in reader.Read("people.csv", new ReaderOptions {
+foreach (var chunk in reader.Enumerate("people.csv", new ReaderOptions {
     MaxInputBytes = 25L * 1024L * 1024L,
     MaxTableRows = 100
 })) {
@@ -58,7 +58,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 await using var stream = File.OpenRead("upload.tsv");
-var chunks = reader.Read(stream, "upload.tsv", new ReaderOptions {
+var chunks = reader.Enumerate(stream, "upload.tsv", new ReaderOptions {
     MaxChars = 4_000,
     ComputeHashes = true
 }).ToList();

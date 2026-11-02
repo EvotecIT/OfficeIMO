@@ -803,11 +803,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override bool IsDBNull(int ordinal) => CurrentReader.IsDBNull(ordinal);
         /// <inheritdoc />
-        public override bool Read() {
-            ThrowIfClosed();
-            _cancellationToken.ThrowIfCancellationRequested();
-            return CurrentReader.Read();
-        }
+        public override bool Read() => CurrentReader.Read();
         /// <inheritdoc />
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
             ThrowIfClosed();

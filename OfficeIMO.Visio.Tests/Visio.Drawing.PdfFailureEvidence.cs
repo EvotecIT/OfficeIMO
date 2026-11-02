@@ -15,7 +15,7 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
     public async Task StrictDiagramFailureRetainsLocatedSourceEvidenceAndLeavesDestinationUntouched(
         bool asynchronous, bool streamDestination) {
         VisioDocument document = VisioDocument.Create();
-        document.AddPage("Page").AddRectangle(1, 1, 1, 1, "Label").AddHyperlink("https://example.com");
+        document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
         byte[] source = document.ToLegacyXmlResult().Value;
         var options = new VisioToPdfOptions {
             Mode = VisioPdfProjectionMode.DiagramPages,

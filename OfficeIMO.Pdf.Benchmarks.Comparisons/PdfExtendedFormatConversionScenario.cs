@@ -161,19 +161,19 @@ internal sealed record PdfExtendedFormatConversionScenario(
     private static byte[] CreateVisio() {
         VisioDocument document = VisioDocument.Create();
         for (int pageIndex = 0; pageIndex < 12; pageIndex++) {
-            VisioPage page = document.AddPage($"Records {pageIndex + 1}", 8.5, 11);
+            VisioPage page = document.AddPage($"Records {pageIndex + 1}", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
             if (pageIndex == 0) {
-                page.Shapes.Add(new VisioShape("heading", 4.25, 10.4, 7.5, 0.4, Heading));
+                page.Shapes.Add(new VisioShape("heading", OfficeLength.Inches(4.25), OfficeLength.Inches(10.4), OfficeLength.Inches(7.5), OfficeLength.Inches(0.4), Heading));
             }
             int first = (pageIndex * 10) + 1;
             for (int offset = 0; offset < 10; offset++) {
                 int index = first + offset;
                 page.Shapes.Add(new VisioShape(
                     $"record-{index}",
-                    4.25,
-                    9.6 - (offset * 0.85),
-                    7.5,
-                    0.6,
+                    OfficeLength.Inches(4.25),
+                    OfficeLength.Inches(9.6 - (offset * 0.85)),
+                    OfficeLength.Inches(7.5),
+                    OfficeLength.Inches(0.6),
                     PdfFormatConversionRecordManifest.RecordLine(index)));
             }
         }

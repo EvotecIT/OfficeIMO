@@ -30,7 +30,7 @@ public sealed class RtfEquationTests {
         Assert.Contains("\\field", rtf, StringComparison.Ordinal);
         Assert.Contains("EQ", rtf, StringComparison.Ordinal);
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
         RtfField readField = Assert.Single(Assert.Single(read.Document.Paragraphs).Inlines.OfType<RtfField>());
         Assert.True(readField.IsEquation);
         Assert.Equal("(a)/(b)", readField.ToPlainText());
@@ -139,10 +139,10 @@ public sealed class RtfEquationTests {
         Assert.All(fields, field => Assert.True(field.IsEquation));
 
         string serialized = word.ToRtfDocument().ToRtf();
-        RtfField parsedHyperlink = Assert.Single(Assert.Single(RtfDocument.Read(serialized).Document.Paragraphs).Inlines.OfType<RtfField>());
+        RtfField parsedHyperlink = Assert.Single(Assert.Single(RtfDocument.ParseResult(serialized).Document.Paragraphs).Inlines.OfType<RtfField>());
         Assert.Equal(2, parsedHyperlink.Result.Inlines.OfType<RtfField>().Count(field => field.IsEquation));
 
-        using WordDocument roundTrip = RtfDocument.Read(serialized).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(serialized).Document.ToWordDocument();
         Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
         Assert.Equal(2, roundTripHyperlink.Elements<SimpleField>().Count());
         Assert.Equal(2, roundTrip.Equations.Count);
@@ -207,7 +207,7 @@ public sealed class RtfEquationTests {
         Assert.True(equationField.IsEquation);
         Assert.Contains("\\f(a,b)", equationField.Instruction, StringComparison.Ordinal);
 
-        using WordDocument roundTrip = RtfDocument.Read(rtf.ToRtf()).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf.ToRtf()).Document.ToWordDocument();
         Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
         Assert.Single(roundTripHyperlink.Elements<SimpleField>());
         WordEquation equation = Assert.Single(roundTrip.Equations);

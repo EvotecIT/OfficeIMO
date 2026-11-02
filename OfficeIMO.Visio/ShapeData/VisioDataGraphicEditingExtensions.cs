@@ -117,7 +117,7 @@ namespace OfficeIMO.Visio {
 
             for (int index = 0; index < definition.Items.Count; index++) {
                 VisioDataGraphicItem item = definition.Items[index];
-                double y = heading.PinY - titleHeight / 2D - rowHeight / 2D -
+                double y = heading.PinYInches - titleHeight / 2D - rowHeight / 2D -
                            index * rowHeight;
                 string legendText = string.IsNullOrWhiteSpace(item.Label)
                     ? item.FieldName

@@ -15,9 +15,9 @@ namespace OfficeIMO.Tests {
             string clearedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Layout", 10, 7);
-            VisioShape source = page.AddRectangle(2, 4, 1.6, 0.8, "Source");
-            VisioShape target = page.AddRectangle(7, 4, 1.6, 0.8, "Target");
+            VisioPage page = document.AddPage("Layout", OfficeLength.Inches(10), OfficeLength.Inches(7));
+            VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Source");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Target");
             source.PlacementStyle = VisioPlacementStyle.HierarchyLeftToRightMiddle;
             source.PlacementFlip = VisioPlacementFlip.Horizontal | VisioPlacementFlip.Rotate90;
             source.PlowCode = VisioShapePlowCode.Always;

@@ -191,13 +191,15 @@ namespace OfficeIMO.Tests {
             const int columnCount = 256;
             var table = new DataTable("Sparse");
             for (int column = 0; column < columnCount; column++) {
-                table.Columns.Add("Column" + column, typeof(string));
+                table.Columns.Add("Column" + column, column == columnCount / 2 + 1 ? typeof(DateTime) : typeof(string));
             }
             for (int row = 0; row < rowCount; row++) {
                 table.Rows.Add(table.NewRow());
             }
             table.Rows[0][0] = "First";
             table.Rows[rowCount / 2][columnCount / 2] = "Middle";
+            DateTime expectedDate = new DateTime(2024, 3, 2, 6, 30, 0);
+            table.Rows[rowCount / 2][columnCount / 2 + 1] = expectedDate;
             table.Rows[rowCount - 1][columnCount - 1] = "Last";
 
             var dataSet = new DataSet();
@@ -219,7 +221,10 @@ namespace OfficeIMO.Tests {
             int actualRows = 0;
             while (reader.Read()) {
                 if (actualRows == 0) Assert.Equal("First", reader.GetString(0));
-                if (actualRows == rowCount / 2) Assert.Equal("Middle", reader.GetString(columnCount / 2));
+                if (actualRows == rowCount / 2) {
+                    Assert.Equal("Middle", reader.GetString(columnCount / 2));
+                    Assert.Equal(expectedDate, reader.GetDateTime(columnCount / 2 + 1));
+                }
                 if (actualRows == rowCount - 1) Assert.Equal("Last", reader.GetString(columnCount - 1));
                 actualRows++;
             }

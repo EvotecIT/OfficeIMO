@@ -20,10 +20,10 @@ public static partial class VisioDuplicationExtensions {
         VisioDocument.ValidateCopiedNativeCellMetadata(map.Values, Array.Empty<VisioConnector>(), page.OwnerDocument, page);
         // Resolve the same simple-master frame that saving emits before resizing it.
         // This also covers a blank blueprint whose text override is applied below.
-        VisioTextStyle? simpleFrame = VisioDocument.CreateSimpleMasterTextFrameStyle(master, master.Shape.Width, master.Shape.Height);
+        VisioTextStyle? simpleFrame = VisioDocument.CreateSimpleMasterTextFrameStyle(master, master.Shape.WidthInches, master.Shape.HeightInches);
         if (simpleFrame != null) root.TextStyle = simpleFrame;
-        double scaleX = master.Shape.Width > 0 ? width / master.Shape.Width : 1;
-        double scaleY = master.Shape.Height > 0 ? height / master.Shape.Height : 1;
+        double scaleX = master.Shape.WidthInches > 0 ? width / master.Shape.WidthInches : 1;
+        double scaleY = master.Shape.HeightInches > 0 ? height / master.Shape.HeightInches : 1;
         foreach (var pair in map) {
             VisioShape source = pair.Key, instance = pair.Value;
             instance.Master = master;
@@ -33,18 +33,18 @@ public static partial class VisioDuplicationExtensions {
             instance.Type = source.Children.Count > 0 ? "Group" : source.Type;
             // Geometry formulas must see the instance's final placement when
             // deciding whether a formula still matches its resized cache.
-            instance.PinX = ReferenceEquals(instance, root) ? x : instance.PinX * scaleX;
-            instance.PinY = ReferenceEquals(instance, root) ? y : instance.PinY * scaleY;
-            instance.Width *= scaleX; instance.Height *= scaleY;
-            instance.LocPinX *= scaleX; instance.LocPinY *= scaleY;
+            instance.PinXInches = ReferenceEquals(instance, root) ? x : instance.PinXInches * scaleX;
+            instance.PinYInches = ReferenceEquals(instance, root) ? y : instance.PinYInches * scaleY;
+            instance.WidthInches *= scaleX; instance.HeightInches *= scaleY;
+            instance.LocPinXInches *= scaleX; instance.LocPinYInches *= scaleY;
             instance.HasExplicitLocPinX = true; instance.HasExplicitLocPinY = true;
             instance.TextStyle?.ScaleTextBlock(scaleX, scaleY);
             if (!string.IsNullOrEmpty(instance.Text)) {
                 instance.TextStyle ??= new VisioTextStyle();
-                instance.TextStyle.TextWidth ??= instance.Width;
-                instance.TextStyle.TextHeight ??= instance.Height;
-                instance.TextStyle.TextPinX ??= instance.Width / 2;
-                instance.TextStyle.TextPinY ??= instance.Height / 2;
+                instance.TextStyle.TextWidth ??= instance.WidthInches;
+                instance.TextStyle.TextHeight ??= instance.HeightInches;
+                instance.TextStyle.TextPinX ??= instance.WidthInches / 2;
+                instance.TextStyle.TextPinY ??= instance.HeightInches / 2;
                 instance.TextStyle.TextLocPinX ??= instance.TextStyle.TextWidth / 2;
                 instance.TextStyle.TextLocPinY ??= instance.TextStyle.TextHeight / 2;
             }
@@ -57,7 +57,7 @@ public static partial class VisioDuplicationExtensions {
                         : new VisioShape.PreservedShapeChildEntry(entry.Token!));
             }
         }
-        root.PinX = x; root.PinY = y; root.Width = width; root.Height = height;
+        root.PinXInches = x; root.PinYInches = y; root.WidthInches = width; root.HeightInches = height;
         root.NameU = master.NameU;
         if (text != null) root.Text = text;
         RemapContainerMembership(map);

@@ -200,13 +200,13 @@ namespace OfficeIMO.Visio {
         private static VisioDocument CreateRoutedDecisionFlow(string filePath) {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioStyleTheme theme = VisioStyleTheme.Minimal();
-            VisioPage page = document.AddPage("Routed Decision", 10.5, 6.5);
+            VisioPage page = document.AddPageInches("Routed Decision", 10.5, 6.5);
 
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", 1.8, 4.8, "Intake");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "review", 4.7, 4.8, "Valid?");
-            VisioShape accept = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "accept", 7.6, 4.8, "Accept");
-            VisioShape rework = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "rework", 4.7, 2.1, "Rework");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", 7.6, 2.1, "Archive");
+            VisioShape intake = page.AddStencilShapeInches(VisioStencils.Flowchart.Get("process"), "intake", 1.8, 4.8, "Intake");
+            VisioShape review = page.AddStencilShapeInches(VisioStencils.Flowchart.Get("decision"), "review", 4.7, 4.8, "Valid?");
+            VisioShape accept = page.AddStencilShapeInches(VisioStencils.Flowchart.Get("process"), "accept", 7.6, 4.8, "Accept");
+            VisioShape rework = page.AddStencilShapeInches(VisioStencils.Flowchart.Get("process"), "rework", 4.7, 2.1, "Rework");
+            VisioShape archive = page.AddStencilShapeInches(VisioStencils.Flowchart.Get("data"), "archive", 7.6, 2.1, "Archive");
 
             page.SelectShapes(shape => shape.MasterNameU != null).Style(theme.Primary);
             review.ApplyStyle(theme.Decision);

@@ -28,7 +28,7 @@ public class HtmlArtifactRoundTrips {
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
         string rtf = rtfResult.Value.ToRtf();
-        RtfReadResult reopenedRtf = RtfDocument.Read(rtf);
+        RtfReadResult reopenedRtf = RtfDocument.ParseResult(rtf);
 
         string markdown = source.ToMarkdown().ToMarkdown();
         byte[] pdf = (source.ToPdf()).ToBytes();

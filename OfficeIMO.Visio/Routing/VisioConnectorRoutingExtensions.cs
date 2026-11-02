@@ -95,12 +95,12 @@ namespace OfficeIMO.Visio {
             }
 
             VisioShape shape = connector.From;
-            double right = shape.PinX + (shape.Width / 2D);
-            double top = shape.PinY + (shape.Height / 2D);
+            double right = shape.PinXInches + (shape.WidthInches / 2D);
+            double top = shape.PinYInches + (shape.HeightInches / 2D);
             return connector.RouteThrough(
-                new VisioConnectorWaypoint(right + clearance, shape.PinY),
+                new VisioConnectorWaypoint(right + clearance, shape.PinYInches),
                 new VisioConnectorWaypoint(right + clearance, top + clearance),
-                new VisioConnectorWaypoint(shape.PinX, top + clearance));
+                new VisioConnectorWaypoint(shape.PinXInches, top + clearance));
         }
 
         /// <summary>

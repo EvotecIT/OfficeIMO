@@ -11,8 +11,8 @@ public sealed class VisioImageExportTextShapingTests {
     public void VisioRasterExport_ReachesTheSharedTextShapingProvider() {
         using var package = new MemoryStream();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Shaping").Size(2D, 1D);
-        VisioShape shape = page.AddRectangle(1D, 0.5D, 1.2D, 0.5D, "A");
+        VisioPage page = document.AddPage("Shaping").Size(OfficeLength.Inches(2D), OfficeLength.Inches(1D));
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5D, page.DefaultUnit)), "A");
         shape.TextStyle = new VisioTextStyle {
             FontFamily = ManagedTextShapingTestAssets.FamilyName
         };
@@ -39,8 +39,8 @@ public sealed class VisioImageExportTextShapingTests {
     public void RetainedVisioPngExport_ReachesTheSharedTextShapingProvider() {
         using var package = new MemoryStream();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Retained shaping").Size(2D, 1D);
-        VisioShape shape = page.AddRectangle(1D, 0.5D, 1.2D, 0.5D, "A");
+        VisioPage page = document.AddPage("Retained shaping").Size(OfficeLength.Inches(2D), OfficeLength.Inches(1D));
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2D, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5D, page.DefaultUnit)), "A");
         shape.TextStyle = new VisioTextStyle {
             FontFamily = ManagedTextShapingTestAssets.FamilyName
         };

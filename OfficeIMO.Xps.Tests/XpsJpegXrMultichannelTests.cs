@@ -35,7 +35,7 @@ public sealed class XpsJpegXrMultichannelTests {
                         "{ColorConvertedBitmap " + imageUri + " " + profileUri + "}");
                     page.ReplaceMarkup(markup);
                 }
-                document = XpsDocument.Load(document.Save());
+                document = XpsDocument.Load(document.ToBytes());
                 var svg = document.Pages[0].ToSvg(); Assert.Empty(svg.Diagnostics);
                 string data = (string)XDocument.Parse(svg.Svg).Descendants().Single(e => e.Name.LocalName == "image").Attribute("href")!;
                 Assert.True(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(data.Substring(data.IndexOf(',') + 1)), out var normalized));

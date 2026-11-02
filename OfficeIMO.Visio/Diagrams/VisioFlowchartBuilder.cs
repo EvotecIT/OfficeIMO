@@ -282,7 +282,7 @@ namespace OfficeIMO.Visio.Diagrams {
             bool previousMastersByDefault = _document.UseMastersByDefault;
             _document.UseMastersByDefault = false;
             try {
-                VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+                VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
                 page.Grid(visible: false, snap: true);
                 PlaceNodes(page);
                 ConnectNodes(page);
@@ -344,7 +344,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             if (y < _bottomMargin) {
-                page.Height = (_pageHeight + (_bottomMargin - y)).ToInches(_unit);
+                page.HeightInches = (_pageHeight + (_bottomMargin - y)).ToInches(_unit);
             }
         }
 
@@ -357,7 +357,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
             double width = Math.Max(1D, _pageWidth - 1.2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, width, _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, width, _titleHeight, _titleText, _unit);
             title.TextStyle = _theme.TitleText.Clone();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -393,7 +393,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     break;
             }
 
-            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, GetNodeStencilId(node.Kind), node.Id, x, y, width, height, node.Text);
+            VisioShape shape = page.AddStencilShapeInches(VisioStencils.Flowchart, GetNodeStencilId(node.Kind), node.Id, x, y, width, height, node.Text);
             shape.NameU = nameU;
             style.ApplyTo(shape);
 
@@ -455,9 +455,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }
@@ -492,7 +492,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             if (from.Shape != null && to.Shape != null) {
-                double horizontalDistance = Math.Abs(to.Shape.PinX - from.Shape.PinX);
+                double horizontalDistance = Math.Abs(to.Shape.PinXInches - from.Shape.PinXInches);
                 return horizontalDistance > Math.Max(_layoutOptions.ProcessWidth, _layoutOptions.DecisionWidth) * 0.9D;
             }
 
@@ -505,48 +505,48 @@ namespace OfficeIMO.Visio.Diagrams {
             double branchLaneSpacing = _branchLaneSpacing.ToInches(_unit);
             double routeOffset = (branchRouteIndex % 3) * (branchLaneSpacing * 0.5D);
 
-            if (fromBounds.Right < toBounds.Left || toBounds.Right < fromBounds.Left) {
-                double laneX = fromBounds.Right < toBounds.Left
-                    ? (fromBounds.Right + toBounds.Left) / 2D
-                    : (toBounds.Right + fromBounds.Left) / 2D;
+            if (fromBounds.RightInches < toBounds.LeftInches || toBounds.RightInches < fromBounds.LeftInches) {
+                double laneX = fromBounds.RightInches < toBounds.LeftInches
+                    ? (fromBounds.RightInches + toBounds.LeftInches) / 2D
+                    : (toBounds.RightInches + fromBounds.LeftInches) / 2D;
                 connector.RouteThrough(
-                    VisioConnectorWaypoint.At(laneX, fromBounds.CenterY),
-                    VisioConnectorWaypoint.At(laneX, toBounds.CenterY));
+                    VisioConnectorWaypoint.At(laneX, fromBounds.CenterYInches),
+                    VisioConnectorWaypoint.At(laneX, toBounds.CenterYInches));
                 return;
             }
 
-            bool routeLeft = toBounds.CenterY >= fromBounds.CenterY;
+            bool routeLeft = toBounds.CenterYInches >= fromBounds.CenterYInches;
             double laneXCandidate = routeLeft
-                ? Math.Min(fromBounds.Left, toBounds.Left) - branchLaneSpacing - routeOffset
-                : Math.Max(fromBounds.Right, toBounds.Right) + branchLaneSpacing + routeOffset;
+                ? Math.Min(fromBounds.LeftInches, toBounds.LeftInches) - branchLaneSpacing - routeOffset
+                : Math.Max(fromBounds.RightInches, toBounds.RightInches) + branchLaneSpacing + routeOffset;
 
             if (laneXCandidate < branchLaneSpacing) {
-                laneXCandidate = Math.Max(fromBounds.Right, toBounds.Right) + branchLaneSpacing + routeOffset;
-            } else if (laneXCandidate > page.Width - branchLaneSpacing) {
-                laneXCandidate = Math.Min(fromBounds.Left, toBounds.Left) - branchLaneSpacing - routeOffset;
+                laneXCandidate = Math.Max(fromBounds.RightInches, toBounds.RightInches) + branchLaneSpacing + routeOffset;
+            } else if (laneXCandidate > page.WidthInches - branchLaneSpacing) {
+                laneXCandidate = Math.Min(fromBounds.LeftInches, toBounds.LeftInches) - branchLaneSpacing - routeOffset;
             }
 
             connector.RouteThrough(
-                VisioConnectorWaypoint.At(laneXCandidate, fromBounds.CenterY),
-                VisioConnectorWaypoint.At(laneXCandidate, toBounds.CenterY));
+                VisioConnectorWaypoint.At(laneXCandidate, fromBounds.CenterYInches),
+                VisioConnectorWaypoint.At(laneXCandidate, toBounds.CenterYInches));
         }
 
         private static void ResolveBranchSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {
             VisioShapeBounds fromBounds = from.GetShapeBounds();
             VisioShapeBounds toBounds = to.GetShapeBounds();
-            if (fromBounds.Right < toBounds.Left) {
+            if (fromBounds.RightInches < toBounds.LeftInches) {
                 fromSide = VisioSide.Right;
                 toSide = VisioSide.Left;
                 return;
             }
 
-            if (toBounds.Right < fromBounds.Left) {
+            if (toBounds.RightInches < fromBounds.LeftInches) {
                 fromSide = VisioSide.Left;
                 toSide = VisioSide.Right;
                 return;
             }
 
-            bool routeLeft = toBounds.CenterY >= fromBounds.CenterY;
+            bool routeLeft = toBounds.CenterYInches >= fromBounds.CenterYInches;
             fromSide = routeLeft ? VisioSide.Left : VisioSide.Right;
             toSide = routeLeft ? VisioSide.Left : VisioSide.Right;
         }
@@ -596,8 +596,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {
-            double dx = to.PinX - from.PinX;
-            double dy = to.PinY - from.PinY;
+            double dx = to.PinXInches - from.PinXInches;
+            double dy = to.PinYInches - from.PinYInches;
             if (Math.Abs(dx) > Math.Abs(dy)) {
                 if (dx >= 0) {
                     fromSide = VisioSide.Right;

@@ -25,5 +25,5 @@ public sealed class AddOfficeVisioDiamondCommand : OfficeVisioShapeCmdlet {
 
     /// <inheritdoc />
     protected override VisioShape CreateShape(VisioPage page) =>
-        page.AddDiamond(X.ToInches(), Y.ToInches(), Width.ToInches(), Height.ToInches(), Text, VisioMeasurementUnit.Inches);
+        page.AddDiamond(X, Y, Width, Height, Text);
 }

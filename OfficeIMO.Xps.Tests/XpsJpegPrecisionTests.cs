@@ -54,7 +54,7 @@ public sealed class XpsJpegPrecisionTests {
                     "{ColorConvertedBitmap " + uri + " " + profileUri + "}");
                 document.Pages[0].ReplaceMarkup(markup);
             }
-            var loaded = XpsDocument.Load(document.Save());
+            var loaded = XpsDocument.Load(document.ToBytes());
             var page = loaded.Pages[0];
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);

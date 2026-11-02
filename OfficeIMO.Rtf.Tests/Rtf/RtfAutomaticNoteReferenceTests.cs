@@ -8,7 +8,7 @@ public class RtfAutomaticNoteReferenceTests {
     public void Read_And_Write_Automatic_Footnote_Reference() {
         const string rtf = @"{\rtf1\ansi\pard Body\chftn{\footnote\pard Footnote {\i text}\par} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
 
         Assert.Equal("Body after", paragraph.ToPlainText());
@@ -42,7 +42,7 @@ public class RtfAutomaticNoteReferenceTests {
         paragraph.AddNoteReference(note);
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfGeneratedText reference = Assert.IsType<RtfGeneratedText>(Assert.Single(roundTrip.Paragraphs).Inlines[1]);
 
         Assert.Contains(@"\chftn {\footnote\ftnalt", rtf, StringComparison.Ordinal);

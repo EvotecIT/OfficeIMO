@@ -13,7 +13,7 @@ namespace OfficeIMO.Visio {
     public partial class VisioDocument {
 
         private static void WriteXForm(XmlWriter writer, string ns, VisioShape shape, double width, double height) {
-            WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, shape.LocPinX, shape.LocPinY, shape.Angle);
+            WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, shape.LocPinXInches, shape.LocPinYInches, shape.Angle);
         }
 
         private static void WriteXForm(XmlWriter writer, string ns, double pinX, double pinY, double width, double height, double locPinX, double locPinY, double angle) {

@@ -37,17 +37,17 @@ public partial class VisioDocument {
         writer.WriteAttributeString("TextStyle", "0");
 
         bool useUnits = page.DefaultUnit != VisioMeasurementUnit.Inches ||
-                        page.Width != 8.26771653543307 ||
-                        page.Height != 11.69291338582677;
+                        page.WidthInches != 8.26771653543307 ||
+                        page.HeightInches != 11.69291338582677;
         if (useUnits) {
             string pageUnitCode = page.DefaultUnit.ToVisioUnitCode();
-            WritePageCell(writer, ns, "PageWidth", page.Width, pageUnitCode);
-            WritePageCell(writer, ns, "PageHeight", page.Height, pageUnitCode);
+            WritePageCell(writer, ns, "PageWidth", page.WidthInches, pageUnitCode);
+            WritePageCell(writer, ns, "PageHeight", page.HeightInches, pageUnitCode);
             WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724, "MM");
             WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724, "MM");
         } else {
-            WritePageCell(writer, ns, "PageWidth", page.Width);
-            WritePageCell(writer, ns, "PageHeight", page.Height);
+            WritePageCell(writer, ns, "PageWidth", page.WidthInches);
+            WritePageCell(writer, ns, "PageHeight", page.HeightInches);
             WritePageCell(writer, ns, "ShdwOffsetX", 0.1181102362204724);
             WritePageCell(writer, ns, "ShdwOffsetY", -0.1181102362204724);
         }

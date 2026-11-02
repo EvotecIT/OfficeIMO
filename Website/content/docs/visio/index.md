@@ -28,12 +28,13 @@ order: 52
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("topology.vsdx")
     .ArchitectureDiagram("System Overview", diagram => diagram
-        .Title()
+        .AddTitle()
         .Legend()
         .Theme(VisioStyleTheme.Technical())
         .Actor("users", "Users", 0, 1)

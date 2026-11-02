@@ -23,7 +23,7 @@ public sealed class XpsGradientMappingTests {
             (radial ? "RadialGradientBrush" : "LinearGradientBrush"));
         brush.SetAttributeValue("MappingMode", mapping);
         page.ReplaceMarkup(markup);
-        var reopened = XpsDocument.Load(document.Save());
+        var reopened = XpsDocument.Load(document.ToBytes());
 
         Assert.Throws<NotSupportedException>(() => reopened.Pages[0].ToSvg());
         Assert.Throws<NotSupportedException>(() => reopened.Pages[0].ToDrawing());

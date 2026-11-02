@@ -48,7 +48,7 @@ public sealed class EmbeddedSemanticLossTests {
     [Fact]
     public void ExactRootSourceReuseAlignsAnalysisAndWritingDespiteIncompleteProjection() {
         byte[] source = IncompleteCalendar();
-        EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).Read(source).Document;
+        EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).ReadDocument(source).Document;
         Assert.True(document.MimeSemanticProjectionIsIncomplete);
         var writer = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true));
         Assert.True(writer.AnalyzeConversion(document, EmailFileFormat.Eml).CanWrite);
@@ -59,11 +59,11 @@ public sealed class EmbeddedSemanticLossTests {
     }
 
     private static EmailDocument Child(string kind) {
-        if (kind == "Protected") return new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).Read(Encoding.ASCII.GetBytes(
+        if (kind == "Protected") return new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).ReadDocument(Encoding.ASCII.GetBytes(
             "Subject: Signed\r\nMIME-Version: 1.0\r\nContent-Type: multipart/signed; protocol=\"application/pkcs7-signature\"; boundary=\"s\"\r\n\r\n" +
             "--s\r\nContent-Type: text/plain\r\n\r\nbody\r\n--s\r\nContent-Type: application/pkcs7-signature\r\n\r\nsignature\r\n--s--\r\n")).Document;
         if (kind == "Incomplete") {
-            EmailDocument document = new EmailDocumentReader().Read(IncompleteCalendar()).Document;
+            EmailDocument document = new EmailDocumentReader().ReadDocument(IncompleteCalendar()).Document;
             Assert.True(document.MimeSemanticProjectionIsIncomplete);
             return document;
         }
