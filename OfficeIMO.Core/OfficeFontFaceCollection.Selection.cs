@@ -41,11 +41,11 @@ public sealed partial class OfficeFontFaceCollection {
     }
 
     private (OfficeFontFace Face, int RegistrationIndex)[] ResolveFamilyCandidates(string family, OfficeFontFaceDescriptor descriptor) {
-        ConcurrentDictionary<(string, OfficeFontFaceDescriptor), (OfficeFontFace Face, int RegistrationIndex)[]> cache = Selections.FamilyCandidates;
+        OfficeBoundedCache<(string, OfficeFontFaceDescriptor), (OfficeFontFace Face, int RegistrationIndex)[]> cache = Selections.FamilyCandidates;
         (string, OfficeFontFaceDescriptor) key = (family, descriptor);
         if (cache.TryGetValue(key, out (OfficeFontFace Face, int RegistrationIndex)[]? resolved)) return resolved;
         resolved = RankFamilyCandidates(family, descriptor);
-        if (cache.Count < MaximumCachedSelections) cache.TryAdd(key, resolved);
+        cache.TryAdd(key, resolved);
         return resolved;
     }
 

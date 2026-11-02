@@ -467,7 +467,7 @@ public sealed partial class OfficeFontFaceCollection {
                     // an eligible face for the complete element. Its preference
                     // for the preceding face depends on position, so do not cache it.
                     if ((mappedFace || !OfficeMissingSpaceMetrics.ContainsEmSpace(element))
-                        && selection.Elements.Count < MaximumCachedSelections)
+                        && !selection.Elements.IsFull)
                         selection.Elements.TryAdd(element, resolved);
                 }
                 family = resolved.Family;
@@ -492,7 +492,7 @@ public sealed partial class OfficeFontFaceCollection {
                 currentFamily != null && selection.ResolvedFamilyNames.Contains(currentFamily)));
         }
         IReadOnlyList<OfficeFontFallbackRun> plan = runs.AsReadOnly();
-        if (cacheable && selection.Plans.Count < MaximumCachedSelections) selection.Plans.TryAdd(text, plan);
+        if (cacheable) selection.Plans.TryAdd(text, plan);
         return plan;
     }
 
@@ -548,7 +548,7 @@ public sealed partial class OfficeFontFaceCollection {
         bool cacheable = text!.Length <= MaximumCachedPlanLength;
         if (cacheable && selection.FacesForText.TryGetValue(text, out face)) return face != null;
         face = SelectFaceForText(text, selection);
-        if (cacheable && selection.FacesForText.Count < MaximumCachedSelections) selection.FacesForText.TryAdd(text, face);
+        if (cacheable) selection.FacesForText.TryAdd(text, face);
         return face != null;
     }
 
