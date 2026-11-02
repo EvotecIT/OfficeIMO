@@ -59,6 +59,26 @@ public sealed class WordImageWorkflowTests {
         }
     }
 
+    [Fact]
+    public void ImageWatermarkResolvesItsPathLiterallyFromTheCurrentLocationAndEmbedsTheImage() {
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        string root = Directory.CreateTempSubdirectory("pswriteoffice-watermark-").FullName;
+        try {
+            File.WriteAllBytes(Path.Combine(root, "draft[1].png"), png);
+            using var runspace = Open();
+            runspace.SessionStateProxy.SetVariable("root", root);
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            shell.AddScript("Set-Location -LiteralPath $root; New-OfficeWord -Path ./draft.docx { Add-OfficeWordParagraph -Text 'Draft report'; Add-OfficeWordWatermark -ImagePath './draft[1].png' }");
+            shell.Invoke();
+            Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+            using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(Path.Combine(root, "draft.docx"), false);
+            var images = package.MainDocumentPart!.ImageParts
+                .Concat(package.MainDocumentPart.HeaderParts.SelectMany(header => header.ImageParts));
+            Assert.Contains(images, part => { using var stream = part.GetStream(); using var copy = new MemoryStream(); stream.CopyTo(copy); return copy.ToArray().SequenceEqual(png); });
+        } finally { Directory.Delete(root, true); }
+    }
+
     private static Runspace Open() {
         var state = InitialSessionState.CreateDefault();
         foreach (Type type in typeof(AddOfficeWordImageCommand).Assembly.GetTypes()) {

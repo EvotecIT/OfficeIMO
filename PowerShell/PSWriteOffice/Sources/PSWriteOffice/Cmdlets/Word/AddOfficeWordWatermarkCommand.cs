@@ -1,6 +1,7 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
@@ -37,7 +38,7 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetText)]
     public string Text { get; set; } = string.Empty;
 
-    /// <summary>Path to an image watermark.</summary>
+    /// <summary>Path to an image watermark, resolved literally against the current PowerShell location.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetImage)]
     public string ImagePath { get; set; } = string.Empty;
 
@@ -72,9 +73,10 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
         WordWatermark watermark;
         if (ParameterSetName == ParameterSetImage)
         {
+            string imagePath = OfficePath.ResolveInput(SessionState, ImagePath, literal: true)[0];
             watermark = header != null
-                ? header.AddWatermark(WordWatermarkStyle.Image, ImagePath, horizontalOffset, verticalOffset, Scale)
-                : section.AddWatermark(WordWatermarkStyle.Image, ImagePath, horizontalOffset, verticalOffset, Scale);
+                ? header.AddWatermark(WordWatermarkStyle.Image, imagePath, horizontalOffset, verticalOffset, Scale)
+                : section.AddWatermark(WordWatermarkStyle.Image, imagePath, horizontalOffset, verticalOffset, Scale);
         }
         else
         {
