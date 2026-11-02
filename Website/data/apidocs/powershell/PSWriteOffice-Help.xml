@@ -27202,9 +27202,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate an encrypted input PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -27326,9 +27326,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Password used to authenticate an encrypted input PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -29923,9 +29923,9 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate the target PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -29971,9 +29971,9 @@ page area from the supplied coordinates.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate the imported source PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -30195,9 +30195,9 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Password used to authenticate the target PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -30243,9 +30243,9 @@ page area from the supplied coordinates.</maml:para>
         <maml:description>
           <maml:para>Password used to authenticate the imported source PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -31511,9 +31511,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate an encrypted input PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -31671,9 +31671,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate an encrypted input PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -31855,9 +31855,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Password used to authenticate an encrypted input PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -57996,7 +57996,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
           <maml:name>ImagePath</maml:name>
           <maml:description>
-            <maml:para>Path to an image watermark.</maml:para>
+            <maml:para>Path to an image watermark, resolved literally against the current PowerShell location.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -58059,7 +58059,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="0" aliases="None">
         <maml:name>ImagePath</maml:name>
         <maml:description>
-          <maml:para>Path to an image watermark.</maml:para>
+          <maml:para>Path to an image watermark, resolved literally against the current PowerShell location.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -62720,9 +62720,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Password used to authenticate the actual PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -62804,9 +62804,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Password used to authenticate the expected PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -62843,9 +62843,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Password used to authenticate the actual PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -62927,9 +62927,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Password used to authenticate the expected PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -63416,7 +63416,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Input files or folders, with FileSystem provider wildcard expansion.</maml:para>
+            <maml:para>Input files or folders, with FileSystem provider wildcard expansion. Piped paths with OutputPath bind through Document.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -63560,7 +63560,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>To</maml:name>
           <maml:description>
-            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -64040,7 +64040,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>To</maml:name>
           <maml:description>
-            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -64217,7 +64217,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Path</maml:name>
           <maml:description>
-            <maml:para>Input files or folders, with FileSystem provider wildcard expansion.</maml:para>
+            <maml:para>Input files or folders, with FileSystem provider wildcard expansion. Piped paths with OutputPath bind through Document.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
           <dev:type>
@@ -64265,7 +64265,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>To</maml:name>
           <maml:description>
-            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -64490,7 +64490,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>To</maml:name>
           <maml:description>
-            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -64715,7 +64715,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>To</maml:name>
           <maml:description>
-            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
           <dev:type>
@@ -64778,7 +64778,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
           <maml:name>Document</maml:name>
           <maml:description>
-            <maml:para>Caller-owned live document. Conversion captures current edits without saving or closing its source.</maml:para>
+            <maml:para>Caller-owned live document. Conversion captures current edits without saving or closing its source. Piped FileInfo objects and path strings convert as files.</maml:para>
           </maml:description>
           <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
           <dev:type>
@@ -64926,6 +64926,18 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>SkipUpToDate</maml:name>
+          <maml:description>
+            <maml:para>Skip a file whose existing output has a strictly newer UTC modification time.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>SummaryVariable</maml:name>
           <maml:description>
             <maml:para>Final batch counts or single-file evidence assigned before any terminal batch error.</maml:para>
@@ -64937,12 +64949,12 @@ cells. This keeps existing-document editing simple without forcing callers back 
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
-        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>To</maml:name>
           <maml:description>
-            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+            <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
           <dev:type>
             <maml:name>String</maml:name>
             <maml:uri />
@@ -65027,7 +65039,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Document</maml:name>
         <maml:description>
-          <maml:para>Caller-owned live document. Conversion captures current edits without saving or closing its source.</maml:para>
+          <maml:para>Caller-owned live document. Conversion captures current edits without saving or closing its source. Piped FileInfo objects and path strings convert as files.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">Object</command:parameterValue>
         <dev:type>
@@ -65249,7 +65261,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:parameter required="true" variableLength="true" globbing="true" pipelineInput="True (ByValue)" position="0" aliases="None">
         <maml:name>Path</maml:name>
         <maml:description>
-          <maml:para>Input files or folders, with FileSystem provider wildcard expansion.</maml:para>
+          <maml:para>Input files or folders, with FileSystem provider wildcard expansion. Piped paths with OutputPath bind through Document.</maml:para>
         </maml:description>
         <command:parameterValue required="true" variableLength="false">String[]</command:parameterValue>
         <dev:type>
@@ -65405,7 +65417,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>To</maml:name>
         <maml:description>
-          <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx.</maml:para>
+          <maml:para>Target format family, such as Pdf or Word, or an exact physical extension, such as .doc or .docx. Optional when OutputPath names the target.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
         <dev:type>
@@ -72661,9 +72673,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Runtime-only password for encrypted Office or PDF source files.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -72855,9 +72867,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Runtime-only password for encrypted Office or PDF source files.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -73085,9 +73097,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Runtime-only password for encrypted Office or PDF source files.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -73351,9 +73363,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Runtime-only password for encrypted Office or PDF source files.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -74472,9 +74484,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to open an encrypted workbook package.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -74730,9 +74742,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to open an encrypted workbook package.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -78089,9 +78101,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -78188,9 +78200,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -78290,9 +78302,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -78341,9 +78353,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -78462,9 +78474,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -78537,9 +78549,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -78774,9 +78786,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -78977,9 +78989,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -79108,9 +79120,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -79171,9 +79183,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -79347,9 +79359,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -79470,9 +79482,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -79620,9 +79632,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -79719,9 +79731,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -79881,9 +79893,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -80004,9 +80016,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -80091,9 +80103,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -80238,9 +80250,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -80405,9 +80417,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -80480,9 +80492,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -80691,9 +80703,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -80916,9 +80928,9 @@ Excel and CSV contain detected tables only. CSV requires exactly one table. Empt
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -81233,9 +81245,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -81332,9 +81344,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -84564,9 +84576,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -84639,9 +84651,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -91182,6 +91194,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing destination PDF.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
           <maml:name>Open</maml:name>
           <maml:description>
@@ -91211,9 +91235,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to open an encrypted Word, Excel, or PowerPoint source file.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -91519,9 +91543,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to open an encrypted Word, Excel, or PowerPoint source file.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -91803,9 +91827,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to open an encrypted Word, Excel, or PowerPoint source file.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -91957,6 +91981,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+          <maml:name>NoClobber</maml:name>
+          <maml:description>
+            <maml:para>Refuse to replace an existing destination PDF.</maml:para>
+          </maml:description>
+          <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+          <dev:type>
+            <maml:name>SwitchParameter</maml:name>
+            <maml:uri />
+          </dev:type>
+          <dev:defaultValue>None</dev:defaultValue>
+        </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="Show">
           <maml:name>Open</maml:name>
           <maml:description>
@@ -91986,9 +92022,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to open an encrypted Word, Excel, or PowerPoint source file.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -92302,6 +92338,18 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
+        <maml:name>NoClobber</maml:name>
+        <maml:description>
+          <maml:para>Refuse to replace an existing destination PDF.</maml:para>
+        </maml:description>
+        <command:parameterValue required="false" variableLength="false">SwitchParameter</command:parameterValue>
+        <dev:type>
+          <maml:name>SwitchParameter</maml:name>
+          <maml:uri />
+        </dev:type>
+        <dev:defaultValue>None</dev:defaultValue>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>NoRecurse</maml:name>
         <maml:description>
           <maml:para>Exclude descendants when selecting a directory.</maml:para>
@@ -92354,9 +92402,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <maml:description>
           <maml:para>Password used to open an encrypted Word, Excel, or PowerPoint source file.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -96468,9 +96516,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -96607,9 +96655,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -96740,9 +96788,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -96815,9 +96863,9 @@ the returned worksheet's Document with Close-OfficeExcel when finished.</maml:pa
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -118571,9 +118619,9 @@ expressions.</maml:para>
           <maml:description>
             <maml:para>Password used to decrypt an encrypted OpenDocument package.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -118718,9 +118766,9 @@ expressions.</maml:para>
         <maml:description>
           <maml:para>Password used to decrypt an encrypted OpenDocument package.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -118982,9 +119030,9 @@ expressions.</maml:para>
           <maml:description>
             <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -119057,9 +119105,9 @@ expressions.</maml:para>
         <maml:description>
           <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -119163,9 +119211,9 @@ expressions.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -119202,9 +119250,9 @@ expressions.</maml:para>
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -119313,9 +119361,9 @@ expressions.</maml:para>
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -119376,9 +119424,9 @@ expressions.</maml:para>
         <maml:description>
           <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -119819,9 +119867,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           <maml:description>
             <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -120058,9 +120106,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <maml:description>
           <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -120199,9 +120247,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           <maml:description>
             <maml:para>Password used to analyze a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -120238,9 +120286,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <maml:description>
           <maml:para>Password used to analyze a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -120337,9 +120385,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           <maml:description>
             <maml:para>Password used to analyze a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -120400,9 +120448,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <maml:description>
           <maml:para>Password used to analyze a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -120506,9 +120554,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           <maml:description>
             <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -120557,9 +120605,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <maml:description>
           <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -120680,9 +120728,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -120755,9 +120803,9 @@ Use PdfExternalValidationResult.PassedForArtifact or FromExitCodeForArtifact wit
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -120850,9 +120898,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -120889,9 +120937,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
         <maml:description>
           <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -121000,9 +121048,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121075,9 +121123,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -121169,9 +121217,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to analyze a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121208,9 +121256,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
         <maml:description>
           <maml:para>Password used to analyze a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -121295,9 +121343,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to preflight a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121334,9 +121382,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
         <maml:description>
           <maml:para>Password used to preflight a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -121457,9 +121505,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121544,9 +121592,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121595,9 +121643,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121706,9 +121754,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
         <maml:description>
           <maml:para>Password used to read a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -121850,9 +121898,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           <maml:description>
             <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121889,9 +121937,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         <maml:description>
           <maml:para>Password used to inspect a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -122036,9 +122084,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
           <maml:description>
             <maml:para>Password used to extract from a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -122135,9 +122183,9 @@ Certificate-chain trust, revocation, digest, and CMS cryptographic verification 
         <maml:description>
           <maml:para>Password used to extract from a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -130700,7 +130748,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -130947,7 +130995,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -131339,7 +131387,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -131827,7 +131875,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -132303,7 +132351,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -132755,7 +132803,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -133243,7 +133291,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
           </maml:description>
@@ -133767,7 +133815,7 @@ the script needs to work with list objects directly instead of using a text sear
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SchemaSampleSize</maml:name>
+        <maml:name>SchemaSampleRows</maml:name>
         <maml:description>
           <maml:para>Maximum row count inspected when schema inference is enabled.</maml:para>
         </maml:description>
@@ -134091,7 +134139,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
           </maml:description>
@@ -134326,7 +134374,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
           </maml:description>
@@ -134573,7 +134621,7 @@ the script needs to work with list objects directly instead of using a text sear
           <dev:defaultValue>None</dev:defaultValue>
         </command:parameter>
         <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-          <maml:name>SchemaSampleSize</maml:name>
+          <maml:name>SchemaSampleRows</maml:name>
           <maml:description>
             <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
           </maml:description>
@@ -134832,7 +134880,7 @@ the script needs to work with list objects directly instead of using a text sear
         <dev:defaultValue>None</dev:defaultValue>
       </command:parameter>
       <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="False" position="named" aliases="None">
-        <maml:name>SchemaSampleSize</maml:name>
+        <maml:name>SchemaSampleRows</maml:name>
         <maml:description>
           <maml:para>Maximum row count inspected when -AsDataReader infers the reader schema.</maml:para>
         </maml:description>
@@ -135490,9 +135538,9 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Password used to authenticate the source form.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -135601,9 +135649,9 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Password used to authenticate the source form.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -135712,9 +135760,9 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:description>
           <maml:para>Password used to authenticate the source form.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -140019,9 +140067,9 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -140094,9 +140142,9 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -140554,9 +140602,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Passwords used to authenticate encrypted sources. Supply one value for every source, or one value to reuse for all sources.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString[]</command:parameterValue>
           <dev:type>
-            <maml:name>String[]</maml:name>
+            <maml:name>SecureString[]</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -140719,9 +140767,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Passwords used to authenticate encrypted sources. Supply one value for every source, or one value to reuse for all sources.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String[]</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString[]</command:parameterValue>
         <dev:type>
-          <maml:name>String[]</maml:name>
+          <maml:name>SecureString[]</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -141168,7 +141216,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>One source password reused for all files, or one password per resolved file in order.</maml:para>
+            <maml:para>One source password reused for all files, or one password per resolved file in order; use $null for an unencrypted file in a per-file list.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SecureString[]</command:parameterValue>
           <dev:type>
@@ -141267,7 +141315,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>One source password reused for all files, or one password per resolved file in order.</maml:para>
+            <maml:para>One source password reused for all files, or one password per resolved file in order; use $null for an unencrypted file in a per-file list.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SecureString[]</command:parameterValue>
           <dev:type>
@@ -141354,7 +141402,7 @@ document for Document input. Native merge options determine which content is imp
         <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
           <maml:name>Password</maml:name>
           <maml:description>
-            <maml:para>One source password reused for all files, or one password per resolved file in order.</maml:para>
+            <maml:para>One source password reused for all files, or one password per resolved file in order; use $null for an unencrypted file in a per-file list.</maml:para>
           </maml:description>
           <command:parameterValue required="false" variableLength="false">SecureString[]</command:parameterValue>
           <dev:type>
@@ -141453,7 +141501,7 @@ document for Document input. Native merge options determine which content is imp
       <command:parameter required="false" variableLength="true" globbing="false" pipelineInput="False" position="named" aliases="None">
         <maml:name>Password</maml:name>
         <maml:description>
-          <maml:para>One source password reused for all files, or one password per resolved file in order.</maml:para>
+          <maml:para>One source password reused for all files, or one password per resolved file in order; use $null for an unencrypted file in a per-file list.</maml:para>
         </maml:description>
         <command:parameterValue required="false" variableLength="false">SecureString[]</command:parameterValue>
         <dev:type>
@@ -142441,9 +142489,9 @@ and require an explicit save. The result reports the actual copied rows and colu
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -142528,9 +142576,9 @@ and require an explicit save. The result reports the actual copied rows and colu
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -145977,9 +146025,9 @@ and require an explicit save. The result reports the actual copied rows and colu
           <maml:description>
             <maml:para>Password used to validate legacy protected PST files.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -146280,9 +146328,9 @@ and require an explicit save. The result reports the actual copied rows and colu
         <maml:description>
           <maml:para>Password used to validate legacy protected PST files.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -160577,9 +160625,9 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -160741,9 +160789,9 @@ sheet objects identify worksheets in saved source files and remain caller-owned.
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -175836,9 +175884,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Optional workbook protection password. This is UI protection, not package encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -175899,9 +175947,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Optional workbook protection password. This is UI protection, not package encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -175986,9 +176034,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Optional workbook protection password. This is UI protection, not package encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -176061,9 +176109,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Optional workbook protection password. This is UI protection, not package encryption.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -176177,9 +176225,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Password to apply.</maml:para>
           </maml:description>
-          <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="true" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -176235,9 +176283,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Password to apply.</maml:para>
         </maml:description>
-        <command:parameterValue required="true" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="true" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -178329,9 +178377,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Password used to open a Standard password-encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -178475,9 +178523,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Password used to open a Standard password-encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -179585,9 +179633,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -179708,9 +179756,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -185617,9 +185665,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
           <maml:description>
             <maml:para>Password for an encrypted PDF; printing permissions remain enforced.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -185809,9 +185857,9 @@ options retain their owner password, permission mask, algorithm, metadata settin
         <maml:description>
           <maml:para>Password for an encrypted PDF; printing permissions remain enforced.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -204312,9 +204360,9 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
           <maml:description>
             <maml:para>Optional write-reservation password. This is legacy Excel metadata, not package encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -204375,9 +204423,9 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
           <maml:description>
             <maml:para>Optional write-reservation password. This is legacy Excel metadata, not package encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -204462,9 +204510,9 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
           <maml:description>
             <maml:para>Optional write-reservation password. This is legacy Excel metadata, not package encryption.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -204537,9 +204585,9 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
         <maml:description>
           <maml:para>Optional write-reservation password. This is legacy Excel metadata, not package encryption.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -204910,9 +204958,9 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -205069,9 +205117,9 @@ Set both frozen dimensions to zero to unfreeze the sheet.</maml:para>
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -206234,9 +206282,9 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -206369,9 +206417,9 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -207613,9 +207661,9 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
           <maml:description>
             <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -207850,9 +207898,9 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
         <maml:description>
           <maml:para>Password used to authenticate an encrypted PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -208856,9 +208904,9 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
           <maml:description>
             <maml:para>Password used to authenticate an encrypted prepared PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -208943,9 +208991,9 @@ default, first-page, and even-page text, zones, images, shapes, rich text, and p
         <maml:description>
           <maml:para>Password used to authenticate an encrypted prepared PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -219702,9 +219750,9 @@ signature and preservation policies. Only the selected files are written; other 
           <maml:description>
             <maml:para>Password used to authenticate the rewritten PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -219774,9 +219822,9 @@ signature and preservation policies. Only the selected files are written; other 
           <maml:description>
             <maml:para>Password used to authenticate the original PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
           <dev:type>
-            <maml:name>String</maml:name>
+            <maml:name>SecureString</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -219801,9 +219849,9 @@ signature and preservation policies. Only the selected files are written; other 
         <maml:description>
           <maml:para>Password used to authenticate the rewritten PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -219873,9 +219921,9 @@ signature and preservation policies. Only the selected files are written; other 
         <maml:description>
           <maml:para>Password used to authenticate the original PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">String</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">SecureString</command:parameterValue>
         <dev:type>
-          <maml:name>String</maml:name>
+          <maml:name>SecureString</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
