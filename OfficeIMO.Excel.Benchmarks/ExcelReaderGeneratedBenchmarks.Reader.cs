@@ -7,7 +7,7 @@ using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 namespace OfficeIMO.Excel.Benchmarks;
 
 public partial class ExcelReaderGeneratedBenchmarks {
-    [Benchmark]
+    [Benchmark, BenchmarkCategory("Read")]
     public long ExcelReaderNet_Read() {
         long checksum = 0;
         int count = 0;

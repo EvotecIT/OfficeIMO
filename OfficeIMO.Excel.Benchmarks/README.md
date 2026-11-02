@@ -27,6 +27,13 @@ These generated lanes run on .NET 10:
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelReaderGenerated*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove
 ```
 
+For before/after reader comparisons I set `OFFICEIMO_EXCEL_GENERATED_INPUT` to a
+read-only corpus directory containing `generated-four-columns-50000.xlsx`,
+`.xlsb` and `.xls`, and retain each file's SHA-256 and producer revision with the
+results. This keeps changes to the writer from changing the reader's input.
+Without that variable, setup generates and cleanup deletes its own fixtures.
+Read and object-parse methods form separate BenchmarkDotNet categories.
+
 Raw UTF-8 span access is different work from returning owned strings. I compare
 materialized values here; the resulting allocation includes those strings.
 
