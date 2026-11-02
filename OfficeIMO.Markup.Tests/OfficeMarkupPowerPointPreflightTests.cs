@@ -89,7 +89,7 @@ This shape is outside the slide.
                         item.LossKind == OfficeConversionLossKind.Failure);
             Assert.StartsWith("slide:1", diagnostic.Location, StringComparison.Ordinal);
             Assert.True(result.Report.HasLoss);
-            Assert.Throws<PowerPointDeckPreflightException>(() => result.Report.ThrowIfLoss());
+            Assert.ThrowsAny<PowerPointDeckPreflightException>(() => result.Report.ThrowIfLoss());
         }
     }
 

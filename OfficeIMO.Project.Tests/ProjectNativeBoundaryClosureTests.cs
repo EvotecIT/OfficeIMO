@@ -23,7 +23,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         Assert.All(omissions, item => Assert.Equal(OfficeConversionLossKind.Omission, item.LossKind));
         Assert.All(report.Diagnostics.Where(item => item.Code == "PROJECT_NATIVE_WORK_WEEK_FLATTENED"),
             item => Assert.Equal(OfficeConversionLossKind.Omission, item.LossKind));
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(),
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(),
             new ProjectSaveOptions { Format = format, AllowLoss = false }));
     }
 
@@ -191,7 +191,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
         Assert.Equal(2, report.NativeDiagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_KIND_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal)));
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         var copied = reopened.Resources.GetByUid(resource.Uid).Calendar!;
@@ -210,7 +210,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
         Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_NATIVE_CALENDAR_EXCEPTION_SPLIT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Exception[0]", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(2, reopened.Calendar!.Exceptions.Count);
@@ -228,7 +228,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
         var assignmentBaseline = document.Assignments.Single().Baselines.Add(); assignmentBaseline.Number = 0;
         var report = document.AssessSave(new ProjectSaveOptions { Format = format });
         Assert.Equal(3, report.NativeDiagnostics.Count(diagnostic => diagnostic.Code == "PROJECT_NATIVE_BASELINE_EMPTY" && diagnostic.RepresentsLoss));
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), new ProjectSaveOptions { Format = format }));
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.DoesNotContain(reopened.Tasks.GetByUid(2).Baselines, item => item.Number == 1);
@@ -304,7 +304,7 @@ public sealed class ProjectNativeBoundaryClosureTests {
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsActive", StringComparison.Ordinal)
             && diagnostic.Message.EndsWith(format == ProjectFileFormat.Mpp14 || format == ProjectFileFormat.Mpt14
                 ? "to inactive." : "to active.", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         using var output = new MemoryStream(); document.Save(output, Native(format));
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));

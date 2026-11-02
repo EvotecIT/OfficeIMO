@@ -22,7 +22,7 @@ public class OfficeConversionResult<T> {
     public bool HasLoss => Report.HasLoss;
 
     /// <summary>Throws the report's <see cref="OfficeConversionException"/> when it describes possible fidelity loss.</summary>
-    public void ThrowIfLoss() => Report.ThrowIfLoss();
+    public virtual void ThrowIfLoss() => Report.ThrowIfLoss();
 
     /// <summary>Deconstructs the result into its converted value and report.</summary>
     public void Deconstruct(out T value, out OfficeConversionReport report) {

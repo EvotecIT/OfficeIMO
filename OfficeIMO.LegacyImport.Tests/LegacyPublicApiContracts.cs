@@ -8,7 +8,7 @@ namespace OfficeIMO.LegacyImport.Tests;
 public sealed class LegacyPublicApiContracts {
     [Fact]
     public void LegacyReportsAndResultsUseTheSharedLossContract() {
-        Assert.Contains(typeof(OfficeConversionReport), typeof(OfficeLegacyImportReport).GetInterfaces());
+        Assert.True(typeof(OfficeConversionReport).IsAssignableFrom(typeof(OfficeLegacyImportReport)));
         Assert.NotNull(typeof(OfficeLegacyImportReport).GetMethod("ThrowIfLoss", Type.EmptyTypes));
         Assert.Null(typeof(OfficeLegacyImportReport).GetMethod("RequireStructuredNoLoss", Type.EmptyTypes));
 

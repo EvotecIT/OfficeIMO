@@ -37,7 +37,7 @@ public sealed class ProjectSerializationReviewTests {
         var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == "PROJECT_MPX_XML_CONTENT_LOSS" && item.Location == "/");
         Assert.True(diagnostic.RepresentsLoss);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class ProjectSerializationReviewTests {
         var diagnostic = Assert.Single(document.AssessSave(strict).NativeDiagnostics,
             item => item.Code == "PROJECT_NATIVE_GENERATION_LOSS" && item.Location == "/");
         Assert.True(diagnostic.RepresentsLoss);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class ProjectSerializationReviewTests {
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(document.AssessSave(strict).Diagnostics,
             item => item.Code == expectedCode && item.Location == expectedLocation).LossKind);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         document.Name = "Edited";
         using var rewritten = new MemoryStream(); document.Save(rewritten, allow);
@@ -107,7 +107,7 @@ public sealed class ProjectSerializationReviewTests {
         Assert.Equal("/Task[UID=" + task.Uid + "]/DisplayId", diagnostic.Location);
         Assert.True(diagnostic.RepresentsLoss); Assert.Contains("becomes 1", diagnostic.Message);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
-        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, allow);
@@ -152,7 +152,7 @@ public sealed class ProjectSerializationReviewTests {
         Assert.True(diagnostic.RepresentsLoss);
         Assert.Equal("/Task[UID=" + task.Uid + "]/RemainingDuration", diagnostic.Location);
         using var rejected = new MemoryStream();
-        Assert.Throws<InvalidOperationException>(() => document.Save(rejected, strict)); Assert.Equal(0, rejected.Length);
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(rejected, strict)); Assert.Equal(0, rejected.Length);
 
         var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, AllowLoss = true };
         using var output = new MemoryStream(); document.Save(output, allow);

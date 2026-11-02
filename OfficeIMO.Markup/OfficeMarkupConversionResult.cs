@@ -1,11 +1,15 @@
 namespace OfficeIMO.Markup;
 
 /// <summary>Structured failure raised when OfficeIMO Markup cannot be converted safely.</summary>
-public sealed class OfficeMarkupConversionException : InvalidOperationException {
+public sealed class OfficeMarkupConversionException : OfficeConversionException {
     /// <summary>Creates an exception from the diagnostics emitted by a conversion.</summary>
     public OfficeMarkupConversionException(IReadOnlyList<OfficeMarkupDiagnostic> diagnostics)
-        : base(BuildMessage(diagnostics)) {
-        Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        : this(new OfficeMarkupConversionReport(diagnostics ?? throw new ArgumentNullException(nameof(diagnostics)))) {
+    }
+
+    internal OfficeMarkupConversionException(OfficeMarkupConversionReport report)
+        : base(BuildMessage(report.NativeDiagnostics), report) {
+        Diagnostics = report.NativeDiagnostics;
     }
 
     /// <summary>Diagnostics captured by the failed or lossy conversion.</summary>
@@ -50,6 +54,9 @@ public sealed class OfficeMarkupConversionReport : OfficeConversionReport {
 
     /// <summary>Whether conversion approximated, omitted, or failed any source content.</summary>
     public override bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+
+    /// <summary>Creates the exception that carries the markup diagnostics of a lossy or failed conversion.</summary>
+    protected override OfficeConversionException CreateLossException() => new OfficeMarkupConversionException(this);
 
     /// <summary>Throws when conversion failed.</summary>
     public void RequireSuccess() {

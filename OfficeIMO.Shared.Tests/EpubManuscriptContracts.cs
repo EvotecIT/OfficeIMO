@@ -128,7 +128,7 @@ public sealed class EpubManuscriptContracts {
         });
         Assert.Equal(1, calls);
         Assert.False(result.Report.Succeeded);
-        Assert.Throws<InvalidOperationException>(() => result.Value);
+        Assert.Throws<InvalidOperationException>(() => result.RequireValue());
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "EPUB_IMPORT_RESOURCE_MISSING");
         Assert.ThrowsAny<OfficeConversionException>(result.Report.ThrowIfLoss);
     }

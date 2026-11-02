@@ -681,9 +681,9 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             Assert.Single(doc.Images);
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "image-resource-budget-exceeded" &&
-                string.Equals(diagnostic.Format, "https://example.test/too-large.png", StringComparison.OrdinalIgnoreCase));
+                string.Equals(diagnostic.Source, "https://example.test/too-large.png", StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "image-load-failed");
         }
 
@@ -848,9 +848,9 @@ namespace OfficeIMO.Tests {
             var doc = conversion.Value;
 
             Assert.Single(doc.Images);
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "svg-load-failed" &&
-                diagnostic.Format == "https://example.test/broken.svg");
+                diagnostic.Source == "https://example.test/broken.svg");
             Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "image-resource-budget-exceeded");
         }
 

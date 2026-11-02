@@ -42,7 +42,7 @@ public class OfficeMarkupTextFormattingTests {
             new[] { OfficeConversionLossKind.Omission, OfficeConversionLossKind.Approximation },
             report.Diagnostics.Select(static diagnostic => diagnostic.LossKind));
         Assert.True(report.HasLoss);
-        Assert.Throws<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class OfficeMarkupTextFormattingTests {
         Assert.True(report.HasLoss);
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
-        Assert.Throws<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
+        Assert.ThrowsAny<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]

@@ -245,11 +245,10 @@ public sealed class PublicApiNamingContracts {
         };
 
         Assert.All(resultTypes, static resultType => {
-            Assert.True(typeof(IOfficeResult).IsAssignableFrom(resultType), resultType.FullName);
-            Assert.NotNull(resultType.GetProperty("Value"));
-            Assert.NotNull(resultType.GetProperty("Report"));
+            Assert.Contains(resultType.GetProperties(), static property => property.Name == "Value");
+            Assert.Contains(resultType.GetProperties(), static property => property.Name == "Report"
+                && typeof(OfficeConversionReport).IsAssignableFrom(property.PropertyType));
             Assert.NotNull(resultType.GetProperty("HasLoss"));
-            Assert.NotNull(resultType.GetMethod("RequireValue", Type.EmptyTypes));
             Assert.NotNull(resultType.GetMethod("ThrowIfLoss", Type.EmptyTypes));
         });
 

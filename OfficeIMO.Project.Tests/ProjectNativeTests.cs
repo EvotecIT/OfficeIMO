@@ -47,7 +47,7 @@ public sealed class ProjectNativeTests {
         Assert.Throws<InvalidDataException>(() => document.Save(target, new ProjectSaveOptions { AllowLoss = allowLoss }));
         Assert.Equal(new byte[16], target.ToArray());
         Assert.Throws<InvalidDataException>(() => document.Clone(new ProjectSaveOptions { AllowLoss = allowLoss }));
-        Assert.Throws<InvalidOperationException>(() => document.ToXml());
+        Assert.ThrowsAny<InvalidOperationException>(() => document.ToXml());
     }
     [Fact]
     public void NativeInputAndOutputBudgetsAndCancellationAreEnforced() {

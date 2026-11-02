@@ -113,7 +113,7 @@ public sealed class ProjectLegacyNativeTests {
         using var persisted = ProjectDocument.Load(new MemoryStream(first.ToArray()));
         using var next = new MemoryStream();
         Assert.Contains(persisted.AssessSave(Native(target)).Diagnostics, d => d.Code == "PROJECT_NATIVE_GENERATION_LOSS");
-        Assert.Throws<InvalidOperationException>(() => persisted.Save(next, Native(target))); Assert.Empty(next.ToArray());
+        Assert.ThrowsAny<InvalidOperationException>(() => persisted.Save(next, Native(target))); Assert.Empty(next.ToArray());
         persisted.Save(next, Native(target, true));
         using var read = ProjectDocument.Load(new MemoryStream(next.ToArray()));
         Assert.Equal(target == ProjectFileFormat.Mpp12 ? "MPP12" : "MPP14", read.NativeInfo!.Generation);
@@ -128,7 +128,7 @@ public sealed class ProjectLegacyNativeTests {
         var assessment = document.AssessSave(Native(ProjectFileFormat.Mpp12));
         Assert.Contains(assessment.NativeDiagnostics, d => d.RepresentsLoss && d.Location.EndsWith("/IsManual", StringComparison.Ordinal));
         Assert.Contains(assessment.NativeDiagnostics, d => d.RepresentsLoss && d.Location.EndsWith("/IsActive", StringComparison.Ordinal));
-        using var output = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => document.Save(output, Native(ProjectFileFormat.Mpp12)));
+        using var output = new MemoryStream(); Assert.ThrowsAny<InvalidOperationException>(() => document.Save(output, Native(ProjectFileFormat.Mpp12)));
         Assert.Empty(output.ToArray());
         document.Save(output, Native(ProjectFileFormat.Mpp12, true));
         using var read = ProjectDocument.Load(new MemoryStream(output.ToArray()));

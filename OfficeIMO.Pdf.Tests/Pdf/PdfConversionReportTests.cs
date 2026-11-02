@@ -356,7 +356,7 @@ public sealed class PdfConversionReportTests {
             .WithSourceConversionReport(new LossySourceConversionReport());
         using var destination = new MemoryStream();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.Save(destination, failOnLoss: true));
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() => result.Save(destination, failOnLoss: true));
 
         Assert.Contains("source stage is lossy", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0L, destination.Length);
@@ -391,7 +391,7 @@ public sealed class PdfConversionReportTests {
         byte[] original = destination.ToArray();
         PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() =>
             result.Save(destination, failOnLoss: true));
 
         Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -406,7 +406,7 @@ public sealed class PdfConversionReportTests {
         try {
             PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            InvalidOperationException exception = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
                 result.SaveAsync(path, failOnLoss: true));
 
             Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -420,7 +420,7 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_StrictByteOutputRejectsSerializationLoss() {
         PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.ToBytes(failOnLoss: true));
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() => result.ToBytes(failOnLoss: true));
 
         Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
@@ -889,6 +889,9 @@ public sealed class PdfConversionReportTests {
         };
 
         public override bool HasLoss => true;
+
+        protected override OfficeConversionException CreateLossException() =>
+            new OfficeConversionException("The test source stage is lossy.", this);
 
     }
 }

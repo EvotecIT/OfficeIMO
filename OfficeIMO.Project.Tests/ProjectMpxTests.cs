@@ -19,7 +19,7 @@ public sealed class ProjectMpxTests {
         Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
         Assert.Contains(report.Diagnostics, item => item.Code == omission.Code
             && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
     }
 
     [Theory]
@@ -127,7 +127,7 @@ public sealed class ProjectMpxTests {
         var diagnostic = Assert.Single(project.AssessSave(Options(false)).NativeDiagnostics,
             item => item.Code == code);
         Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Notes", diagnostic.Location);
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(expected, owner == "task" ? reopened.Tasks.Single().Notes : reopened.Resources.Single().Notes);
@@ -163,7 +163,7 @@ public sealed class ProjectMpxTests {
         Assert.Contains(diagnostics, item => item.Location.EndsWith(pathSuffix + "/FromDate", StringComparison.Ordinal));
         Assert.Contains(diagnostics, item => item.Location.EndsWith(pathSuffix + "/ToDate", StringComparison.Ordinal));
         Assert.All(diagnostics, item => Assert.True(item.RepresentsLoss));
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.All(reopened.Calendar!.Exceptions, item => {
@@ -180,7 +180,7 @@ public sealed class ProjectMpxTests {
         var diagnostic = Assert.Single(project.AssessSave(Options(false)).NativeDiagnostics,
             item => item.Code == "PROJECT_MPX_LEGACY_DAY_CONVERSION");
         Assert.True(diagnostic.RepresentsLoss); Assert.EndsWith("/Day[7]", diagnostic.Location);
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.DoesNotContain(reopened.Calendar!.WeekDays, item => item.Day == null);
@@ -421,7 +421,7 @@ public sealed class ProjectMpxTests {
         Assert.Contains(project.ReadDiagnostics, d => d.Code == "PROJECT_MPX_UNMODELED");
         using var unchanged = new MemoryStream(); project.Save(unchanged); Assert.Equal(Encoding.ASCII.GetBytes(source), unchanged.ToArray());
         project.Tasks[0].Name = "Changed";
-        using var edited = new MemoryStream(); Assert.Throws<InvalidOperationException>(() => project.Save(edited, Options(false))); Assert.Empty(edited.ToArray());
+        using var edited = new MemoryStream(); Assert.ThrowsAny<InvalidOperationException>(() => project.Save(edited, Options(false))); Assert.Empty(edited.ToArray());
         project.Save(edited, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(edited.ToArray())); Assert.Equal("Changed", reopened.Tasks[0].Name);
     }
@@ -431,7 +431,7 @@ public sealed class ProjectMpxTests {
         using var project = ProjectDocument.Create(); var task = project.Tasks.Add("Task"); task.Priority = 551;
         using var output = new MemoryStream(); project.Save(output, Options());
         Assert.Contains(project.AssessSave(Options(false)).Diagnostics, d => d.Code == "PROJECT_MPX_PRIORITY");
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using (project.BeginUpdate()) {
             task.Name = "日本語";
             Assert.Contains(project.AssessSave(Options()).NativeDiagnostics, d => d.Severity == ProjectDiagnosticSeverity.Error);
@@ -467,7 +467,7 @@ public sealed class ProjectMpxTests {
         using var project = ProjectDocument.Parse(xml);
         Assert.Contains(project.AssessSave(Options(false)).NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_TASK_ORDER"
             && diagnostic.RepresentsLoss && diagnostic.Location == "/Task[UID=0]/Position");
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray())); var summary = reopened.Tasks.GetByUid(0);
         Assert.Equal(0, summary.DisplayId); Assert.Equal(0, summary.SourceOutlineLevel);
@@ -485,7 +485,7 @@ public sealed class ProjectMpxTests {
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal));
         Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_WEEKDAY_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Day", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.True(reopened.Calendar!.IsBaseCalendar); Assert.Equal(7, reopened.Calendar.WeekDays.Count);
@@ -500,7 +500,7 @@ public sealed class ProjectMpxTests {
         var report = project.AssessSave(Options(false));
         Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_KIND_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/IsBaseCalendar", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.False(reopened.Resources.Single().Calendar!.IsBaseCalendar);
@@ -515,7 +515,7 @@ public sealed class ProjectMpxTests {
         var report = project.AssessSave(Options(false));
         Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_EXCEPTION_MERGE"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Exception", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         var merged = Assert.Single(reopened.Calendar!.Exceptions);
@@ -541,7 +541,7 @@ public sealed class ProjectMpxTests {
         var diagnostic = Assert.Single(project.AssessSave(Options(false)).NativeDiagnostics,
             item => item.Code == "PROJECT_MPX_BASELINE_EMPTY");
         Assert.True(diagnostic.RepresentsLoss); Assert.Contains("/Baseline[0]", diagnostic.Location, StringComparison.Ordinal);
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         int count = owner == "task" ? reopened.Tasks.Single().Baselines.Count
@@ -593,7 +593,7 @@ public sealed class ProjectMpxTests {
         Assert.Contains(project.ReadDiagnostics, d => d.RepresentsLoss && d.Message.StartsWith("Fractional progress", StringComparison.Ordinal));
         using var output = new MemoryStream(); project.Save(output); Assert.Equal(Encoding.ASCII.GetBytes(input), output.ToArray());
         project.Tasks[0].Name = "Changed";
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
     }
 
     [Fact]
@@ -673,7 +673,7 @@ public sealed class ProjectMpxTests {
         var report = project.AssessSave(Options(false));
         Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_RESOURCE_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location.EndsWith("/Type", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Equal(ProjectResourceType.Work, reopened.Resources.Single().Type);
@@ -711,7 +711,7 @@ public sealed class ProjectMpxTests {
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location == "/Settings/NewTasksAreManual");
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location.EndsWith("/IsNull", StringComparison.Ordinal) && diagnostic.Location.StartsWith("/Task", StringComparison.Ordinal));
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_FIELD_LOSS" && diagnostic.Location.EndsWith("/IsNull", StringComparison.Ordinal) && diagnostic.Location.StartsWith("/Resource", StringComparison.Ordinal));
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.Null(reopened.Settings.NewTasksAreManual); Assert.Null(reopened.Tasks.Single().IsNull); Assert.Null(reopened.Resources.Single().IsNull);
@@ -723,7 +723,7 @@ public sealed class ProjectMpxTests {
         var report = project.AssessSave(Options(false));
         Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_MPX_CALENDAR_DEFAULT"
             && diagnostic.RepresentsLoss && diagnostic.Location == "/Settings/Calendar");
-        Assert.Throws<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
+        Assert.ThrowsAny<InvalidOperationException>(() => project.Save(new MemoryStream(), Options(false)));
         using var output = new MemoryStream(); project.Save(output, Options());
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         Assert.NotNull(reopened.Calendar); Assert.Equal("Standard", reopened.Calendar!.Name);

@@ -12,7 +12,7 @@ public class RtfConversionReportTests {
         var report = new RtfConversionReport();
         report.Add(RtfConversionSeverity.Warning, code, "Content omitted.", RtfConversionAction.Omitted, "body/0");
 
-        Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
+        Assert.Equal(code, Assert.Single(report.NativeDiagnostics).Code);
         OfficeDiagnostic typed = Assert.Single(
             OfficeConversionFidelityDiagnostics.Flatten(new[] { report }));
         Assert.Equal("RTF_DIAGNOSTIC_UNSPECIFIED", typed.Code);

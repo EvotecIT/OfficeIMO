@@ -94,7 +94,7 @@ public class XmlContracts {
         Assert.Equal("retained", changed.Descendants(XName.Get("Notes", Ns)).Single().Attribute("custom")!.Value);
         document.Tasks.Add("New task");
         Assert.True(document.AssessSave().HasLoss);
-        Assert.Throws<InvalidOperationException>(() => document.ToXml());
+        Assert.ThrowsAny<InvalidOperationException>(() => document.ToXml());
         Assert.Contains("FutureField", document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
     }
 

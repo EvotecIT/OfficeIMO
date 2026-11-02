@@ -84,7 +84,7 @@ public sealed class ProjectNative98Tests {
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_PRIORITY_QUANTIZED");
         Assert.Contains(report.Diagnostics, d => d.Code == "PROJECT_NATIVE_ALIAS_LOSS");
         using var second = new MemoryStream();
-        Assert.Throws<InvalidOperationException>(() => document.Save(second, Options(false))); Assert.Empty(second.ToArray());
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(second, Options(false))); Assert.Empty(second.ToArray());
     }
 
     [Fact]

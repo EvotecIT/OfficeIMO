@@ -38,7 +38,7 @@ public sealed class HtmlBrowserPdfOfficeExtensionsTests {
             Assert.Single(result.SourceConversionReports));
         Assert.False(report.Tagged);
         Assert.False(report.HasLoss);
-        Assert.Same(capture.Diagnostics, report.Diagnostics);
+        Assert.Same(capture.Diagnostics, report.NativeDiagnostics);
     }
 
     [Fact]

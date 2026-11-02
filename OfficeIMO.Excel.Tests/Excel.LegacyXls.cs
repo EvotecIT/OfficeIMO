@@ -1221,7 +1221,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-AUTOFILTER-CRITERIA-UNSUPPORTED"]);
-            Assert.Same(result.Workbook.Diagnostics, result.Diagnostics);
+            Assert.Same(result.Workbook.Diagnostics, result.NativeDiagnostics);
             Assert.Same(result.Workbook.UnsupportedFeatures, result.UnsupportedFeatures);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.EnsureNoUnsupportedFeatures());
             Assert.Contains("XLS-BIFF-FEATURE-HYPERLINK-UNSUPPORTED", exception.Message, StringComparison.Ordinal);

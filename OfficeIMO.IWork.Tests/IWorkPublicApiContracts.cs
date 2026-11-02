@@ -8,7 +8,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkPublicApiContracts {
     [Fact]
     public void ConversionReportsAndResultsUseTheSharedLossContract() {
-        Assert.Contains(typeof(OfficeConversionReport), typeof(IWorkConversionReport).GetInterfaces());
+        Assert.True(typeof(OfficeConversionReport).IsAssignableFrom(typeof(IWorkConversionReport)));
 
         AssertConversionResult(typeof(PagesToWordResult));
         AssertConversionResult(typeof(NumbersToExcelResult));

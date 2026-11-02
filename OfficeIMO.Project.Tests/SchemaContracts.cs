@@ -33,7 +33,7 @@ public class SchemaContracts {
         if (percent) link.LagPercent = (decimal)value;
         else link.Lag = new ProjectDuration((decimal)value, ProjectDurationUnit.Minute);
         Assert.Contains(document.Validate().NativeDiagnostics, d => d.Code == "PROJECT_LAG_PRECISION" && d.RepresentsLoss);
-        Assert.Throws<InvalidOperationException>(() => document.ToXml());
+        Assert.ThrowsAny<InvalidOperationException>(() => document.ToXml());
         var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         Assert.Equal(expected, xml.Descendants(XName.Get("LinkLag", XmlContracts.Ns)).Single().Value);
     }

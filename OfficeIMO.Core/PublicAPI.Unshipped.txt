@@ -77,7 +77,6 @@ OfficeIMO.OfficeConversionException.OfficeConversionException(string! message, O
 OfficeIMO.OfficeConversionException.Report.get -> OfficeIMO.OfficeConversionReport!
 OfficeIMO.OfficeConversionReport.OfficeConversionReport() -> void
 OfficeIMO.OfficeConversionReport.OfficeConversionReport(string! source, string! target) -> void
-OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() -> void
 OfficeIMO.OfficeOutputResult<TReport>.ThrowIfLoss() -> void
 override OfficeIMO.Drawing.OfficeImageExportReport.HasLoss.get -> bool
 override OfficeIMO.Drawing.OfficeImageMetadataReport.HasLoss.get -> bool
@@ -90,3 +89,4 @@ virtual OfficeIMO.OfficeConversionReport.HasLoss.get -> bool
 OfficeIMO.OfficeConversionResult<T, TReport>
 OfficeIMO.OfficeConversionResult<T, TReport>.OfficeConversionResult(T value, TReport! report) -> void
 OfficeIMO.OfficeConversionResult<T, TReport>.Report.get -> TReport!
+virtual OfficeIMO.OfficeConversionResult<T>.ThrowIfLoss() -> void

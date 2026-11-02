@@ -24,7 +24,7 @@ public sealed class EmlxMetadataPreservationTests {
             conversionLossPolicy: EmailConversionLossPolicy.Warn)).Write(original, portable);
         Assert.Equal(EmailConversionLossDisposition.Accepted, portableResult.LossDisposition);
         Assert.Contains(portableResult.Diagnostics, item => item.Code == "EMAIL_EMLX_METADATA_NOT_REPRESENTED");
-        Assert.ThrowsAny<OfficeConversionException>(() => portableResult.ThrowIfLoss());
+        Assert.Throws<InvalidDataException>(() => portableResult.ThrowIfLoss());
         using var output = new MemoryStream();
         EmailWriteResult result = new EmailStoreEmlxWriter().Write(original, output);
         result.ThrowIfLoss();
@@ -81,7 +81,7 @@ public sealed class EmlxMetadataPreservationTests {
         EmailWriteResult result = writer.Write(document, output);
 
         Assert.Contains(result.Diagnostics, item => item.Code == "EMAIL_EMLX_METADATA_OPAQUE");
-        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        Assert.Throws<InvalidDataException>(() => result.ThrowIfLoss());
         if (policy == EmailConversionLossPolicy.Block) {
             Assert.Equal(EmailConversionLossDisposition.Blocked, result.LossDisposition);
             Assert.Equal(new byte[] { 123 }, output.ToArray());

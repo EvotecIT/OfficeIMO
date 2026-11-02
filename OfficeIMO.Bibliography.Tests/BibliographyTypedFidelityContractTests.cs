@@ -37,7 +37,7 @@ public sealed class BibliographyTypedFidelityContractTests {
         report.Add(new BibliographyConversionDiagnostic(
             code, BibliographyDiagnosticSeverity.Warning, "Source field omitted.", BibliographyConversionAction.Omitted));
 
-        Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
+        Assert.Equal(code, Assert.Single(report.NativeDiagnostics).Code);
         OfficeDiagnostic typed = Assert.Single(report.Diagnostics);
         Assert.Equal(string.IsNullOrWhiteSpace(code) ? "BIBLIOGRAPHY_DIAGNOSTIC" : code, typed.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, typed.LossKind);

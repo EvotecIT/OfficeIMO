@@ -30,7 +30,7 @@ public sealed class ProjectNativeSaveTests {
         document.Tasks.GetByUid(3).MoveTo(null);
         Assert.Contains(document.AssessSave().NativeDiagnostics, d => d.Code == "PROJECT_NATIVE_STRUCTURAL_OPAQUE" && d.RepresentsLoss);
         using var destination = new MemoryStream();
-        Assert.Throws<InvalidOperationException>(() => document.Save(destination)); Assert.Empty(destination.ToArray());
+        Assert.ThrowsAny<InvalidOperationException>(() => document.Save(destination)); Assert.Empty(destination.ToArray());
         document.Save(destination, Allow());
         using var reload = ProjectDocument.Load(new MemoryStream(destination.ToArray()));
         Assert.Equal(new[] { 0, 1, 2, 4, 3 }, reload.AllTasks.Select(t => t.Uid));

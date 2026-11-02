@@ -9,6 +9,9 @@ public sealed class OdfConversionResult<TDocument> : OfficeConversionResult<TDoc
     public OdfConversionResult(TDocument value, OdfConversionReport report) : base(value, report) { }
 
 
+    /// <summary>Throws when the conversion was lossy and disposes a rejected disposable document first.</summary>
+    public override void ThrowIfLoss() => ApplyPolicy(OdfConversionLossPolicy.ThrowOnAnyLoss);
+
     /// <summary>Returns the converted document after applying an explicit loss policy.</summary>
     public TDocument GetValue(OdfConversionLossPolicy policy) {
         try {

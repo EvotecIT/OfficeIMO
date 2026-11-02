@@ -9,7 +9,7 @@ public sealed class PdfReusableContentLayoutTests {
     public void NoLossGuardRequiresSuccessfulOutput() {
         var failure = new IOException("Output unavailable");
         var result = PdfSaveResult.FromFailure("report.pdf", failure);
-        var exception = Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+        var exception = Assert.ThrowsAny<InvalidOperationException>(() => result.ThrowIfLoss());
         Assert.Same(failure, exception.InnerException);
         var successful = PdfSaveResult.FromSuccess("report.pdf", 120);
         successful.ThrowIfLoss();

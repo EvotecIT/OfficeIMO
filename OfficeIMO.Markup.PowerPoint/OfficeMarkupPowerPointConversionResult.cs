@@ -40,6 +40,13 @@ public sealed class OfficeMarkupPowerPointConversionReport : OfficeConversionRep
     public override bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
+    /// <summary>Raises markup loss first, then preflight findings, matching the order of the two evidence sources.</summary>
+    protected override OfficeConversionException CreateLossException() {
+        Markup.ThrowIfLoss();
+        Preflight.ThrowIfFindings(PowerPointDeckPreflightSeverity.Warning);
+        return base.CreateLossException();
+    }
+
     /// <summary>Throws when markup conversion failed.</summary>
     public void RequireSuccess() => Markup.RequireSuccess();
 

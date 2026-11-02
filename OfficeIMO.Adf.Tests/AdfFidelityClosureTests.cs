@@ -14,8 +14,8 @@ public sealed class AdfFidelityClosureTests {
         var report = new AdfConversionReport(source);
         source[0] = new AdfConversionDiagnostic("info", "$", "Information", AdfConversionSeverity.Information);
 
-        Assert.Same(error, Assert.Single(report.Diagnostics));
-        Assert.Throws<NotSupportedException>(() => ((IList<AdfConversionDiagnostic>)report.Diagnostics)[0] = source[0]);
+        Assert.Same(error, Assert.Single(report.NativeDiagnostics));
+        Assert.Throws<NotSupportedException>(() => ((IList<AdfConversionDiagnostic>)report.NativeDiagnostics)[0] = source[0]);
         Assert.True(report.HasErrors);
         Assert.True(report.HasLoss);
         Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());

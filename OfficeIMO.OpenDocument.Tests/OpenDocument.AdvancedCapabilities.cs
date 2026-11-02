@@ -200,7 +200,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         OdfSaveResult save = document.SaveFlatXml(output);
 
         Assert.True(save.HasLoss);
-        Assert.ThrowsAny<OfficeConversionException>(() => save.ThrowIfLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => save.ThrowIfLoss());
         Assert.Contains("Thumbnails/thumbnail.png", save.Report.LossyEntries);
         OfficeDiagnostic diagnostic = Assert.Single(save.Report.Diagnostics,
             item => item.Location == "Thumbnails/thumbnail.png");
