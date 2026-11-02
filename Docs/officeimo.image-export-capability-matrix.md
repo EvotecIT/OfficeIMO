@@ -149,7 +149,7 @@ Still lossy VP8 WebP with optional raw or lossless-compressed alpha and ordinary
 | Diagnostic | Current meaning | Current response |
 | --- | --- | --- |
 | `IMAGE_SOURCE_DECODE_FALLBACK` | Drawing and the optional caller codec could not decode a source image, so the output contains a visible placeholder or a documented family-specific artwork fallback | Add a bounded Drawing decoder only for a justified format subset, or supply `ImageCodec`; do not reintroduce family-specific “skipped image” warnings |
-| `IMAGE_TEXT_SHAPING_FALLBACK` | Raster output used the bounded managed Arabic/bidi path because no host shaper accepted the run | Supply `IOfficeTextShapingProvider` for full OpenType shaping, or reject the approximation with `OfficeImageExportPolicy.RequireNoLoss` |
+| `IMAGE_TEXT_SHAPING_FALLBACK` | Raster output used the bounded managed Arabic/bidi path because no host shaper accepted the run | Supply `IOfficeTextShapingProvider` for full OpenType shaping, or reject the approximation with `OfficeImageExportPolicy.FailOnLoss` |
 | `render.annotation.appearance-synthesized` | A loaded PDF annotation had no usable authored appearance, so the PDF owner synthesized a bounded appearance from its geometry and style | Accept the documented approximation, require no loss, or regenerate an authored normal appearance before export |
 | `unsupported-powerpoint-shape` | Shape type, geometry, transform bounds, text-margin case, or unsupported custom geometry command/formula case cannot be projected | Split by reason as fidelity grows; add Drawing geometry primitives where reusable |
 | `unsupported-slide-background` | Background fallback used | Expand PowerPoint background projection, reuse Drawing fills/images |
