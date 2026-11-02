@@ -18,9 +18,11 @@ public partial class PdfRedactionApplierTests {
         Assert.Contains(plan.Findings, static finding => finding.Code == "redaction-search-unplanned-residue");
     }
 
-    [Fact]
-    public void SearchRefusesStreamItCannotDecode() {
-        PdfDocument source = PdfDocument.Load(BuildCompressedRedactionFixture("UndecodableStream"));
+    [Theory]
+    [InlineData("UndecodableStream")]
+    [InlineData("UndecodableUnusedFontFile")]
+    public void SearchRefusesStreamItCannotDecode(string variant) {
+        PdfDocument source = PdfDocument.Load(BuildCompressedRedactionFixture(variant));
 
         PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions().AddLiteral("absent"));
 
@@ -134,7 +136,9 @@ public partial class PdfRedactionApplierTests {
             if (variant == "ReferenceNull") objects[710] = "null";
             if (variant is "ReferenceLive" or "ReferenceGenerationMismatch") objects[710] = "<< /Value (kept live value) >>";
         }
-        if (variant == "UndecodableStream") objects[700] = "<< /Filter /FlateDecode /Length 4 >>\nstream\nnope\nendstream";
+        if (variant is "UndecodableStream" or "UndecodableUnusedFontFile") objects[700] = "<< /Filter /FlateDecode /Length 4 >>\nstream\nnope\nendstream";
+        // A FontFile key outside a font's descriptor does not make the stream a font program.
+        if (variant == "UndecodableUnusedFontFile") objects[701] = "<< /FontFile2 700 0 R >>";
         if (variant == "DamagedRetainedContainer") objects[700] = "<< /Type /ObjStm /N 1 /First 999 /Filter /ASCIIHexDecode /Length 1 >>\nstream\n>\nendstream";
         int container = objects.Keys.Max() + 1, xref = container + 1;
         if (variant == "RetainedContainer") objects[1] = objects[1].Replace("/Type /Catalog", "/Type /Catalog /PrivateData " + container + " 0 R");

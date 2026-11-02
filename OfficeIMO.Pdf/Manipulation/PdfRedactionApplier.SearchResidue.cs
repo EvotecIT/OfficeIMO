@@ -164,8 +164,19 @@ internal static partial class PdfRedactionApplier {
             default: return false;
         }
 
-        bool IsFontProgram() => objects.Values.Any(item => item.Value is PdfDictionary descriptor &&
-            FontProgramKeys.Any(key => descriptor.Items.TryGetValue(key, out PdfObject? font) && ReferenceEquals(PdfObjectLookup.Resolve(objects, font), value)));
+        // Only a descriptor a font uses makes a stream its program; a FontFile key elsewhere exempts nothing.
+        bool IsFontProgram() => objects.Values.Any(item => item.Value is PdfDictionary owner && FontDictionaries(owner).Any(font =>
+            font.Items.TryGetValue("FontDescriptor", out PdfObject? reference) && PdfObjectLookup.Resolve(objects, reference) is PdfDictionary descriptor &&
+            FontProgramKeys.Any(key => descriptor.Items.TryGetValue(key, out PdfObject? program) && ReferenceEquals(PdfObjectLookup.Resolve(objects, program), value))));
+
+        // Fonts are usually indirect, but a resource dictionary may hold them directly.
+        IEnumerable<PdfDictionary> FontDictionaries(PdfDictionary owner) {
+            yield return owner;
+            PdfDictionary resources = owner.Items.TryGetValue("Resources", out PdfObject? nested) && PdfObjectLookup.Resolve(objects, nested) is PdfDictionary held ? held : owner;
+            if (!resources.Items.TryGetValue("Font", out PdfObject? fonts) || PdfObjectLookup.Resolve(objects, fonts) is not PdfDictionary fontMap) yield break;
+            foreach (PdfObject entry in fontMap.Items.Values)
+                if (PdfObjectLookup.Resolve(objects, entry) is PdfDictionary font) yield return font;
+        }
 
         bool OperandHolds(object operand) => operand switch {
             byte[] bytes => SearchTextHolds(PdfEncoding.Latin1GetString(bytes), criteria),
