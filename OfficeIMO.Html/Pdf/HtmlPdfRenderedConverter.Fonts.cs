@@ -449,13 +449,50 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresUnicodeFont(string text) =>
         PdfCore.PdfTextDiagnostics.RequiresEmbeddedUnicodeFont(text);
 
-    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) {
+    internal static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered) =>
+        CollectRenderedTextForFontFallbackSelection(rendered, webFonts: null);
+
+    /// <summary>
+    /// Collects the text that may reach a run fallback. A run that its own family stack already
+    /// covers is painted with that family, so it can neither select nor use a fallback face.
+    /// </summary>
+    private static string CollectRenderedTextForFontFallbackSelection(HtmlRenderDocument rendered, RegisteredWebFonts? webFonts) {
         var text = new System.Text.StringBuilder();
         foreach (HtmlRenderVisual visual in EnumerateVisuals(rendered.Pages.SelectMany(page => page.Visuals))) {
-            if (visual is HtmlRenderText renderedText) text.Append(renderedText.Text);
+            if (visual is HtmlRenderText renderedText
+                && (webFonts == null || !IsCoveredByOwnFamily(renderedText, webFonts))) {
+                text.Append(renderedText.Text);
+            }
             if (visual is HtmlRenderDrawing drawing) AppendDrawingText(drawing.Drawing.Elements, text);
         }
         return text.ToString();
+    }
+
+    // Mirrors the family resolution in AddText: web-font planning first, then the first named
+    // family that covers each planned run.
+    private static bool IsCoveredByOwnFamily(HtmlRenderText run, RegisteredWebFonts webFonts) {
+        OfficeFontStyle style = (run.Font.IsBold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular)
+            | (run.Font.IsItalic ? OfficeFontStyle.Italic : OfficeFontStyle.Regular);
+        foreach (OfficeFontFallbackRun planned in webFonts.Faces.PlanFallbackRuns(run.Text, run.Font.FamilyName, style)) {
+            if (webFonts.AllowInstalledFontFaces && !webFonts.Slots.ContainsKey(planned.FamilyName)
+                && NeedsNumericSystemFace(run.FontDescriptor)) return false;
+            bool covered = false;
+            foreach (string familyName in EnumerateBoundedSystemFamilies(planned.FamilyRequest)) {
+                if (!NamedFontCoversTextWithStyleFallback(webFonts.Options, OfficeFontFamilyParser.Quote(familyName),
+                        planned.Text, run.Font.IsBold, run.Font.IsItalic)) continue;
+                covered = true;
+                break;
+            }
+            if (!covered) return false;
+        }
+        return true;
+    }
+
+    internal static bool HasFallbackSelectableText(string text) {
+        foreach (char character in text) {
+            if (character >= ' ' && character != '\u007F' && !char.IsWhiteSpace(character)) return true;
+        }
+        return false;
     }
 
     private static void AppendDrawingText(IEnumerable<OfficeDrawingElement> elements, System.Text.StringBuilder text) {

@@ -384,12 +384,23 @@ internal static partial class HtmlPdfRenderedConverter {
             reservedFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
         }
         if (activeTextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+            string requiredText = CollectRenderedTextForFontFallbackSelection(rendered);
+            // Selecting an installed run fallback reads the whole font, so select only for text
+            // that its own family stack leaves uncovered. With none left, the multilingual and
+            // symbol groups cannot be used and only document-font selection remains.
+            string uncoveredText = CollectRenderedTextForFontFallbackSelection(rendered, webFonts);
+            if (!HasFallbackSelectableText(uncoveredText)) {
+                activeTextFallbacks &= ~(PdfCore.PdfTextFallbackFeatures.MultilingualFonts
+                    | PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts);
+            } else {
+                requiredText = uncoveredText;
+            }
             pdf.Options.UseTextFallbacks(
                 activeTextFallbacks,
                 reservedFontSlots,
                 options.ResourcePolicy.AllowSystemFontEmbedding,
                 preserveConfiguredFontSlots: options.FontFamily != null,
-                requiredText: CollectRenderedTextForFontFallbackSelection(rendered));
+                requiredText: requiredText);
         }
         pdf.UseTextShaping(options.TextShapingMode, options.TextShapingProvider);
         var headingDocumentOrder = rendered.Headings
