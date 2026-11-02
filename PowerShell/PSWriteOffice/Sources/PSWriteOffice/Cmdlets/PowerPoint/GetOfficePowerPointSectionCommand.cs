@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Close-OfficePowerPoint -Document $deck</code></example>
 /// <example><summary>Find the appendix section.</summary>
 /// <code>$deck | Get-OfficePowerPointSection -Name Appendix</code></example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointSection")]
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointSection", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointSectionInfo))]
 public sealed class GetOfficePowerPointSectionCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>

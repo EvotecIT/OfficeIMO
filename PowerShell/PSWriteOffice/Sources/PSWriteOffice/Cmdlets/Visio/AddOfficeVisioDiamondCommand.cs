@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// }</code>
 ///   <para>Adds a decision diamond to the active Visio page.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioDiamond")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioDiamond", DefaultParameterSetName = "Page")]
 [Alias("VisioDiamond")]
 [OutputType(typeof(VisioShape))]
 public sealed class AddOfficeVisioDiamondCommand : OfficeVisioShapeCmdlet {

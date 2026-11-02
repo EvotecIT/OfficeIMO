@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <code>$document = Open-OfficeWord -Path ./Protected.docx -Password (Read-Host -AsSecureString)
 /// $document | Save-OfficeWord
 /// $document | Close-OfficeWord</code></example>
-[Cmdlet(VerbsData.Save, "OfficeWord", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeWord", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficeWordCommand : OfficeCmdlet {
     /// <summary>Live Word document to save.</summary>

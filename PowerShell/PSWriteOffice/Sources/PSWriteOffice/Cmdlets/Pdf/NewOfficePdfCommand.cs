@@ -19,13 +19,9 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <code>$pdf = New-OfficePdf -Theme Classic -Size 11pt
 /// Add-OfficePdfParagraph -Document $pdf -Text 'Reviewed and approved'
 /// Save-OfficePdf -Document $pdf -Path ./Review.pdf</code></example>
-[Cmdlet(VerbsCommon.New, "OfficePdf", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficePdf", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(PdfDocument), typeof(FileInfo))]
-public sealed class NewOfficePdfCommand : OfficeLifecycleCmdlet<PdfDocument> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficePdfCommand : OfficeNewLifecycleCmdlet<PdfDocument> {
     /// <summary>Allow a completed content block to replace an existing destination.</summary>
     [Parameter]
     public SwitchParameter Force { get; set; }

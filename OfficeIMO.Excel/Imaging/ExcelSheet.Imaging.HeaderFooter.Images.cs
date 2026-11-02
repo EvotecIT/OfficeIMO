@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
         private const double HeaderFooterImagePadding = 4D;
 
         private static ExcelHeaderFooterImageInfo? SelectHeaderFooterImage(ExcelHeaderFooterImageInfo? image, string sectionText) =>
-            image != null && sectionText.IndexOf("&G", StringComparison.Ordinal) >= 0 ? image : null;
+            image != null && HasHeaderFooterCode(sectionText, 'G') ? image : null;
 
         private static int ResolveHeaderFooterBandHeight(double imageHeightPoints, double scale) {
             double textHeight = HeaderFooterBandHeight * scale;

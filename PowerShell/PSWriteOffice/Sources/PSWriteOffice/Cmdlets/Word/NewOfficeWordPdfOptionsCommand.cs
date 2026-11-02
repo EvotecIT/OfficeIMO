@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>$options = New-OfficeWordPdfOptions -Title 'Service report' -Author 'Evotec' -IncludePageNumbers -AllowSystemFontEmbedding
 /// Export-OfficeDocumentPdf -InputPath .\Report.docx -Path .\Report.pdf -WordOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeWordPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeWordPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordPdfExportOptions))]
 public sealed class NewOfficeWordPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>

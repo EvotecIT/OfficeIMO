@@ -286,6 +286,16 @@
       "notes": "Rename to {Target}PdfImportMode to match the options name.",
       "phase": "A",
       "applied": "applied"
+    },
+    {
+      "old": "WordImageExportOptions batch image selection",
+      "kind": "property",
+      "action": "change",
+      "new": "WordImageExportOptions.PageSelection (PdfPageSelection)",
+      "reason": "Batch images and visual snapshots can select noncontiguous one-based pages in caller order, including repeats, through the canonical PDF page selector and aggregate output limits. PageSelection overrides PageIndex/PageCount only for batches; single-page operations retain PageIndex.",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "packageMoves": [

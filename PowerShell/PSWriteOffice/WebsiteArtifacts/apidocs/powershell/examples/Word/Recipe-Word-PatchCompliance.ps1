@@ -43,7 +43,7 @@ New-OfficeWord -Path $docxPath {
     WordFooter -Type Default { WordPageNumber -IncludeTotal }
 
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 14 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingAfter 14 -KeepWithNext:$true
         WordText 'Patch compliance report' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
@@ -52,7 +52,7 @@ New-OfficeWord -Path $docxPath {
     }
 
     WordParagraph {
-        WordParagraphStyle -Style Heading1 -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -Style Heading1 -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Compliance by site' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $rows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
@@ -62,13 +62,13 @@ New-OfficeWord -Path $docxPath {
         -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 `
         -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 14 -SpacingAfterPoints 12
+        Set-OfficeWordParagraph -SpacingBefore 14 -SpacingAfter 12
         WordChart -Type Bar -InputObject $rows -Category Site -Value Patched, Pending `
             -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
     }
 
     WordParagraph {
-        WordParagraphStyle -Style Heading1 -SpacingBeforePoints 10 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -Style Heading1 -SpacingBefore 10 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Next steps' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Numbered {

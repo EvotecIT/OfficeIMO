@@ -123,14 +123,17 @@ public sealed class ExportOfficeFoundationCommand : OfficeCmdlet {
 [Cmdlet(VerbsDiagnostic.Test, "OfficeFoundationBatch", DefaultParameterSetName = "Path")]
 [OutputType(typeof(string))]
 public sealed class TestOfficeFoundationBatchCommand : OfficeInputCmdlet {
+    [Parameter]
+    public Task? SlowRelease { get; set; }
+
     protected override Task ProcessRecordAsync() => RunBatchAsync(ResolveInputs(), async (path, token) => {
         if (System.IO.Path.GetFileName(path).StartsWith("cancel")) {
             FoundationBatchControl.Started.Set();
             try { await Task.Delay(Timeout.Infinite, token); }
             finally { FoundationBatchControl.Cancelled.Set(); }
         }
-        int delay = System.IO.Path.GetFileName(path).StartsWith("slow") ? 150 : 10;
-        await Task.Delay(delay, token);
+        if (SlowRelease != null && System.IO.Path.GetFileName(path).StartsWith("slow"))
+            await SlowRelease.WaitAsync(TimeSpan.FromSeconds(10), token);
         string text = await File.ReadAllTextAsync(path, token);
         if (text == "fail") throw new InvalidDataException("Cannot read this item.");
         return text;

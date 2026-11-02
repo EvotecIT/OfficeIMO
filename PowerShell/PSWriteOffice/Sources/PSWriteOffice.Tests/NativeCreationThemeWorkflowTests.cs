@@ -91,10 +91,8 @@ public sealed class NativeCreationThemeWorkflowTests : IDisposable {
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
         shell.AddCommand("New-Office" + format).AddParameter("Path", path).AddParameter("Password", "test-only");
-        Exception? error = Record.Exception(() => shell.Invoke());
-        Assert.True(error != null || shell.HadErrors);
-        string message = error?.Message ?? Errors(shell);
-        Assert.True(message.Contains("requires a content block") || message.Contains("require a content block"), message);
+        var error = Assert.ThrowsAny<ParameterBindingException>(() => shell.Invoke());
+        Assert.StartsWith("MissingMandatoryParameter", error.ErrorRecord.FullyQualifiedErrorId);
         Assert.Empty(Directory.GetFileSystemEntries(_root));
     }
 

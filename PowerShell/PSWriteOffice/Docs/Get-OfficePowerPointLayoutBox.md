@@ -6,56 +6,48 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointLayoutBox
 ## SYNOPSIS
-Computes reusable layout boxes for a presentation.
+Computes native content, column or row boxes for manual placement.
 
 ## SYNTAX
 ### Content (Default)
 ```powershell
-Get-OfficePowerPointLayoutBox [-Presentation <PowerPointDocument>] [-MarginCm <double>] [<CommonParameters>]
+Get-OfficePowerPointLayoutBox [-Margin <OfficeLength>] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ### Columns
 ```powershell
-Get-OfficePowerPointLayoutBox -ColumnCount <int> [-Presentation <PowerPointDocument>] [-MarginCm <double>] [-GutterCm <double>] [<CommonParameters>]
+Get-OfficePowerPointLayoutBox -Columns <int> [-Margin <OfficeLength>] [-Gutter <OfficeLength>] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ### Rows
 ```powershell
-Get-OfficePowerPointLayoutBox -RowCount <int> [-Presentation <PowerPointDocument>] [-MarginCm <double>] [-GutterCm <double>] [<CommonParameters>]
+Get-OfficePowerPointLayoutBox -Rows <int> [-Margin <OfficeLength>] [-Gutter <OfficeLength>] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns the content box for a slide or equal column/row boxes derived from the current slide size.
+Computes native content, column or row boxes for manual placement.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointLayoutBox.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    $box = Get-OfficePowerPointLayoutBox -MarginCm 1.5
-    Add-OfficePowerPointTextBox -Slide $slide -Text 'Inside the content box' -X ($box.LeftPoints) -Y ($box.TopPoints) -Width ($box.WidthPoints) -Height 60
-}
+$box = Get-OfficePowerPointLayoutBox -Document $deck -Margin 1.5cm
 ```
 
-Returns a content box and uses it to position slide text.
 
 ### EXAMPLE 2
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointColumns.pptx {
-    $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-    $columns = Get-OfficePowerPointLayoutBox -ColumnCount 2 -MarginCm 1.5 -GutterCm 1.0
-    Add-OfficePowerPointTextBox -Slide $slide -Text 'Left column' -X ($columns[0].LeftPoints) -Y ($columns[0].TopPoints) -Width ($columns[0].WidthPoints) -Height 80
-    Add-OfficePowerPointTextBox -Slide $slide -Text 'Right column' -X ($columns[1].LeftPoints) -Y ($columns[1].TopPoints) -Width ($columns[1].WidthPoints) -Height 80
+$columns = Get-OfficePowerPointLayoutBox -Document $deck -Columns 2 -Margin 1.5cm -Gutter 1cm
+PowerPointSlide -Document $deck -Title 'Status' {
+    PowerPointTextBox 'Healthy' -X $columns[0].Left -Y $columns[0].Top -Width $columns[0].Width -Height 40
 }
 ```
 
-Uses two layout boxes to place text in columns.
 
 ## PARAMETERS
 
-### -ColumnCount
-Number of columns to generate.
+### -Columns
+Gets or sets the number of columns.
 
 ```yaml
 Type: Int32
@@ -70,40 +62,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -GutterCm
-Column or row gutter in centimeters.
-
-```yaml
-Type: Double
-Parameter Sets: Columns, Rows
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MarginCm
-Outer slide margin in centimeters.
-
-```yaml
-Type: Double
-Parameter Sets: Content, Columns, Rows
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Presentation
-Presentation to inspect (optional inside DSL).
+### -Document
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
 Type: PowerPointDocument
@@ -118,8 +78,40 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -RowCount
-Number of rows to generate.
+### -Gutter
+Gets or sets the space between rows or columns; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Columns, Rows
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Margin
+Gets or sets the outer margin; numbers mean points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Content, Columns, Rows
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Rows
+Gets or sets the number of rows.
 
 ```yaml
 Type: Int32

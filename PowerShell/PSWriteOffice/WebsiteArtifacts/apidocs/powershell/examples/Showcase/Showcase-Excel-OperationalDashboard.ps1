@@ -82,10 +82,11 @@ New-OfficeExcel -Path $path {
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
 
         if (Test-Path $logoPath) {
-            ExcelImage -Path $logoPath -Address 'J1' -WidthPixels 140 -HeightPixels 52 -AltText 'PSWriteOffice operational dashboard logo'
+            ExcelImage -Path $logoPath -Address 'J1' -Width 140px -Height 52px -AltText 'PSWriteOffice operational dashboard logo'
         }
 
-        ExcelHeaderFooter -HeaderCenter 'PSWriteOffice operational dashboard' -FooterRight 'Page &P of &N'
+        ExcelHeader -Center 'PSWriteOffice operational dashboard'
+        ExcelFooter -Right 'Page &P of &N'
         ExcelOrientation -Orientation Landscape
         ExcelMargins -Left 0.4 -Right 0.4 -Top 0.7 -Bottom 0.7
         ExcelPageSetup -FitToWidth 1 -FitToHeight 0
@@ -104,7 +105,8 @@ New-OfficeExcel -Path $path {
             Set-OfficeExcelChartLegend -Position Bottom -PassThru |
             Set-OfficeExcelChartDataLabels -ShowValue $true -Position OutsideEnd -PassThru |
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
-        ExcelHeaderFooter -HeaderCenter 'Service details' -FooterRight 'Page &P of &N'
+        ExcelHeader -Center 'Service details'
+        ExcelFooter -Right 'Page &P of &N'
     }
 
     ExcelSheet 'Trend' {
@@ -122,14 +124,16 @@ New-OfficeExcel -Path $path {
             Set-OfficeExcelChartLegend -Position Bottom -PassThru |
             Set-OfficeExcelChartDataLabels -ShowValue $true -Position Top -PassThru |
             Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10
-        ExcelHeaderFooter -HeaderCenter 'Trend and automation' -FooterRight 'Page &P of &N'
+        ExcelHeader -Center 'Trend and automation'
+        ExcelFooter -Right 'Page &P of &N'
     }
 
     ExcelSheet 'Owner Summary' {
         ExcelTable -Data $ownerSummary -Name 'OwnerSummary' -StartRow 1 -StartColumn 1 -TableStyle 'TableStyleMedium5' -AutoFit
         ExcelConditionalDataBar -Range 'D2:D20' -Color '#ED7D31'
         ExcelConditionalIconSet -Range 'C2:C20' -IconSet ThreeTrafficLights1
-        ExcelHeaderFooter -HeaderCenter 'Owner summary' -FooterRight 'Page &P of &N'
+        ExcelHeader -Center 'Owner summary'
+        ExcelFooter -Right 'Page &P of &N'
     }
 
     ExcelSheet 'Notes' {

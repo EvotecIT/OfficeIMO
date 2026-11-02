@@ -1,77 +1,108 @@
 using System;
 using System.Management.Automation;
+using OfficeIMO;
+using OfficeIMO.ChartForgeX;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
+using PSWriteOffice.Services.Visuals;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Adds an image to a PowerPoint slide.</summary>
-/// <para>Places the picture at the requested coordinates using point measurements.</para>
-/// <example>
-///   <summary>Insert an image.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$image = '.\Tests\Assets\CellImage.png'
-/// New-OfficePowerPoint -Path .\Examples\Documents\PowerPointImage.pptx {
-///     $slide = Add-OfficePowerPointSlide -Layout 1 -PassThru
-///     Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Evidence'
-///     Add-OfficePowerPointImage -Slide $slide -Path $image -X 60 -Y 130 -Width 180 -Height 120
-/// }</code>
-///   <para>Adds a picture to a generated slide.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointImage")]
+/// <summary>Adds a native picture from a local image, SVG or reusable visual, using the slide layout or explicit lengths.</summary>
+/// <para>Coordinates use points or unit suffixes. Explicit coordinates, dimensions, grid columns or Slide select fixed placement. Otherwise the image flows through the shared slide layout. FocalPoint controls cover crops.</para>
+/// <example><summary>Place a local image on the slide grid.</summary>
+/// <code>PowerPointSlide -Title 'Evidence' {
+///     PowerPointImage -Path ./evidence.png -Column 2 -Span 5 -Y 3cm -Height 5cm -AlternativeText 'Deployment health'
+/// }</code></example>
+/// <example><summary>Reuse a converted visual without converting it again.</summary>
+/// <code>$visual | PowerPointImage -Slide $slide -X 36 -Y 54 -PassThru</code></example>
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointImage", DefaultParameterSetName = "Path")]
 [Alias("PowerPointImage")]
 [OutputType(typeof(PowerPointPicture))]
-public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>Target slide that will receive the picture (optional inside DSL).</summary>
-    [Parameter(ValueFromPipeline = true)]
-    public PowerPointSlide? Slide { get; set; }
-
-    /// <summary>Path to the image file.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Accessible description of the image.</summary>
+public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
+    /// <summary>Accessible description for the visual or placed image.</summary>
     [Parameter]
     public string? AlternativeText { get; set; }
 
-    /// <summary>Left offset (in points) from the slide origin.</summary>
-    [Parameter]
-    public double X { get; set; }
+    /// <inheritdoc />
+    protected override string? VisualAlternativeText => AlternativeText;
 
-    /// <summary>Top offset (in points) from the slide origin.</summary>
-    [Parameter]
-    public double Y { get; set; }
+    /// <summary>Native slide or a one-based position in the current document; omitted inside PowerPointSlide.</summary>
+    [Parameter, PowerPointSlideTransformation]
+    public PowerPointSlideSelector? Slide { get; set; }
 
-    /// <summary>Image width in points.</summary>
-    [Parameter]
-    public double Width { get; set; } = 200;
+    /// <summary>Literal local image path.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path"), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
 
-    /// <summary>Image height in points.</summary>
+    /// <summary>Visual artifact, OfficeVisualSource, prepared conversion or SVG path.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Visual"), ValidateNotNull]
+    public object? InputObject { get; set; }
+
+    /// <summary>Left position; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? X { get; set; }
+
+    /// <summary>Top position; numbers mean points.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Y { get; set; }
+
+    /// <summary>One-based starting column in the native twelve-column slide grid.</summary>
+    [Parameter, ValidateRange(1, 12)]
+    public int? Column { get; set; }
+
+    /// <summary>Number of grid columns occupied by the frame; defaults to twelve with Column.</summary>
+    [Parameter, ValidateRange(1, 12)]
+    public int? Span { get; set; }
+
+    /// <summary>Center, Top, Bottom, Left, Right or fractional x,y coordinates kept in view by a cover crop.</summary>
+    [Parameter, PowerPointFocalPointTransformation]
+    public PowerPointFocalPoint FocalPoint { get; set; } = new(0.5, 0.5);
+
+    /// <summary>Return the native editable picture.</summary>
     [Parameter]
-    public double Height { get; set; } = 150;
+    public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        PowerPointPicture? picture = null;
+        var scope = PowerPointContentScope.Current;
         try {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            if (Width <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(Width), "Width must be greater than 0.");
-            }
-
-            if (Height <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(Height), "Height must be greater than 0.");
-            }
-
-            var scope = Slide == null ? PowerPointContentScope.Current : null;
-            var slide = Slide ?? scope?.NativeSlide ?? PowerPointDslContext.Require(this).RequireSlide();
-            var picture = slide.AddImage(resolvedPath, OfficeLength.Points(X), OfficeLength.Points(Y), OfficeLength.Points(Width), OfficeLength.Points(Height));
+            if (Width.HasValue && Width.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(Width));
+            if (Height.HasValue && Height.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(Height));
+            var target = PowerPointManualPlacement.Resolve(Slide);
+            var horizontal = PowerPointManualPlacement.Horizontal(target.Slide, X, Width, Column, Span);
+            OfficeVisualConversionResult? visual = ParameterSetName == "Visual" ? ResolveVisual(InputObject!, nativePlacement: true) : null;
+            string? path = Path == null ? null : OfficePath.ResolveInput(SessionState, Path, literal: true)[0];
+            OfficeLength width = horizontal.Width ?? OfficeLength.Points(visual?.WidthPoints ?? 200);
+            OfficeLength height = Height ?? OfficeLength.Points(visual?.HeightPoints ?? 150);
+            OfficeLength left = horizontal.X ?? OfficeLength.Zero, top = Y ?? OfficeLength.Zero;
+            picture = visual == null ? target.Slide.AddImage(path!, left, top, width, height)
+                : target.Slide.AddVisualArtifact(visual, new PowerPointLayoutBox(left, top, width, height));
             if (AlternativeText != null) picture.Description = AlternativeText;
-            if (scope != null) scope.AddFigure(new PowerPointLayoutImage(resolvedPath, AlternativeText) { NativePicture = picture }, picture);
-            WritePassThru(picture);
-        } catch (Exception ex) {
-            if (PowerPointContentScope.Current != null) ThrowTerminatingError(OfficeError.Create(ex, "invalid-argument", Path, ErrorCategory.InvalidArgument));
-            WriteError(new ErrorRecord(ex, "PowerPointAddImageFailed", ErrorCategory.InvalidOperation, Slide));
+            if (Title != null) picture.Title = Title;
+            bool fixedPlacement = Slide != null || Column.HasValue || Span.HasValue
+                || PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys);
+            if (fixedPlacement && MyInvocation.BoundParameters.ContainsKey(nameof(FocalPoint))) {
+                picture.Left = left; picture.Top = top; picture.Width = width; picture.Height = height;
+                if (!picture.TryGetPixelSize(out int pixelWidth, out int pixelHeight))
+                    throw new ArgumentException("The image dimensions are required for focal-point cropping.");
+                picture.CropToFill(pixelWidth, pixelHeight, FocalPoint.X, FocalPoint.Y);
+            }
+            if (target.Scope != null) {
+                if (fixedPlacement) target.Scope.TrackFixedFigure(picture);
+                else target.Scope.AddFigure(new PowerPointLayoutImage(picture) {
+                    FocalX = FocalPoint.X, FocalY = FocalPoint.Y
+                }, picture);
+            }
+            if (PassThru) WriteObject(picture);
+        } catch (Exception error) {
+            picture?.Remove();
+            if (error is PipelineStoppedException or ActionPreferenceStopException) throw;
+            var record = OfficeError.Create(error, "invalid-argument", InputObject ?? (object?)Path, ErrorCategory.InvalidArgument);
+            if (scope != null) ThrowTerminatingError(record);
+            else WriteError(record);
         }
     }
 }

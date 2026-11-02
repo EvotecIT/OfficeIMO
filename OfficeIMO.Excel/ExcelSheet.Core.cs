@@ -585,6 +585,9 @@ namespace OfficeIMO.Excel {
         }
 
         internal SharedStringCache BuildCellTextSharedStringSnapshot() {
+            if (_formulaCalculationContext is { IsDisposed: false } context) {
+                return context.GetSharedStrings(_spreadSheetDocument, _excelDocument.CaptureFormulaInputMutationVersion());
+            }
             if (_spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
                 return SharedStringCache.Build(_spreadSheetDocument);
             }

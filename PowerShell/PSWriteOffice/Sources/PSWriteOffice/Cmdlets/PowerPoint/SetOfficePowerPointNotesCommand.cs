@@ -18,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>Get-OfficePowerPointSlide -Document $deck -Slide 2 |
 ///     Set-OfficePowerPointNotes -Text 'Explain the margin before revenue.'
 /// Save-OfficePowerPoint -Document $deck</code></example>
-[Cmdlet(VerbsCommon.Set, "OfficePowerPointNotes")]
+[Cmdlet(VerbsCommon.Set, "OfficePowerPointNotes", DefaultParameterSetName = "Text")]
 [Alias("PowerPointNotes")]
 [OutputType(typeof(PowerPointSlide))]
 public sealed class SetOfficePowerPointNotesCommand : OfficeCmdlet {

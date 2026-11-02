@@ -36,8 +36,22 @@ namespace OfficeIMO.Excel {
             if (value.IsUnresolvedFormula) {
                 return false;
             }
+            // Keep the typed error in this expression's scope while the caller
+            // qualifies its remaining arguments. It must never become ordinary text.
+            if (value.IsError && !_formulaReferenceError.IsError) _formulaReferenceError = value;
 
             text = FormulaValueToText(value);
+            return true;
+        }
+
+        private bool TryGetTextWholeNumberArgument(string token, out int number) {
+            if (!TryGetLookupIntegerArgument(token, out number, out FormulaArgumentValue error)) return false;
+            if (error.IsError) {
+                if (!_formulaReferenceError.IsError) _formulaReferenceError = error;
+                // A harmless positive selector lets the owner qualify the other
+                // operands before the expression publishes the pending error.
+                number = 1;
+            }
             return true;
         }
 
@@ -89,13 +103,6 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            // A scalar OFFSET owns blank-to-zero coercion. Do not consume its
-            // reference as a plain cell before dispatching the function.
-            if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(trimmed, out ExcelFormulaFunctionCallSyntax? call)
-                && call!.Name.Equals("OFFSET", StringComparison.OrdinalIgnoreCase)) {
-                return TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false);
-            }
-
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
                 value = ResolveFormulaDependency(sheet, row, column);
                 return true;
@@ -123,11 +130,6 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsExactLookupMode(string token) {
-            string value = token.Trim();
-            return value == "0" || value.Equals("FALSE", StringComparison.OrdinalIgnoreCase);
-        }
-
         private static bool FormulaValuesEqual(FormulaArgumentValue left, FormulaArgumentValue right) {
             if (left.Number.HasValue && right.Number.HasValue) {
                 return left.Number.Value == right.Number.Value;
@@ -139,7 +141,7 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryResolveFormulaArguments(string args, out List<FormulaArgumentValue> values,
-            bool skipBlankScalarReferences = false) {
+            bool skipBlankScalarReferences = false, bool coerceScalarValues = true) {
             values = new List<FormulaArgumentValue>();
             int remainingCellBudget = MaxResolvedFormulaRangeCells;
             foreach (string trimmed in SplitFormulaArguments(args)) {
@@ -164,6 +166,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryResolveFormulaArgument(trimmed, out var argumentValue)) {
+                    if (coerceScalarValues && argumentValue.SourceCellKind == null) {
+                        argumentValue = NormalizeLookupResult(argumentValue);
+                        if (!argumentValue.Number.HasValue && !argumentValue.IsError
+                            && TryParseValueFunctionNumber(argumentValue.Text ?? string.Empty, out double scalarNumber)) {
+                            argumentValue = new FormulaArgumentValue(scalarNumber, argumentValue.Text,
+                                isUnevaluatedFormulaCache: argumentValue.IsUnevaluatedFormulaCache);
+                        }
+                    }
                     values.Add(argumentValue);
                     continue;
                 }

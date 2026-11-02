@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a live PDF to its associated path or a new destination without closing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficePdf [[-Path] <string>] -Document <PdfDocument> [-Show] [-PassThru] [-AllowLoss] [-Password <securestring>] [-OwnerPassword <securestring>] [-Permission <PdfStandardPermissions>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -42,7 +42,7 @@ Explicitly accept fidelity loss from native PDF serialization.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -58,7 +58,7 @@ Live PDF to save.
 
 ```yaml
 Type: PdfDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -74,7 +74,7 @@ Owner password; without Password the PDF opens without a password and enforces p
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -90,7 +90,7 @@ Return the saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -106,7 +106,7 @@ Opening password for an unencrypted output; accepts secure input or warned plain
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -122,7 +122,7 @@ Optional destination; omission uses the native document's associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -138,7 +138,7 @@ Operations allowed to readers, expressed as native PDF permission flags.
 
 ```yaml
 Type: PdfStandardPermissions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: None, Print, ModifyContents, CopyContents, ModifyAnnotations, FillForms, Accessibility, AssembleDocument, HighQualityPrint, All
 
@@ -154,7 +154,7 @@ Open the saved file in its registered default application.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

@@ -238,13 +238,31 @@ public sealed partial class PowerPointContentWorkflowTests : IDisposable {
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
         string choose = selectionKind == "object" ? "$selection = @(Get-OfficePowerPointLayout -Document $deck -Master 1 | Where-Object { $null -ne $_.Type })[0]; " : string.Empty;
-        shell.AddScript(choose + "Add-OfficePowerPointSlide -Document $deck -TemplateLayout $selection -Title 'Template evidence' -PassThru { PowerPointList 'Preserve the chosen layout' }");
+        shell.AddScript(choose + "Add-OfficePowerPointSlide -Document $deck -TemplateLayout $selection -Master 1 -Title 'Template evidence' -PassThru { PowerPointList 'Preserve the chosen layout' }");
         var result = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
         var slide = Assert.IsType<PowerPointSlide>(Assert.Single(result).BaseObject);
         Assert.Equal(layout.LayoutIndex, slide.LayoutIndex);
         Assert.Contains(slide.TextBoxes, box => box.Text.Contains("Preserve the chosen layout", StringComparison.Ordinal));
         Assert.Empty(document.ValidateDocument());
+    }
+
+    [Fact]
+    public void MasterWithoutTemplateLayoutIsRejectedBeforeChangingTheDeck() {
+        using var document = PowerPointDocument.Create();
+        var original = document.AddSlide();
+        original.AddTitle("Retained");
+        using var runspace = Open();
+        runspace.SessionStateProxy.SetVariable("deck", document);
+        using var shell = PowerShell.Create();
+        shell.Runspace = runspace;
+        shell.AddScript("PowerPointSlide -Document $deck -Master 1 -Title 'Must not be created'");
+        Exception? error = Record.Exception(() => shell.Invoke());
+        Assert.True(error != null || shell.HadErrors);
+        var failure = error?.GetBaseException() ?? Assert.Single(shell.Streams.Error).Exception.GetBaseException();
+        Assert.IsType<ArgumentException>(failure);
+        Assert.Same(original, Assert.Single(document.Slides));
+        Assert.Equal("Retained", original.GetPlaceholder(PowerPointPlaceholderType.Title)!.Text);
     }
 
     [Fact]

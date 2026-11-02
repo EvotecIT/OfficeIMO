@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a paragraph line to the current Excel report sheet.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelReportParagraph [-Text] <string> [-PassThru] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Paragraph text.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

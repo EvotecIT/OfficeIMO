@@ -135,6 +135,8 @@ Column character units use the workbook default font. When its registered named 
 
 Print-title rows can start inside the print area. Canvas automatic pages and both layouts' manual row chunks repeat only title rows reached before the current body segment, including a break within a title block. Flow-table automatic continuation still repeats leading header rows; title rows starting later in a single flowing table are not repeated automatically.
 
+Tagged PDF output preserves structured-table header cells below titles or other worksheet content, including when worksheet cell styles are disabled or the table style is unknown. Only cells inside a source table's enabled header row receive column-header tags. This does not make those rows repeat or change their formatting.
+
 Manual row and column breaks also divide merged cells. Each fragment retains the original cell's full text box for wrapping and alignment, then clips it to that page. Flow-table cell images retain their full-cell placement and clip to each fragment; canvas images retain worksheet coordinates. Outer borders stay at the original merge edges. Diagonal borders retain their full-cell slope on the fragment containing the source anchor. Worksheet formatting keeps Excel's default bottom alignment when the source cell has no explicit alignment. Breaks on constrained fit axes still follow the fit settings.
 
 ## Current limits

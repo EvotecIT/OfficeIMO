@@ -58,7 +58,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
             OfficeSeries series, OfficeChartType kind,
-            OfficeColor? fallbackFillColor) {
+            OfficeColor? fallbackFillColor, OfficeTheme? theme = null) {
             OfficeColor? fillColor = series.Color ?? fallbackFillColor;
             C.ChartShapeProperties properties =
                 seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
@@ -89,7 +89,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 properties.RemoveAllChildren<A.PatternFill>();
                 properties.RemoveAllChildren<A.BlipFill>();
                 properties.RemoveAllChildren<A.GroupFill>();
-                properties.AddChild(new A.SolidFill(CreateSharedRgbColor(fillColor.Value)), true);
+                properties.AddChild(new A.SolidFill(CreateSharedRgbColor(fillColor.Value, theme)), true);
             }
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             bool replaceOutlineFill = reenableBubbleOutline || reenableConnectingLine ||
@@ -110,7 +110,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 } else if (hideAreaOutline || (!series.ConnectLine && !IsFilledSharedKind(kind))) {
                     outline.AddChild(new A.NoFill(), true);
                 } else if (outlineColor.HasValue) {
-                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(outlineColor.Value)), true);
+                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(outlineColor.Value, theme)), true);
                 }
             }
             if (outlineWidth.HasValue) {
@@ -147,13 +147,13 @@ namespace OfficeIMO.OpenXml.Internal {
                 C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
                 if (markerFill.HasValue) {
                     RemoveSharedFillChoices(properties);
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(markerFill.Value)), true);
+                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(markerFill.Value, theme)), true);
                 }
                 A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
                 OfficeColor? markerColor = series.MarkerOutlineColor ?? markerFill;
                 if (markerColor.HasValue) {
                     RemoveSharedFillChoices(outline);
-                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value)), true);
+                    outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value, theme)), true);
                 }
                 if (series.MarkerOutlineWidth.HasValue) {
                     outline.Width = checked((int)series.MarkerOutlineWidth.Value.ToEmus());
@@ -164,7 +164,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (marker.Parent == null) InsertSharedMarker(seriesElement, marker);
         }
 
-        private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeSeries series) {
+        private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeSeries series, OfficeTheme theme) {
             if (series.PointColors == null) return;
             OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.Trendline>() ??
@@ -198,7 +198,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (marker != null) RemoveSharedFillChoices(marker);
                 if (color.HasValue) {
                     C.ChartShapeProperties properties = marker ?? direct ?? new C.ChartShapeProperties();
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value)), true);
+                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value, theme)), true);
                     if (properties.Parent == null) point.AddChild(properties, true);
                 }
                 if (direct != null && !direct.HasChildren && !direct.HasAttributes) direct.Remove();
@@ -215,7 +215,8 @@ namespace OfficeIMO.OpenXml.Internal {
             element.RemoveAllChildren<A.GroupFill>();
         }
 
-        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color) {
+        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color, OfficeTheme? theme = null) {
+            color = color.Resolve(theme ?? OfficeTheme.Default);
             var rgb = new A.RgbColorModelHex { Val = color.ToRgbHex() };
             if (color.A < byte.MaxValue) {
                 rgb.Append(new A.Alpha {

@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// Get-OfficePdfCompliance -Path $path -Profile PdfA3B</code>
 ///   <para>Applies OfficeIMO.Pdf compliance groundwork during composition, saves the PDF, then inspects the saved file.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePdfCompliance")]
+[Cmdlet(VerbsCommon.Set, "OfficePdfCompliance", DefaultParameterSetName = "Context")]
 [Alias("PdfCompliance")]
 public sealed class SetOfficePdfComplianceCommand : PSCmdlet
 {

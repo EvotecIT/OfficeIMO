@@ -2,6 +2,8 @@
 
 `OfficeIMO.Html` contains the shared HTML parser, resource policy, layout scene, and direct PNG/JPEG/TIFF/SVG/WebP rendering APIs used by OfficeIMO converters.
 
+For selected image batches, set `HtmlRenderOptions.PageSelection = OfficeIMO.Pdf.PdfPageSelection.Parse("3,1,3")`. The selection uses one-based positions within the retained surfaces, preserves caller order and repeats, and applies image-count limits to the selected outputs. Image results keep the original page names. HTML layout, PDF output, archives and single-image exports keep their existing page-selection behavior.
+
 It owns the reusable parts that should behave consistently across HTML-to-Markdown, HTML-to-Office, image, and PDF workflows:
 
 - trust-aware parsing profiles and shared source, DOM, CSS, selector, responsive-image, and semantic-metadata limits

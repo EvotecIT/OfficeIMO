@@ -144,7 +144,7 @@ internal sealed class OfficeProtectionOptionBinding {
     private static void Bind<T>(EngineIntrinsics engine, T target, IDictionary table) where T : class =>
         new OfficeOptionsTransformationAttribute(typeof(T)).ApplyTo(engine, target, table);
 
-    private static void ValidateHash(string? hash) {
+    internal static void ValidateHash(string? hash) {
         if (string.IsNullOrWhiteSpace(hash)) return;
         string value = hash!.Trim();
         if (value.Length > 4 || value.Any(character => !Uri.IsHexDigit(character)))

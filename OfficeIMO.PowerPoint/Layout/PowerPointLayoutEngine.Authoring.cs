@@ -20,7 +20,20 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointLayoutRect[] TwoContentFrames(PowerPointLayoutContext context,
             PowerPointLayoutRect zone, bool leftText, bool rightText) {
             (int Column, int Span)[] columns;
-            if (leftText != rightText) {
+            PowerPointAutoLayoutStrategy strategy = context.Intent?.LayoutStrategy ?? PowerPointAutoLayoutStrategy.ContentFirst;
+            if (strategy == PowerPointAutoLayoutStrategy.Compact) {
+                columns = new[] { (1, 6), (7, 6) };
+            } else if (leftText != rightText && strategy == PowerPointAutoLayoutStrategy.VisualFirst) {
+                columns = context.Grid.IsNarrow
+                    ? leftText ? new[] { (1, 4), (5, 8) } : new[] { (1, 8), (9, 4) }
+                    : leftText ? new[] { (1, 3), (5, 8) } : new[] { (1, 8), (10, 3) };
+            } else if (leftText == rightText && strategy == PowerPointAutoLayoutStrategy.DesignFirst) {
+                columns = context.Intent!.Pick(3, "two-content") switch {
+                    1 => new[] { (1, 7), (9, 4) },
+                    2 => new[] { (1, 4), (6, 7) },
+                    _ => new[] { (1, 6), (7, 6) }
+                };
+            } else if (leftText != rightText) {
                 columns = context.Grid.IsNarrow
                     ? leftText ? new[] { (1, 5), (6, 7) } : new[] { (1, 7), (8, 5) }
                     : leftText ? new[] { (1, 4), (6, 7) } : new[] { (1, 7), (9, 4) };

@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates an immutable document reader with common policies, format options and optional OCR.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeDocumentReader [-Options <Object[]>] [-Processor <IOfficeDocumentProcessor[]>] [-ProcessorFailureBehavior <OfficeDocumentProcessorFailureBehavior>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-MaximumStoreItems <int>] [-MaximumConcurrentReads <int>] [<CommonParameters>]
 ```
@@ -42,7 +42,7 @@ Maximum concurrent native document reads.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -58,7 +58,7 @@ Maximum items projected from each mail store; zero means all.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -74,7 +74,7 @@ Enable the default local OCR provider.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -90,7 +90,7 @@ Optional OCR provider and execution settings. Implies Ocr.
 
 ```yaml
 Type: OfficeOcrOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -106,7 +106,7 @@ Typed common and format options, or common/format-keyed hashtables.
 
 ```yaml
 Type: Object[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -122,7 +122,7 @@ Ordered processors applied after native extraction.
 
 ```yaml
 Type: IOfficeDocumentProcessor[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -138,7 +138,7 @@ How ordinary processor failures affect the operation. Safety limits remain termi
 
 ```yaml
 Type: OfficeDocumentProcessorFailureBehavior
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Throw, ContinueWithDiagnostic, StopWithDiagnostic
 

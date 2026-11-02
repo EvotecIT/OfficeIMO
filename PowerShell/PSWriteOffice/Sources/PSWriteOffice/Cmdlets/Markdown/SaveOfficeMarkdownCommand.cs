@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <code>$document | Save-OfficeMarkdown -PassThru</code></example>
 /// <example><summary>Write a CRLF copy.</summary>
 /// <code>Save-OfficeMarkdown -Document $document -Path ./Publish/Report.md -LineEnding CRLF -PassThru</code></example>
-[Cmdlet(VerbsData.Save, "OfficeMarkdown", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeMarkdown", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficeMarkdownCommand : OfficeCmdlet, IMarkdownWriteOptionSource {
     /// <summary>Markdown document to save.</summary>

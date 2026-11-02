@@ -1443,8 +1443,11 @@ public partial class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
-    private static byte[] BuildType0ToUnicodeLigatureRedactionSource() {
-        const string content = "BT\n/F1 20 Tf\n72 720 Td\n<000100020003> Tj\nET\n";
+    private static byte[] BuildType0ToUnicodeLigatureRedactionSource(bool actualText = false) {
+        string content = actualText
+            ? "BT /F1 20 Tf 72 720 Td <0001> Tj /Span << /ActualText (fi) >> BDC <0002> Tj EMC <0003> Tj ET " +
+              "BT /F1 20 Tf 72 680 Td <00010003> Tj ET"
+            : "BT\n/F1 20 Tf\n72 720 Td\n<000100020003> Tj\nET\n";
         const string cmap = "/CIDInit /ProcSet findresource begin\n" +
             "12 dict begin\n" +
             "begincmap\n" +

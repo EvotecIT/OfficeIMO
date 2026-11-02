@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// }</code>
 ///   <para>Adds a plain text annotation to the active page.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioTextBox")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioTextBox", DefaultParameterSetName = "Page")]
 [Alias("VisioTextBox")]
 [OutputType(typeof(VisioShape))]
 public sealed class AddOfficeVisioTextBoxCommand : OfficeVisioShapeCmdlet {

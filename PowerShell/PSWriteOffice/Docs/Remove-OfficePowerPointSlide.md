@@ -9,7 +9,7 @@ schema: 2.0.0
 Removes selected native slides or one-based slide positions.
 
 ## SYNTAX
-### __AllParameterSets
+### Slide (Default)
 ```powershell
 Remove-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector[]> [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Gets or sets the document for numeric selection; omission uses the enclosing sco
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Return the live document after at least one slide is removed.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Gets or sets native slides or their one-based positions; each argument array is 
 
 ```yaml
 Type: PowerPointSlideSelector[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Slide
 Aliases: None
 Possible values:
 

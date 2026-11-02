@@ -61,6 +61,48 @@ public sealed class OfficeConversionPublicationFailureTests {
         } finally { Directory.Delete(directory, true); }
     }
 
+    [Theory]
+    [InlineData(OfficePublicationPolicy.Fail)]
+    [InlineData(OfficePublicationPolicy.Rename)]
+    public async Task ConcurrentPublicationsKeepEachSuccessfulArtifactsBytes(OfficePublicationPolicy policy) {
+        string directory = Directory.CreateTempSubdirectory("officeimo-concurrent-publication-").FullName;
+        try {
+            const int writers = 16;
+            string destination = Path.Combine(directory, "output.txt");
+            var guard = new PublicationRendezvous(destination, writers);
+            var operations = Enumerable.Range(0, writers).Select(async index => {
+                string payload = "Complete writer " + index;
+                string stage = Path.Combine(directory, index + ".tmp");
+                File.WriteAllText(stage, payload);
+                try {
+                    string published = await OfficeFilePublisher.PublishAsync(stage, destination, policy, guard, CancellationToken.None);
+                    return (Path: published, Payload: payload);
+                } catch (IOException) when (policy == OfficePublicationPolicy.Fail) {
+                    return (Path: (string?)null, Payload: payload);
+                }
+            }).ToArray();
+            var results = (await Task.WhenAll(operations)).Where(item => item.Path != null).ToArray();
+            Assert.Equal(policy == OfficePublicationPolicy.Fail ? 1 : writers, results.Length);
+            Assert.Equal(results.Length, results.Select(item => item.Path).Distinct().Count());
+            foreach (var item in results) Assert.Equal(item.Payload, File.ReadAllText(item.Path!));
+        } finally { Directory.Delete(directory, true); }
+    }
+
+    private sealed class PublicationRendezvous(string destination, int writers) : IOfficePublicationGuard {
+        private readonly TaskCompletionSource<bool> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _arrived;
+
+        public async Task<bool> CanPublishAsync(string absoluteDestination, bool isDirectory, CancellationToken cancellationToken) {
+            if (absoluteDestination == destination) {
+                if (Interlocked.Increment(ref _arrived) == writers) _ready.TrySetResult(true);
+                if (await Task.WhenAny(_ready.Task, Task.Delay(TimeSpan.FromSeconds(30), cancellationToken)) != _ready.Task)
+                    throw new TimeoutException("Concurrent publication writers did not reach their completed staging files.");
+                await _ready.Task;
+            }
+            return true;
+        }
+    }
+
     private sealed class RejectingStream : MemoryStream {
         public override void Write(byte[] buffer, int offset, int count) => throw new IOException("Destination rejected the bytes.");
         public override void Write(ReadOnlySpan<byte> buffer) => throw new IOException("Destination rejected the bytes.");

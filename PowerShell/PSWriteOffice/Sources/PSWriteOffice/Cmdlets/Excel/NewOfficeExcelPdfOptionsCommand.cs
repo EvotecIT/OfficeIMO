@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>$options = New-OfficeExcelPdfOptions -SheetName Summary,Services -UseWorksheetCharts -UseWorksheetImages
 /// Export-OfficeDocumentPdf -InputPath .\Report.xlsx -Path .\Report.pdf -ExcelOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeExcelPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeExcelPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelPdfExportOptions))]
 public sealed class NewOfficeExcelPdfOptionsCommand : PSCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>

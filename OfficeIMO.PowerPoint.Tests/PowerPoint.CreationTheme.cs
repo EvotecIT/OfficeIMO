@@ -109,4 +109,81 @@ public sealed class PowerPointCreationThemeTests {
     }
 
     private static OfficeChartData Data() => new(new[] { "Q1", "Q2" }, new[] { new OfficeSeries("Revenue", new[] { 12D, 17D }) });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ThemeEditsReachNewSavedChartsAfterTheAuthoringCacheIsUsed(bool reopen) {
+        OfficeTheme theme = CustomTheme.WithChartStyle(CustomTheme.ChartStyle.With(axisFontSize: OfficeLength.Points(17)));
+        using var authored = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
+        authored.AddSlide();
+        using var loaded = reopen ? PowerPointDocument.Load(new MemoryStream(authored.ToBytes())) : null;
+        PowerPointDocument document = loaded ?? authored;
+        var bounds = new PowerPointChartOptions { Left = OfficeLength.Points(40), Top = OfficeLength.Points(80),
+            Width = OfficeLength.Points(160), Height = OfficeLength.Points(120) };
+        document.Slides[0].AddChart(OfficeChartType.Column, Data(), bounds);
+        document.SetThemeColor(PowerPointThemeColor.Accent1, "FF00FF");
+        document.SetThemeColor(PowerPointThemeColor.Light2, "113355");
+        document.SetThemeLatinFonts("Cambria", "Calibri");
+        document.Slides[0].AddChart(OfficeChartType.Column, Data(), bounds);
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+        var charts = saved.OpenXmlDocument.PresentationPart!.SlideParts.Single().ChartParts.ToArray();
+        Assert.Equal(2, charts.Length);
+        Assert.Contains(charts, part => part.ChartSpace.OuterXml.Contains("FF00FF"));
+        Assert.Equal("Cambria", saved.GetThemeFonts().MajorLatin);
+        Assert.Equal("Calibri", saved.GetThemeFonts().MinorLatin);
+        Assert.Equal("113355", document.GetTheme().Surfaces.Surface.ToRgbHex(), ignoreCase: true);
+        // A palette/font edit must not reset an authored deck's unrelated chart tokens.
+        if (!reopen) Assert.Equal(17, document.GetTheme().ChartStyle.AxisFontSize.ToPoints());
+        Assert.Empty(saved.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData("series")]
+    [InlineData("point")]
+    [InlineData("marker")]
+    [InlineData("series-style")]
+    [InlineData("point-hatch")]
+    [InlineData("series-muted")]
+    public void SemanticChartPaintIsResolvedAgainstTheDeckThemeBeforeNativeSerialization(string paint) {
+        using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = CustomTheme });
+        if (paint == "series-muted") document.SetThemeColor(PowerPointThemeColor.Dark2, "123456");
+        var series = new OfficeSeries("Revenue", new[] { 12D, 17D }, null,
+            paint == "series" ? OfficeColor.Accent1 : paint == "series-muted" ? OfficeColor.TextMuted : null,
+            paint == "point" ? new OfficeColor?[] { OfficeColor.Accent1, null } : null,
+            showMarkers: true, markerOutlineColor: paint == "marker" ? OfficeColor.Accent1 : null);
+        if (paint == "series-style") series = series.WithSeriesStyle(new OfficeChartPointStyle(fillColor: OfficeColor.Accent1));
+        if (paint == "point-hatch") series = series.WithPointStyles(new OfficeChartPointStyle?[] {
+            new(hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Accent1), null });
+        document.AddSlide().AddChart(paint == "marker" ? OfficeChartType.Line : OfficeChartType.Column,
+            new OfficeChartData(new[] { "Q1", "Q2" }, new[] { series }));
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+        var native = saved.OpenXmlDocument.PresentationPart!.SlideParts.Single().ChartParts.Single().ChartSpace;
+        Assert.Contains(native.Descendants<A.RgbColorModelHex>(), color => color.Val?.Value == "123456");
+        Assert.Empty(saved.ValidateDocument());
+    }
+
+    [Fact]
+    public void ChartCreationAndDataUpdatesUseTheSlidesOwnMasterTheme() {
+        using var document = PowerPointDocument.Create();
+        using var source = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = CustomTheme });
+        var part = document.OpenXmlDocument.PresentationPart!;
+        var master = part.AddPart(source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First());
+        part.Presentation.SlideMasterIdList!.Append(new DocumentFormat.OpenXml.Presentation.SlideMasterId {
+            Id = 2147483649U, RelationshipId = part.GetIdOfPart(master) });
+        var data = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+            new OfficeSeries("Revenue", new[] { 12D, 17D }, null, OfficeColor.Accent1) });
+        document.ApplyTheme(CustomTheme.WithName("Second master"), 1);
+        document.SetThemeColor(PowerPointThemeColor.Accent1, "654321", 1);
+        var chart = document.AddSlide(masterIndex: 1).AddChart(OfficeChartType.Column, data);
+        Assert.True(chart.TryGetOfficeSnapshot(out var initial));
+        Assert.Equal("654321", initial.Data.Series[0].Color!.Value.ToRgbHex(), ignoreCase: true);
+        document.SetThemeColor(PowerPointThemeColor.Accent1, "123456", 1);
+        chart.UpdateData(data);
+        using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.True(saved.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out var updated));
+        Assert.Equal("123456", updated.Data.Series[0].Color!.Value.ToRgbHex(), ignoreCase: true);
+        Assert.Equal("Second master", saved.GetTheme(1).Name);
+        Assert.Empty(saved.ValidateDocument());
+    }
 }

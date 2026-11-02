@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <code>$options = New-OfficeEmailWriterOptions -UsePreservedRawSource -ConversionLossPolicy Block
 /// $message | Save-OfficeEmail -Path .\Message.eml -Options $options -PassThru</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeEmailWriterOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeEmailWriterOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailWriterOptions))]
 public sealed class NewOfficeEmailWriterOptionsCommand : PSCmdlet {
     /// <summary>Policy applied when the requested format cannot preserve known message semantics.</summary>

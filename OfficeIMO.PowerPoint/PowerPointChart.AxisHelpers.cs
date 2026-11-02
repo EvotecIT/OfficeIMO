@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
 
             ClearTextStyle(runProps);
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.RestoreAxisTextDefaults(runProps,
-                OwnerSlide?.OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default);
+                OwnerSlide?.AuthoringTheme ?? OfficeTheme.Default);
             Save();
             return this;
         }

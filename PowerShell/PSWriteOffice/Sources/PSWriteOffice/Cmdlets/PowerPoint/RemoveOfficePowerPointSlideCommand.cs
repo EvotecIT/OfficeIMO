@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>Remove-OfficePowerPointSlide -Document $deck -Slide 1, 3 -Confirm:$false</code></example>
 /// <example><summary>Preview removal of a native slide.</summary>
 /// <code>$slide | Remove-OfficePowerPointSlide -WhatIf</code></example>
-[Cmdlet(VerbsCommon.Remove, "OfficePowerPointSlide", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.Remove, "OfficePowerPointSlide", SupportsShouldProcess = true, DefaultParameterSetName = "Slide")]
 [OutputType(typeof(PowerPointDocument))]
 public sealed class RemoveOfficePowerPointSlideCommand : OfficeCmdlet {
     /// <summary>Return the live document after at least one slide is removed.</summary>

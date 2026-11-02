@@ -9,7 +9,7 @@ schema: 2.0.0
 Starts a named section at an existing, current or next appended slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Name (Default)
 ```powershell
 Add-OfficePowerPointSection [-Name] <string> [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-PassThru] [<CommonParameters>]
 ```
@@ -42,7 +42,7 @@ Gets or sets the document; omission uses the enclosing scope or selected native 
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Name
 Aliases: None
 Possible values:
 
@@ -58,7 +58,7 @@ Gets or sets the section name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Name
 Aliases: None
 Possible values:
 
@@ -74,7 +74,7 @@ Gets or sets whether to return section metadata, including its stable native ide
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Name
 Aliases: None
 Possible values:
 
@@ -90,7 +90,7 @@ Gets or sets a native slide or one-based slide position; omission uses the curre
 
 ```yaml
 Type: PowerPointSlideSelector
-Parameter Sets: __AllParameterSets
+Parameter Sets: Name
 Aliases: None
 Possible values:
 

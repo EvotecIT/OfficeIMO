@@ -171,6 +171,27 @@ namespace OfficeIMO.PowerPoint {
 
         internal static PowerPointLayoutTheme From(OfficeTheme? theme) => new(theme ?? OfficeTheme.Default);
 
+        /// <summary>Applies the native design's content density without changing theme colors, fonts or chrome.</summary>
+        internal PowerPointLayoutTheme WithIntent(PowerPointDesignIntent? intent) {
+            PowerPointSlideDensity density = intent?.LayoutStrategy == PowerPointAutoLayoutStrategy.Compact
+                ? PowerPointSlideDensity.Compact : intent?.Density ?? PowerPointSlideDensity.Balanced;
+            if (density == PowerPointSlideDensity.Balanced) return this;
+            var copy = (PowerPointLayoutTheme)MemberwiseClone();
+            double spacing = density == PowerPointSlideDensity.Compact ? 0.75D : 1.25D;
+            copy.ParagraphAfter *= spacing;
+            copy.TableCellPadding *= spacing;
+            if (density != PowerPointSlideDensity.Compact) return copy;
+            copy._styles = new Dictionary<PowerPointTextRole, PowerPointTextStyleSpec>(_styles);
+            foreach (PowerPointTextRole role in new[] { PowerPointTextRole.Body, PowerPointTextRole.BodySmall,
+                         PowerPointTextRole.Lede, PowerPointTextRole.TableBody }) {
+                PowerPointTextStyleSpec style = _styles[role];
+                double size = Math.Max(style.Minimum, RoundSize(style.Size * 0.9D));
+                copy._styles[role] = new PowerPointTextStyleSpec(role, style.HeadingFont, size, style.Minimum,
+                    style.Bold, style.LineHeight, style.Color, style.Upper, style.Tracking);
+            }
+            return copy;
+        }
+
         /// <summary>The same tokens measured with other font families (the fonts a template's theme part names).</summary>
         internal PowerPointLayoutTheme WithFontFamilies(string? heading, string? body) {
             if ((heading == null || heading == HeadingFont) && (body == null || body == BodyFont)) return this;

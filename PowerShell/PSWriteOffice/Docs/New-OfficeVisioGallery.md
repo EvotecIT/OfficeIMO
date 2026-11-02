@@ -9,7 +9,7 @@ schema: 2.0.0
 Generates the OfficeIMO Visio reference gallery as editable .vsdx diagrams.
 
 ## SYNTAX
-### __AllParameterSets
+### OutputDirectory (Default)
 ```powershell
 New-OfficeVisioGallery [-OutputDirectory] <string> [-NoPackageValidation] [-NoVisualQualityAnalysis] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Skip structural package validation after gallery documents are generated.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: OutputDirectory
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ Skip visual quality analysis after gallery documents are generated.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: OutputDirectory
 Aliases: None
 Possible values:
 
@@ -66,7 +66,7 @@ Directory that receives generated .vsdx gallery documents.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: OutputDirectory
 Aliases: None
 Possible values:
 

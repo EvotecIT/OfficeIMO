@@ -10,15 +10,6 @@ internal static class PowerPointTextRunService
     internal static void ValidateRuns(object[] runs, bool allowHyperlinks)
         => ValidateRuns(OfficeTextRunParser.ParseMany(runs), allowHyperlinks);
 
-    internal static void ApplyRuns(PowerPointTextBox textBox, object[] runs)
-    {
-        var parsedRuns = OfficeTextRunParser.ParseMany(runs);
-        ValidateRuns(parsedRuns, allowHyperlinks: true);
-        textBox.Text = string.Empty;
-        var paragraph = textBox.Paragraphs.Count > 0 ? textBox.Paragraphs[0] : textBox.AddParagraph();
-        ApplyRuns(paragraph, parsedRuns, allowHyperlinks: true);
-    }
-
     internal static void ApplyRuns(PowerPointTableCell cell, object[] runs)
     {
         var parsedRuns = OfficeTextRunParser.ParseMany(runs);
@@ -36,24 +27,6 @@ internal static class PowerPointTextRunService
             }
 
             ApplyStyle(run, spec, allowHyperlinks: false);
-            first = false;
-        }
-    }
-
-    private static void ApplyRuns(PowerPointParagraph paragraph, OfficeTextRunSpec[] runs, bool allowHyperlinks)
-    {
-        var first = true;
-        foreach (var spec in runs)
-        {
-            var run = first && paragraph.Runs.Count > 0 && string.IsNullOrEmpty(paragraph.Runs[0].Text)
-                ? paragraph.Runs[0]
-                : paragraph.AddRun(ToPowerPointText(spec));
-            if (first && string.IsNullOrEmpty(run.Text))
-            {
-                run.Text = ToPowerPointText(spec);
-            }
-
-            ApplyStyle(run, spec, allowHyperlinks);
             first = false;
         }
     }

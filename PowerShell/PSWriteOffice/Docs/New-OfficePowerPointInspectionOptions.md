@@ -9,7 +9,7 @@ schema: 2.0.0
 Chooses native presentation inspection reports without changing a document.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficePowerPointInspectionOptions [-NoPackageValidation] [-NoPreflight] [-NoAccessibility] [-Features] [-ReviewComments] [-Animations] [-Signatures] [-Visuals] [-FileFormatVersion <OfficeOpenXmlFileFormatVersion>] [<CommonParameters>]
 ```
@@ -40,7 +40,7 @@ Gets or sets whether to inspect animation metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -56,7 +56,7 @@ Gets or sets whether to inventory supported and preserved features.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -72,7 +72,7 @@ Gets or sets the Open XML version used by package validation; defaults to Micros
 
 ```yaml
 Type: OfficeOpenXmlFileFormatVersion
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Office2007, Office2010, Office2013, Office2016, Office2019, Office2021, Microsoft365
 
@@ -88,7 +88,7 @@ Gets or sets whether to omit accessibility inspection.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -104,7 +104,7 @@ Gets or sets whether to omit Open XML package validation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -120,7 +120,7 @@ Gets or sets whether to omit layout, text-fit and asset preflight.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -136,7 +136,7 @@ Gets or sets whether to inspect review comments.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -152,7 +152,7 @@ Gets or sets whether to inspect package signature metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -168,7 +168,7 @@ Gets or sets whether to create PNG, SVG and snapshot proof for each slide.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

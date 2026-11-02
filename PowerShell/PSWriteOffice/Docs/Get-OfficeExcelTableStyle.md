@@ -9,7 +9,7 @@ schema: 2.0.0
 Lists built-in Excel table styles and compatibility recommendations.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Get-OfficeExcelTableStyle [-Profile <ExcelTableStyleCompatibilityProfile>] [-RecommendedOnly] [<CommonParameters>]
 ```
@@ -35,7 +35,7 @@ Compatibility profile used to evaluate table styles.
 
 ```yaml
 Type: ExcelTableStyleCompatibilityProfile
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Desktop, CrossHost
 
@@ -51,7 +51,7 @@ Return only styles recommended for the selected profile.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

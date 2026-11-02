@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Inspect accessibility on an unsaved document.</summary>
 /// <code>$options = New-OfficePowerPointInspectionOptions -NoPackageValidation -NoPreflight
 /// (Get-OfficeDocumentInfo -Document $deck -Detailed -Options $options).Details.Accessibility</code></example>
-[Cmdlet(VerbsCommon.New, "OfficePowerPointInspectionOptions")]
+[Cmdlet(VerbsCommon.New, "OfficePowerPointInspectionOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PowerPointInspectionOptions))]
 public sealed class NewOfficePowerPointInspectionOptionsCommand : OfficeCmdlet {
     /// <summary>Gets or sets whether to omit Open XML package validation.</summary>

@@ -198,7 +198,9 @@
   "additions": [
     "PowerPointSlide.AddImage(...) : PowerPointPicture (replaces AddPicture*)",
     "PowerPointSlide.AddChart<T>(OfficeChartType type, IEnumerable<T> data, ...) : PowerPointChart",
-    "OfficeLength overloads for AddShape/AddTextBox/AddTable/AddChart/AddImage, removing 191 *Cm/*Inches/*Points twins"
+    "OfficeLength overloads for AddShape/AddTextBox/AddTable/AddChart/AddImage, removing 191 *Cm/*Inches/*Points twins",
+    "PowerPointDocument.ApplyTheme(OfficeTheme, int? masterIndex = null) explicitly restyles one zero-based master or every master and presentation defaults; GetTheme(int masterIndex = 0) reads current native name, palette and Latin fonts without restyling.",
+    "PowerPointDocument.SetThemeName(string, int masterIndex = 0) renames a selected native master theme."
   ],
   "internalizeCandidates": [
     {
@@ -2718,6 +2720,17 @@
     "PowerPointLayoutBox vs a Core OfficeRect for all formats."
   ],
   "changes": [
+    {
+      "old": "PowerPointTextBox.SetNumberedList(...) and AddNumberedList(...) default to an 18-point number gutter",
+      "kind": "method",
+      "action": "change",
+      "new": "Numbered list defaults reserve a 28-point hanging indent",
+      "reason": "Matches automatic PowerPoint list layout and leaves room between Roman number markers and body text. Character bullets retain their 18-point gutter; custom margins and indents are preserved.",
+      "file": "OfficeIMO.PowerPoint/PowerPointListParagraphDefaults.cs",
+      "category": "authoring",
+      "phase": "M5",
+      "applied": "applied"
+    },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation",
       "kind": "type",
@@ -12165,6 +12178,50 @@
         "scope": "remaining-slide-shape-media-placement",
         "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
       }
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetThemeColor(PowerPointThemeColor color, string hexValue, int masterIndex = 0)",
+      "category": "authoring",
+      "reason": "New charts use current native theme colors after edits, including when authoring tokens were already cached. Semantic series, point, marker and hatch paint resolves through the deck theme before native serialization. Chart creation, updates and text defaults use the consuming slide master and its theme overrides."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointPresentation.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.SetThemeFonts(PowerPointThemeFontSet fonts, int masterIndex = 0, bool keepExistingWhenNull = true)",
+      "category": "authoring",
+      "reason": "Subsequent authoring reads updated fonts while retaining unrelated theme tokens. With keepExistingWhenNull:false, unspecified fonts have empty typefaces in the required DrawingML slots so saved presentations remain valid."
+    },
+    {
+      "phase": "M5",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Repeated PowerPointDocument.ImportSlide(source, sourceIndex, insertAt) calls",
+      "new": "PowerPointDocument.ImportSlides(PowerPointDocument source, IEnumerable<int> sourceIndices, int? insertAt = null) : IReadOnlyList<PowerPointSlide>",
+      "reason": "The native batch preserves zero-based selection order and imports shared linked targets once. The PowerShell Import-OfficePowerPointSlide command accepts one-based SourceSlide arrays. An omitted SourceSlide imports every source slide; Position is one-based, and output requires PassThru.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointDocument.Slides.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.SlideImport.CustomShows.cs",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ImportOfficePowerPointSlideCommand.cs"
+      ],
+      "category": "authoring",
+      "kind": "method"
+    },
+    {
+      "phase": "M5",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "kind": "method",
+      "category": "lifecycle",
+      "old": "PowerPointDocument.ToBytes(options) rejects a read-only PPTX/PPTM source.",
+      "new": "PowerPointDocument.ToBytes(options) captures read-only Open XML presentations through an isolated native copy.",
+      "reason": "Live conversion can export a read-only presentation without saving or closing it. Native signature and password policy are retained; Save, SaveCopy and stream saves still reject read-only documents. Legacy binary carrier snapshot restrictions are unchanged.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointDocument.UnifiedLifecycle.cs"
+      ]
     }
   ],
   "packageMoves": [
@@ -12909,11 +12966,11 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 568,
+    "changes": 570,
     "byAction": {
       "rename": 8,
       "merge": 366,
-      "change": 174,
+      "change": 176,
       "remove": 7,
       "internalize": 11,
       "keep": 1,
@@ -12922,7 +12979,7 @@
     "byCategory": {
       "naming": 1,
       "lifecycle": 29,
-      "authoring": 34,
+      "authoring": 36,
       "units": 452,
       "options": 5,
       "conversion": 39,

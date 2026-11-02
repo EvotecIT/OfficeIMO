@@ -3,6 +3,22 @@
   "version": "3.6.0-design.1",
   "units": "Lengths carry units (pt, in). 1in = 72pt. Grid references are 1-based like every OfficeIMO position.",
 
+  "designIntent": {
+    "owner": "PowerPointDesignBrief selects the recipe and intent; the shared layout engine consumes it. Theme retains colors, fonts and chrome.",
+    "density": {
+      "Balanced": "Base themed type sizes and spacing.",
+      "Compact": "Body, bodySmall, lede and tableBody sizes x0.9, rounded and bounded by their existing minima; paragraph spacing and table padding x0.75.",
+      "Relaxed": "Base type sizes; paragraph spacing and table padding x1.25."
+    },
+    "columnStrategies": {
+      "ContentFirst": "Existing content-fit allocation: 6/6 for similar content, 4/7 for text/visual (5/7 on 4:3).",
+      "Compact": "Equal 6/6 columns and Compact density.",
+      "VisualFirst": "3/8 text/visual columns with one grid column between them (4/8 on 4:3); mirrored for visual/text.",
+      "DesignFirst": "Similar content uses a deterministic 6/6, 7/4 or 4/7 allocation selected by the native design seed. Mixed text/visual keeps content-fit allocation."
+    },
+    "overflow": "Continuation measurement and rendering share the same column allocator and resolved density."
+  },
+
   "slideSizes": {
     "Screen16x9": {
       "width": "13.333in", "height": "7.5in", "widthPt": 960, "heightPt": 540, "default": true,

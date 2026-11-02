@@ -29,7 +29,7 @@ New-OfficeExcel -Path $path {
         ExcelComment -Address 'C2' -Text 'Review this value'
 
         if (Test-Path $imagePath) {
-            ExcelImage -Path $imagePath -Range 'I20:J24' -Name 'OfficeIMOLogo' -AltText 'OfficeIMO logo'
+            ExcelImage -Path $imagePath -Address 'I20:J24' -Name 'OfficeIMOLogo' -AltText 'OfficeIMO logo'
         }
     } -PassThru | ForEach-Object {
         $null = $_.AddConditionalRule('C2:C20', [OfficeIMO.Excel.ExcelConditionalFormattingOperator]::GreaterThan,

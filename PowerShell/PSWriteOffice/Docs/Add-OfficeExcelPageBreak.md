@@ -6,44 +6,33 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelPageBreak
 ## SYNOPSIS
-Adds manual row or column page breaks to an Excel worksheet.
+Adds manual print page breaks to an open worksheet.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Add-OfficeExcelPageBreak [-Sheet <string>] [-SheetIndex <Int32>] [-Row <int[]>] [-Column <int[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Path
-```powershell
-Add-OfficeExcelPageBreak [-Path] <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <int[]>] [-Column <int[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Add-OfficeExcelPageBreak -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-Row <int[]>] [-Column <int[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficeExcelPageBreak [-Sheet <OfficeSheetSelector>] [-Row <int[]>] [-Column <int[]>] [-PassThru] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds manual row or column page breaks to an Excel worksheet.
+Adds manual print page breaks to an open worksheet.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelPageBreak -Row 25,50 -Column 8 }
+ExcelSheet 'Data' { ExcelPageBreak -Row 25,50 -Column 8 }
 ```
 
-Adds row page breaks after rows 25 and 50 and a column page break after column 8.
 
 ## PARAMETERS
 
 ### -Column
-One-based columns after which manual page breaks should be inserted.
+One-based columns after which printing starts a new page.
 
 ```yaml
 Type: Int32[]
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -55,15 +44,15 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to update outside the DSL context.
+Gets or sets an explicit live document; omission uses the enclosing content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -71,11 +60,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit page-break records after adding them.
+Emit the worksheet's page-break snapshots after adding the selected breaks.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -86,28 +75,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path to update.
-
-```yaml
-Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Row
-One-based rows after which manual page breaks should be inserted.
+One-based rows after which printing starts a new page.
 
 ```yaml
 Type: Int32[]
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -119,27 +92,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name. Defaults to the current sheet inside an ExcelSheet block.
+Worksheet name, one-based position or native worksheet; omission uses the current sheet.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Path, Document
-Aliases: WorksheetName
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index when using a workbook object or path.
-
-```yaml
-Type: Int32
-Parameter Sets: Context, Path, Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -159,7 +116,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `None`
+- `PSWriteOffice.Models.Excel.ExcelPageBreakInfo`: A manual print page-break snapshot that remains readable after its source workbook is closed.
 
 ## RELATED LINKS
 

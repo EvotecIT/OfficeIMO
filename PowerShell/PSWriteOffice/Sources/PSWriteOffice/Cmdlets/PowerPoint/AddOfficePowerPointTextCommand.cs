@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <summary>Adds a live styled run to the enclosing paragraph or list item, or starts a slide paragraph.</summary>
 /// <example><summary>Link a status label.</summary>
 /// <code>PowerPointParagraph { PowerPointText 'Service status' -Bold -Link 'https://status.contoso.com' }</code></example>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointText")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointText", DefaultParameterSetName = "Text")]
 [Alias("PowerPointText")]
 [OutputType(typeof(PowerPointTextRun))]
 public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
@@ -54,11 +54,13 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var scope = PowerPointContentScope.Current;
-        if (scope == null) { InvalidArgument(new ArgumentException("Invoke PowerPointText inside PowerPointSlide."), Text); return; }
-        var paragraph = PowerPointTextScope.Current?.Paragraph;
+        var textScope = PowerPointTextScope.Current;
+        if (scope == null && textScope == null) { InvalidArgument(new ArgumentException("Invoke PowerPointText inside a slide or text content block."), Text); return; }
+        var paragraph = textScope?.Paragraph;
+        if (paragraph == null && textScope?.HasTextBody == true) paragraph = textScope.TextParagraph();
         PowerPointLayoutNativeText? body = null;
         if (paragraph == null) {
-            body = scope.CreateTextBody();
+            body = scope!.CreateTextBody();
             paragraph = body.Box.AddParagraph();
             paragraph.ClearInlineContent();
             if (Alignment.HasValue) paragraph.Alignment = PowerPointTextFormatting.Alignment(Alignment.Value);
@@ -66,11 +68,12 @@ public sealed class AddOfficePowerPointTextCommand : OfficeCmdlet {
         PowerPointTextRun? run = null;
         try {
             run = paragraph.AddRun(Text);
-            PowerPointTextFormatting.Apply(run, scope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
-            if (body != null) scope.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
+            if (textScope != null) PowerPointTextFormatting.Apply(run, textScope, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
+            else PowerPointTextFormatting.Apply(run, scope!, Bold, Italic, Strikethrough, Underline, Color, Highlight, Font, Size, Link);
+            if (body != null) scope!.Blocks.Add(new PowerPointLayoutText(Text) { NativeBody = body });
             if (PassThru) WriteObject(run);
         } catch {
-            if (body != null) scope.DiscardTextBody(body);
+            if (body != null) scope!.DiscardTextBody(body);
             else if (run != null) PowerPointTextRun.DiscardContent(run.Run, run.OwnerPart as DocumentFormat.OpenXml.Packaging.OpenXmlPart);
             throw;
         }

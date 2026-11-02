@@ -14,6 +14,7 @@ public sealed partial class OfficeConversionOptions {
         if (id != "markdown-pdf") copy.Markdown = null;
         if (id != "html-pdf") copy.Html = null;
         if (id != "docx-html") copy.WordHtml = null;
+        if (id != "pptx-html") copy.PowerPointHtml = null;
         if (id != "docx-markdown") copy.WordMarkdown = null;
         if (id != "markdown-docx") copy.MarkdownWord = null;
         if (id != "markdown-html") copy.MarkdownHtml = null;

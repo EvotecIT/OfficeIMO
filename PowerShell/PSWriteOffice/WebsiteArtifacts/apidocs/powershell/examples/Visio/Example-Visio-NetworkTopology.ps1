@@ -44,8 +44,8 @@ New-OfficeVisio -Path $path -Title 'Branch office topology' -Author 'PSWriteOffi
     VisioConnector -From app -To nas -Kind Straight -FromSide Right -ToSide Left -EndArrow Triangle -Label 'backup' -LineColor '#C026D3'
 }
 
-ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath
-ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath | Out-Null
 
 if ($Open) {
     Invoke-Item $svgPath

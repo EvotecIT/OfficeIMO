@@ -130,11 +130,16 @@ public sealed class MarkdownLifecycleWorkflowTests {
                 .AddParameter("DisallowFileUrls");
             var reader = Assert.IsType<MarkdownLoadOptions>(Assert.Single(shell.Invoke()).BaseObject);
             Assert.True(reader.DisallowFileUrls);
+            reader.InputNormalization.NormalizeZeroWidthSpacingArtifacts = false;
             shell.Commands.Clear();
-            shell.AddCommand("Open-OfficeMarkdown").AddParameter("Options", reader);
+            shell.AddCommand("Open-OfficeMarkdown").AddParameter("Options", new object[] { reader,
+                new System.Collections.Hashtable { ["InputNormalization"] = reader.InputNormalization },
+                new System.Collections.Hashtable { ["InputNormalization"] = new System.Collections.Hashtable {
+                    ["NormalizeZeroWidthSpacingArtifacts"] = true } } });
             using var loaded = Assert.IsType<MarkdownDocument>(Assert.Single(shell.Invoke(new[] { new FileInfo(path) })).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.Equal(path, loaded.FilePath);
+            Assert.False(reader.InputNormalization.NormalizeZeroWidthSpacingArtifacts);
             shell.Commands.Clear();
             shell.AddCommand("Open-OfficeMarkdown").AddParameter("Path", Path.Combine(folder, "*.md"));
             var documents = shell.Invoke().Select(item => Assert.IsType<MarkdownDocument>(item.BaseObject)).ToArray();

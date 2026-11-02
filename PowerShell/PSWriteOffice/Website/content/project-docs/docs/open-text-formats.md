@@ -70,4 +70,4 @@ Each family provides four bounded interoperability commands for reading, saving,
 
 ## HTML review
 
-Office format families provide focused HTML conversion commands, and `Export-OfficeHtmlImage` supports extracted assets. Use the [HTML review examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples) to build a browser-review step without discarding the source document.
+`Convert-OfficeDocument -To Html` creates HTML review output. `Export-OfficeDocumentImage -Text $html -From Html -OutputDirectory ./pages` renders HTML pages to images; `ConvertTo-OfficeDocumentImage` returns native image results in memory. Use the [HTML review examples](https://github.com/EvotecIT/OfficeIMO/tree/master/PowerShell/PSWriteOffice/Examples) to build a browser-review step without discarding the source document.

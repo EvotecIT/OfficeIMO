@@ -8,7 +8,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a process step to the current designed slide.</summary>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointStep")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointStep", DefaultParameterSetName = "Step")]
 [Alias("PowerPointStep")]
 public sealed class AddOfficePowerPointStepCommand : OfficeCmdlet {
     /// <summary>Gets or sets the title.</summary>

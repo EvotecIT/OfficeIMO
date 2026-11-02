@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 /// $options = New-OfficeEmailMailboxWriterOptions -MessageOptions $messageOptions -Variant Mboxo
 /// $mailbox | Save-OfficeEmailMailbox -Path .\Archive.mbox -Options $options -PassThru</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeEmailMailboxWriterOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeEmailMailboxWriterOptions", DefaultParameterSetName = "Options")]
 [OutputType(typeof(EmailMailboxWriterOptions))]
 public sealed class NewOfficeEmailMailboxWriterOptionsCommand : PSCmdlet {
     /// <summary>Serialization policy applied independently to each message.</summary>

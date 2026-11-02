@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds content to a section footer.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordFooter [[-Content] <scriptblock>] [-Type <WordHeaderFooterType>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ DSL scriptblock executed within the footer context.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ The footer kind (Default/First/Even).
 
 ```yaml
 Type: WordHeaderFooterType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Default, First, Even
 

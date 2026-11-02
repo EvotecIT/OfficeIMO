@@ -9,7 +9,7 @@ schema: 2.0.0
 Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Set-OfficeExcelRow [-Row] <int> [[-Values] <Object[]>] [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartColumn <int>] [-Height <Double>] [-ClearHeight] [-AutoFit] [-Hidden <Boolean>] [-Bold <Boolean>] [-Italic <Boolean>] [-Underline <Boolean>] [-WrapText <Boolean>] [-FontName <string>] [-BackgroundColor <string>] [-FirstColumn <Int32>] [-LastColumn <Int32>] [-PassThru] [<CommonParameters>]
 ```
@@ -47,7 +47,7 @@ Auto-fit row height after writing values and applying style.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -63,7 +63,7 @@ Apply a background color across the target row span.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -79,7 +79,7 @@ Apply or clear bold styling across the target row span.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -95,7 +95,7 @@ Clear any custom row height.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -111,7 +111,7 @@ Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or S
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -127,7 +127,7 @@ First 1-based column affected by style options.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -143,7 +143,7 @@ Apply a font family across the target row span.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -159,7 +159,7 @@ Explicit row height in points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -175,7 +175,7 @@ Hide or unhide the row. Use -Hidden:$false to unhide.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -191,7 +191,7 @@ Apply or clear italic styling across the target row span.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -207,7 +207,7 @@ Last 1-based column affected by style options.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -223,7 +223,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -239,7 +239,7 @@ Accept wildcard characters: False
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -255,7 +255,7 @@ Worksheet name when using Document. The first worksheet is used when no selector
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -271,7 +271,7 @@ Zero-based worksheet index when using Document.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -287,7 +287,7 @@ Starting column index (1-based).
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -303,7 +303,7 @@ Apply or clear underline styling across the target row span.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -319,7 +319,7 @@ Values to write across the row. Numeric, Boolean, and date values retain their n
 
 ```yaml
 Type: Object[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -335,7 +335,7 @@ Worksheet to modify outside a DSL context.
 
 ```yaml
 Type: ExcelSheet
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: SheetObject
 Possible values:
 
@@ -351,7 +351,7 @@ Apply or clear wrap text across the target row span.
 
 ```yaml
 Type: Boolean
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

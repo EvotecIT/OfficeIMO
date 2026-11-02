@@ -14,6 +14,32 @@ namespace PSWriteOffice.Tests;
 [Collection(PowerShellRunspaceCollection.Name)]
 public sealed class DocumentLifecycleCmdletTests {
     [Theory]
+    [InlineData("PassThru")]
+    [InlineData("Show")]
+    [InlineData("AllowLoss")]
+    public void SavedOutputSwitchesRequireAContentBlockDuringBinding(string parameter) {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-new-binding-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        System.Collections.ObjectModel.Collection<PSObject>? output = null;
+        try {
+            var state = InitialSessionState.CreateDefault();
+            state.Commands.Add(new SessionStateCmdletEntry("New-OfficeWord", typeof(NewOfficeWordCommand), null));
+            using var runspace = RunspaceFactory.CreateRunspace(state);
+            runspace.Open();
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            shell.AddCommand("New-OfficeWord").AddParameter("Path", Path.Combine(root, "report.docx")).AddParameter(parameter);
+            var error = Assert.ThrowsAny<ParameterBindingException>(() => output = shell.Invoke());
+            Assert.StartsWith("MissingMandatoryParameter", error.ErrorRecord.FullyQualifiedErrorId);
+            Assert.Null(output);
+            Assert.Empty(Directory.GetFiles(root));
+        } finally {
+            if (output != null) foreach (var item in output) (item.BaseObject as IDisposable)?.Dispose();
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Theory]
     [InlineData("Text", ".odt", "application/vnd.oasis.opendocument.text")]
     [InlineData("Spreadsheet", ".ods", "application/vnd.oasis.opendocument.spreadsheet")]
     [InlineData("Presentation", ".odp", "application/vnd.oasis.opendocument.presentation")]

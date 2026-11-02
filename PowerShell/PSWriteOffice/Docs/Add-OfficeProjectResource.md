@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a work resource with an optional standard rate.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Add-OfficeProjectResource [-Name] <string> -Document <ProjectDocument> [-StandardRate <Decimal>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Project to inspect or change.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Resource name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Standard work rate in the project currency.
 
 ```yaml
 Type: Decimal
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

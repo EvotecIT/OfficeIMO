@@ -42,6 +42,8 @@ internal static class PdfContentStreamTextRewriter {
         bool removedAnyGlyph = false;
         bool safe = true;
         var edits = new List<TextShowEdit>();
+        var markedContent = new Stack<(int Index, int Length, bool ActualText)>();
+        var clearedActualText = new HashSet<int>();
 
         PdfContentStreamInterpreter.InterpretUntil(
             textObject,
@@ -55,6 +57,16 @@ internal static class PdfContentStreamTextRewriter {
                     stateProgram.Append(textObject, operationStart, previousOperatorEnd - operationStart).Append(' ');
 
                 switch (operation.Name) {
+                    case "BDC":
+                    case "BMC":
+                        markedContent.Push((operationStart, previousOperatorEnd - operationStart,
+                            operation.Name == "BDC" && operation.Operands.Count > 0 &&
+                            operation.Operands[operation.Operands.Count - 1] is PdfContentDictionary properties &&
+                            properties.Items.ContainsKey("ActualText")));
+                        break;
+                    case "EMC" when markedContent.Count > 0:
+                        markedContent.Pop();
+                        break;
                     case "Tf" when operation.Operands.Count >= 2:
                         currentTextState = currentTextState.WithFont(
                             operation.Operands[operation.Operands.Count - 2] as string ?? currentTextState.FontResource,
@@ -143,6 +155,12 @@ internal static class PdfContentStreamTextRewriter {
                 if (changed) {
                     removedAnyGlyph = true;
                     edits.Add(new TextShowEdit(operationStart, previousOperatorEnd - operationStart, replacement));
+                    foreach (var scope in markedContent.Where(static item => item.ActualText)) {
+                        // The rewritten show proved that this closed scope repeats the decoded paint.
+                        // Retained glyphs now supply the remaining text, so its old replacement must go.
+                        if (clearedActualText.Add(scope.Index))
+                            edits.Add(new TextShowEdit(scope.Index, scope.Length, "/Span BMC"));
+                    }
                 }
                 return true;
             },
@@ -263,7 +281,7 @@ internal static class PdfContentStreamTextRewriter {
                 continue;
             }
 
-            if (transformSpans.Any(static span => span.HasActualText)) return false;
+            if (transformSpans.Any(static span => span.HasActualText && !span.HasExactActualTextGlyphMapping)) return false;
 
             if (!TryRewriteByteString(
                     bytes,

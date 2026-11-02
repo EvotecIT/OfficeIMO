@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <example><summary>Bound input from uploaded files.</summary>
 /// <code>$options = New-OfficeMarkdownReaderOptions -MaxInputCharacters 500000 -DisallowFileUrls
 /// Open-OfficeMarkdown -Path ./Uploads/*.md -Options $options</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeMarkdownReaderOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeMarkdownReaderOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(MarkdownLoadOptions))]
 public sealed class NewOfficeMarkdownReaderOptionsCommand : OfficeCmdlet, IMarkdownReaderOptionSource {
     /// <summary>Native Markdown dialect profile.</summary>

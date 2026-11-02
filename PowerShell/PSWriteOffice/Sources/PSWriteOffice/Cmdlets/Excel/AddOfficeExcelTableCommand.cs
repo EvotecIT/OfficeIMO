@@ -26,7 +26,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>Add-OfficeExcelTable -Worksheet $sheet -InputObject $rows -Name 'Sales' -AutoFit</code>
 ///   <para>Writes the rows into a live workbook without requiring an active DSL scope.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelTable")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelTable", DefaultParameterSetName = "Default")]
 [Alias("ExcelTable")]
 public sealed class AddOfficeExcelTableCommand : PSCmdlet
 {

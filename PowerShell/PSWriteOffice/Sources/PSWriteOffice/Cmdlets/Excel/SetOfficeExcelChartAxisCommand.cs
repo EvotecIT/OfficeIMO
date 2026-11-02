@@ -20,7 +20,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Set-OfficeExcelChartAxis -CategoryTitle 'Week' -CategoryNumberFormat 'yyyy-mm-dd' -CategoryMinimum 46000 -CategoryMaximum 46090 -CategoryMajorUnit 14 -CategoryMinorUnit 7</code>
 ///   <para>Configures the chart's X axis through OfficeIMO's category/date-axis scale support while keeping the workbook chart object on the pipeline.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelChartAxis")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelChartAxis", DefaultParameterSetName = "Default")]
 [Alias("ExcelChartAxis")]
 [OutputType(typeof(ExcelChart))]
 public sealed class SetOfficeExcelChartAxisCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {

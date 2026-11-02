@@ -1,5 +1,15 @@
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Creates or replaces a formula definition scoped to this worksheet.</summary>
+        /// <param name="name">The defined name used by worksheet formulas.</param>
+        /// <param name="formula">An Excel expression, with or without a leading equals sign.</param>
+        /// <param name="save">Whether to persist the workbook change immediately.</param>
+        /// <param name="hidden">Whether to hide the name in Excel's normal name list.</param>
+        /// <param name="validationMode">How the defined name is validated or sanitized.</param>
+        public void SetNamedFormula(string name, string formula, bool save = true, bool hidden = false,
+            ExcelDefinedNameValidationMode validationMode = ExcelDefinedNameValidationMode.Sanitize) =>
+            _excelDocument.SetNamedFormula(name, formula, this, save, hidden, validationMode);
+
         /// <summary>
         /// Creates or updates a named range in the workbook, scoped to this sheet.
         /// </summary>

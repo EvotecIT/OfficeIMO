@@ -5,7 +5,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     /// <summary>
     /// Planning-time options for Word to Google Docs export.
     /// </summary>
-    public sealed class GoogleDocsSaveOptions {
+    public sealed partial class GoogleDocsSaveOptions {
         /// <summary>Gets or sets the Drive destination or existing document target.</summary>
         public GoogleDriveFileLocation Location { get; set; } = new GoogleDriveFileLocation();
         /// <summary>Gets or sets the title when creating a document; blank uses the source title, file name, or <c>Document</c>.</summary>

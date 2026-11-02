@@ -51,8 +51,8 @@ New-OfficeVisio -Path $path -Title 'Package-backed stencils' -Author 'PSWriteOff
     VisioConnector -From importedB -To importedC -Kind Straight -FromSide Right -ToSide Left -EndArrow Triangle -Label 'reused' -LineColor '#16A34A'
 }
 
-ConvertTo-OfficeVisioSvg -Path $path -OutputPath $svgPath
-ConvertTo-OfficeVisioPng -Path $path -OutputPath $pngPath
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath | Out-Null
+Export-OfficeDocumentImage -Path $path -Page 1 -Format Png -OutputPath $pngPath | Out-Null
 
 if ($Open) {
     Invoke-Item $svgPath

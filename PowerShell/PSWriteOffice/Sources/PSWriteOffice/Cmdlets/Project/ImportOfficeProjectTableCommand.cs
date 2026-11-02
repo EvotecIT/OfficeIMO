@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Imports explicitly mapped tables into a new project without changing existing documents.</summary>
 ///   <code>$taskTable | Import-OfficeProjectTable -Name Delivery -ReportVariable importReport</code>
 /// </example>
-[Cmdlet(VerbsData.Import, "OfficeProjectTable")]
+[Cmdlet(VerbsData.Import, "OfficeProjectTable", DefaultParameterSetName = "Table")]
 [OutputType(typeof(ProjectDocument))]
 public sealed class ImportOfficeProjectTableCommand : PSCmdlet {
     /// <summary>At most one table for each entity kind.</summary>

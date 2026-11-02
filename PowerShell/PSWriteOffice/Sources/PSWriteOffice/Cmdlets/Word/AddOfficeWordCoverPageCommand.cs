@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>New-OfficeWord -Path .\Report.docx { Add-OfficeWordCoverPage -Template Element -Abstract 'Executive summary' }</code>
 ///   <para>Creates a document with a template-driven cover page.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordCoverPage")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordCoverPage", DefaultParameterSetName = "Default")]
 [Alias("WordCoverPage")]
 [OutputType(typeof(WordCoverPage))]
 public sealed class AddOfficeWordCoverPageCommand : PSCmdlet

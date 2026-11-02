@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Security;
 /// <example><summary>Inspect credentials without scanning text.</summary>
 /// <code>$policy = New-OfficeDocumentProvenanceOptions -NoTextIntegrity -VerificationTimeoutSeconds 60
 /// Get-OfficeDocumentProvenance -Path ./Press/*.png -Options $policy</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeDocumentProvenanceOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeDocumentProvenanceOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OfficeProvenanceAssessmentOptions))]
 public sealed class NewOfficeDocumentProvenanceOptionsCommand : PSCmdlet {
     /// <summary>Skip Unicode text-integrity inspection.</summary>

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 ///   <summary>Appends PowerShell objects or dictionaries using the declared field types.</summary>
 ///   <code>$rows | Add-OfficeAccessRow -Table $table</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeAccessRow")]
+[Cmdlet(VerbsCommon.Add, "OfficeAccessRow", DefaultParameterSetName = "Table")]
 [OutputType(typeof(AccessTable))]
 public sealed class AddOfficeAccessRowCommand : PSCmdlet {
     /// <summary>Destination table in a newly created model.</summary>

@@ -9,7 +9,7 @@ schema: 2.0.0
 Groups typed content into one column of a designed slide.
 
 ## SYNTAX
-### __AllParameterSets
+### Content (Default)
 ```powershell
 Add-OfficePowerPointColumn [-Content] <scriptblock> [-Title <string>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Gets or sets the column's content block.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets the column title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 

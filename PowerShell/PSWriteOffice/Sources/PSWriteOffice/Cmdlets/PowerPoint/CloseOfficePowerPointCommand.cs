@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Save-OfficePowerPoint -Document $deck
 /// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
-[Cmdlet(VerbsCommon.Close, "OfficePowerPoint")]
+[Cmdlet(VerbsCommon.Close, "OfficePowerPoint", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <inheritdoc />
     protected override void ProcessRecord() {

@@ -35,7 +35,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Explicit footer text; null means the deck title, empty turns the footer text off.</summary>
         internal string? FooterText { get; set; }
 
+        internal Dictionary<OfficeAlignment, PowerPointLayoutFooter> Footers { get; } = new();
+
+        /// <summary>Optional authored design defaults; native theme colors and fonts remain authoritative.</summary>
+        internal PowerPointDeckDesign? Design { get; set; }
+
         internal bool ShowSlideNumber { get; set; } = true;
+
+        /// <summary>Suppress footer text throughout a composed deck.</summary>
+        internal bool NoFooter { get; set; }
+
+        /// <summary>Default deterministic variation seed; a content slide may override it.</summary>
+        internal string? Seed { get; set; }
+
+        /// <summary>Author and date lines used when a title slide supplies no explicit metadata.</summary>
+        internal List<string> TitleMetadata { get; } = new();
 
         internal string? CurrentSection { get; set; }
 

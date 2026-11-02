@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a typed field before rows are appended.
 
 ## SYNTAX
-### __AllParameterSets
+### Table (Default)
 ```powershell
 Add-OfficeAccessColumn [-Name] <string> -Table <AccessTable> [-Type <AccessDataType>] [-MaxLength <Int32>] [-AutoNumberSeed <int>] [-Precision <int>] [-Scale <int>] [-PassThru] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ First sequential AutoNumber value.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Maximum short-text length.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Field name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Decimal precision.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Decimal scale.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Table in a newly created database model.
 
 ```yaml
 Type: AccessTable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Native field type.
 
 ```yaml
 Type: AccessDataType
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values: AutoNumber, Int32, ShortText, LongText, Currency, Double, DateTime, Boolean, Guid, Binary, Byte, Int16, Single, Decimal, Int64, Complex, ExtendedDateTime, Unknown
 

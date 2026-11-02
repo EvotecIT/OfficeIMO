@@ -9,9 +9,14 @@ schema: 2.0.0
 Creates a themed Excel workbook, returning a live workbook or saving a completed content block.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeExcel [[-Path] <string>] [[-Content] <scriptblock>] [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-MaxDegreeOfParallelism <Int32>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeExcel [[-Path] <string>] [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-MaxDegreeOfParallelism <Int32>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeExcel [-Path] <string> [-Content] <scriptblock> [-Theme <OfficeThemeInput>] [-Template <string>] [-Force] [-Password <securestring>] [-SaveOptions <ExcelSaveOptions>] [-DocumentProperty <hashtable>] [-DateSystem <ExcelDateSystem>] [-MaxDegreeOfParallelism <Int32>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -40,11 +45,11 @@ Close-OfficeExcel -Document $workbook
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept reductions reported by the content block's native save.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -56,15 +61,15 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+Authoring block to complete before the document is atomically saved and closed.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 1
 Default value: None
 Accept pipeline input: False
@@ -76,7 +81,7 @@ Native workbook date system.
 
 ```yaml
 Type: ExcelDateSystem
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: NineteenHundred, NineteenFour
 
@@ -92,7 +97,7 @@ Workbook properties such as Title, Author, Subject, Keywords, Company and Manage
 
 ```yaml
 Type: Hashtable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -108,7 +113,7 @@ Allow a completed content block to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -124,7 +129,7 @@ Maximum parallel workers; 1 runs sequentially. Omission retains the native execu
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -136,11 +141,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Return the saved FileInfo after a completed content block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -156,7 +161,7 @@ Password for a completed content block's saved file; use Save-OfficeExcel for a 
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -168,11 +173,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional associated destination; required with a content block.
+Optional associated destination for a live document; required when a content block saves a file.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -188,7 +193,7 @@ Native save options or a hashtable, applied to a completed content block.
 
 ```yaml
 Type: ExcelSaveOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -200,11 +205,11 @@ Accept wildcard characters: False
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved result in its registered application after the content block succeeds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -220,7 +225,7 @@ Existing workbook copied as starting content. Its styling is preserved unless Th
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -236,7 +241,7 @@ Built-in theme, theme object or a document/template whose visual theme is read.
 
 ```yaml
 Type: OfficeThemeInput
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 

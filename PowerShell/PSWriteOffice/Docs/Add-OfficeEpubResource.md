@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds an image, font, stylesheet or media payload without executing it.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeEpubResource [-Path] <string> -Id <string> -MediaType <string> [-ContainerPath <string>] [-MaxInputBytes <long>] [-PassThru] [-Document <EpubPublication>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Optional package-relative path; omission uses EPUB/assets and the source filenam
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Gets or sets an explicit live document; omission uses the enclosing content bloc
 
 ```yaml
 Type: EpubPublication
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Unique manifest identifier.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ Maximum input payload bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ Explicit MIME type.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Return the created or changed object.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Literal payload path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

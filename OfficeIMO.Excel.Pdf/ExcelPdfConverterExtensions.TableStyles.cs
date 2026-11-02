@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.Pdf {
             int headerRows = Math.Min(headerRowCount, exportedRows);
             PdfCore.PdfTableStyle tableStyle = CreateBaseTableStyle(options);
             tableStyle.HeaderRowCount = headerRows;
+            tableStyle.CellHeaderScopes = CreateStructuredTableHeaderScopes(cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
             tableStyle.RepeatHeaderRowCount = headerRows == 0 ? null : headerRows;
 
             if (columnWidths != null) {

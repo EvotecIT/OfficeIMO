@@ -192,7 +192,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
             PowerPointSlide -Document $deck -Title 'Editable table' {
                 if ($leadingLists) { PowerPointList 'First context'; PowerPointList 'Second context' }
                 $rows = 1..8 | ForEach-Object { [pscustomobject]@{ Service = "Service $_"; Count = $_ } }
-                $script:table = PowerPointTable -InputObject $rows -MaxRows 2 -StyleId $tableStyle -PassThru
+                $script:table = PowerPointTable -InputObject $rows -MaxRows 2 -Style $tableStyle -PassThru
                 $table.GetCell(1,0).Text = 'Edited before arrangement'
                 $script:lastCell = $table.GetCell(8,0)
                 $lastCell.Paragraphs[0].Runs[0].SetHyperlink('https://contoso.com/before-table-continuation')

@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>$options = New-OfficeWordComparisonOptions -IgnoreWhitespace -IgnoreCase -CompareVolatileMetadata:$false
 /// Compare-OfficeWordDocument -ReferencePath .\Before.docx -DifferencePath .\After.docx -Options $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeWordComparisonOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeWordComparisonOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordComparisonOptions))]
 public sealed class NewOfficeWordComparisonOptionsCommand : PSCmdlet {
     /// <summary>Ignore differences caused only by whitespace runs.</summary>

@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel {
         public int RecalculateSupportedFormulas() {
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 ExcelSheet? pendingSheet = MaterializePendingDirectCellValueSheetIfNeeded();
-                var context = new ExcelSheet.FormulaCalculationContext();
+                using var context = new ExcelSheet.FormulaCalculationContext();
                 int count = 0;
                 if (pendingSheet != null) count += pendingSheet.RecalculateSupportedFormulas(context);
                 foreach (var sheet in GetSheetsForLockedOperation()) {

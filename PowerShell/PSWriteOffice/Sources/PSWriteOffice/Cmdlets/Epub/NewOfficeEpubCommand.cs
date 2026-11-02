@@ -15,13 +15,9 @@ namespace PSWriteOffice.Cmdlets.Epub;
 /// <code>$book = New-OfficeEpub -Path ./Operations.epub -Title Operations
 /// $book | Add-OfficeEpubChapter -Title Opening -Text 'Safety and care'
 /// Save-OfficeEpub -Document $book</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeEpub", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficeEpub", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(EpubPublication), typeof(FileInfo))]
-public sealed class NewOfficeEpubCommand : OfficeLifecycleCmdlet<EpubPublication> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficeEpubCommand : OfficeNewLifecycleCmdlet<EpubPublication> {
     /// <summary>Publication title.</summary>
     [Parameter(Mandatory = true), ValidateNotNullOrEmpty]
     public string Title { get; set; } = string.Empty;

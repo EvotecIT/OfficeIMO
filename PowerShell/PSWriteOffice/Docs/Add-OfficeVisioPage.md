@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a page to a Visio document and optionally executes nested DSL content.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Add-OfficeVisioPage [-Name] <string> [[-Content] <scriptblock>] [-Document <VisioDocument>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-DisplayUnit <VisioMeasurementUnit>] [-PassThru] [<CommonParameters>]
 ```
@@ -37,7 +37,7 @@ Nested DSL content executed within this page scope.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -53,7 +53,7 @@ Measurement unit displayed by Visio, independent of geometry input units.
 
 ```yaml
 Type: VisioMeasurementUnit
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: Inches, Centimeters, Millimeters
 
@@ -69,7 +69,7 @@ Target Visio document. Optional inside New-OfficeVisio.
 
 ```yaml
 Type: VisioDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -85,7 +85,7 @@ Page height.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -101,7 +101,7 @@ Page name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -117,7 +117,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -133,7 +133,7 @@ Page width.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

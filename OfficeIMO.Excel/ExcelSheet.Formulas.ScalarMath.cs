@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             for (int index = 0; index < count; index++) {
                 // Explicitly omitted CEILING/FLOOR operands have the numeric zero value.
                 if (multiple && string.IsNullOrWhiteSpace(tokens[index])) continue;
-                if (!TryResolveFormulaArgument(tokens[index], out FormulaArgumentValue value) || value.IsUnresolvedFormula) return false;
+                if (!TryResolveFormulaValueArgument(tokens[index], out FormulaArgumentValue value)) return false;
                 if (value.IsError) {
                     if (!firstError.IsError) firstError = value;
                     if (index == 1) digitsAreError = true;

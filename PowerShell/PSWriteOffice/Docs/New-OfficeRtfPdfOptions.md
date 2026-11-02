@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates discoverable RTF-to-PDF conversion options for Export-OfficeDocumentPdf.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeRtfPdfOptions [-PdfOptions <PdfCreateOptions>] [-IncludeHiddenText] [-IncludeImages] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-IncludeMetadata] [-IncludeTables] [-IncludeHeaderFooters] [-IncludeNotes] [-MaximumSystemFontFamilies <Int32>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Allow embedding fonts referenced by the RTF document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Allow embedding fonts discovered on the current system.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Fallback image height in PDF points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Fallback image width in PDF points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Render headers and footers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Include text marked hidden.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Render images.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Copy document metadata into the PDF.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Render document notes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Render tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Maximum number of system font families to discover.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Underlying low-level OfficeIMO PDF options.
 
 ```yaml
 Type: PdfCreateOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

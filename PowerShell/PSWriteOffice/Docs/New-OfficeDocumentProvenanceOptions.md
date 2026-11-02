@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates structural, Unicode integrity and optional content-credential verification policy.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeDocumentProvenanceOptions [-NoTextIntegrity] [-NoEmbeddedAssets] [-MaximumAssetBytes <long>] [-MaximumManifestBytes <long>] [-MaximumCarriers <int>] [-MaximumContainerEntries <int>] [-MaximumExpandedContainerBytes <long>] [-MaximumEmbeddedAssets <int>] [-MaximumTextCharacters <int>] [-MaximumFindings <int>] [-NoTypographicSpaces] [-NoVariationSelectors] [-VerificationTimeoutSeconds <int>] [-AllowNetworkAccess] [-IncludeRawReport] [-TrustAnchorsPath <string>] [-AllowedListPath <string>] [-TrustConfigurationPath <string>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Local PEM allowed-certificate list.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Allow the explicitly configured verifier to resolve remote manifests and trust m
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Include the bounded verifier JSON report.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum source asset bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum provenance carriers.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Maximum container entries.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Maximum embedded assets.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Maximum expanded container bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Maximum text-integrity findings.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +177,7 @@ Maximum manifest bytes.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -193,7 +193,7 @@ Maximum text characters inspected.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -209,7 +209,7 @@ Skip images and media embedded in containers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -225,7 +225,7 @@ Skip Unicode text-integrity inspection.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -241,7 +241,7 @@ Skip typographic-space findings.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -257,7 +257,7 @@ Skip variation-selector findings.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -273,7 +273,7 @@ Local PEM trust-anchor list.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -289,7 +289,7 @@ Local C2PA trust configuration.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -305,7 +305,7 @@ Maximum verifier runtime in seconds; defaults to 30.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

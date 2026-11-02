@@ -361,41 +361,48 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Listed target slides reachable through internal slide links are imported once so the links remain valid.</remarks>
         public PowerPointSlide ImportSlide(PowerPointDocument sourcePresentation,
             int sourceIndex, int? insertAt = null) => ImportSlideCore(
-                sourcePresentation, sourceIndex, insertAt,
-                includeLinkedSlides: true);
+                sourcePresentation, new[] { sourceIndex }, insertAt,
+                includeLinkedSlides: true)[0];
 
         internal PowerPointSlide ImportSlideForExport(
             PowerPointDocument sourcePresentation, int sourceIndex) =>
-            ImportSlideCore(sourcePresentation, sourceIndex,
-                insertAt: null, includeLinkedSlides: false);
+            ImportSlideCore(sourcePresentation, new[] { sourceIndex },
+                insertAt: null, includeLinkedSlides: false)[0];
 
-        private PowerPointSlide ImportSlideCore(
-            PowerPointDocument sourcePresentation, int sourceIndex,
+        /// <summary>Imports selected slides together, preserving links between them without duplicate imports.</summary>
+        /// <param name="sourcePresentation">The source document, which may also be this document.</param>
+        /// <param name="sourceIndices">Zero-based source positions, in the requested order. Repeated positions are imported once.</param>
+        /// <param name="insertAt">Zero-based insertion position; omission appends.</param>
+        /// <returns>The requested native slides in selection order. Linked dependencies are imported once after them.</returns>
+        public IReadOnlyList<PowerPointSlide> ImportSlides(PowerPointDocument sourcePresentation,
+            IEnumerable<int> sourceIndices, int? insertAt = null) =>
+            ImportSlideCore(sourcePresentation, sourceIndices, insertAt, includeLinkedSlides: true);
+
+        private IReadOnlyList<PowerPointSlide> ImportSlideCore(
+            PowerPointDocument sourcePresentation, IEnumerable<int> sourceIndices,
             int? insertAt, bool includeLinkedSlides) {
             ThrowIfDisposed();
             if (sourcePresentation == null) {
                 throw new ArgumentNullException(nameof(sourcePresentation));
             }
 
-            if (ReferenceEquals(sourcePresentation, this)) {
-                return DuplicateSlide(sourceIndex, insertAt);
-            }
-
+            if (sourceIndices == null) throw new ArgumentNullException(nameof(sourceIndices));
+            int[] indices = sourceIndices.Distinct().ToArray();
             IReadOnlyList<PowerPointSlide> sourceSlides = sourcePresentation.Slides;
-            if (sourceIndex < 0 || sourceIndex >= sourceSlides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
-            }
+            if (indices.Any(index => index < 0 || index >= sourceSlides.Count))
+                throw new ArgumentOutOfRangeException(nameof(sourceIndices));
+            int targetIndex = insertAt ?? _slides.Count;
+            if (targetIndex < 0 || targetIndex > _slides.Count)
+                throw new ArgumentOutOfRangeException(nameof(insertAt));
+            if (indices.Length == 0) return Array.Empty<PowerPointSlide>();
+            if (ReferenceEquals(sourcePresentation, this) && indices.Length == 1)
+                return new[] { DuplicateSlide(indices[0], insertAt) };
+            PowerPointSlide[] requestedSources = indices.Select(index => sourceSlides[index]).ToArray();
             var sourceByPart = sourceSlides.ToDictionary(slide =>
                 slide.SlidePart);
 
-            int targetIndex = insertAt ?? _slides.Count;
-            if (targetIndex < 0 || targetIndex > _slides.Count) {
-                throw new ArgumentOutOfRangeException(nameof(insertAt));
-            }
-
-            PowerPointSlide requestedSource = sourceSlides[sourceIndex];
             SlideImportPlan importPlan = CollectSlideImportPlan(
-                sourcePresentation, requestedSource, includeLinkedSlides);
+                sourcePresentation, requestedSources, includeLinkedSlides);
             IReadOnlyList<PowerPointSlide> importSources = importPlan.Slides;
             ValidateSlideImportSources(importSources);
             _ = GetNextSlideId(importSources.Count);
@@ -519,7 +526,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 PresentationRoot.Save();
-                return importedSlides[requestedSource.SlidePart];
+                return requestedSources.Select(source => importedSlides[source.SlidePart]).ToArray();
             } catch {
                 RollBackFailedSlideImport(originalPresentation,
                     originalTopLevelParts, originalDataParts);

@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Save-OfficePowerPoint -Document $deck -Path ./Review.pptx -PassThru
 /// Close-OfficePowerPoint -Document $deck</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficePowerPoint", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficePowerPoint", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficePowerPointCommand : OfficeDocumentCmdlet<PowerPointDocument> {
     /// <summary>Optional new destination; omission uses the associated path.</summary>

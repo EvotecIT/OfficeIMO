@@ -6,58 +6,49 @@ schema: 2.0.0
 ---
 # Import-OfficePowerPointSlide
 ## SYNOPSIS
-Imports a slide from another PowerPoint presentation.
+Imports selected slides from a file or live document, preserving native relationships.
 
 ## SYNTAX
-### SourcePresentation (Default)
+### Path (Default)
 ```powershell
-Import-OfficePowerPointSlide -SourcePresentation <PowerPointDocument> -SourceIndex <int> [-Presentation <PowerPointDocument>] [-InsertAt <Int32>] [<CommonParameters>]
+Import-OfficePowerPointSlide [-Path] <string> [-Document <PowerPointDocument>] [-SourceSlide <int[]>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
-### SourcePath
+### LiteralPath
 ```powershell
-Import-OfficePowerPointSlide -SourcePath <string> -SourceIndex <int> [-Presentation <PowerPointDocument>] [-InsertAt <Int32>] [<CommonParameters>]
+Import-OfficePowerPointSlide -LiteralPath <string> [-Document <PowerPointDocument>] [-SourceSlide <int[]>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
+```
+
+### SourceDocument
+```powershell
+Import-OfficePowerPointSlide -SourceDocument <PowerPointDocument> [-Document <PowerPointDocument>] [-SourceSlide <int[]>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Can import from an open presentation or directly from a source file path.
+SourceSlide and Position are one-based. Omit SourceSlide to import every slide in order; omit Position to append. The target remains open until explicitly saved and closed.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficePowerPoint -Path .\Examples\Documents\PowerPointImportTarget.pptx {
-    Add-OfficePowerPointSlide -Layout 1 -PassThru | Set-OfficePowerPointSlideTitle -Title 'Target deck'
-    Import-OfficePowerPointSlide -SourcePath .\Examples\Documents\SourceDeck.pptx -SourceIndex 0 -InsertAt 1
-}
+Import-OfficePowerPointSlide -Document $deck -SourceDocument $library -SourceSlide 3, 4 -Position 2 -PassThru
 ```
 
-Imports the first slide from another deck into the target presentation.
+
+### EXAMPLE 2
+```powershell
+Get-Item -LiteralPath './Appendix[final].pptx' | Import-OfficePowerPointSlide -Document $deck
+```
+
 
 ## PARAMETERS
 
-### -InsertAt
-Optional target insertion index; omit to append.
-
-```yaml
-Type: Int32
-Parameter Sets: SourcePresentation, SourcePath
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Presentation
-Target presentation to update (optional inside DSL).
+### -Document
+Gets or sets the live target; omission uses the current presentation block.
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: SourcePresentation, SourcePath
+Parameter Sets: Path, LiteralPath, SourceDocument
 Aliases: None
 Possible values:
 
@@ -68,29 +59,77 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -SourceIndex
-Zero-based slide index in the source presentation.
-
-```yaml
-Type: Int32
-Parameter Sets: SourcePresentation, SourcePath
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SourcePath
-Path to the source presentation.
+### -LiteralPath
+Gets or sets a source file without wildcard expansion, including FileInfo.FullName.
 
 ```yaml
 Type: String
-Parameter Sets: SourcePath
-Aliases: Path
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -PassThru
+Gets or sets whether to return the live imported slides in selection order.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, SourceDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Path
+Gets or sets the source file path with FileSystem wildcard expansion.
+
+```yaml
+Type: String
+Parameter Sets: Path
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: True
+```
+
+### -Position
+Gets or sets the one-based insertion position; omission appends.
+
+```yaml
+Type: Int32
+Parameter Sets: Path, LiteralPath, SourceDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -SourceDocument
+Gets or sets the live source, which remains open after import.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: SourceDocument
+Aliases: None
 Possible values:
 
 Required: True
@@ -100,16 +139,16 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SourcePresentation
-Source presentation to import from.
+### -SourceSlide
+Gets or sets one-based source positions in selection order; omission imports every slide.
 
 ```yaml
-Type: PowerPointDocument
-Parameter Sets: SourcePresentation
+Type: Int32[]
+Parameter Sets: Path, LiteralPath, SourceDocument
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -122,6 +161,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.PowerPoint.PowerPointDocument`
+- `System.String`
 
 ## OUTPUTS
 

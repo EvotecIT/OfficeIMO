@@ -9,7 +9,7 @@ schema: 2.0.0
 Streams native or modeled table rows as PowerShell objects.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Get-OfficeAccessRow [-TableName] <string> -Document <AccessDocument> [-MaxRows <long>] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Live database document.
 
 ```yaml
 Type: AccessDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Maximum rows emitted; a partial result produces a warning.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Table name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// $visio.Document | Save-OfficeVisio -Path .\Topology.vsdx</code>
 ///   <para>Consumes the portable CFX semantic payload and returns the document, page, and fidelity report.</para>
 /// </example>
-[Cmdlet(VerbsData.ConvertTo, "OfficeVisioVisual")]
+[Cmdlet(VerbsData.ConvertTo, "OfficeVisioVisual", DefaultParameterSetName = "InputObject")]
 [OutputType(typeof(OfficeVisioVisualConversionResult))]
 public sealed class ConvertToOfficeVisioVisualCommand : OfficeVisioVisualCommandBase
 {

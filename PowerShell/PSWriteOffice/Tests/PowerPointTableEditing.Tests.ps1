@@ -80,17 +80,19 @@ Describe 'PowerPointTableEditing workflows' {
             )
             Add-OfficePowerPointTable -Slide $slide -InputObject $rows -X 80 -Y 160 -Width 420 -Height 180 | Out-Null
 
-            $textShape = Find-OfficePowerPointShape -Presentation $presentation -Text 'Draft status' -Kind TextBox |
+            $textShape = Get-OfficePowerPointShape -Document $presentation -Text 'Draft status' -Kind TextBox |
                 Set-OfficePowerPointShapeText -Text 'Ready status' -PassThru
             $textShape.Text | Should -Be 'Ready status'
 
-            $tableShape = Find-OfficePowerPointShape -Presentation $presentation -Text 'Risk' -Kind Table | Select-Object -First 1
+            $tableShape = Get-OfficePowerPointShape -Document $presentation -Text 'Risk' -Kind Table | Select-Object -First 1
             $tableShape | Should -Not -BeNullOrEmpty
-            $row = $tableShape | Add-OfficePowerPointTableRow -Value 'Latency', 'Investigating' -PassThru
+            $tableShape.Shape.GetCell(1, 0).FillColor = 'FFFF00'
+            $row = $tableShape | Add-OfficePowerPointTableRow -TemplateRow 2 -Position 3 -Value 'Latency', 'Investigating' -PassThru
             $row.Cells[0].Text | Should -Be 'Latency'
             $row.Cells[1].Text | Should -Be 'Investigating'
+            $row.Cells[0].FillColor | Should -Be 'FFFF00'
 
-            $cell = $tableShape | Set-OfficePowerPointTableCell -Row 1 -Column 1 -Text 'Mitigating' -PassThru
+            $cell = $tableShape | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Text 'Mitigating' -PassThru
             $cell.Text | Should -Be 'Mitigating'
 
             Save-OfficePowerPoint -Document $presentation
@@ -104,39 +106,43 @@ Describe 'PowerPointTableEditing workflows' {
 
         $reloaded = Open-OfficePowerPoint -Path $path
         try {
-            $readyShape = Find-OfficePowerPointShape -Presentation $reloaded -Text 'Ready status' -Kind TextBox | Select-Object -First 1
+            $readyShape = Get-OfficePowerPointShape -Document $reloaded -Text 'Ready status' -Kind TextBox | Select-Object -First 1
             $readyShape | Should -Not -BeNullOrEmpty
 
-            $updatedTable = Find-OfficePowerPointShape -Presentation $reloaded -Text 'Mitigating' -Kind Table | Select-Object -First 1
+            $updatedTable = Get-OfficePowerPointShape -Document $reloaded -Text 'Mitigating' -Kind Table | Select-Object -First 1
             $updatedTable | Should -Not -BeNullOrEmpty
             $updatedTable.RowCount | Should -Be 4
-            $latencyTable = Find-OfficePowerPointShape -Presentation $reloaded -Text 'Latency' -Kind Table | Select-Object -First 1
+            $updatedTable.Shape.GetCell(1, 0).Text | Should -Be 'Risk'
+            $updatedTable.Shape.GetCell(2, 0).Text | Should -Be 'Latency'
+            $updatedTable.Shape.GetCell(2, 0).FillColor | Should -Be 'FFFF00'
+            $updatedTable.Shape.GetCell(3, 0).Text | Should -Be 'Quality'
+            { $updatedTable | Add-OfficePowerPointTableRow -Position 6 -Value 'Rejected' -ErrorAction Stop } | Should -Throw
+            $updatedTable.Shape.Rows | Should -Be 4
+            $latencyTable = Get-OfficePowerPointShape -Document $reloaded -Text 'Latency' -Kind Table | Select-Object -First 1
             $latencyTable | Should -Not -BeNullOrEmpty
         } finally {
             Close-OfficePowerPoint -Document $reloaded
         }
     }
 
-    It 'creates and updates PowerPoint text and table cells from rich text runs' {
+    It 'creates and updates PowerPoint text and table cells with native rich content' {
         $path = Join-Path $TestDrive 'PowerPointRichTextRuns.pptx'
         $presentation = New-OfficePowerPoint -Path $path
         try {
             $slide = $presentation.AddSlide(0, 1)
-            $textBox = Add-OfficePowerPointTextBox -Slide $slide -Run @(
-                New-OfficeTextRun 'Status: '
-                New-OfficeTextRun 'Ready' -Color SeaGreen -Bold
-            ) -X 80 -Y 80 -Width 300 -Height 50 -PassThru
+            $textBox = PowerPointTextBox -Slide $slide -Content {
+                PowerPointText 'Status: '
+                PowerPointText 'Ready' -Color SeaGreen -Bold
+            } -X 80 -Y 80 -Width 300 -Height 50 -PassThru
             $textBox.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTextBox'
             $textBox.Text | Should -Be 'Status: Ready'
-            $textBox = $textBox | Set-OfficePowerPointShapeText -Run @(
-                New-OfficeTextRun 'Linked' -Color Crimson -BackgroundColor Yellow -FontName 'Arial' -FontSize 18 -LinkUri 'https://example.org/ppt'
-            ) -PassThru
+            $textBox = $textBox | Set-OfficePowerPointShapeText -Content {
+                PowerPointText 'Linked' -Color Crimson -Highlight Yellow -Font Arial -Size 18 -Link 'https://example.org/ppt'
+            } -PassThru
             $textBox.Paragraphs[0].Runs[0].Color | Should -Be 'DC143C'
             $textBox.Paragraphs[0].Runs[0].HighlightColor | Should -Be 'FFFF00'
             $textBox.Paragraphs[0].Runs[0].Hyperlink.AbsoluteUri | Should -Be 'https://example.org/ppt'
-            $textBox = $textBox | Set-OfficePowerPointShapeText -Run @(
-                New-OfficeTextRun 'Plain' -BackgroundColor None
-            ) -PassThru
+            $textBox = $textBox | Set-OfficePowerPointShapeText -Content { PowerPointText 'Plain' } -PassThru
             $textBox.Text | Should -Be 'Plain'
             $textBox.Paragraphs[0].Runs[0].Color | Should -BeNullOrEmpty
             $textBox.Paragraphs[0].Runs[0].HighlightColor | Should -BeNullOrEmpty
@@ -162,6 +168,7 @@ Describe 'PowerPointTableEditing workflows' {
                 , @(@{ Text = 'Filled'; FillColor = 'Yellow'; Bold = $true }, 'Styled')
                 , @(@{ Run = 'Queued' }, 'String run')
             ) -X 80 -Y 150 -Width 420 -Height 140 -PassThru
+            $table.Name = 'RichCellTable'
             $table.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTable'
             $table.GetCell(0, 0).GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTableCell'
             $table.GetCell(0, 0).Text | Should -Be 'Build Ready'
@@ -225,27 +232,26 @@ Describe 'PowerPointTableEditing workflows' {
             } | Should -Throw '*do not support hyperlinks yet*'
             $threeColumnTable.Rows | Should -Be 2
 
-            $cell = $table | Set-OfficePowerPointTableCell -Row 1 -Column 1 -Run @(
-                New-OfficeTextRun 'Owner '
-                New-OfficeTextRun 'Ready' -Color Navy -Bold
-            ) -PassThru
+            $cell = $table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Content {
+                PowerPointText 'Owner '
+                PowerPointText 'Ready' -Color Navy -Bold
+            } -PassThru
             $cell.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTableCell'
             $cell.Text | Should -Be 'Owner Ready'
-            $cell = $table | Set-OfficePowerPointTableCell -Row 1 -Column 1 -Run @(
-                New-OfficeTextRun 'Plain'
-            ) -PassThru
+            $cell = $table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Content { PowerPointText 'Plain' } -PassThru
             $cell.Text | Should -Be 'Plain'
             $cell.Runs[0].Color | Should -BeNullOrEmpty
 
-            { $table | Set-OfficePowerPointTableCell -Row 1 -Column 1 -Run @(
-                New-OfficeTextRun 'site' -LinkUri 'https://example.org/table-cell'
-            ) } | Should -Throw
-            $table.GetCell(1, 1).Text | Should -Be 'Plain'
+            $table | Set-OfficePowerPointTableCell -Row 2 -Column 2 -Content {
+                PowerPointText 'site' -Link 'https://example.org/table-cell'
+            }
+            $table.GetCell(1, 1).Runs[0].Hyperlink.AbsoluteUri | Should -Be 'https://example.org/table-cell'
 
-            $baselineTextBox = Add-OfficePowerPointTextBox -Slide $slide -Run @(
-                New-OfficeTextRun 'x'
-                New-OfficeTextRun '2' -Kind Superscript
-            ) -X 360 -Y 80 -Width 120 -Height 50 -PassThru
+            $baselineTextBox = PowerPointTextBox -Slide $slide -Content {
+                PowerPointText 'x'
+                $exponent = PowerPointText '2' -PassThru
+                $null = $exponent.SetSuperscript()
+            } -X 360 -Y 80 -Width 120 -Height 50 -PassThru
             $baselineTextBox.Text | Should -Be 'x2'
 
             $baselineTable = Add-OfficePowerPointTable -Slide $slide -InputObject @(
@@ -267,6 +273,12 @@ Describe 'PowerPointTableEditing workflows' {
                 Close-OfficePowerPoint -Document $presentation
             }
         }
+
+        $reloaded = Open-OfficePowerPoint -Path $path
+        $savedTable = @(Get-OfficePowerPointShape -Document $reloaded -Name 'RichCellTable' -Kind Table)[0].Shape
+        $savedTable.GetCell(1, 0).Text | Should -Be 'Owner'
+        $savedTable.GetCell(1, 1).Runs[0].Hyperlink.AbsoluteUri | Should -Be 'https://example.org/table-cell'
+        @($reloaded.ValidateDocument()).Count | Should -Be 0
 
         $slideXml = Get-ZipXmlDocumentLocal -Path $path -Entry (Get-TestPowerPointSlideEntry -Path $path -Index 0)
         $namespaceManager = New-Object System.Xml.XmlNamespaceManager($slideXml.NameTable)
@@ -324,7 +336,7 @@ Describe 'PowerPointTableEditing workflows' {
         }
     }
 
-    It 'validates PowerPoint text box runs before creating the shape' {
+    It 'removes a PowerPoint text box when its rich content fails' {
         $path = Join-Path $TestDrive 'PowerPointTextBoxRunValidation.pptx'
         $presentation = New-OfficePowerPoint -Path $path
         try {
@@ -332,10 +344,11 @@ Describe 'PowerPointTableEditing workflows' {
             @($slide.TextBoxes).Count | Should -Be 0
 
             {
-                Add-OfficePowerPointTextBox -Slide $slide -Run @(
-                    New-OfficeTextRun 'jump' -LinkDestinationName Summary
-                ) -ErrorAction Stop
-            } | Should -Throw '*named PDF/Word destinations*'
+                PowerPointTextBox -Slide $slide -Content {
+                    PowerPointText 'Partial text'
+                    throw 'manual-box-content-failed'
+                } -ErrorAction Stop
+            } | Should -Throw '*manual-box-content-failed*'
 
             @($slide.TextBoxes).Count | Should -Be 0
         } finally {

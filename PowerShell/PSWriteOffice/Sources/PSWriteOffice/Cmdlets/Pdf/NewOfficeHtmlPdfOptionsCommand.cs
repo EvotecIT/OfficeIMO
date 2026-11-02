@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <example><summary>Export HTML with local resources and a chosen font.</summary><prefix>PS&gt; </prefix>
 /// <code>$options = New-OfficeHtmlPdfOptions -FontFamily Arial -IncludeLocalResources
 /// Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -MarkdownHtmlExportOptions $options</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeHtmlPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeHtmlPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(HtmlToPdfOptions))]
 public sealed class NewOfficeHtmlPdfOptionsCommand : PSCmdlet {
     /// <summary>Existing options to clone before applying explicitly supplied values.</summary>

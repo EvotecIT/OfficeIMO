@@ -344,7 +344,8 @@ jobs:
     name: 'Studio workflows and accessibility / ${{ matrix.os }} / ${{ matrix.slice }}'
     if: fromJSON(needs.changes.outputs.suites)['studio-contracts']
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    # A cold Windows engine build can consume 15 minutes before the workflow tests start.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:

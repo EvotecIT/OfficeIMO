@@ -193,7 +193,7 @@ namespace OfficeIMO.Excel {
 
         private static bool HasPicturePlaceholder(params string[] values) {
             foreach (string value in values) {
-                if (value.IndexOf("&G", StringComparison.Ordinal) >= 0) {
+                if (HasHeaderFooterCode(value, 'G')) {
                     return true;
                 }
             }
@@ -506,57 +506,6 @@ namespace OfficeIMO.Excel {
             return hf;
         }
 
-        private static (string L, string C, string R) ParseHeaderFooterSections(string text) {
-            string left = string.Empty, center = string.Empty, right = string.Empty;
-            if (string.IsNullOrEmpty(text)) {
-                return (left, center, right);
-            }
-
-            int i = 0;
-            while (i < text.Length) {
-                char ch = text[i++];
-                if (ch != '&' || i >= text.Length) {
-                    continue;
-                }
-
-                char section = text[i++];
-                if (section != 'L' && section != 'C' && section != 'R') {
-                    continue;
-                }
-
-                var builder = new StringBuilder();
-                while (i < text.Length) {
-                    if (text[i] == '&' && i + 1 < text.Length) {
-                        char next = text[i + 1];
-                        if (next == 'L' || next == 'C' || next == 'R') {
-                            break;
-                        }
-                    }
-
-                    builder.Append(text[i++]);
-                }
-
-                string value = builder.ToString();
-                if (section == 'L') {
-                    left = value;
-                } else if (section == 'C') {
-                    center = value;
-                } else {
-                    right = value;
-                }
-            }
-
-            return (left, center, right);
-        }
-
-        private static string? BuildHeaderFooterSections(string? left, string? center, string? right) {
-            var builder = new StringBuilder();
-            if (!string.IsNullOrEmpty(left)) builder.Append("&L").Append(EscapeHeaderFooter(left));
-            if (!string.IsNullOrEmpty(center)) builder.Append("&C").Append(EscapeHeaderFooter(center));
-            if (!string.IsNullOrEmpty(right)) builder.Append("&R").Append(EscapeHeaderFooter(right));
-            return builder.Length == 0 ? null : builder.ToString();
-        }
-
         /// <summary>
         /// Adds an image to the worksheet header at the given position. This will also ensure the header text
         /// contains the picture placeholder (&amp;G) in the corresponding section. Subsequent calls replace any
@@ -644,58 +593,6 @@ namespace OfficeIMO.Excel {
             SetFooterImage(position, remote.ToBytes(), remote.ContentType, width, height);
         }
 
-        private static string EscapeHeaderFooter(string? text) {
-            if (string.IsNullOrEmpty(text)) return string.Empty;
-            bool IsTokenStarter(char c) {
-                // Recognize common Excel header/footer tokens following '&' to avoid escaping them
-                if (c >= '0' && c <= '9') {
-                    return true;
-                }
-
-                switch (c) {
-                    case 'L':
-                    case 'C':
-                    case 'R': // section markers
-                    case 'P':
-                    case 'N':
-                    case 'D':
-                    case 'T':
-                    case 'A':
-                    case 'F':
-                    case 'Z': // page, pages, date, time, sheet, file, path
-                    case 'G': // picture placeholder
-                    case 'K': // color: &Krrggbb
-                    case 'B':
-                    case 'I':
-                    case 'E':
-                    case 'U':
-                    case 'S': // bold, italic, underline, strike
-                    case 'X':
-                    case 'Y': // superscript, subscript
-                    case '[': // bracketed fields such as &[Page], &[Pages], &[Tab]
-                        return true;
-                }
-                return false;
-            }
-
-            var t = text!;
-            var sb = new StringBuilder(t.Length + 8);
-            for (int i = 0; i < t.Length; i++) {
-                char ch = t[i];
-                if (ch == '&') {
-                    if (i + 1 < t.Length) {
-                        char n = t[i + 1];
-                        if (n == '&') { sb.Append("&&"); i++; continue; }
-                        if (n == '"') { sb.Append('&'); continue; } // font name spec: &"Name,Style"
-                        if (IsTokenStarter(n)) { sb.Append('&'); continue; }
-                    }
-                    // literal &
-                    sb.Append("&&");
-                } else sb.Append(ch);
-            }
-            return sb.ToString();
-        }
-
         private void EnsureHeaderFooterPicture(ExcelHeaderFooterPosition position, bool isHeader, byte[] imageBytes, string contentType, OfficeLength? width, OfficeLength? height) {
             if (width.HasValue && width.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
             if (height.HasValue && height.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
@@ -718,31 +615,12 @@ namespace OfficeIMO.Excel {
                 else
                     current = hf.OddFooter?.Text;
 
-                string l = string.Empty, c = string.Empty, r = string.Empty;
-                if (!string.IsNullOrEmpty(current)) {
-                    // Attempt to parse existing sections to preserve other content
-                    // The header/footer schema uses &L, &C, &R markers.
-                    int i = 0;
-                    var curr = current!;
-                    while (i < curr.Length) {
-                        char ch = curr[i++];
-                        if (ch == '&' && i < curr.Length) {
-                            char sec = curr[i++];
-                            var sb = new StringBuilder();
-                            while (i < curr.Length) {
-                                if (curr[i] == '&' && i + 1 < curr.Length && (curr[i + 1] == 'L' || curr[i + 1] == 'C' || curr[i + 1] == 'R')) break;
-                                sb.Append(curr[i++]);
-                            }
-                            string val = sb.ToString();
-                            if (sec == 'L') l = val; else if (sec == 'C') c = val; else if (sec == 'R') r = val;
-                        }
-                    }
-                }
+                var (l, c, r) = ParseHeaderFooterSections(current ?? string.Empty);
 
                 // Ensure picture placeholder &G is present for the selected section
                 string EnsureG(string s) {
                     // Use IndexOf for .NET Standard 2.0 compatibility
-                    return (s.IndexOf("&G", StringComparison.Ordinal) >= 0) ? s : ("&G" + s);
+                    return HasHeaderFooterCode(s, 'G') ? s : ("&G" + s);
                 }
 
                 switch (pos) {
@@ -850,7 +728,7 @@ namespace OfficeIMO.Excel {
             }
 
             static bool HasPicture(OpenXmlLeafTextElement? element)
-                => element?.Text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
+                => HasHeaderFooterCode(element?.Text, 'G');
 
             return HasPicture(hf.OddHeader)
                 || HasPicture(hf.OddFooter)

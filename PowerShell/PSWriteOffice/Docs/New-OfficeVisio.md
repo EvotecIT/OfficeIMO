@@ -9,9 +9,14 @@ schema: 2.0.0
 Creates a Visio document with an initial page, returning it live or saving a completed content block.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeVisio [[-Path] <string>] [[-Content] <scriptblock>] [-PageName <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-DisplayUnit <VisioMeasurementUnit>] [-Title <string>] [-Author <string>] [-RequestRecalcOnOpen] [-UseMastersByDefault] [-Force] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeVisio [[-Path] <string>] [-PageName <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-DisplayUnit <VisioMeasurementUnit>] [-Title <string>] [-Author <string>] [-RequestRecalcOnOpen] [-UseMastersByDefault] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeVisio [-Path] <string> [-Content] <scriptblock> [-PageName <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-DisplayUnit <VisioMeasurementUnit>] [-Title <string>] [-Author <string>] [-RequestRecalcOnOpen] [-UseMastersByDefault] [-Force] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -39,11 +44,11 @@ Save-OfficeVisio -Document $diagram -Path ./Landscape.vsdx
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept reductions reported by the content block's native save.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -59,7 +64,7 @@ Optional document author.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -71,15 +76,15 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+Authoring block to complete before the document is atomically saved and closed.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 1
 Default value: None
 Accept pipeline input: False
@@ -91,7 +96,7 @@ Measurement unit displayed by Visio, independent of geometry input units.
 
 ```yaml
 Type: VisioMeasurementUnit
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values: Inches, Centimeters, Millimeters
 
@@ -107,7 +112,7 @@ Allow a completed content block to replace an existing destination.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -123,7 +128,7 @@ Initial page height; defaults to A4 portrait.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -139,7 +144,7 @@ Initial page name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -151,11 +156,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Return the saved FileInfo after a completed content block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -167,11 +172,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional associated destination; required with a content block.
+Optional associated destination for a live document; required when a content block saves a file.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -187,7 +192,7 @@ Ask Visio to recalculate layout and connector routing on opening.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -199,11 +204,11 @@ Accept wildcard characters: False
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved result in its registered application after the content block succeeds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -219,7 +224,7 @@ Optional document title.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -235,7 +240,7 @@ Use Visio masters for supported built-in stencil shapes when saving.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -251,7 +256,7 @@ Initial page width; defaults to A4 portrait.
 
 ```yaml
 Type: OfficeLength
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 

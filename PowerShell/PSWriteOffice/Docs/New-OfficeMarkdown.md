@@ -9,9 +9,14 @@ schema: 2.0.0
 Creates a live Markdown document, or atomically publishes a completed content block.
 
 ## SYNTAX
-### __AllParameterSets
+### Live (Default)
 ```powershell
-New-OfficeMarkdown [[-Path] <string>] [[-Content] <scriptblock>] [-Force] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeMarkdown [[-Path] <string>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficeMarkdown [-Path] <string> [-Content] <scriptblock> [-Force] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,11 +42,11 @@ $document | Close-OfficeMarkdown
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept reductions reported by the content block's native save.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -53,15 +58,15 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+Authoring block to complete before the document is atomically saved and closed.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: 1
 Default value: None
 Accept pipeline input: False
@@ -73,7 +78,7 @@ Allow an existing destination; a failed block preserves its original contents.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -89,7 +94,7 @@ Image serialization used when publishing a block.
 
 ```yaml
 Type: MarkdownImageRenderingMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values: RichMarkdown, PortableMarkdown, Html
 
@@ -105,7 +110,7 @@ Line endings used when publishing a block.
 
 ```yaml
 Type: OfficeLineEnding
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values: LF, CRLF, CR
 
@@ -117,11 +122,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Return the saved FileInfo after a completed content block.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -133,11 +138,11 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Optional associated path; a content block requires a destination.
+Optional associated destination for a live document; required when a content block saves a file.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Live, Content
 Aliases: None
 Possible values:
 
@@ -149,11 +154,11 @@ Accept wildcard characters: False
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved result in its registered application after the content block succeeds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -169,7 +174,7 @@ Unordered list marker used when publishing a block.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values: -, *, +
 
@@ -185,7 +190,7 @@ Native Markdown save settings or a hashtable, used when publishing a block.
 
 ```yaml
 Type: MarkdownSaveOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
@@ -201,7 +206,7 @@ Writer profile used when publishing a block.
 
 ```yaml
 Type: OfficeMarkdownWriteProfile
-Parameter Sets: __AllParameterSets
+Parameter Sets: Content
 Aliases: None
 Possible values: OfficeIMO, Portable, HtmlImage
 

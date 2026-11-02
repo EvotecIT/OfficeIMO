@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Project;
 ///   <summary>Adds a work resource with an optional standard rate.</summary>
 ///   <code>$project | Add-OfficeProjectResource -Name Engineer -StandardRate 125 -PassThru</code>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeProjectResource")]
+[Cmdlet(VerbsCommon.Add, "OfficeProjectResource", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectResource))]
 public sealed class AddOfficeProjectResourceCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>

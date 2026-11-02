@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Epub;
 ///   <summary>Projects chapters to searchable PowerShell objects.</summary>
 ///   <code>$book | Get-OfficeEpubChapter | Select-Object Order, Title, Text</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeEpubChapter")]
+[Cmdlet(VerbsCommon.Get, "OfficeEpubChapter", DefaultParameterSetName = "Default")]
 [OutputType(typeof(EpubChapter))]
 public sealed class GetOfficeEpubChapterCommand : OfficeDocumentCmdlet<EpubPublication> {
     /// <inheritdoc />

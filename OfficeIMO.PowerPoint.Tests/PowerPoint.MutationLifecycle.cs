@@ -77,8 +77,11 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
-        [Fact]
-        public void ImportingMutuallyLinkedSlidesImportsListedTargetsOnce() {
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void ImportingMutuallyLinkedSlidesImportsListedTargetsOnce(bool batch, bool sameDocument) {
             using PowerPointDocument source =
                 PowerPointDocument.Create();
             PowerPointSlide first = source.AddSlide();
@@ -92,10 +95,18 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument target =
                 PowerPointDocument.Create();
 
-            PowerPointSlide importedFirst = target.ImportSlide(source, 0);
+            PowerPointDocument destination = sameDocument ? source : target;
+            int offset = destination.Slides.Count;
+            PowerPointSlide importedFirst;
+            if (batch) {
+                var imported = destination.ImportSlides(source, new[] { 0, 1, 0 });
+                Assert.Equal(2, imported.Count);
+                importedFirst = imported[0];
+                Assert.Same(destination.Slides[offset + 1], imported[1]);
+            } else importedFirst = destination.ImportSlide(source, 0);
 
-            Assert.Equal(2, target.Slides.Count);
-            PowerPointSlide importedSecond = target.Slides[1];
+            Assert.Equal(offset + 2, destination.Slides.Count);
+            PowerPointSlide importedSecond = destination.Slides[offset + 1];
             A.HyperlinkOnClick firstLink = importedFirst.SlidePart.Slide!
                 .Descendants<A.HyperlinkOnClick>().Single();
             A.HyperlinkOnClick secondLink = importedSecond.SlidePart.Slide!
@@ -106,7 +117,10 @@ namespace OfficeIMO.Tests {
             Assert.True(importedSecond.SlidePart.TryGetPartById(
                 secondLink.Id!.Value!, out OpenXmlPart? secondTarget));
             Assert.Same(importedFirst.SlidePart, secondTarget);
-            Assert.Empty(target.ValidateDocument());
+            Assert.Empty(destination.ValidateDocument());
+            using var reopened = PowerPointDocument.Load(new MemoryStream(destination.ToBytes()));
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.Equal(offset + 2, reopened.Slides.Count);
         }
 
         [Fact]

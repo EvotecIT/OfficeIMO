@@ -9,7 +9,7 @@ schema: 2.0.0
 Writes tabular data to the current worksheet and formats it as an Excel table.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeExcelTable [-InputObject] <Object> [-Worksheet <ExcelSheet>] [-Document <ExcelDocument>] [-Sheet <string>] [-SheetIndex <Int32>] [-StartRow <int>] [-StartColumn <int>] [-NoHeader] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-Name <string>] [-ColumnFormat <hashtable>] [-Culture <cultureinfo>] [-TableStyle <ExcelTableStyle>] [-ShowFirstColumn] [-ShowLastColumn] [-NoRowStripes] [-ShowColumnStripes] [-NoAutoFilter] [-AutoFit] [-PassThru] [<CommonParameters>]
 ```
@@ -41,7 +41,7 @@ Auto-fit the table columns after insertion.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -57,7 +57,7 @@ Text used between items when a cell contains a collection.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -73,7 +73,7 @@ Header-to-format mapping, using presets such as Percent or custom Excel number f
 
 ```yaml
 Type: Hashtable
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -89,7 +89,7 @@ Culture used by number-format presets.
 
 ```yaml
 Type: CultureInfo
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -105,7 +105,7 @@ Text used between entries when a cell contains a dictionary.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -121,7 +121,7 @@ Text used between a dictionary key and value.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -137,7 +137,7 @@ Workbook that will receive the table outside a DSL context.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -153,7 +153,7 @@ Source objects, dictionaries, DataTable/DataView/IDataReader inputs, or DataRow 
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: Data, DataTable
 Possible values:
 
@@ -169,7 +169,7 @@ Maximum number of items allowed in one nested collection or dictionary cell. Def
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -185,7 +185,7 @@ Maximum nesting depth allowed while normalizing one cell value. Defaults to 64; 
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -201,7 +201,7 @@ Name to assign to the table.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -217,7 +217,7 @@ Disable AutoFilter dropdowns.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -233,7 +233,7 @@ Skip writing headers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -249,7 +249,7 @@ Disable alternating row stripes for the created table.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -265,7 +265,7 @@ Return the created range string.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -281,7 +281,7 @@ Worksheet name when using Document.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -297,7 +297,7 @@ Worksheet index (0-based) when using Document.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -313,7 +313,7 @@ Enable alternating column stripes for the created table.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -329,7 +329,7 @@ Emphasize the first table column when the selected style supports it.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -345,7 +345,7 @@ Emphasize the last table column when the selected style supports it.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -361,7 +361,7 @@ Starting column for the data (1-based).
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -377,7 +377,7 @@ Starting row for the data (1-based).
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -393,7 +393,7 @@ Built-in table style to apply.
 
 ```yaml
 Type: ExcelTableStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: TableStyleLight1, TableStyleLight2, TableStyleLight3, TableStyleLight4, TableStyleLight5, TableStyleLight6, TableStyleLight7, TableStyleLight8, TableStyleLight9, TableStyleLight10, TableStyleLight11, TableStyleLight12, TableStyleLight13, TableStyleLight14, TableStyleLight15, TableStyleLight16, TableStyleLight17, TableStyleLight18, TableStyleLight19, TableStyleLight20, TableStyleLight21, TableStyleMedium1, TableStyleMedium2, TableStyleMedium3, TableStyleMedium4, TableStyleMedium5, TableStyleMedium6, TableStyleMedium7, TableStyleMedium8, TableStyleMedium9, TableStyleMedium10, TableStyleMedium11, TableStyleMedium12, TableStyleMedium13, TableStyleMedium14, TableStyleMedium15, TableStyleMedium16, TableStyleMedium17, TableStyleMedium18, TableStyleMedium19, TableStyleMedium20, TableStyleMedium21, TableStyleMedium22, TableStyleMedium23, TableStyleMedium24, TableStyleMedium25, TableStyleMedium26, TableStyleMedium27, TableStyleMedium28, TableStyleDark1, TableStyleDark2, TableStyleDark3, TableStyleDark4, TableStyleDark5, TableStyleDark6, TableStyleDark7, TableStyleDark8, TableStyleDark9, TableStyleDark10, TableStyleDark11
 
@@ -409,7 +409,7 @@ Projection to apply before writing the table.
 
 ```yaml
 Type: OfficeTableView
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Normal, Transpose
 
@@ -425,7 +425,7 @@ Worksheet that will receive the table outside a DSL context.
 
 ```yaml
 Type: ExcelSheet
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: SheetObject
 Possible values:
 

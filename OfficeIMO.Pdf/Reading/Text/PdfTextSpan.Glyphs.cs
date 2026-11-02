@@ -10,7 +10,9 @@ public sealed partial class PdfTextSpan {
     /// </summary>
     public bool TryGetGlyphs(out IReadOnlyList<PdfTextGlyph> glyphs) {
         glyphs = Array.Empty<PdfTextGlyph>();
-        if (HasActualText || GlyphCharacterLengths is null || GlyphBytes is null || GlyphPaintedAdvances is null ||
+        bool mappedActualText = HasExactActualTextGlyphMapping && DecodingEvidence.UnderlyingSource is
+            PdfTextDecodingSource.ToUnicode or PdfTextDecodingSource.PredefinedCMap or PdfTextDecodingSource.FontEncoding;
+        if (HasActualText && !mappedActualText || GlyphCharacterLengths is null || GlyphBytes is null || GlyphPaintedAdvances is null ||
             GlyphCharacterLengths.Count != GlyphBytes.Count || GlyphBytes.Count != GlyphPaintedAdvances.Count ||
             GlyphCharacterLengths.Count == 0 || GlyphCharacterLengths.Any(static length => length <= 0) ||
             GlyphCharacterLengths.Sum(static length => (long)length) != Text.Length ||

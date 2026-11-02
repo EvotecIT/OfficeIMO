@@ -277,7 +277,7 @@ Describe 'CSV and Excel mutation contracts' {
         }
     }
 
-    It 'does not join workbooks into live Excel documents when WhatIf is used' {
+    It 'does not copy sheets into live Excel documents when WhatIf is used' {
         $target = Join-Path $TestDrive 'join-target-whatif.xlsx'
         $source = Join-Path $TestDrive 'join-source-whatif.xlsx'
         New-OfficeExcel -Path $target {
@@ -289,7 +289,7 @@ Describe 'CSV and Excel mutation contracts' {
 
         $document = Open-OfficeExcel -Path $target
         try {
-            $document | Join-OfficeExcelWorkbook -SourcePath $source -WhatIf | Should -BeNullOrEmpty
+            $document | Copy-OfficeExcelSheet -Source $source -WhatIf | Should -BeNullOrEmpty
             $summary = $document | Get-OfficeExcelSummary -IncludeSheets
             $summary.SheetCount | Should -Be 1
             $summary.Sheets.Name | Should -Contain 'Target'

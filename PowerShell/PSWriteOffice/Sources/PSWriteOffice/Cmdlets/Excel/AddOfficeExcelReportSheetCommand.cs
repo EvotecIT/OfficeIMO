@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   }</code>
 ///   <para>Creates a report-oriented worksheet with title and KPI blocks.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportSheet")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportSheet", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportSheet")]
 public sealed class AddOfficeExcelReportSheetCommand : PSCmdlet
 {

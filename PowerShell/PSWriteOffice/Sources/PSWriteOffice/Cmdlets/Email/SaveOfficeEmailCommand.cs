@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Email;
 ///   <code>$options = New-OfficeEmailWriterOptions -ConversionLossPolicy Block
 /// $message | Save-OfficeEmail -Path .\Message.eml -Options $options -PassThru</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficeEmail", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeEmail", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(EmailWriteResult))]
 public sealed class SaveOfficeEmailCommand : OfficeMutationCmdlet {
     /// <summary>Email document to save.</summary>

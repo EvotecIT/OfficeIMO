@@ -152,13 +152,16 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.Empty(saved.ValidateDocument());
     }
 
-    [Fact]
-    public void NumberedListContinuationKeepsTheFirstFrameAndAllCapturedParagraphsAndLinksLive() {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("RomanUpperCharacterPeriod")]
+    public void NumberedListContinuationKeepsTheFirstFrameAndAllCapturedParagraphsAndLinksLive(string? numbering) {
         using var deck = PowerPointDocument.Create();
         using var runspace = Open(deck);
-        Invoke(runspace, """
+        string arguments = numbering == null ? "@{ Numbered = $true }" : "@{ Numbering = '" + numbering + "' }";
+        Invoke(runspace, "$numbering = " + arguments + "\n" + """
             PowerPointSlide -Document $deck -Title 'Many actions' {
-                $script:list = PowerPointList -Numbered -PassThru {
+                $script:list = PowerPointList @numbering -PassThru {
                     foreach ($index in 1..42) {
                         PowerPointListItem {
                             $run = PowerPointText 'Repeated action' -PassThru
@@ -193,6 +196,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests : IDisposable {
         Assert.Equal(Enumerable.Range(1, 42), items.Select(p =>
             ((DocumentFormat.OpenXml.Drawing.Paragraph)Node(p)).ParagraphProperties!
                 .GetFirstChild<DocumentFormat.OpenXml.Drawing.AutoNumberedBullet>()!.StartAt!.Value));
+        if (numbering != null) Assert.All(items, item => Assert.Equal(Enum.Parse<PowerPointNumberingScheme>(numbering), item.NumberingScheme));
         Assert.Equal("https://contoso.com/after-continuation", items.Last().Runs.First().Hyperlink!.AbsoluteUri);
         Assert.DoesNotContain(saved.OpenXmlDocument.PresentationPart!.SlideParts.SelectMany(p => p.HyperlinkRelationships),
             link => link.Uri.AbsoluteUri == "https://contoso.com/before-continuation");

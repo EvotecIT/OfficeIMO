@@ -18,8 +18,8 @@ New-OfficeExcel -Path $source {
     }
 }
 
-Join-OfficeExcelWorkbook `
+Copy-OfficeExcelSheet `
     -Path $target `
-    -SourcePath $source `
-    -SourceSheet 'North', 'South' `
-    -SheetNamePrefix 'Region '
+    -Source $source `
+    -Sheet 'North', 'South' `
+    -NamePrefix 'Region '

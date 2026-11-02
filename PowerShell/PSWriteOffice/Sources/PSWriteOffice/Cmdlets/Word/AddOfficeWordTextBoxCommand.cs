@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Creates a native OfficeIMO Word text box and applies sizing/positioning through OfficeIMO's text-box API.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordTextBox")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordTextBox", DefaultParameterSetName = "Default")]
 [Alias("WordTextBox")]
 [OutputType(typeof(WordTextBox))]
 public sealed class AddOfficeWordTextBoxCommand : PSCmdlet

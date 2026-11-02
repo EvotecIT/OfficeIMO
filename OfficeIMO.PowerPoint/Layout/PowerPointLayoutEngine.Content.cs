@@ -29,12 +29,14 @@ namespace OfficeIMO.PowerPoint {
             return (null, blocks);
         }
 
-        private static string Continued(PowerPointLayoutContext context, int part, int count) {
+        private static void ContinueTitle(PowerPointLayoutContext context, PowerPointLayoutSlide page,
+            string? title, int part, int count) {
             if (!string.IsNullOrWhiteSpace(context.Deck.ContinuationFormat)) {
-                return " " + string.Format(CultureInfo.CurrentCulture, context.Deck.ContinuationFormat!, string.Empty, part, count).Trim();
+                page.Title = string.Format(CultureInfo.CurrentCulture, context.Deck.ContinuationFormat!, title, part, count);
+                page.ContinuedSuffix = null;
+            } else {
+                page.ContinuedSuffix = count <= 2 ? " (continued)" : " (continued " + part + "/" + count + ")";
             }
-
-            return count <= 2 ? " (continued)" : " (continued " + part + "/" + count + ")";
         }
 
         private static List<List<T>> Balance<T>(IReadOnlyList<T> items, int pages) {
@@ -53,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutSlide copy = source.CloneHeader();
             copy.Subtitle = null;
             copy.Notes = null;
-            copy.ContinuedSuffix = Continued(context, part, count);
+            ContinueTitle(context, copy, source.Title, part, count);
             return copy;
         }
 

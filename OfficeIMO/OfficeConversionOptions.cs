@@ -17,6 +17,7 @@ using OfficeIMO.Pdf.PowerPoint;
 using OfficeIMO.Pdf.Word;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
@@ -114,6 +115,8 @@ public sealed partial class OfficeConversionOptions {
     public WordMarkdownImportOptions? MarkdownWord { get; set; }
     /// <summary>Word-to-HTML settings.</summary>
     public WordHtmlExportOptions? WordHtml { get; set; }
+    /// <summary>PowerPoint-to-HTML semantic or visual-review settings.</summary>
+    public PowerPointHtmlSaveOptions? PowerPointHtml { get; set; }
     /// <summary>HTML-to-Word settings.</summary>
     public WordHtmlImportOptions? HtmlWord { get; set; }
     /// <summary>Markdown-to-HTML settings.</summary>
@@ -165,6 +168,7 @@ public sealed partial class OfficeConversionOptions {
         copy.WordMarkdown = WordMarkdown == null ? null : WordMarkdownConverterExtensions.CopyOptions(WordMarkdown);
         copy.MarkdownWord = MarkdownWord == null ? null : WordMarkdownConverterExtensions.CopyOptions(MarkdownWord);
         copy.WordHtml = WordHtml?.CloneForConversion(); copy.HtmlWord = HtmlWord?.Clone();
+        copy.PowerPointHtml = PowerPointHtml?.Clone();
         copy.MarkdownHtml = MarkdownHtml?.CloneForRender(); copy.HtmlMarkdown = HtmlMarkdown?.Clone();
         copy.RegisteredSettings = RegisteredSettings?.Snapshot();
         return copy;

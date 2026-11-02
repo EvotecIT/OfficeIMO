@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates a proof report for user-visible signals preserved by a PDF rewrite.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
 Test-OfficePdfRewrite [-ReferencePath] <string> [-DifferencePath] <string> [-Options <PdfRewritePreservationOptions>] [-FailOnLoss] [-ReferencePassword <string>] [-IgnoreReferencePermissionRestrictions] [-DifferencePassword <string>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Password used to authenticate the rewritten PDF.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -48,7 +48,7 @@ Rewritten PDF path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -64,7 +64,7 @@ Throw when preservation checks find a mismatch.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -80,7 +80,7 @@ After authentication, explicitly ignore restrictions on the rewritten PDF.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -96,7 +96,7 @@ After authentication, explicitly ignore restrictions on the original PDF.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -112,7 +112,7 @@ Optional required preservation signals and limits.
 
 ```yaml
 Type: PdfRewritePreservationOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -128,7 +128,7 @@ Password used to authenticate the original PDF.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 
@@ -144,7 +144,7 @@ Original PDF path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path
 Aliases: None
 Possible values:
 

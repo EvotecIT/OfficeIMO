@@ -242,7 +242,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void SetBulletsAndNumberedList_DoNotLeaveLeadingBlankParagraph() {
+        public void ListsSaveWithoutLeadingBlanksAndReserveSpaceForNumberMarkers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
@@ -251,10 +251,10 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox numbered = slide.AddTextBox("Initial numbered");
 
                 bullets.SetBullets(new[] { "Bullet A", "Bullet B" });
-                numbered.SetNumberedList(new[] { "One", "Two" });
+                numbered.SetNumberedList(new[] { "One", "Two", "Three" }, PowerPointNumberingScheme.RomanUpperCharacterPeriod);
 
                 Assert.Equal(2, bullets.Paragraphs.Count);
-                Assert.Equal(2, numbered.Paragraphs.Count);
+                Assert.Equal(3, numbered.Paragraphs.Count);
                 presentation.Save();
             }
 
@@ -267,9 +267,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Bullet B", bulletParagraphs[1].InnerText);
 
                 var numberedParagraphs = shapes[1].TextBody!.Elements<A.Paragraph>().ToList();
-                Assert.Equal(2, numberedParagraphs.Count);
+                Assert.Equal(3, numberedParagraphs.Count);
                 Assert.Equal("One", numberedParagraphs[0].InnerText);
                 Assert.Equal("Two", numberedParagraphs[1].InnerText);
+                Assert.Equal("Three", numberedParagraphs[2].InnerText);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(28).ToEmus(), numberedParagraphs[2].ParagraphProperties!.LeftMargin!.Value);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(-28).ToEmus(), numberedParagraphs[2].ParagraphProperties!.Indent!.Value);
             }
 
             File.Delete(filePath);

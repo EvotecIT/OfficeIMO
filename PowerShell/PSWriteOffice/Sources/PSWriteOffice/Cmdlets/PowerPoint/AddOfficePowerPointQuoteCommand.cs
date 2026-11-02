@@ -8,7 +8,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a quotation and attribution to the current designed slide.</summary>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointQuote")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointQuote", DefaultParameterSetName = "Text")]
 [Alias("PowerPointQuote")]
 public sealed class AddOfficePowerPointQuoteCommand : OfficeCmdlet {
     /// <summary>Gets or sets the text.</summary>

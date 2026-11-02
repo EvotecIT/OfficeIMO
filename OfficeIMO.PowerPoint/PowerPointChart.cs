@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (chart.GetFirstChild<C.Title>() == null) {
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartThemeWriter.ApplyTitle(chartTitle,
-                    OwnerSlide?.OwnerDocument?.LayoutTheme.Theme ?? OfficeTheme.Default);
+                    OwnerSlide?.AuthoringTheme ?? OfficeTheme.Default);
                 chart.InsertAt(chartTitle, 0);
             }
 

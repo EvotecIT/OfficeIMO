@@ -9,7 +9,7 @@ schema: 2.0.0
 Completes a live PDF document's lifetime without saving.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Close-OfficePdf -Document <PdfDocument> [<CommonParameters>]
 ```
@@ -32,7 +32,7 @@ Live PDF document to close.
 
 ```yaml
 Type: PdfDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

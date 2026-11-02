@@ -3,7 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
@@ -12,32 +14,32 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example>
 ///   <summary>Align found shapes.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
-///     Set-OfficePowerPointShapeLayout -Align Top</code>
+///   <code>Get-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
+///     Set-OfficePowerPointShapeLayout -Alignment Top</code>
 ///   <para>Uses OfficeIMO.PowerPoint to align all matching shapes to the top edge of their selection bounds.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficePowerPointShapeLayout", DefaultParameterSetName = ParameterSetAlign)]
-[Alias("PptShapeLayout", "PptArrange")]
+[Cmdlet(VerbsCommon.Set, "OfficePowerPointShapeLayout", DefaultParameterSetName = ParameterSetAlignment)]
+[Alias("PowerPointShapeLayout")]
 [OutputType(typeof(PowerPointShape))]
 public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
 {
-    private const string ParameterSetAlign = "Align";
+    private const string ParameterSetAlignment = "Alignment";
     private const string ParameterSetDistribute = "Distribute";
     private const string ParameterSetGrid = "Grid";
 
     private readonly List<object> _input = new();
 
-    /// <summary>PowerPoint shapes or shape info records from Get-OfficePowerPointShape or Find-OfficePowerPointShape.</summary>
+    /// <summary>PowerPoint shapes or shape info records from Get-OfficePowerPointShape.</summary>
     [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
-    public object InputObject { get; set; } = null!;
+    public object[] InputObject { get; set; } = Array.Empty<object>();
 
-    /// <summary>Slide that owns raw PowerPointShape inputs. Shape info records carry their own slide.</summary>
-    [Parameter]
-    public PowerPointSlide? Slide { get; set; }
+    /// <summary>Native slide or one-based slide number; omission uses the supplied shapes' owning slide.</summary>
+    [Parameter, PowerPointSlideTransformation]
+    public PowerPointSlideSelector? Slide { get; set; }
 
     /// <summary>Alignment operation.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetAlign)]
-    public PowerPointShapeAlignment Align { get; set; }
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetAlignment)]
+    public PowerPointShapeAlignment Alignment { get; set; }
 
     /// <summary>Distribution operation.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDistribute)]
@@ -45,11 +47,12 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
 
     /// <summary>Optional cross-axis alignment for even distribution.</summary>
     [Parameter(ParameterSetName = ParameterSetDistribute)]
-    public PowerPointShapeAlignment? CrossAxisAlign { get; set; }
+    public PowerPointShapeAlignment? CrossAxisAlignment { get; set; }
 
-    /// <summary>Fixed spacing between distributed shapes in points.</summary>
+    /// <summary>Fixed spacing between distributed shapes; bare numbers mean points.</summary>
     [Parameter(ParameterSetName = ParameterSetDistribute)]
-    public double? SpacingPoints { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Spacing { get; set; }
 
     /// <summary>Arrange shapes in a grid.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetGrid)]
@@ -67,13 +70,15 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetGrid)]
     public SwitchParameter AutoGrid { get; set; }
 
-    /// <summary>Horizontal grid gutter in points.</summary>
+    /// <summary>Horizontal grid gutter; bare numbers mean points.</summary>
     [Parameter(ParameterSetName = ParameterSetGrid)]
-    public double GutterXPoints { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength GutterX { get; set; }
 
-    /// <summary>Vertical grid gutter in points.</summary>
+    /// <summary>Vertical grid gutter; bare numbers mean points.</summary>
     [Parameter(ParameterSetName = ParameterSetGrid)]
-    public double GutterYPoints { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength GutterY { get; set; }
 
     /// <summary>Fill the grid column-by-column instead of row-by-row.</summary>
     [Parameter(ParameterSetName = ParameterSetGrid)]
@@ -87,9 +92,10 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
     [Parameter]
     public SwitchParameter ToSlide { get; set; }
 
-    /// <summary>Use slide content bounds with the supplied margin in points.</summary>
+    /// <summary>Use slide content bounds with the supplied margin; bare numbers mean points.</summary>
     [Parameter]
-    public double? MarginPoints { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Margin { get; set; }
 
     /// <summary>Center a fixed-spacing distribution within its bounds.</summary>
     [Parameter(ParameterSetName = ParameterSetDistribute)]
@@ -116,7 +122,7 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
 
         switch (ParameterSetName)
         {
-            case ParameterSetAlign:
+            case ParameterSetAlignment:
                 InvokeAlign(resolved.Slide, resolved.Shapes);
                 break;
             case ParameterSetDistribute:
@@ -135,61 +141,61 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
 
     private void InvokeAlign(PowerPointSlide slide, IReadOnlyList<PowerPointShape> shapes)
     {
-        if (MarginPoints.HasValue)
+        if (Margin.HasValue)
         {
-            slide.AlignShapesToSlideContent(shapes, Align, OfficeIMO.OfficeLength.Points(MarginPoints.Value));
+            slide.AlignShapesToSlideContent(shapes, Alignment, Margin.Value);
         }
         else if (ToSlide.IsPresent)
         {
-            slide.AlignShapesToSlide(shapes, Align);
+            slide.AlignShapesToSlide(shapes, Alignment);
         }
         else
         {
-            slide.AlignShapes(shapes, Align);
+            slide.AlignShapes(shapes, Alignment);
         }
     }
 
     private void InvokeDistribute(PowerPointSlide slide, IReadOnlyList<PowerPointShape> shapes)
     {
-        if (SpacingPoints.HasValue)
+        if (Spacing.HasValue)
         {
-            if (MarginPoints.HasValue)
-            {
-                slide.DistributeShapesWithSpacingToSlideContent(shapes, Distribute, OfficeIMO.OfficeLength.Points(SpacingPoints.Value), OfficeIMO.OfficeLength.Points(MarginPoints.Value), Center.IsPresent);
-            }
-            else
-            {
-                slide.DistributeShapesWithSpacing(shapes, Distribute, OfficeIMO.OfficeLength.Points(SpacingPoints.Value), Center.IsPresent);
-            }
-
+            var options = new PowerPointShapeSpacingOptions {
+                Spacing = Spacing.Value,
+                CrossAxisAlignment = CrossAxisAlignment,
+                Alignment = Center.IsPresent ?
+                    Distribute == PowerPointShapeDistribution.Horizontal ? PowerPointShapeAlignment.Center : PowerPointShapeAlignment.Middle : null
+            };
+            if (Margin.HasValue) slide.DistributeShapesWithSpacingToSlideContent(shapes, Distribute, Margin.Value, options);
+            else if (ToSlide.IsPresent) slide.DistributeShapesWithSpacingToSlide(shapes, Distribute, options);
+            else slide.DistributeShapesWithSpacing(shapes, Distribute, options);
             return;
         }
 
-        if (MarginPoints.HasValue)
+        if (Margin.HasValue)
         {
-            if (CrossAxisAlign.HasValue)
+            if (CrossAxisAlignment.HasValue)
             {
-                slide.DistributeShapesToSlideContent(shapes, Distribute, OfficeIMO.OfficeLength.Points(MarginPoints.Value), CrossAxisAlign.Value);
+                slide.DistributeShapesToSlideContent(shapes, Distribute, Margin.Value, CrossAxisAlignment.Value);
             }
             else
             {
-                slide.DistributeShapesToSlideContent(shapes, Distribute, OfficeIMO.OfficeLength.Points(MarginPoints.Value));
+                slide.DistributeShapesToSlideContent(shapes, Distribute, Margin.Value);
             }
         }
         else if (ToSlide.IsPresent)
         {
-            if (CrossAxisAlign.HasValue)
+            if (CrossAxisAlignment.HasValue)
             {
-                slide.DistributeShapesToSlide(shapes, Distribute, CrossAxisAlign.Value);
+                slide.DistributeShapesToSlide(shapes, Distribute, CrossAxisAlignment.Value);
             }
             else
             {
                 slide.DistributeShapesToSlide(shapes, Distribute);
             }
         }
-        else if (CrossAxisAlign.HasValue)
+        else if (CrossAxisAlignment.HasValue)
         {
-            slide.DistributeShapes(shapes, Distribute, CrossAxisAlign.Value);
+            slide.DistributeShapes(shapes, Distribute, CrossAxisAlignment.Value);
         }
         else
         {
@@ -207,33 +213,33 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
         var resizeToCell = !NoResize.IsPresent;
         if (AutoGrid.IsPresent)
         {
-            if (MarginPoints.HasValue)
+            if (Margin.HasValue)
             {
-                slide.ArrangeShapesInGridAutoToSlideContent(shapes, OfficeIMO.OfficeLength.Points(MarginPoints.Value), OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
+                slide.ArrangeShapesInGridAutoToSlideContent(shapes, Margin.Value, GutterX, GutterY, resizeToCell, Flow);
             }
             else if (ToSlide.IsPresent)
             {
-                slide.ArrangeShapesInGridAutoToSlide(shapes, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
+                slide.ArrangeShapesInGridAutoToSlide(shapes, GutterX, GutterY, resizeToCell, Flow);
             }
             else
             {
-                slide.ArrangeShapesInGridAuto(shapes, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
+                slide.ArrangeShapesInGridAuto(shapes, GutterX, GutterY, resizeToCell, Flow);
             }
 
             return;
         }
 
-        if (MarginPoints.HasValue)
+        if (Margin.HasValue)
         {
-            slide.ArrangeShapesInGridToSlideContent(shapes, Columns!.Value, Rows!.Value, OfficeIMO.OfficeLength.Points(MarginPoints.Value), OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
+            slide.ArrangeShapesInGridToSlideContent(shapes, Columns!.Value, Rows!.Value, Margin.Value, GutterX, GutterY, resizeToCell, Flow);
         }
         else if (ToSlide.IsPresent)
         {
-            slide.ArrangeShapesInGridToSlide(shapes, Columns!.Value, Rows!.Value, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
+            slide.ArrangeShapesInGridToSlide(shapes, Columns!.Value, Rows!.Value, GutterX, GutterY, resizeToCell, Flow);
         }
         else
         {
-            slide.ArrangeShapesInGrid(shapes, Columns!.Value, Rows!.Value, OfficeIMO.OfficeLength.Points(GutterXPoints), OfficeIMO.OfficeLength.Points(GutterYPoints), resizeToCell, Flow);
+            slide.ArrangeShapesInGrid(shapes, Columns!.Value, Rows!.Value, GutterX, GutterY, resizeToCell, Flow);
         }
     }
 
@@ -266,33 +272,24 @@ public sealed class SetOfficePowerPointShapeLayoutCommand : PSCmdlet
     private ResolvedShapeSet ResolveShapes()
     {
         var shapes = new List<PowerPointShape>();
-        PowerPointSlide? slide = Slide;
-
+        PowerPointSlide? slide = null;
         foreach (var item in _input)
         {
-            switch (item)
+            var shape = item switch
             {
-                case PowerPointShapeInfo info:
-                    slide ??= info.Slide;
-                    if (!ReferenceEquals(slide, info.Slide))
-                    {
-                        throw new PSArgumentException("All PowerPoint shapes must belong to the same slide.", nameof(InputObject));
-                    }
-
-                    shapes.Add(info.Shape);
-                    break;
-                case PowerPointShape shape:
-                    shapes.Add(shape);
-                    break;
-                default:
-                    throw new PSArgumentException("Input must contain PowerPointShape or PowerPointShapeInfo objects.", nameof(InputObject));
-            }
+                PowerPointShapeInfo info => info.Shape,
+                PowerPointShape native => native,
+                _ => throw new PSArgumentException("Input must contain PowerPointShape or PowerPointShapeInfo objects.", nameof(InputObject))
+            };
+            var owner = shape.OwnerSlide ?? throw new PSArgumentException("The shape has no owning slide.", nameof(InputObject));
+            slide ??= owner;
+            if (!ReferenceEquals(slide, owner))
+                throw new PSArgumentException("All PowerPoint shapes must belong to the same slide.", nameof(InputObject));
+            shapes.Add(shape);
         }
-
-        if (slide == null)
-        {
-            throw new PSArgumentException("Provide -Slide when passing raw PowerPointShape objects.", nameof(Slide));
-        }
+        if (slide == null) throw new PSArgumentException("Provide at least one PowerPoint shape.", nameof(InputObject));
+        if (Slide != null && !ReferenceEquals(Slide.Resolve(slide.OwnerDocument), slide))
+            throw new PSArgumentException("The selected slide does not own the supplied shapes.", nameof(Slide));
 
         return new ResolvedShapeSet(slide, shapes);
     }

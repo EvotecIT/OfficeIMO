@@ -78,9 +78,9 @@ Describe 'PDF cmdlets' {
         $joinDirectory = Join-Path $TestDrive 'validation-join'
         $joinPath = Join-Path $joinDirectory 'joined.pdf'
 
-        { Split-OfficePdf -Path $missingPath -OutputDirectory $exportDirectory -PagesPerDocument -1 -ErrorAction Stop } |
-            Should -Throw '*-PagesPerDocument must be greater than zero*'
-        { Split-OfficePdf -Path $missingPath -OutputDirectory $exportDirectory -PageRange 'invalid' -ErrorAction Stop } |
+        { Split-OfficeDocument -Path $missingPath -OutputDirectory $exportDirectory -PageCount -1 -ErrorAction Stop } |
+            Should -Throw '*PageCount*'
+        { Split-OfficeDocument -Path $missingPath -OutputDirectory $exportDirectory -Page 'invalid' -ErrorAction Stop } |
             Should -Throw '*page*'
         { Set-OfficePdfForm -Path $missingPath -OutputPath $outputPath -ErrorAction Stop } |
             Should -Throw '*Provide -Field values or use -Flatten*'
@@ -90,7 +90,7 @@ Describe 'PDF cmdlets' {
             Should -Throw '*page*'
         { ConvertTo-OfficePdfMarkdown -Path $missingPath -PageRange 'invalid' -ErrorAction Stop } |
             Should -Throw '*page*'
-        { Export-OfficePdfImage -Path $missingPath -OutputPath $exportDirectory -PageRange 'invalid' -ErrorAction Stop } |
+        { Export-OfficeDocumentImage -Path $missingPath -OutputDirectory $exportDirectory -Page 'invalid' -ErrorAction Stop } |
             Should -Throw '*page*'
         { Join-OfficePdf -Path $missingPath, $missingPath -Password 'one', 'two', 'three' -OutputPath $joinPath -ErrorAction Stop } |
             Should -Throw '*one -Password value or one value for every -Path source*'
@@ -756,31 +756,25 @@ Describe 'PDF cmdlets' {
         $pages[2].Text | Should -Match 'Chapter Three'
 
         $groupDirectory = Join-Path $TestDrive 'groups'
-        $groups = @(Split-OfficePdf -Path $path -OutputDirectory $groupDirectory -Prefix 'group' -PagesPerDocument 2)
+        $groups = @(Split-OfficeDocument -Path $path -OutputDirectory $groupDirectory -Prefix 'group' -PageCount 2)
         $groups.Count | Should -Be 2
         (Get-OfficePdfInfo -Path $groups[0].FullName).PageCount | Should -Be 2
         (Get-OfficePdfInfo -Path $groups[1].FullName).PageCount | Should -Be 1
 
         $rangeDirectory = Join-Path $TestDrive 'ranges'
-        $ranges = @(Split-OfficePdf -Path $path -OutputDirectory $rangeDirectory -Prefix 'range' -PageRange '1-2', '3')
+        $ranges = @(Split-OfficeDocument -Path $path -OutputDirectory $rangeDirectory -Prefix 'range' -Page '1-2', '3')
         $ranges.Count | Should -Be 2
         Get-OfficePdfText -Path $ranges[0].FullName | Should -Match 'Chapter Two'
         Get-OfficePdfText -Path $ranges[1].FullName | Should -Match 'Chapter Three'
 
         $bookmarkDirectory = Join-Path $TestDrive 'bookmarks'
-        $bookmarks = @(Split-OfficePdf -Path $path -OutputDirectory $bookmarkDirectory -Prefix 'bookmark' -BookmarkName 'Chapter Two')
+        $bookmarks = @(Split-OfficeDocument -Path $path -OutputDirectory $bookmarkDirectory -Prefix 'bookmark' -ByBookmark -Bookmark 'Chapter Two')
         $bookmarks.Count | Should -Be 1
         Get-OfficePdfText -Path $bookmarks[0].FullName | Should -Match 'Chapter Two'
         Get-OfficePdfText -Path $bookmarks[0].FullName | Should -Not -Match 'Chapter Three'
     }
 
     It 'splits encrypted PDFs and writes padded page names' {
-        foreach ($name in 'Split-OfficePdf') {
-            (Get-Command $name).Parameters.Keys | Should -Contain 'Password'
-            (Get-Command $name).Parameters.Keys | Should -Contain 'PadIndex'
-            (Get-Command $name).Parameters.Keys | Should -Contain 'IndexWidth'
-        }
-
         $path = Join-Path $TestDrive 'split-encrypted-source.pdf'
         New-OfficePdf -Path $path -Password 'open' {
             PdfParagraph 'Encrypted page one'
@@ -791,7 +785,7 @@ Describe 'PDF cmdlets' {
         } | Out-Null
 
         $outputDirectory = Join-Path $TestDrive 'encrypted-split'
-        $outputs = @(Split-OfficePdf -Path $path -Password 'open' -OutputDirectory $outputDirectory -Prefix 'page' -IndexWidth 3)
+        $outputs = @(Split-OfficeDocument -Path $path -Password 'open' -OutputDirectory $outputDirectory -Prefix 'page' -IndexWidth 3)
 
         $outputs.Count | Should -Be 3
         $outputs[0].Name | Should -Be 'page-001.pdf'
@@ -812,15 +806,19 @@ Describe 'PDF cmdlets' {
 
         $outputDirectory = Join-Path $TestDrive 'split-collision-output'
         New-Item -ItemType Directory -Path $outputDirectory | Out-Null
-        $existingPath = Join-Path $outputDirectory 'page-1.pdf'
+        $existingPath = Join-Path $outputDirectory 'split-collision-source-1.pdf'
         [IO.File]::WriteAllText($existingPath, 'keep this file')
 
-        $written = @(Split-OfficePdf -Path $path -OutputDirectory $outputDirectory)
+        $written = @(Split-OfficeDocument -Path $path -OutputDirectory $outputDirectory -NoClobber -ErrorAction SilentlyContinue -ErrorVariable splitErrors)
 
-        $written.Count | Should -Be 1
-        $written[0].Name | Should -Be 'page-1-2.pdf'
+        $written.Count | Should -Be 0
+        $splitErrors.Count | Should -Be 1
         [IO.File]::ReadAllText($existingPath) | Should -Be 'keep this file'
-        Get-OfficePdfText -Path $written[0].FullName | Should -Match 'Collision-safe split output'
+
+        $replaced = @(Split-OfficeDocument -Path $path -OutputDirectory $outputDirectory -ErrorAction Stop)
+        $replaced.Count | Should -Be 1
+        $replaced[0].FullName | Should -Be $existingPath
+        Get-OfficePdfText -Path $existingPath | Should -Match 'Collision-safe split output'
     }
 
     It 'does not create split output directories when WhatIf skips writes' {
@@ -832,7 +830,7 @@ Describe 'PDF cmdlets' {
         } | Out-Null
 
         $outputDirectory = Join-Path $TestDrive 'split-whatif-output'
-        Split-OfficePdf -Path $path -OutputDirectory $outputDirectory -WhatIf | Out-Null
+        Split-OfficeDocument -Path $path -OutputDirectory $outputDirectory -WhatIf | Out-Null
 
         Test-Path -LiteralPath $outputDirectory | Should -BeFalse
     }

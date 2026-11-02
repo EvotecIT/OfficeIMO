@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     $layout = @(Get-OfficePowerPointLayout -Master 1)[0]
 ///     PowerPointSlide -Title 'Review' -TemplateLayout $layout
 /// }</code></example>
-[Cmdlet(VerbsCommon.Get, "OfficePowerPointLayout")]
+[Cmdlet(VerbsCommon.Get, "OfficePowerPointLayout", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointSlideLayoutInfo))]
 public sealed class GetOfficePowerPointLayoutCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses the enclosing content scope.</summary>

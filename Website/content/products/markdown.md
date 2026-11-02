@@ -58,9 +58,9 @@ var doc = MarkdownDocument.Create()
     .Code("powershell", "dotnet add package OfficeIMO.Markdown");
 
 string markdown = doc.ToMarkdown();
-string html = doc.ToHtmlFragment();
+string html = doc.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Fragment });
 
-var parsed = MarkdownReader.Parse(
+var parsed = MarkdownDocument.Parse(
     markdown,
     MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile());
 

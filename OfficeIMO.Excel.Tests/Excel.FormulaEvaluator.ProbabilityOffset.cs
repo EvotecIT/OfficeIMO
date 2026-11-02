@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
             string[] expressions = { "RANDBETWEEN(7.1,7.1)", "RANDBETWEEN(9007199254740992,9007199254740992)",
                 "PROB(A1:A2,B1:B2,1)", "PROB(A1:A50001,B1:B50001,1)",
                 "OFFSET(A1,0,0,2,1)", "SUM(OFFSET(A1,0,0,100001,1))", "SUM(A1:A100001)",
-                "XLOOKUP(1,A1:A2,B1:B2,,0,2)", "RANDBETWEEN(7.1,7.1)/0", "UNKNOWN()/0" };
+                "RANDBETWEEN(7.1,7.1)/0", "UNKNOWN()/0" };
             int row = 0;
             foreach (string expression in expressions) {
                 foreach (string wrapper in new[] { "IFERROR({0},99)", "IFNA({0},99)", "ISERROR({0})", "ISERR({0})", "IF(ISERROR({0}),99,1)" }) {
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_FormulaEvaluator_ExactLookupStopsBeforeUnvisitedErrorsOrUnresolvedEntries() {
+        public void Test_FormulaEvaluator_ExactLookupSkipsSourceErrorsButStopsAtVisitedUnresolvedEntries() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("SearchOrder");
             sheet.CellValue(1, 1, 1d); sheet.CellFormula(2, 1, "NA()");
@@ -202,12 +202,12 @@ namespace OfficeIMO.Tests {
                 "VLOOKUP(1,A1:B2,2,FALSE)", "HLOOKUP(1,A1:B2,2,FALSE)" };
             for (int index = 0; index < formulas.Length; index++) sheet.CellFormula(index + 1, 4, formulas[index]);
             document.Calculate();
-            string[] forward = { "10", "1", "1", "#N/A", "#N/A", "10", "#N/A" };
+            string[] forward = { "10", "1", "1", "10", "1", "10", "#N/A" };
             // HLOOKUP finds A1 then returns its typed error at A2; no fallback masks it.
             for (int index = 0; index < forward.Length; index++) AssertFormulaCache(sheet, index + 1, 4, forward[index]);
             sheet.CellFormula(1, 1, "NA()"); sheet.CellFormula(2, 1, "1");
             document.Calculate();
-            string[] reverse = { "#N/A", "#N/A", "#N/A", "20", "2", "#N/A", "#N/A" };
+            string[] reverse = { "20", "2", "2", "20", "2", "20", "#N/A" };
             for (int index = 0; index < reverse.Length; index++) AssertFormulaCache(sheet, index + 1, 4, reverse[index]);
             sheet.CellFormula(1, 1, "UNKNOWN()"); sheet.ClearCachedFormulaResults();
             document.Calculate();

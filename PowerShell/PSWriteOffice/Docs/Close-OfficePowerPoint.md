@@ -9,7 +9,7 @@ schema: 2.0.0
 Closes a live presentation without saving it.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Close-OfficePowerPoint [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Gets or sets an explicit live document; omission uses the enclosing content bloc
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

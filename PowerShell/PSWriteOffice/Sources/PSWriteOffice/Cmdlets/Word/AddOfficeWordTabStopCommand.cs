@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordTabStop -Position 4320 -Alignment Decimal -Leader Dot }</code>
 ///   <para>Adds a decimal tab stop at three inches.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordTabStop")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordTabStop", DefaultParameterSetName = "Default")]
 [Alias("WordTabStop")]
 [OutputType(typeof(WordTabStop))]
 public sealed class AddOfficeWordTabStopCommand : PSCmdlet

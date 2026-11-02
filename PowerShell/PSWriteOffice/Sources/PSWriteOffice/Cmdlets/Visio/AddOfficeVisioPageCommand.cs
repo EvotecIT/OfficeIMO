@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// }</code>
 ///   <para>Adds a named page and executes the nested shape DSL inside that page scope.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioPage")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioPage", DefaultParameterSetName = "Document")]
 [Alias("VisioPage")]
 [OutputType(typeof(VisioPage))]
 public sealed class AddOfficeVisioPageCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {

@@ -15,39 +15,31 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// $document | MarkdownHeading -Text 'Report'
 /// $document | Save-OfficeMarkdown
 /// $document | Close-OfficeMarkdown</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeMarkdown", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficeMarkdown", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo), typeof(MarkdownDocument))]
-public sealed class NewOfficeMarkdownCommand : OfficeLifecycleCmdlet<MarkdownDocument>, IMarkdownWriteOptionSource {
-    /// <summary>Optional associated path; a content block requires a destination.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
+public sealed class NewOfficeMarkdownCommand : OfficeNewLifecycleCmdlet<MarkdownDocument>, IMarkdownWriteOptionSource {
     /// <summary>Allow an existing destination; a failed block preserves its original contents.</summary>
     [Parameter]
     public SwitchParameter Force { get; set; }
     /// <summary>Native Markdown save settings or a hashtable, used when publishing a block.</summary>
-    [Parameter, OfficeOptionsTransformation(typeof(MarkdownSaveOptions)), ValidateNotNull]
+    [Parameter(ParameterSetName = "Content"), OfficeOptionsTransformation(typeof(MarkdownSaveOptions)), ValidateNotNull]
     public MarkdownSaveOptions? WriteOptions { get; set; }
     /// <summary>Writer profile used when publishing a block.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Content")]
     public OfficeMarkdownWriteProfile? WriteProfile { get; set; }
     /// <summary>Image serialization used when publishing a block.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Content")]
     public MarkdownImageRenderingMode? ImageRenderingMode { get; set; }
     /// <summary>Line endings used when publishing a block.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Content")]
     public OfficeLineEnding? LineEnding { get; set; }
     /// <summary>Unordered list marker used when publishing a block.</summary>
-    [Parameter, ValidateSet("-", "*", "+")]
+    [Parameter(ParameterSetName = "Content"), ValidateSet("-", "*", "+")]
     public string? UnorderedListMarker { get; set; }
     string? IMarkdownWriteOptionSource.LineEnding => LineEnding?.ToString();
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (Content == null && (WriteOptions != null || WriteProfile.HasValue || ImageRenderingMode.HasValue ||
-            LineEnding.HasValue || UnorderedListMarker != null || MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss)))) {
-            InvalidArgument(new PSArgumentException("Writer settings require a content block. Supply them to Save-OfficeMarkdown when saving a live document."), Path);
-            return;
-        }
         MarkdownSaveOptions options = MarkdownOptionUtilities.BuildWriteOptions(this) ?? new MarkdownSaveOptions();
         if (MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss))) options.AllowLoss = AllowLoss.IsPresent;
         RunDocument(Path, isNew: true, Force.IsPresent,

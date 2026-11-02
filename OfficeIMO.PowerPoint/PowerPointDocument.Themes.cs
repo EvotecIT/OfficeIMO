@@ -64,6 +64,7 @@ namespace OfficeIMO.PowerPoint {
             element.RemoveAllChildren<A.RgbColorModelHex>();
             element.RemoveAllChildren<A.SystemColor>();
             element.Append(new A.RgbColorModelHex { Val = hexValue });
+            RefreshLayoutTheme(masterIndex);
         }
 
         /// <summary>
@@ -195,6 +196,7 @@ namespace OfficeIMO.PowerPoint {
                 keepExistingWhenNull);
             SetThemeFont(scheme.MinorFont, fonts.MinorLatin, fonts.MinorEastAsian, fonts.MinorComplexScript,
                 keepExistingWhenNull);
+            RefreshLayoutTheme(masterIndex);
         }
 
         /// <summary>
@@ -221,6 +223,16 @@ namespace OfficeIMO.PowerPoint {
                 themePart.Theme ??= new A.Theme { ThemeElements = new A.ThemeElements() };
                 themePart.Theme.Name = name;
             }
+        }
+
+        /// <summary>Sets the name of a selected master's theme without restyling its layouts.</summary>
+        /// <param name="name">Non-empty theme name.</param>
+        /// <param name="masterIndex">Zero-based master position.</param>
+        public void SetThemeName(string name, int masterIndex = 0) {
+            ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Theme name cannot be empty.", nameof(name));
+            A.Theme theme = EnsureTheme(GetSlideMasterPart(masterIndex));
+            theme.Name = name;
         }
 
         /// <summary>
@@ -346,7 +358,8 @@ namespace OfficeIMO.PowerPoint {
             bool keepExistingWhenNull) where TFont : A.TextFontType, new() {
             TFont? existing = parent.GetFirstChild<TFont>()?.CloneNode(true) as TFont;
             if (typeface == null) {
-                return keepExistingWhenNull ? existing : null;
+                // DrawingML requires all three font slots even when no typeface is specified.
+                return keepExistingWhenNull && existing != null ? existing : new TFont { Typeface = string.Empty };
             }
             if (string.IsNullOrWhiteSpace(typeface)) {
                 throw new ArgumentException("Font name cannot be null or empty.", nameof(typeface));

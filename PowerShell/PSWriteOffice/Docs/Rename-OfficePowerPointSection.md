@@ -9,7 +9,7 @@ schema: 2.0.0
 Renames the first section matching the supplied name.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Rename-OfficePowerPointSection [-Name] <string> [-NewName] <string> [-Document <PowerPointDocument>] [-CaseSensitive] [-PassThru] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Gets or sets whether name matching is case-sensitive.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Gets or sets the live document; omission uses its enclosing content block.
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Gets or sets the existing section name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -86,7 +86,7 @@ Gets or sets the new section name.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -102,7 +102,7 @@ Gets or sets whether the changed section is returned.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 

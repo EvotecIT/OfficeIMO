@@ -6,10 +6,6 @@ namespace OfficeIMO.Excel.Pdf {
             ExcelDocument document,
             string sheetName,
             ExcelPdfExportOptions options) {
-            if (!options.UseWorksheetCellStyles) {
-                return Array.Empty<StructuredTableVisualData>();
-            }
-
             var visuals = new List<StructuredTableVisualData>();
             foreach (ExcelTableInfo table in document.GetTables()) {
                 if (!string.Equals(table.SheetName, sheetName, StringComparison.OrdinalIgnoreCase) ||
@@ -17,10 +13,11 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                if (!ExcelBuiltInTableStylePaletteResolver.TryCreate(
+                ExcelBuiltInTableStylePalette? palette = null;
+                if (options.UseWorksheetCellStyles && !ExcelBuiltInTableStylePaletteResolver.TryCreate(
                         document,
                         table.StyleName,
-                        out ExcelBuiltInTableStylePalette? palette)) {
+                        out palette)) {
                     if (!string.IsNullOrWhiteSpace(table.StyleName)) {
                         AddWarning(
                             options,
@@ -28,7 +25,6 @@ namespace OfficeIMO.Excel.Pdf {
                             "worksheet-table-style",
                             $"Excel table '{table.DisplayName}' uses custom or unknown style '{table.StyleName}'. Its values and direct cell formatting were preserved, but the table style could not be projected.");
                     }
-                    continue;
                 }
 
                 visuals.Add(new StructuredTableVisualData(
@@ -42,11 +38,30 @@ namespace OfficeIMO.Excel.Pdf {
                     table.ShowLastColumn,
                     table.ShowRowStripes,
                     table.ShowColumnStripes,
-                    palette!));
+                    palette));
             }
 
-            AddPivotTableVisuals(document, sheetName, visuals);
+            if (options.UseWorksheetCellStyles) AddPivotTableVisuals(document, sheetName, visuals);
             return visuals;
+        }
+
+        private static Dictionary<(int Row, int Column), PdfCore.PdfCanvasTableHeaderScope>? CreateStructuredTableHeaderScopes(
+            string?[,]? references, IReadOnlyList<StructuredTableVisualData> tables,
+            IReadOnlyList<int> rows, int columnOffset, int columns) {
+            if (references == null || tables.Count == 0) return null;
+            var scopes = new Dictionary<(int Row, int Column), PdfCore.PdfCanvasTableHeaderScope>();
+            for (int row = 0; row < rows.Count; row++) {
+                for (int column = 0; column < columns; column++) {
+                    int sourceColumn = column + columnOffset;
+                    if (rows[row] >= references.GetLength(0) || sourceColumn >= references.GetLength(1)) continue;
+                    string? reference = references[rows[row], sourceColumn];
+                    if (string.IsNullOrEmpty(reference)) continue;
+                    var source = ExcelA1.ParseCellRef(reference!);
+                    if (tables.Any(table => table.IsHeaderCell(source.Row, source.Col)))
+                        scopes[(row, column)] = PdfCore.PdfCanvasTableHeaderScope.Column;
+                }
+            }
+            return scopes.Count == 0 ? null : scopes;
         }
 
         /// <summary>
@@ -133,7 +148,7 @@ namespace OfficeIMO.Excel.Pdf {
             private readonly bool _showLastColumn;
             private readonly bool _showRowStripes;
             private readonly bool _showColumnStripes;
-            private readonly ExcelBuiltInTableStylePalette _palette;
+            private readonly ExcelBuiltInTableStylePalette? _palette;
 
             internal StructuredTableVisualData(
                 int firstRow,
@@ -146,7 +161,7 @@ namespace OfficeIMO.Excel.Pdf {
                 bool showLastColumn,
                 bool showRowStripes,
                 bool showColumnStripes,
-                ExcelBuiltInTableStylePalette palette) {
+                ExcelBuiltInTableStylePalette? palette) {
                 _firstRow = firstRow;
                 _firstColumn = firstColumn;
                 _lastRow = lastRow;
@@ -160,9 +175,12 @@ namespace OfficeIMO.Excel.Pdf {
                 _palette = palette;
             }
 
+            internal bool IsHeaderCell(int row, int column) =>
+                _hasHeader && row == _firstRow && column >= _firstColumn && column <= _lastColumn;
+
             internal bool TryResolve(int row, int column, out StructuredTableCellVisual? visual) {
                 visual = null;
-                if (row < _firstRow || row > _lastRow || column < _firstColumn || column > _lastColumn) {
+                if (_palette == null || row < _firstRow || row > _lastRow || column < _firstColumn || column > _lastColumn) {
                     return false;
                 }
 

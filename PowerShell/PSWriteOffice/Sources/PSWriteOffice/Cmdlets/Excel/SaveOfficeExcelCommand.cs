@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example><summary>Save pending edits and then close the workbook.</summary>
 /// <code>Save-OfficeExcel -Document $workbook -Path ./Reviewed.xlsx -SaveOptions @{ Preflight = $true; ValidateOpenXml = $true } -PassThru
 /// Close-OfficeExcel -Document $workbook</code></example>
-[Cmdlet(VerbsData.Save, "OfficeExcel", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeExcel", SupportsShouldProcess = true, DefaultParameterSetName = "Default")]
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficeExcelCommand : OfficeCmdlet {
     /// <summary>Live workbook to save.</summary>

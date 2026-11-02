@@ -56,7 +56,7 @@ internal sealed class OfficeBatchPortableSettings {
             options.WordSave != null || options.ExcelSave != null || options.PowerPointSave != null || options.RegisteredSettings != null ||
             options.Reader != null || options.ReaderPdf != null || options.ReaderEmail != null || options.ReaderEpub != null || options.ReaderVisio != null ||
             options.PdfExcel != null || options.WordMarkdown != null || options.MarkdownWord != null || options.WordHtml != null ||
-            options.HtmlWord != null || options.MarkdownHtml != null || options.HtmlMarkdown != null || options.HtmlLoad != null ||
+            options.HtmlWord != null || options.MarkdownHtml != null || options.HtmlMarkdown != null || options.HtmlLoad != null || options.PowerPointHtml != null ||
             options.CompatibilityMode != baseline.CompatibilityMode || options.EmbedSourceWhenLossy ||
             options.VisualFallbackMaxColumns != baseline.VisualFallbackMaxColumns || options.VisualFallbackMaxRows != baseline.VisualFallbackMaxRows)
             throw new NotSupportedException("Saved batches support portable scalar settings and secret references. Advanced renderer objects and runtime callbacks remain execution-only.");

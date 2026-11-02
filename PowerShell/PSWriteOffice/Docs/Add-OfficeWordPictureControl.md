@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a picture content control to the current paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordPictureControl [-Path] <string> [-Width <Double>] [-Height <Double>] [-Alias <string>] [-Tag <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Optional alias for the control.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Height in pixels.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Explicit paragraph to receive the control.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Emit the created control.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Path to the image file.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Optional tag for the control.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Width in pixels.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

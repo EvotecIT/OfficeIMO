@@ -18,13 +18,9 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// <example><summary>Create a live landscape diagram and save it explicitly.</summary>
 /// <code>$diagram = New-OfficeVisio -Width 11in -Height 8.5in
 /// Save-OfficeVisio -Document $diagram -Path ./Landscape.vsdx</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeVisio", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficeVisio", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(VisioDocument), typeof(FileInfo))]
-public sealed class NewOfficeVisioCommand : OfficeLifecycleCmdlet<VisioDocument> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficeVisioCommand : OfficeNewLifecycleCmdlet<VisioDocument> {
     /// <summary>Initial page name.</summary>
     [Parameter, ValidateNotNullOrEmpty]
     public string PageName { get; set; } = "Page-1";

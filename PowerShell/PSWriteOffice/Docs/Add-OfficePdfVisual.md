@@ -11,17 +11,22 @@ Adds a ChartForgeX artifact, portable SVG, or converted Office visual to PDF flo
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfVisual [-InputObject] <Object> [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <Double>] [-Height <Double>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixels <Double>] [-Id <string>] [-Title <string>] [-AlternativeText <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-InputObject] <Object> [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <Double>] [-Height <Double>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixels <Double>] [-Id <string>] [-Title <string>] [-AlternativeText <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
 ### PipelineDocument
 ```powershell
-Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <Double>] [-Height <Double>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixels <Double>] [-Id <string>] [-Title <string>] [-AlternativeText <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
+```
+
+### Visual
+```powershell
+Add-OfficePdfVisual [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,6 +46,12 @@ Add-OfficePdfVisual -InputObject 'Value' -Document 'Value'
 ```
 
 
+### EXAMPLE 3
+```powershell
+Add-OfficePdfVisual -Align 'Value'
+```
+
+
 ## PARAMETERS
 
 ### -Align
@@ -48,7 +59,7 @@ Horizontal alignment in PDF flow.
 
 ```yaml
 Type: PdfAlign
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values: Left, Center, Right, Justify
 
@@ -60,11 +71,11 @@ Accept wildcard characters: False
 ```
 
 ### -AlternativeText
-Optional accessible description for an SVG file input.
+Accessible description for the visual or placed image.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 
@@ -92,11 +103,11 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Optional output height in Office points.
+Optional output height; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Type: OfficeLength
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 
@@ -112,7 +123,7 @@ Optional stable identifier for an SVG file input.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -144,7 +155,7 @@ Optional OfficeIMO SVG import element limit.
 
 ```yaml
 Type: Int32
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -160,7 +171,7 @@ Optional maximum SVG viewport width or height. Increase the safe default only fo
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -171,12 +182,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaximumSvgViewportPixels
+### -MaximumSvgViewportPixelCount
 Optional maximum SVG viewport area in pixels. Increase the safe default only for trusted input.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Type: Int64
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -192,7 +203,7 @@ Emit the updated PDF document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 
@@ -208,7 +219,7 @@ Conversion factor from ChartForgeX pixels to Office points.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Visual
 Aliases: None
 Possible values:
 
@@ -224,7 +235,7 @@ Spacing after the visual in points.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 
@@ -240,7 +251,7 @@ Spacing before the visual in points.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 
@@ -256,7 +267,7 @@ SVG fidelity policy used by OfficeIMO.ChartForgeX.
 
 ```yaml
 Type: OfficeVisualSvgPolicy
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Visual
 Aliases: None
 Possible values: PreserveVector, RasterizeWhenNeeded, RequireVector
 
@@ -272,7 +283,7 @@ Optional title for an SVG file input.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 
@@ -284,11 +295,11 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Optional output width in Office points.
+Optional output width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document, PipelineDocument
+Type: OfficeLength
+Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
 Possible values:
 

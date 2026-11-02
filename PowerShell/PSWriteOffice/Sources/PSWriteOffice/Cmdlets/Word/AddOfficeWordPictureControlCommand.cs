@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>Add-OfficeWordParagraph { Add-OfficeWordPictureControl -Path .\logo.png -Width 96 -Height 32 }</code>
 ///   <para>Embeds an image inside a picture content control.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordPictureControl")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordPictureControl", DefaultParameterSetName = "Default")]
 [Alias("WordPictureControl")]
 [OutputType(typeof(WordPictureControl))]
 public sealed class AddOfficeWordPictureControlCommand : PSCmdlet

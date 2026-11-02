@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example><summary>Save edits explicitly, then close.</summary>
 /// <code>$workbook | Save-OfficeExcel
 /// $workbook | Close-OfficeExcel</code></example>
-[Cmdlet(VerbsCommon.Close, "OfficeExcel")]
+[Cmdlet(VerbsCommon.Close, "OfficeExcel", DefaultParameterSetName = "Default")]
 public sealed class CloseOfficeExcelCommand : PSCmdlet {
     /// <summary>Explicit-persistence workbook to close.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true), ValidateNotNull]

@@ -27,9 +27,22 @@ public sealed partial class PdfDocumentPages {
         return BookmarkPageRanges(_document.ReadOptions, default, bookmarkTitles);
     }
 
-    private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfLoadOptions? options, CancellationToken cancellationToken, params string[] bookmarkTitles) {
+    /// <summary>Returns sections at a one-based outline level, retaining nested pages up to the next bookmark at the same or an outer level.</summary>
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, params string[] bookmarkTitles) =>
+        BookmarkPageRanges(level, CancellationToken.None, bookmarkTitles);
+
+    /// <summary>Returns outline-level sections with cancellation and optional exact title selection.</summary>
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, CancellationToken cancellationToken, params string[] bookmarkTitles) {
+        if (level < 1) throw new ArgumentOutOfRangeException(nameof(level), "Outline levels are one-based.");
+        return GetBookmarkPageRanges(_document.ReadOptions, level, cancellationToken, bookmarkTitles);
+    }
+
+    private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfLoadOptions? options, CancellationToken cancellationToken, params string[] bookmarkTitles) =>
+        GetBookmarkPageRanges(options, null, cancellationToken, bookmarkTitles);
+
+    private IReadOnlyList<PdfBookmarkPageRange> GetBookmarkPageRanges(PdfLoadOptions? options, int? level, CancellationToken cancellationToken, params string[] bookmarkTitles) {
         PdfDocumentInfo info = _document.Inspect(options, cancellationToken);
-        PdfBookmarkPageRange[] allRanges = BuildBookmarkPageRanges(info, cancellationToken);
+        PdfBookmarkPageRange[] allRanges = BuildBookmarkPageRanges(info, cancellationToken, level);
         if (bookmarkTitles is null || bookmarkTitles.Length == 0) {
             return allRanges;
         }
@@ -405,14 +418,14 @@ public sealed partial class PdfDocumentPages {
     public PdfDocument SetArtBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>
         SetPageBox(PdfPageBoundaryBox.ArtBox, left, bottom, right, top, pageNumbers);
 
-    private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info, CancellationToken cancellationToken) {
+    private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info, CancellationToken cancellationToken, int? level = null) {
         var outlines = new List<PdfOutlineItem>();
         FlattenOutlines(info.Outlines, outlines, cancellationToken);
 
         var anchors = new List<PdfOutlineItem>();
         for (int i = 0; i < outlines.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (outlines[i].PageNumber.HasValue) {
+            if ((!level.HasValue || outlines[i].Level <= level.Value) && outlines[i].PageNumber.HasValue) {
                 int pageNumber = outlines[i].PageNumber!.Value;
                 if (pageNumber >= 1 && pageNumber <= info.PageCount) {
                     anchors.Add(outlines[i]);
@@ -432,6 +445,7 @@ public sealed partial class PdfDocumentPages {
         for (int i = 0; i < anchors.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfOutlineItem anchor = anchors[i];
+            if (level.HasValue && anchor.Level != level.Value) continue;
             int firstPage = anchor.PageNumber!.Value;
             int lastPage = info.PageCount;
             for (int j = i + 1; j < anchors.Count; j++) {

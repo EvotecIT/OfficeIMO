@@ -25,6 +25,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? PageCount { get; set; }
 
+        /// <summary>
+        /// Gets or sets a caller-ordered one-based selection for batch image export and visual snapshots.
+        /// When supplied, this overrides <see cref="PageIndex"/> and <see cref="PageCount"/> for batches.
+        /// Single-page operations continue to use <see cref="PageIndex"/>.
+        /// </summary>
+        public OfficeIMO.Pdf.PdfPageSelection? PageSelection { get; set; }
+
         /// <summary>Creates an independent options snapshot.</summary>
         public WordImageExportOptions Clone() {
             if (LayoutOptions == null) throw new ArgumentNullException(nameof(LayoutOptions));
@@ -32,6 +39,7 @@ namespace OfficeIMO.Word {
             clone.LayoutOptions = LayoutOptions.Clone();
             clone.PageIndex = PageIndex;
             clone.PageCount = PageCount;
+            clone.PageSelection = PageSelection;
             return clone;
         }
 

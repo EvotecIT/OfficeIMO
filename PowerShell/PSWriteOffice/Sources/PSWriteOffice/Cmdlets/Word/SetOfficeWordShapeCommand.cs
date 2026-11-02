@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $doc | Save-OfficeWord -Path .\Report-Shapes.docx</code>
 ///   <para>Updates OfficeIMO shape objects through the pipeline and persists the document with the standard save command.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeWordShape")]
+[Cmdlet(VerbsCommon.Set, "OfficeWordShape", DefaultParameterSetName = "Default")]
 [Alias("WordShapeStyle")]
 [OutputType(typeof(WordShape))]
 public sealed class SetOfficeWordShapeCommand : PSCmdlet

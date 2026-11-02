@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>Rename-OfficePowerPointSection -Document $deck -Name Results -NewName 'Deep dive'</code></example>
 /// <example><summary>Return the renamed section.</summary>
 /// <code>$section = Rename-OfficePowerPointSection -Document $deck -Name Appendix -NewName Reference -PassThru</code></example>
-[Cmdlet(VerbsCommon.Rename, "OfficePowerPointSection")]
+[Cmdlet(VerbsCommon.Rename, "OfficePowerPointSection", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PowerPointSectionInfo))]
 public sealed class RenameOfficePowerPointSectionCommand : OfficeCmdlet {
     /// <summary>Gets or sets the live document; omission uses its enclosing content block.</summary>

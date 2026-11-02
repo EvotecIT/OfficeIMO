@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 /// <example><summary>Save a live document to its associated destination.</summary>
 /// <code>$document = New-OfficeOpenDocument -Path ./Proposal.odt
 /// Save-OfficeOpenDocument -Document $document</code></example>
-[Cmdlet(VerbsData.Save, "OfficeOpenDocument", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeOpenDocument", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(OdfSaveResult))]
 public sealed class SaveOfficeOpenDocumentCommand : PSCmdlet {
     /// <summary>OpenDocument model to save.</summary>

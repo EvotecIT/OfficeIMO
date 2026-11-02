@@ -17,6 +17,7 @@ internal static class WordPageImageExport {
         OfficeImageExportFormat format, WordImageExportOptions options, CancellationToken cancellationToken) {
         WordImageExportOptions single = options.Clone();
         single.PageCount = 1;
+        single.PageSelection = null;
         return RenderPages(document, format, single, cancellationToken)[0];
     }
 
@@ -49,6 +50,7 @@ internal static class WordPageImageExport {
     internal static WordDocumentVisualInfo CreateSnapshot(WordDocument document, WordImageExportOptions options) {
         WordImageExportOptions single = options.Clone();
         single.PageCount = 1;
+        single.PageSelection = null;
         return CreateSnapshots(document, single)[0];
     }
 
@@ -95,6 +97,7 @@ internal static class WordPageImageExport {
     }
 
     private static PdfCore.PdfPageSelection ResolveSelection(WordImageExportOptions options, int totalPages) {
+        if (options.PageSelection != null) return options.PageSelection;
         if (options.PageIndex >= totalPages)
             throw new ArgumentOutOfRangeException(nameof(options.PageIndex), "Page index is outside the document.");
         int count = Math.Min(options.PageCount ?? totalPages, totalPages - options.PageIndex);

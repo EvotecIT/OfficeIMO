@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates discoverable rendering and tolerance settings for Compare-OfficePdfVisual.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficePdfVisualComparisonOptions [-Scale <Double>] [-ChannelTolerance <Byte>] [-AllowedDifferenceRatio <Double>] [-Alignment <PdfVisualPageAlignment>] [-BackgroundColor <string>] [-MaxPages <Int32>] [-MaxPixelsPerImage <Int64>] [-MaxTotalPixels <Int64>] [-MaxTotalOutputBytes <Int64>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Page alignment used for differently sized renders.
 
 ```yaml
 Type: PdfVisualPageAlignment
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: TopLeft, Center
 
@@ -49,7 +49,7 @@ Maximum differing-pixel ratio treated as equal.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Background color name or hex value.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Maximum per-channel byte difference treated as equal.
 
 ```yaml
 Type: Byte
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Maximum pages compared.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Maximum pixels accepted per rendered image.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Maximum total bytes retained for comparison artifacts.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Maximum pixels accepted across the comparison.
 
 ```yaml
 Type: Int64
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,7 +161,7 @@ Render scale applied before comparison.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

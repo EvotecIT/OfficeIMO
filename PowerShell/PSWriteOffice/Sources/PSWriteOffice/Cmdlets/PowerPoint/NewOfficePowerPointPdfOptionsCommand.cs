@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <example><summary>Omit charts and SmartArt from a review copy.</summary>
 /// <code>$options = New-OfficePowerPointPdfOptions -NoCharts -NoSmartArt -Font Aptos
 /// Convert-OfficeDocument -Path ./Briefing.pptx -To Pdf -OutputPath ./Review.pdf -Options $options</code></example>
-[Cmdlet(VerbsCommon.New, "OfficePowerPointPdfOptions")]
+[Cmdlet(VerbsCommon.New, "OfficePowerPointPdfOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(PowerPointPdfExportOptions))]
 public sealed class NewOfficePowerPointPdfOptionsCommand : OfficeCmdlet {
     /// <summary>Underlying low-level OfficeIMO PDF options.</summary>

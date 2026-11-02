@@ -9,7 +9,7 @@ schema: 2.0.0
 Closes a live Excel workbook without saving pending changes.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Close-OfficeExcel [-Document] <ExcelDocument> [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Explicit-persistence workbook to close.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

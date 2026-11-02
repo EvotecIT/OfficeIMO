@@ -97,9 +97,10 @@ public sealed partial class MainWindowViewModel {
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || marks is null || generation != _redactionPlanGeneration ||
             !ReferenceEquals(_workspace, workspace) || revision != workspace.Revision) return;
-        PdfRedactionMarkViewModel[] candidates = marks.Select(mark => new PdfRedactionMarkViewModel(mark.Area,
+        PdfRedactionMarkViewModel[] candidates = marks.Select((mark, index) => new PdfRedactionMarkViewModel(mark.Area,
             new Avalonia.Rect(mark.Bounds.X, mark.Bounds.Y, mark.Bounds.Width, mark.Bounds.Height),
-            mark.Description, textSelection, _localizer)).ToArray();
+            mark.Description + " · " + _localizer.FormatOrDefault("Search.Position", "Match {0} of {1}", index + 1, marks.Count),
+            textSelection, _localizer)).ToArray();
         PdfRedactionMarkViewModel? conflict = candidates.Select(FindRedactionPolicyConflict).FirstOrDefault(existing => existing is not null);
         if (conflict is not null) {
             ReportRedactionPolicyConflict(conflict);

@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <code>$chart | Set-OfficeExcelChartLegend -Position Right</code>
 ///   <para>Shows the legend on the right side of the chart and returns the chart for chaining.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelChartLegend")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelChartLegend", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelChart))]
 public sealed class SetOfficeExcelChartLegendCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Chart to update.</summary>

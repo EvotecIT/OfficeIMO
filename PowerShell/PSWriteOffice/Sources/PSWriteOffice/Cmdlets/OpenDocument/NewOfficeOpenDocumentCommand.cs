@@ -18,13 +18,9 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 /// <code>$drawing = New-OfficeOpenDocument -Path ./Overview.odg
 /// $page = $drawing.AddPage('Overview')
 /// Save-OfficeOpenDocument -Document $drawing</code></example>
-[Cmdlet(VerbsCommon.New, "OfficeOpenDocument", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.New, "OfficeOpenDocument", DefaultParameterSetName = "Live", SupportsShouldProcess = true)]
 [OutputType(typeof(OdfDocument), typeof(FileInfo))]
-public sealed class NewOfficeOpenDocumentCommand : OfficeLifecycleCmdlet<OdfDocument> {
-    /// <summary>Optional associated destination; required with a content block.</summary>
-    [Parameter(Position = 0), ValidateNotNullOrEmpty]
-    public string? Path { get; set; }
-
+public sealed class NewOfficeOpenDocumentCommand : OfficeNewLifecycleCmdlet<OdfDocument> {
     /// <summary>Document kind; required when no destination extension is supplied.</summary>
     [Parameter]
     public OdfDocumentKind? Kind { get; set; }

@@ -68,22 +68,9 @@ public sealed class GetOfficeExcelSheetViewCommand : OfficeCmdlet {
     }
 
     private void WriteViews(ExcelDocument book, string? path, bool useCurrentSheet) {
-        IReadOnlyList<ExcelSheet> sheets = book.Sheets;
-        var selected = new HashSet<ExcelSheet>();
-        if (Sheet != null) {
-            foreach (OfficeSheetSelector selector in Sheet) {
-                if (selector.Name is string pattern && WildcardPattern.ContainsWildcardCharacters(pattern)) {
-                    var matcher = new WildcardPattern(pattern, WildcardOptions.IgnoreCase);
-                    foreach (ExcelSheet sheet in sheets) if (matcher.IsMatch(sheet.Name)) selected.Add(sheet);
-                } else selected.Add(selector.Resolve(sheets, sheet => sheet.Name));
-            }
-        } else if (useCurrentSheet && ExcelDslContext.Current?.CurrentSheet is ExcelSheet current
-            && ReferenceEquals(current.Document, book)) {
-            selected.Add(OfficeSheetSelector.From(current).Resolve(sheets, sheet => sheet.Name));
-        } else foreach (ExcelSheet sheet in sheets) selected.Add(sheet);
-
-        foreach (ExcelSheet sheet in sheets) {
-            if (selected.Contains(sheet)) WriteObject(new ExcelSheetViewInfo(sheet.Name, sheet.GetViewInfo(), path));
-        }
+        ExcelSheet? current = useCurrentSheet && ExcelDslContext.Current?.CurrentSheet is ExcelSheet selected
+            && ReferenceEquals(selected.Document, book) ? selected : null;
+        foreach (ExcelSheet sheet in ExcelSheetResolver.ResolveMany(book, Sheet, current))
+            WriteObject(new ExcelSheetViewInfo(sheet.Name, sheet.GetViewInfo(), path));
     }
 }

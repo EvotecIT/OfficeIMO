@@ -41,20 +41,20 @@ New-OfficeWord -Path $path {
         }
 
         WordParagraph -Text 'Delivery trend' -Style Heading1 {
-            WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
+            Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 6 -KeepWithNext:$true
         }
         WordChart -Type Line -Data $trend -Category Week -Value Complete -Title 'Completion by week (%)' -FitToPageWidth -HeightPixels 190
 
         WordParagraph -Text 'Decision' -Style Heading1 {
-            WordParagraphStyle -SpacingBeforePoints 12 -SpacingAfterPoints 6 -KeepWithNext $true
+            Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 6 -KeepWithNext:$true
         }
         WordParagraph {
-            WordParagraphStyle -SpacingAfterPoints 4 -KeepWithNext $true
+            Set-OfficeWordParagraph -SpacingAfter 4 -KeepWithNext:$true
             WordText -Bold 'Approve the pilot window: '
             WordCheckBox -Alias 'PilotApproved' -Tag 'pilot-approved'
         }
         WordParagraph {
-            WordParagraphStyle -KeepLinesTogether $true
+            Set-OfficeWordParagraph -KeepLinesTogether:$true
             WordText 'Target review date: '
             WordDatePicker -Date '2026-09-01' -Alias 'PilotReviewDate' -Tag 'pilot-review-date'
         }

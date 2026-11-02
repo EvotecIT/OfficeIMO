@@ -23,6 +23,34 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutMasterWriter.Apply(_presentationPart, _layoutTheme);
         }
 
+        /// <summary>Restyles the theme, master placeholders and layouts of an existing presentation.</summary>
+        /// <param name="theme">Theme to apply. Explicit shape formatting is retained.</param>
+        /// <param name="masterIndex">Zero-based master to restyle, or null for every master and the presentation defaults.</param>
+        public void ApplyTheme(OfficeTheme theme, int? masterIndex = null) {
+            ThrowIfDisposed();
+            if (theme == null) throw new ArgumentNullException(nameof(theme));
+            SlideMasterPart? selected = masterIndex.HasValue ? GetSlideMasterPart(masterIndex.Value) : null;
+            bool allMasters = selected == null || _presentationPart.SlideMasterParts.Count() == 1;
+            PowerPointLayoutTheme layout = PowerPointLayoutTheme.From(theme);
+            PowerPointLayoutMasterWriter.Apply(_presentationPart, layout, allMasters ? null : selected);
+            if (allMasters) SetThemeNameForAllMasters(theme.Name);
+            else SetThemeName(theme.Name, masterIndex!.Value);
+            if (allMasters) _baseTheme = theme;
+            if (allMasters || masterIndex == 0) _layoutTheme = layout;
+        }
+
+        /// <summary>Reads a master's theme name, current palette and Latin heading/body fonts without restyling the presentation.</summary>
+        /// <param name="masterIndex">Zero-based master position.</param>
+        public OfficeTheme GetTheme(int masterIndex = 0) {
+            ThrowIfDisposed();
+            GetSlideMasterPart(masterIndex);
+            return ReadLayoutTheme(masterIndex).Theme;
+        }
+
+        private void RefreshLayoutTheme(int masterIndex) {
+            if (masterIndex == 0) _layoutTheme = ReadLayoutTheme();
+        }
+
         /// <summary>Rewrites the theme-derived parts for a designer theme mapped onto the presentation's theme.</summary>
         internal void ApplyLayoutTheme(PowerPointLayoutTheme theme) {
             _layoutTheme = theme;
@@ -47,11 +75,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Reads a master's current colours and fonts without restyling its native layouts.</summary>
-        internal PowerPointLayoutTheme ReadLayoutTheme(int masterIndex = 0) {
-            OfficeTheme theme = OfficeTheme.Default;
+        internal PowerPointLayoutTheme ReadLayoutTheme(int masterIndex = 0,
+            A.ColorScheme? colorsOverride = null, A.FontScheme? fontsOverride = null) {
+            OfficeTheme theme = _layoutTheme?.Theme ?? _baseTheme ?? OfficeTheme.Default;
             SlideMasterPart? master = _presentationPart.SlideMasterParts.Skip(masterIndex).FirstOrDefault();
-            A.ThemeElements? elements = master?.ThemePart?.Theme?.ThemeElements;
-            if (elements == null) return PowerPointLayoutTheme.From(theme);
+            A.Theme? nativeTheme = master?.ThemePart?.Theme;
+            A.ThemeElements? elements = nativeTheme?.ThemeElements;
+            if (elements == null && colorsOverride == null && fontsOverride == null) return PowerPointLayoutTheme.From(theme);
 
             OfficeColor? Read(DocumentFormat.OpenXml.OpenXmlCompositeElement? slot) {
                 string? hex = slot?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
@@ -64,25 +94,30 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            A.ColorScheme? colors = elements.ColorScheme;
+            A.ColorScheme? colors = colorsOverride ?? elements?.ColorScheme;
             OfficeThemePalette palette = theme.Palette;
             OfficeColor? text = Read(colors?.Dark1Color);
             OfficeColor? background = Read(colors?.Light1Color);
             palette = palette.With(
                 background: background,
                 text: text,
+                textMuted: Read(colors?.Dark2Color),
                 accent1: Read(colors?.Accent1Color),
                 accent2: Read(colors?.Accent2Color),
                 accent3: Read(colors?.Accent3Color),
                 accent4: Read(colors?.Accent4Color),
                 accent5: Read(colors?.Accent5Color),
                 accent6: Read(colors?.Accent6Color));
-            string? heading = elements.FontScheme?.MajorFont?.LatinFont?.Typeface?.Value;
-            string? body = elements.FontScheme?.MinorFont?.LatinFont?.Typeface?.Value;
+            A.FontScheme? fontScheme = fontsOverride ?? elements?.FontScheme;
+            string? heading = fontScheme?.MajorFont?.LatinFont?.Typeface?.Value;
+            string? body = fontScheme?.MinorFont?.LatinFont?.Typeface?.Value;
             OfficeThemeFonts fonts = new(
                 string.IsNullOrWhiteSpace(heading) ? theme.Fonts.Heading : theme.Fonts.Heading.With(family: heading),
                 string.IsNullOrWhiteSpace(body) ? theme.Fonts.Body : theme.Fonts.Body.With(family: body));
-            return PowerPointLayoutTheme.From(theme.WithPalette(palette).WithFonts(fonts));
+            string? name = nativeTheme?.Name?.Value;
+            return PowerPointLayoutTheme.From(theme.WithName(string.IsNullOrWhiteSpace(name) ? theme.Name : name!)
+                .WithPalette(palette).WithFonts(fonts)
+                .WithSurfaces(theme.Surfaces.With(surface: Read(colors?.Light2Color))));
         }
     }
 }

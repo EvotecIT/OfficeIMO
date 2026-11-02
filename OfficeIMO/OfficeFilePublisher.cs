@@ -13,7 +13,8 @@ internal static class OfficeFilePublisher {
             case OfficePublicationPolicy.Fail:
                 await EnsurePublicationAllowedAsync(guard, requestedPath, false, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
-                File.Move(stagingPath, requestedPath);
+                if (!OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, requestedPath))
+                    throw new IOException("The output destination is already claimed: " + requestedPath);
                 return requestedPath;
             case OfficePublicationPolicy.Replace:
                 await EnsurePublicationAllowedAsync(guard, requestedPath, false, cancellationToken).ConfigureAwait(false);
@@ -25,11 +26,11 @@ internal static class OfficeFilePublisher {
                     cancellationToken.ThrowIfCancellationRequested();
                     string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
                     if (!await CanPublishAsync(guard, candidate, false, cancellationToken).ConfigureAwait(false)) continue;
+                    if (Directory.Exists(candidate)) continue;
                     try {
-                        File.Move(stagingPath, candidate);
-                        return candidate;
-                    } catch (IOException) when (File.Exists(candidate) || Directory.Exists(candidate)) {
-                        // Another request owns this candidate. Try the next deterministic suffix.
+                        if (OfficeFileCommit.TryCommitTemporaryFileIfAbsent(stagingPath, candidate)) return candidate;
+                    } catch (IOException) when (Directory.Exists(candidate)) {
+                        // A directory can claim the name after the precheck. Keep the staged artifact for the next suffix.
                     }
                 }
                 throw new IOException("No available numbered output path could be reserved.");

@@ -6,11 +6,32 @@
       "kind": "behavior",
       "action": "change",
       "new": "HTML p elements: margin-top 1em; margin-bottom 1em",
-      "reason": "HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout.",
+      "reason": "HTML to PDF and image rendering use browser paragraph defaults: one em above and below each p element, including Document mode. Adjacent block margins still collapse into one gap. Word-to-HTML output keeps paragraphs inside list items at zero margin, so exported Word lists retain their compact spacing. A bottom margin at the end of a page is dropped rather than opening an empty page when the content fits. HTML that relied on no paragraph top margin gains space above paragraphs; set p { margin-top: 0 } to keep the previous layout.",
       "file": "OfficeIMO.Html/Rendering/HtmlRenderStyleResolver.cs",
       "category": "conversion",
       "phase": "M6",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeHtmlDocumentOptions.Theme selects only OfficeVisualThemeKind presets",
+      "kind": "behavior",
+      "action": "change",
+      "new": "OfficeHtmlDocumentOptions.DocumentTheme accepts an OfficeTheme; when set, it overrides the preset palette and font choices",
+      "reason": "Use the same immutable document theme for semantic HTML and Office files. The shared HTML shell projects its palette, font stack, table-header text and light or dark color scheme. Existing enum presets remain available when DocumentTheme is omitted. New-OfficePowerPointHtmlOptions defaults its shared document theme to Modern.",
+      "file": "OfficeIMO.Html/OfficeHtmlDocumentOptions.cs",
+      "category": "conversion",
+      "phase": "M5",
+      "applied": "applied"
+    },
+    {
+      "old": "HtmlRenderOptions batch image selection",
+      "kind": "property",
+      "action": "change",
+      "new": "HtmlRenderOptions.PageSelection (PdfPageSelection)",
+      "reason": "Batch image export can select noncontiguous one-based retained surfaces in caller order, including repeats, through the canonical PDF page selector and selected-count limits. The request page set, HTML layout, PDF output, archives and single-image operations retain their existing selection contracts.",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "extraChanges": [

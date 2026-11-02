@@ -51,8 +51,8 @@ New-OfficePowerPoint -Path '.\Service-Status.pptx' {
         PowerPointNotes 'Use the table for exact values and confirm the action owner.'
     }
     $focus = PowerPointSlide -Title 'Where to focus the review' -PassThru
-    PowerPointChart -Slide $focus -InputObject $services -Category Service -Value Incidents -Type ClusteredColumn -Title 'Incidents by service' -X 90 -Y 135 -Width 780 -Height 290
-    Add-OfficePowerPointTextBox -Slide $focus -Run @{ Text = 'Availability remains a percentage in the status table; this chart compares incident counts.'; FontSize = 18; Color = '#475569' } -X 60 -Y 450 -Width 840 -Height 55
+    PowerPointChart -Slide $focus -InputObject $services -Category Service -Value Incidents -Type Column -Title 'Incidents by service' -X 90 -Y 135 -Width 780 -Height 290
+    Add-OfficePowerPointTextBox -Slide $focus -Content { PowerPointText 'Availability remains a percentage in the status table; this chart compares incident counts.' -Size 18 -Color '#475569' } -X 60 -Y 450 -Width 840 -Height 55
     PowerPointNotes -Slide $focus -Text 'Discuss incident reduction separately from availability targets.'
 }
 

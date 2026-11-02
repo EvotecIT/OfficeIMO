@@ -64,16 +64,16 @@ New-OfficeWord -Path $docx {
     WordHeader -Type Default { WordParagraph -Text 'PROCUREMENT / OFFER REVIEW' }
     WordFooter -Type Default { WordPageNumber -IncludeTotal }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
         WordText 'Supplier offer review' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 10
+        Set-OfficeWordParagraph -SpacingAfter 10
         WordText "$($offers.Count) offers / $itemCount items" -Bold -Size 16 -Color '166534'
     }
     WordParagraph -Text 'Compare price and delivery together. The workbook retains numeric values for your own calculations.'
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Offers received' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
@@ -82,7 +82,7 @@ New-OfficeWord -Path $docx {
         $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16); $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
         WordText 'Before choosing an offer' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Bulleted {
@@ -91,7 +91,7 @@ New-OfficeWord -Path $docx {
         WordListItem -Text 'Record the purchasing decision and its owner in the editable document.'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 12
+        Set-OfficeWordParagraph -SpacingBefore 12
         WordText 'Input contract: Item, Supplier, UnitPriceUsd and LeadDays. The bundled HTML contains synthetic data.' -Size 10 -Color '475569'
     }
 }

@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeMarkdownPdfOptions [-Options <MarkdownPdfExportOptions>] [-PdfOptions <PdfCreateOptions>] [-Theme <OfficeVisualThemeKind>] [-FontFamily <string>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-BaseDirectory <string>] [-ApplyWordLikeTheme] [-IncludeLocalImages] [-IncludeDataUriImages] [-RestrictLocalImagesToBaseDirectory] [-MaximumDataUriImageBytes <Int32>] [-DefaultImageWidth <Double>] [-DefaultImageHeight <Double>] [-FrontMatterRenderMode <MarkdownPdfFrontMatterRenderMode>] [-UseFrontMatterVisualTheme] [-UseFrontMatterMetadata] [-UseFirstHeadingAsTitle] [-CreateOutlineFromHeadings] [<CommonParameters>]
 ```
@@ -34,7 +34,7 @@ Apply the built-in Word-like Markdown PDF baseline theme.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -50,7 +50,7 @@ PDF author metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -66,7 +66,7 @@ Base directory used to resolve local Markdown images.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -82,7 +82,7 @@ Create PDF outlines from Markdown headings.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -98,7 +98,7 @@ Fallback image height in PDF points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -114,7 +114,7 @@ Fallback image width in PDF points.
 
 ```yaml
 Type: Double
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -130,7 +130,7 @@ Default font family.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -146,7 +146,7 @@ Controls how YAML front matter appears in the PDF body.
 
 ```yaml
 Type: MarkdownPdfFrontMatterRenderMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Hidden, DocumentHeader, Table
 
@@ -162,7 +162,7 @@ Embed supported data URI images.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -178,7 +178,7 @@ Embed supported local image files.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -194,7 +194,7 @@ PDF keywords metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -210,7 +210,7 @@ Maximum decoded bytes for one data URI image.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -226,7 +226,7 @@ Existing Markdown PDF options to clone and override.
 
 ```yaml
 Type: MarkdownPdfExportOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -242,7 +242,7 @@ Underlying low-level OfficeIMO PDF options.
 
 ```yaml
 Type: PdfCreateOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -258,7 +258,7 @@ Require local images to resolve under BaseDirectory.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -274,7 +274,7 @@ PDF subject metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -290,7 +290,7 @@ Built-in visual theme.
 
 ```yaml
 Type: OfficeVisualThemeKind
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Plain, WordLike, TechnicalDocument, GitHubLike, Compact, Report
 
@@ -306,7 +306,7 @@ PDF title metadata.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -322,7 +322,7 @@ Use the first Markdown heading as the PDF title when no title is supplied.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -338,7 +338,7 @@ Use front matter values as PDF metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -354,7 +354,7 @@ Use front matter values to select a visual theme.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

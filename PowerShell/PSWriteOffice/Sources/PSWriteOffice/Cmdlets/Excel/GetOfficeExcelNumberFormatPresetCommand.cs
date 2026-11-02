@@ -12,7 +12,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///     Where-Object Name -eq Currency</code>
 ///   <para>Returns the preset name and the Excel number format code that PSWriteOffice cmdlets can apply to cells or columns.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelNumberFormatPreset")]
+[Cmdlet(VerbsCommon.Get, "OfficeExcelNumberFormatPreset", DefaultParameterSetName = "Default")]
 [Alias("ExcelNumberFormatPreset")]
 public sealed class GetOfficeExcelNumberFormatPresetCommand : PSCmdlet
 {

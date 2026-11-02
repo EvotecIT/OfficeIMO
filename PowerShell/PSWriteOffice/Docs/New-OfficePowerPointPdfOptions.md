@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates native PowerPoint-to-PDF options for Convert-OfficeDocument.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficePowerPointPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoSlideBackgrounds] [-NoTables] [-NoCharts] [-NoSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-NoSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
@@ -40,7 +40,7 @@ Allow embedding installed fonts selected by a trusted presentation. System-font 
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -56,7 +56,7 @@ Allow embedding fonts discovered on the current system.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -72,7 +72,7 @@ Chart layout override.
 
 ```yaml
 Type: OfficeChartLayout
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -88,7 +88,7 @@ Chart visual style override.
 
 ```yaml
 Type: OfficeChartStyle
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -104,7 +104,7 @@ Default font family used when the presentation does not specify one.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -120,7 +120,7 @@ Number of slides on each handout page.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -136,7 +136,7 @@ Include slides marked hidden.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -152,7 +152,7 @@ Maximum nested group-shape depth to render.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -168,7 +168,7 @@ Omit automatic shapes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -184,7 +184,7 @@ Omit charts.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -200,7 +200,7 @@ Omit pictures.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -216,7 +216,7 @@ Omit slide backgrounds.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -232,7 +232,7 @@ Omit SmartArt.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -248,7 +248,7 @@ Omit speaker notes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -264,7 +264,7 @@ Omit tables.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -280,7 +280,7 @@ Omit text boxes.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -296,7 +296,7 @@ PDF page layout, such as slides, notes, or handouts.
 
 ```yaml
 Type: PowerPointPdfPageLayout
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Slides, NotesPages, Handouts
 
@@ -312,7 +312,7 @@ Underlying low-level OfficeIMO PDF options.
 
 ```yaml
 Type: PdfCreateOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -328,7 +328,7 @@ How pictures fit their shape bounds.
 
 ```yaml
 Type: OfficeImageFit
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Stretch, Contain, Cover
 
@@ -344,7 +344,7 @@ Report pictures whose requested fit distorts their aspect ratio.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

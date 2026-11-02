@@ -226,11 +226,10 @@ namespace OfficeIMO.PowerPoint {
         private byte[] CreatePackageBytesForSave(
             bool preserveVbaProject = false,
             PresentationDocumentType? destinationType = null) {
-            ThrowIfDisposed();
-            if (AccessMode == DocumentAccessMode.ReadOnly) {
-                throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
-            }
+            EnsureWritableForSave();
             ApplySignatureMutationPolicy();
+            PersistFooterDefinitions();
+            RefreshFooterFields();
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
@@ -364,10 +363,7 @@ namespace OfficeIMO.PowerPoint {
 
         private byte[] CreatePlainLegacyPptBytesForSave(
             PowerPointSaveOptions? options) {
-            ThrowIfDisposed();
-            if (AccessMode == DocumentAccessMode.ReadOnly) {
-                throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
-            }
+            EnsureWritableForSave();
             if (LastSignatureReport?.Action
                     != PowerPointSignatureMutationAction.Removed
                 && TryCopyOriginalLegacyPackage(out byte[] originalBytes)) {

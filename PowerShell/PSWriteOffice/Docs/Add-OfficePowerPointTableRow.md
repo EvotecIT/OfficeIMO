@@ -9,9 +9,9 @@ schema: 2.0.0
 Appends or inserts a row in an existing PowerPoint table.
 
 ## SYNTAX
-### __AllParameterSets
+### Table (Default)
 ```powershell
-Add-OfficePowerPointTableRow [-InputObject] <Object> [[-Value] <Object>] [-TemplateRowIndex <Int32>] [-Index <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePowerPointTableRow [-InputObject] <Object> [[-Value] <Object>] [-TemplateRow <Int32>] [-Position <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -24,47 +24,31 @@ table formatting, borders, and style choices are preserved.
 
 ### EXAMPLE 1
 ```powershell
-PS> Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table |
-                Add-OfficePowerPointTableRow -Values 'Latency', 'Ready'
+PS> Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table |
+                Add-OfficePowerPointTableRow -Value 'Latency', 'Ready'
 ```
 
 Accepts a PowerPoint table or table shape metadata and writes the supplied values into the new row.
 
 ### EXAMPLE 2
 ```powershell
-PS> $shape = Find-OfficePowerPointShape -Presentation $ppt -Text 'Metric' -Kind Table | Select-Object -First 1
-$shape | Add-OfficePowerPointTableRow -Index 1 -TemplateRowIndex 1 -Values ([ordered]@{
+PS> $shape = Get-OfficePowerPointShape -Document $ppt -Text 'Metric' -Kind Table | Select-Object -First 1
+$shape | Add-OfficePowerPointTableRow -Position 2 -TemplateRow 2 -Value ([ordered]@{
     Metric = 'Documentation'
     State  = 'Ready'
 })
 ```
 
-Resolves the table from shape metadata, inserts a formatted row at index 1, and maps values across cells.
+Resolves the table from shape metadata, inserts a formatted row at position 2, and maps values across cells.
 
 ## PARAMETERS
 
-### -Index
-Optional zero-based index where the row should be inserted. Defaults to appending at the end.
-
-```yaml
-Type: Int32
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -InputObject
-PowerPoint table or table shape info returned by Find-OfficePowerPointShape or Get-OfficePowerPointShape.
+PowerPoint table or table shape info returned by Get-OfficePowerPointShape.
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -80,7 +64,7 @@ Emit the created row for additional OfficeIMO-level edits.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -91,12 +75,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TemplateRowIndex
-Optional zero-based template row index to clone. Defaults to the last existing row.
+### -Position
+Optional one-based position where the row should be inserted. Defaults to appending at the end.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Table
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -TemplateRow
+Optional one-based template row to clone. Defaults to the last existing row.
+
+```yaml
+Type: Int32
+Parameter Sets: Table
 Aliases: None
 Possible values:
 
@@ -112,8 +112,8 @@ Values to write into the new row. Arrays, dictionaries, and objects are expanded
 
 ```yaml
 Type: Object
-Parameter Sets: __AllParameterSets
-Aliases: Data, Values
+Parameter Sets: Table
+Aliases: None
 Possible values:
 
 Required: False

@@ -7,7 +7,7 @@ using PSWriteOffice.Services.PowerPoint;
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
 /// <summary>Adds a named location to a coverage slide.</summary>
-[Cmdlet(VerbsCommon.Add, "OfficePowerPointLocation")]
+[Cmdlet(VerbsCommon.Add, "OfficePowerPointLocation", DefaultParameterSetName = "Location")]
 [Alias("PowerPointLocation")]
 public sealed class AddOfficePowerPointLocationCommand : OfficeCmdlet {
     /// <summary>Gets or sets the location name.</summary>

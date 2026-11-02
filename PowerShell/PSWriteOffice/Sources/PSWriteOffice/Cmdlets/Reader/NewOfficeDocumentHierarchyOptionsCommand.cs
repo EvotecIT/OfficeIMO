@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Reader;
 ///   <code>$options = New-OfficeDocumentHierarchyOptions -MaximumTokens 500 -OverlapTokens 50 -IncludeContextInText
 /// Read-OfficeDocument -As Hierarchy -Path .\handbook.pdf -HierarchyOptions $options</code>
 /// </example>
-[Cmdlet(VerbsCommon.New, "OfficeDocumentHierarchyOptions")]
+[Cmdlet(VerbsCommon.New, "OfficeDocumentHierarchyOptions", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ReaderHierarchicalChunkingOptions))]
 public sealed class NewOfficeDocumentHierarchyOptionsCommand : PSCmdlet {
     /// <summary>Maximum tokens per output chunk.</summary>

@@ -9,7 +9,7 @@ schema: 2.0.0
 Creates native Markdown dialect, normalization, URL and input-limit settings.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 New-OfficeMarkdownReaderOptions [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls] [-AllowDataUrls] [-AllowMailtoUrls] [-AllowProtocolRelativeUrls] [-RestrictUrlSchemes] [-AllowedUrlScheme <string[]>] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Allow data URLs.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -49,7 +49,7 @@ Allowed URL schemes; supplying this enables the allow-list.
 
 ```yaml
 Type: String[]
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Allow mailto links.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Allow protocol-relative links.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -97,7 +97,7 @@ Base URI for relative links and images.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -113,7 +113,7 @@ Block file URLs.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -129,7 +129,7 @@ Maximum input characters accepted by the native reader.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -145,7 +145,7 @@ Input normalization preset.
 
 ```yaml
 Type: MarkdownInputNormalizationPreset
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: None, IntelligenceXTranscript, IntelligenceXTranscriptStrict, DocsLoose
 
@@ -161,7 +161,7 @@ Native Markdown dialect profile.
 
 ```yaml
 Type: MarkdownDialectProfile
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: OfficeIMO, CommonMark, GitHubFlavoredMarkdown, Portable
 
@@ -177,7 +177,7 @@ Restrict links to the native allow-list.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

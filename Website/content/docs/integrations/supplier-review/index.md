@@ -104,17 +104,17 @@ New-OfficeWord -Path $docx {
     WordHeader { WordParagraph -Text 'PROCUREMENT / OFFER REVIEW' }
     WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 12 -KeepWithNext $true
-        WordText 'Supplier offer review' -Bold -FontSize 26 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true
+        WordText 'Supplier offer review' -Bold -Size 26 -Color '17365D'
     }
     WordParagraph {
-        WordParagraphStyle -SpacingAfterPoints 10
-        WordText "$($offers.Count) offers to compare" -Bold -FontSize 16 -Color '166534'
+        Set-OfficeWordParagraph -SpacingAfter 10
+        WordText "$($offers.Count) offers to compare" -Bold -Size 16 -Color '166534'
     }
     WordParagraph -Text 'Compare unit price and delivery together. Freight and tax are excluded.'
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Offers received' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Offers received' -Bold -Size 15 -Color '17365D'
     }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 `
         -Layout AutoFitToWindow -PassThru
@@ -123,8 +123,8 @@ New-OfficeWord -Path $docx {
         $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
     }
     WordParagraph {
-        WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true
-        WordText 'Before placing the order' -Bold -FontSize 15 -Color '17365D'
+        Set-OfficeWordParagraph -SpacingBefore 16 -SpacingAfter 8 -KeepWithNext:$true
+        WordText 'Before placing the order' -Bold -Size 15 -Color '17365D'
     }
     WordList -Style Bulleted {
         WordListItem -Text 'Confirm stock, quote expiry and the date the equipment is needed.'
@@ -135,7 +135,7 @@ New-OfficeWord -Path $docx {
 Convert-OfficeDocument -LiteralPath $docx -To Pdf -OutputPath $pdf
 ```
 
-The cell padding makes the table readable without adding empty rows. `SpacingBeforePoints` separates the next heading from the table, and `KeepWithNext` prevents a heading from being stranded at the bottom of a page when you add more offers.
+The cell padding makes the table readable without adding empty rows. `SpacingBefore` separates the next heading from the table, and `KeepWithNext` prevents a heading from being stranded at the bottom of a page when you add more offers.
 
 ## Leave the calculations in the workbook
 
@@ -144,7 +144,7 @@ Use the numeric objects for Excel. The table gives the buyer filters, while a fr
 ```powershell
 New-OfficeExcel -Path $xlsx {
     ExcelSheet 'Offers' {
-        ExcelGridlines -Hide
+        ExcelSheetView -NoGridlines
         ExcelCell -Address A1 -Value 'Supplier offers / USD per unit'
         ExcelRow -Row 1 -Height 30 -Bold $true
         ExcelCell -Address A2 -Value 'Freight and tax excluded. Compare delivery before ordering.'
@@ -160,7 +160,7 @@ New-OfficeExcel -Path $xlsx {
         ExcelColumn -Column 2 -Width 22
         ExcelColumn -Column 3 -AutoFit
         ExcelColumn -Column 4 -Width 16
-        ExcelFreeze -TopRows 4
+        ExcelSheetView -FreezeRows 4
     }
 }
 ```

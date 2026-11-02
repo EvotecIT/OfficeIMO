@@ -6,46 +6,82 @@ schema: 2.0.0
 ---
 # Get-OfficePowerPointShape
 ## SYNOPSIS
-Reads shape summaries from a slide or presentation.
+Gets editable shape summaries, with optional text, name, kind and position filters.
 
 ## SYNTAX
-### Slide (Default)
+### All (Default)
 ```powershell
-Get-OfficePowerPointShape [-Slide <PowerPointSlide>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
+Get-OfficePowerPointShape [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-Index <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
 ```
 
-### Presentation
+### Text
 ```powershell
-Get-OfficePowerPointShape [-Presentation <PowerPointDocument>] [-Index <Int32>] [-ShapeIndex <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [<CommonParameters>]
+Get-OfficePowerPointShape [-Text] <string> [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-Index <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [-CaseSensitive] [<CommonParameters>]
+```
+
+### Pattern
+```powershell
+Get-OfficePowerPointShape -Pattern <string> [-Document <PowerPointDocument>] [-Slide <PowerPointSlideSelector>] [-Index <int[]>] [-Name <string[]>] [-Kind <OfficePowerPointShapeKind[]>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns PowerShell-friendly metadata for text boxes, pictures, tables, charts, and auto shapes.
+Searches every slide of the document unless a native slide or one-based slide number is supplied. Inside PowerPointSlide, omission uses the current slide. Text matching includes table cells.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficePowerPointSlide -Presentation $ppt -Index 0 | Get-OfficePowerPointShape
+Get-OfficePowerPointShape -Document $deck -Slide 2 -Kind Picture
 ```
 
-Returns shape summaries for the selected slide.
 
 ### EXAMPLE 2
 ```powershell
-PS> Get-OfficePowerPointShape -Presentation $ppt -Index 0 -Kind Picture
+Get-OfficePowerPointShape -Document $deck -Text 'Draft' -Kind TextBox |
+                Set-OfficePowerPointShapeText -Text 'Ready'
 ```
 
-Filters the slide output to picture shapes only.
 
 ## PARAMETERS
 
-### -Index
-Optional zero-based slide index when reading from a presentation.
+### -CaseSensitive
+Match text and names with case sensitivity.
 
 ```yaml
-Type: Int32
-Parameter Sets: Presentation
+Type: SwitchParameter
+Parameter Sets: Text, Pattern
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Live document; omission uses the enclosing document block.
+
+```yaml
+Type: PowerPointDocument
+Parameter Sets: All, Text, Pattern
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Index
+One-based shape positions within each selected slide.
+
+```yaml
+Type: Int32[]
+Parameter Sets: All, Text, Pattern
 Aliases: None
 Possible values:
 
@@ -57,11 +93,11 @@ Accept wildcard characters: False
 ```
 
 ### -Kind
-Optional shape kind filter.
+Shape kinds to include.
 
 ```yaml
 Type: OfficePowerPointShapeKind[]
-Parameter Sets: Slide, Presentation
+Parameter Sets: All, Text, Pattern
 Aliases: None
 Possible values: TextBox, Picture, Table, Chart, AutoShape, GroupShape
 
@@ -73,11 +109,11 @@ Accept wildcard characters: False
 ```
 
 ### -Name
-Optional wildcard filter for shape names.
+Wildcard shape-name filters.
 
 ```yaml
 Type: String[]
-Parameter Sets: Slide, Presentation
+Parameter Sets: All, Text, Pattern
 Aliases: None
 Possible values:
 
@@ -85,35 +121,19 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
-### -Presentation
-Presentation whose slides should be inspected.
+### -Pattern
+Regular expression to find in text boxes or table cells.
 
 ```yaml
-Type: PowerPointDocument
-Parameter Sets: Presentation
+Type: String
+Parameter Sets: Pattern
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -ShapeIndex
-Optional zero-based shape index filter.
-
-```yaml
-Type: Int32[]
-Parameter Sets: Slide, Presentation
-Aliases: None
-Possible values:
-
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -121,18 +141,34 @@ Accept wildcard characters: False
 ```
 
 ### -Slide
-Slide to inspect (optional inside the DSL).
+Native slide or one-based slide number.
 
 ```yaml
-Type: PowerPointSlide
-Parameter Sets: Slide
+Type: PowerPointSlideSelector
+Parameter Sets: All, Text, Pattern
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Text
+Literal text to find in text boxes or table cells.
+
+```yaml
+Type: String
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -141,7 +177,6 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointSlide`
 - `OfficeIMO.PowerPoint.PowerPointDocument`
 
 ## OUTPUTS

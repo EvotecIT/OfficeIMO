@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code>
 ///   <para>Uses the OfficeIMO sheet composer through PSWriteOffice's thin report-block wrapper.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportTitle")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportTitle", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportTitle")]
 public sealed class AddOfficeExcelReportTitleCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Title text.</summary>
@@ -82,7 +82,7 @@ public sealed class AddOfficeExcelReportSectionCommand : PSWriteOffice.Cmdlets.O
 /// }</code>
 ///   <para>Adds prose to an OfficeIMO-composed Excel report sheet.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportParagraph")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportParagraph", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportParagraph")]
 public sealed class AddOfficeExcelReportParagraphCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Paragraph text.</summary>
@@ -110,7 +110,7 @@ public sealed class AddOfficeExcelReportParagraphCommand : PSWriteOffice.Cmdlets
 /// }</code>
 ///   <para>Advances the composer cursor before adding the next report block.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportSpacer")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportSpacer", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportSpacer")]
 public sealed class AddOfficeExcelReportSpacerCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Rows to advance. Defaults to the composer theme spacing.</summary>
@@ -136,7 +136,7 @@ public sealed class AddOfficeExcelReportSpacerCommand : PSWriteOffice.Cmdlets.Of
 /// }</code>
 ///   <para>Renders a composer callout block using the current report theme.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportCallout")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportCallout", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportCallout")]
 public sealed class AddOfficeExcelReportCalloutCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Callout kind. Supported values include info, success, warning, error, and critical.</summary>
@@ -221,7 +221,7 @@ public sealed class AddOfficeExcelReportKpiRowCommand : PSWriteOffice.Cmdlets.Of
 /// }</code>
 ///   <para>Renders legend rows and applies optional fill colors keyed by the first column.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportLegend")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportLegend", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportLegend")]
 public sealed class AddOfficeExcelReportLegendCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Optional legend title.</summary>
@@ -280,7 +280,7 @@ public sealed class AddOfficeExcelReportLegendCommand : PSWriteOffice.Cmdlets.Of
 /// }</code>
 ///   <para>Renders object rows as a formatted Excel table through the sheet composer.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelReportTable")]
+[Cmdlet(VerbsCommon.Add, "OfficeExcelReportTable", DefaultParameterSetName = "Default")]
 [Alias("ExcelReportTable")]
 public sealed class AddOfficeExcelReportTableCommand : PSCmdlet {
     private readonly List<object?> _items = new();

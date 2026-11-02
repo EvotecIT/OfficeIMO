@@ -9,7 +9,7 @@ schema: 2.0.0
 Adds a PAGE field to the current header/footer.
 
 ## SYNTAX
-### __AllParameterSets
+### Default (Default)
 ```powershell
 Add-OfficeWordPageNumber [-IncludeTotal] [-Format <WordFieldFormat>] [-Separator <string>] [-PassThru] [<CommonParameters>]
 ```
@@ -33,7 +33,7 @@ Optional number format.
 
 ```yaml
 Type: WordFieldFormat
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values: Lower, Upper, FirstCap, Caps, MergeFormat, UpperRoman, LowerRoman, Arabic, LowerLetter, UpperLetter, Ordinal, OrdText, CardText, DollarText, Hex, CharFormat
 
@@ -49,7 +49,7 @@ Include “of N” when true.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -65,7 +65,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -81,7 +81,7 @@ Separator when totals are included.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Default
 Aliases: None
 Possible values:
 

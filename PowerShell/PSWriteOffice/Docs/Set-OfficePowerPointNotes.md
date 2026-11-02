@@ -9,7 +9,7 @@ schema: 2.0.0
 Sets speaker notes on a native slide or in the current slide content block.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
 Set-OfficePowerPointNotes [-Text] <string> [-Slide <PowerPointSlideSelector>] [-Document <PowerPointDocument>] [-PassThru] [<CommonParameters>]
 ```
@@ -45,7 +45,7 @@ Gets or sets the document for numeric selection; omission uses the enclosing doc
 
 ```yaml
 Type: PowerPointDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -61,7 +61,7 @@ Gets or sets whether to return the selected native slide after editing.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -77,7 +77,7 @@ Gets or sets a native slide or one-based position; omission uses the current sli
 
 ```yaml
 Type: PowerPointSlideSelector
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -93,7 +93,7 @@ Gets or sets the notes text; an empty string clears the notes.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 

@@ -26,6 +26,8 @@ public static class HtmlRenderResultArchiveExtensions {
         HtmlRenderArchiveOptions packaging = archiveOptions?.Clone() ?? new HtmlRenderArchiveOptions();
         packaging.Validate();
         HtmlRenderOptions rendering = result.Request.ResolveOptions();
+        // Archives describe every retained surface; image-only selection does not alter that manifest.
+        rendering.PageSelection = null;
         OfficeImageExportFormat format = HtmlRenderResultImageExtensions.ResolveImageFormat(result.Request.Encoder);
         return HtmlRenderEngine.ExecuteWithDeadline(rendering, cancellationToken, token =>
             ExportArchiveCore(result, rendering, packaging, format, token));

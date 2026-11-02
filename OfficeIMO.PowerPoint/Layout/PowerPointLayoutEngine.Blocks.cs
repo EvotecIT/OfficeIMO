@@ -109,19 +109,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Shared geometry for native continuation measurement and final column rendering.</summary>
         private static PowerPointLayoutRect[] TwoContentBoxes(PowerPointLayoutContext context, IReadOnlyList<PowerPointLayoutBlock> blocks,
-            PowerPointLayoutRect zone) {
-            (int Column, int Span)[] columns;
-            bool leftText = IsTexty(blocks[0]), rightText = IsTexty(blocks[1]);
-            if (leftText != rightText) {
-                columns = context.Grid.IsNarrow
-                    ? leftText ? new[] { (1, 5), (6, 7) } : new[] { (1, 7), (8, 5) }
-                    : leftText ? new[] { (1, 4), (6, 7) } : new[] { (1, 7), (9, 4) };
-            } else {
-                columns = new[] { (1, 6), (7, 6) };
-            }
-
-            return columns.Select(c => new PowerPointLayoutRect(context.Grid.X(c.Column), zone.Y, context.Grid.W(c.Span), zone.Height)).ToArray();
-        }
+            PowerPointLayoutRect zone) => TwoContentFrames(context, zone, IsTexty(blocks[0]), IsTexty(blocks[1]));
 
         private static PowerPointLayoutRect ComparisonBodyBox(PowerPointLayoutContext context, HeaderGeometry header, int index) =>
             context.Grid.Box(index == 0 ? 1 : 7, 6, header.ContentRow + 1, header.ContentRows - 1).Inset(0, 12, 0, 0);

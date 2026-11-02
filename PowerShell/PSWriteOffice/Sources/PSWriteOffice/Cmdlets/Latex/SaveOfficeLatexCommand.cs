@@ -11,7 +11,7 @@ namespace PSWriteOffice.Cmdlets.Latex;
 ///   <code>$document = Get-OfficeLatex -Path .\Article.tex
 /// $document | Save-OfficeLatex -Path .\Article-normalized.tex -Mode Canonical</code>
 /// </example>
-[Cmdlet(VerbsData.Save, "OfficeLatex", SupportsShouldProcess = true)]
+[Cmdlet(VerbsData.Save, "OfficeLatex", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(LatexDocument))]
 public sealed class SaveOfficeLatexCommand : PSCmdlet
 {

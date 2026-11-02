@@ -1,88 +1,62 @@
 using System;
 using System.Management.Automation;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.PowerPoint;
 
 namespace PSWriteOffice.Cmdlets.PowerPoint;
 
-/// <summary>Replaces text in a PowerPoint slide or presentation.</summary>
-/// <para>Can replace text in text boxes, tables, and optionally notes using the OfficeIMO text replacement helpers.</para>
-/// <example>
-///   <summary>Replace fiscal year text across the whole deck.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$ppt = New-OfficePowerPoint -Path .\Examples\Documents\PowerPointUpdateText.pptx -NoSave
-/// $slide = Add-OfficePowerPointSlide -Presentation $ppt -Layout 1 -PassThru
-/// Add-OfficePowerPointTextBox -Slide $slide -Text 'FY24 summary'
-/// Set-OfficePowerPointNotes -Slide $slide -Text 'Mention FY24 assumptions.'
-/// $count = Update-OfficePowerPointText -Presentation $ppt -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
-/// $ppt | Close-OfficePowerPoint -Save</code>
-///   <para>Replaces matching text throughout the presentation and notes, returning the replacement count.</para>
-/// </example>
-[Cmdlet(VerbsData.Update, "OfficePowerPointText", DefaultParameterSetName = ParameterSetAuto)]
-[Alias("Replace-OfficePowerPointText")]
+/// <summary>Replaces text in the selected slide or document, including tables by default.</summary>
+/// <para>Uses the current slide inside PowerPointSlide and the current document inside an open document block. Notes are included only with IncludeNotes.</para>
+/// <example><summary>Update tokens across an existing deck.</summary>
+/// <code>Open-OfficePowerPoint -Path .\Account-Review.pptx {
+///     Update-OfficePowerPointText '{{Customer}}' 'Northwind Traders' -IncludeNotes
+/// }</code></example>
+/// <example><summary>Update a slide while preserving its table data.</summary>
+/// <code>$count = Update-OfficePowerPointText -Document $deck -Slide 2 -OldValue 'FY24' -NewValue 'FY25' -NoTables -PassThru</code></example>
+[Cmdlet(VerbsData.Update, "OfficePowerPointText", DefaultParameterSetName = "Document")]
 [OutputType(typeof(int))]
-public sealed class UpdateOfficePowerPointTextCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetAuto = "Auto";
-    private const string ParameterSetPresentation = "Presentation";
-    private const string ParameterSetSlide = "Slide";
+public sealed class UpdateOfficePowerPointTextCommand : OfficeMutationCmdlet {
+    /// <summary>Document to update or to resolve a one-based slide position against; omission uses the current block.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
+    public PowerPointDocument? Document { get; set; }
 
-    /// <summary>Presentation to update.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetPresentation)]
-    public PowerPointDocument? Presentation { get; set; }
-
-    /// <summary>Slide to update.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetSlide)]
-    public PowerPointSlide? Slide { get; set; }
+    /// <summary>Native slide or one-based slide position; omission updates the current slide or whole document.</summary>
+    [Parameter, PowerPointSlideTransformation]
+    public PowerPointSlideSelector? Slide { get; set; }
 
     /// <summary>Text to find.</summary>
-    [Parameter(Mandatory = true)]
+    [Parameter(Mandatory = true, Position = 0)]
     public string OldValue { get; set; } = string.Empty;
 
-    /// <summary>Replacement text.</summary>
-    [Parameter(Mandatory = true)]
-    [AllowNull]
+    /// <summary>Replacement text; null clears each match.</summary>
+    [Parameter(Mandatory = true, Position = 1), AllowNull, AllowEmptyString]
     public string? NewValue { get; set; }
 
-    /// <summary>Include table cells in the replacement operation.</summary>
+    /// <summary>Leave table cell text unchanged.</summary>
     [Parameter]
-    public bool IncludeTables { get; set; } = true;
+    public SwitchParameter NoTables { get; set; }
 
-    /// <summary>Include notes text in the replacement operation.</summary>
+    /// <summary>Include speaker notes in the replacement operation.</summary>
     [Parameter]
     public SwitchParameter IncludeNotes { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
         try {
-            int replacements;
-            switch (ParameterSetName) {
-                case ParameterSetPresentation:
-                    replacements = (Presentation ?? throw new InvalidOperationException("Presentation was not provided."))
-                        .ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
-                    break;
-                case ParameterSetSlide:
-                    replacements = (Slide ?? throw new InvalidOperationException("Slide was not provided."))
-                        .ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
-                    break;
-                default:
-                    replacements = ReplaceUsingDslContext();
-                    break;
-            }
-
+            var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
+            var slide = Slide?.Resolve(document);
+            if (Slide == null && Document == null) slide = PowerPointContentScope.Current?.NativeSlide;
+            int replacements = slide != null
+                ? slide.ReplaceText(OldValue, NewValue ?? string.Empty, !NoTables, IncludeNotes)
+                : (document ?? throw new ArgumentException("Supply Document or Slide, or invoke this command inside a PowerPoint content block."))
+                    .ReplaceText(OldValue, NewValue ?? string.Empty, !NoTables, IncludeNotes);
             WritePassThru(replacements);
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "PowerPointUpdateTextFailed", ErrorCategory.InvalidOperation, Presentation ?? (object?)Slide));
+        } catch (Exception error) {
+            if (error is PipelineStoppedException or ActionPreferenceStopException) throw;
+            if (PowerPointContentScope.Current != null)
+                ThrowTerminatingError(OfficeError.Create(error, "powerpoint-text-replace-failed", Document ?? (object?)Slide, ErrorCategory.InvalidArgument));
+            WriteError(new ErrorRecord(error, "PowerPointUpdateTextFailed", ErrorCategory.InvalidOperation, Document ?? (object?)Slide));
         }
-    }
-
-    private int ReplaceUsingDslContext() {
-        var context = PowerPointDslContext.Current
-            ?? throw new InvalidOperationException("Specify -Presentation, -Slide, or run inside New-OfficePowerPoint.");
-
-        if (context.CurrentSlide != null) {
-            return context.CurrentSlide.ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
-        }
-
-        return context.Document.ReplaceText(OldValue, NewValue ?? string.Empty, IncludeTables, IncludeNotes.IsPresent);
     }
 }

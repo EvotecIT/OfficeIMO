@@ -38,7 +38,7 @@ Describe 'PowerPointShapeEditing workflows' {
 
         $slide = $presentation.AddSlide(0, 1)
         Set-OfficePowerPointSlide -Slide $slide -Title 'Status Update'
-        $shape = Add-OfficePowerPointShape -Slide $slide -ShapeType Rectangle -X 40 -Y 40 -Width 200 -Height 80 -FillColor '#DDEEFF' -OutlineColor '#1F4E79' -OutlineWidth 1 -PassThru
+        $shape = Add-OfficePowerPointShape -Slide $slide -Type Rectangle -X 40 -Y 40 -Width 200 -Height 80 -FillColor '#DDEEFF' -OutlineColor '#1F4E79' -OutlineWidth 1 -PassThru
 
         $rows = @(
             [PSCustomObject]@{ Item = 'Alpha'; Qty = 10 }
@@ -46,7 +46,7 @@ Describe 'PowerPointShapeEditing workflows' {
         )
         $table = Add-OfficePowerPointTable -Slide $slide -InputObject $rows -X 40 -Y 140 -Width 360 -Height 200 -PassThru
         $image = Add-OfficePowerPointImage -Slide $slide -Path $imagePath -X 420 -Y 40 -Width 120 -Height 90 -PassThru
-        $bullets = Add-OfficePowerPointBullets -Slide $slide -Bullets 'Wins','Risks','Next Steps' -X 420 -Y 150 -Width 250 -Height 200 -PassThru
+        $bullets = Add-OfficePowerPointList -Slide $slide -Items 'Wins','Risks','Next Steps' -BulletChar '*' -X 420 -Y 150 -Width 250 -Height 200 -PassThru
         Set-OfficePowerPointNotes -Slide $slide -Text 'Keep this under five minutes.'
 
         $presentation.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointDocument'
@@ -63,6 +63,8 @@ Describe 'PowerPointShapeEditing workflows' {
         $image | Should -Not -BeNullOrEmpty
         $bullets.Paragraphs.Count | Should -Be 3
         $bullets.Paragraphs[0].Text | Should -Be 'Wins'
+        $bullets.Paragraphs[0].BulletCharacter | Should -Be '*'
+        $bullets.Paragraphs[0].NumberingScheme | Should -BeNullOrEmpty
         $notes = Get-OfficePowerPointNotes -Slide $slide
         $notes.Text | Should -Be 'Keep this under five minutes.'
         $notes.HasNotes | Should -BeTrue
@@ -83,11 +85,11 @@ Describe 'PowerPointShapeEditing workflows' {
         ($shapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).MimeType | Should -Be 'image/bmp'
         ($shapeInfo | Where-Object Kind -eq 'Table' | Select-Object -First 1).RowCount | Should -Be 3
         ($shapeInfo | Where-Object Kind -eq 'Table' | Select-Object -First 1).ColumnCount | Should -Be 2
-        $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -PlaceholderType Title
+        $placeholder = Get-OfficePowerPointPlaceholder -Slide $slide -Type Title
         $placeholder.Text | Should -Be 'Status Update'
-        $placeholderUpdate = Set-OfficePowerPointPlaceholderText -Slide $slide -PlaceholderType Title -Text 'Status Update v2' -PassThru
+        $placeholderUpdate = Set-OfficePowerPointPlaceholder -Slide $slide -Type Title -Text 'Status Update v2' -PassThru
         $placeholderUpdate.Text | Should -Be 'Status Update v2'
-        $layoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $slide
+        $layoutPlaceholders = Get-OfficePowerPointPlaceholder -FromLayout -Slide $slide
         $layoutPlaceholders.Count | Should -BeGreaterThan 0
 
         $slide2 | Should -Not -BeNullOrEmpty
@@ -103,9 +105,9 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloaded.Slides.Count | Should -Be 2
 
             $reloadedSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
-            $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -PlaceholderType Title
+            $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -Type Title
             if (-not $reloadedPlaceholder) {
-                $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -PlaceholderType CenteredTitle
+                $reloadedPlaceholder = Get-OfficePowerPointPlaceholder -Slide $reloadedSlide -Type CenteredTitle
             }
             $reloadedPlaceholder.Text | Should -Be 'Status Update v2'
             $reloadedNotes = Get-OfficePowerPointNotes -Slide $reloadedSlide
@@ -116,11 +118,11 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloadedSummary.SlideIndex | Should -Be 2
             $reloadedSummary.PictureCount | Should -Be 1
             $reloadedSummary.TableCount | Should -Be 1
-            $reloadedShapeInfo = Get-OfficePowerPointShape -Presentation $reloaded -Index 1
+            $reloadedShapeInfo = Get-OfficePowerPointShape -Document $reloaded -Slide 2
             $reloadedShapeInfo.Count | Should -BeGreaterThan 0
             ($reloadedShapeInfo | Where-Object Kind -eq 'Picture').Count | Should -Be 1
             ($reloadedShapeInfo | Where-Object Kind -eq 'Table').Count | Should -Be 1
-            ($reloadedShapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).SlideIndex | Should -Be 1
+            ($reloadedShapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).SlideIndex | Should -Be 2
             @($reloadedSlide.Tables).Count | Should -BeGreaterThan 0
             $reloadedSlide.Pictures.Count | Should -BeGreaterThan 0
         } finally {
@@ -143,12 +145,12 @@ Describe 'PowerPointShapeEditing workflows' {
             $table = Add-OfficePowerPointTable -Slide $slide -InputObject $rows -X 80 -Y 160 -Width 420 -Height 120 -PassThru
             $table.Name = 'Status.Table'
 
-            $byName = Find-OfficePowerPointShape -Presentation $presentation -Name 'Status.*' -Kind TextBox
+            $byName = Get-OfficePowerPointShape -Document $presentation -Name 'Status.*' -Kind TextBox
             $byName | Should -HaveCount 1
             $byName[0].Name | Should -Be 'Status.Primary'
             $byName[0].Kind | Should -Be 'TextBox'
 
-            $byKind = Find-OfficePowerPointShape -Presentation $presentation -Kind Table
+            $byKind = Get-OfficePowerPointShape -Document $presentation -Kind Table
             $byKind | Should -HaveCount 1
             $byKind[0].Name | Should -Be 'Status.Table'
             $byKind[0].Kind | Should -Be 'Table'
@@ -162,16 +164,16 @@ Describe 'PowerPointShapeEditing workflows' {
         $presentation = New-OfficePowerPoint -Path $path
         try {
             $slide = $presentation.AddSlide(0, 1)
-            $shape1 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.One' -ShapeType Rectangle -X 40 -Y 80 -Width 80 -Height 40 -PassThru
-            $shape2 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Two' -ShapeType Rectangle -X 180 -Y 140 -Width 80 -Height 40 -PassThru
-            $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -ShapeType Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
+            $shape1 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.One' -Type Rectangle -X 40 -Y 80 -Width 80 -Height 40 -PassThru
+            $shape2 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Two' -Type Rectangle -X 180 -Y 140 -Width 80 -Height 40 -PassThru
+            $shape3 = Add-OfficePowerPointShape -Slide $slide -Name 'Kpi.Three' -Type Rectangle -X 320 -Y 200 -Width 80 -Height 40 -PassThru
 
-            @($shape1, $shape2, $shape3) | Set-OfficePowerPointShapeLayout -Slide $slide -Align Top
+            @($shape1, $shape2, $shape3) | PowerPointShapeLayout -Alignment Top
             $shape1.Top.ToPoints() | Should -Be $shape2.Top.ToPoints()
             $shape1.Top.ToPoints() | Should -Be $shape3.Top.ToPoints()
 
-            Find-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
-                Set-OfficePowerPointShapeLayout -Grid -Columns 3 -Rows 1 -ToSlide -GutterXPoints 12 -NoResize | Out-Null
+            Get-OfficePowerPointShape -Slide $slide -Name 'Kpi.*' |
+                Set-OfficePowerPointShapeLayout -Grid -Columns 3 -Rows 1 -ToSlide -GutterX 12 -NoResize | Out-Null
 
             $arranged = @(Get-OfficePowerPointShape -Slide $slide -Kind AutoShape | Sort-Object LeftPoints)
             $arranged | Should -HaveCount 3
@@ -202,10 +204,10 @@ Describe 'PowerPointShapeEditing workflows' {
         $slideSummary[0].HasNotes | Should -BeFalse
         $slideSummary[0].Title | Should -Be 'No notes yet'
 
-        $shapeInfo = Get-OfficePowerPointShape -Presentation $presentation -Index 0 -Kind TextBox
+        $shapeInfo = Get-OfficePowerPointShape -Document $presentation -Slide 1 -Kind TextBox
         $shapeInfo.Count | Should -BeGreaterThan 0
-        $shapeInfo[0].SlideIndex | Should -Be 0
-        $shapeByIndex = Get-OfficePowerPointShape -Slide $slide -ShapeIndex $shapeInfo[0].ShapeIndex
+        $shapeInfo[0].SlideIndex | Should -Be 1
+        $shapeByIndex = Get-OfficePowerPointShape -Slide $slide -Index $shapeInfo[0].ShapeIndex
         $shapeByIndex.ShapeIndex | Should -Be $shapeInfo[0].ShapeIndex
         $shapeByIndex.Kind | Should -Be 'TextBox'
 
@@ -228,7 +230,7 @@ Describe 'PowerPointShapeEditing workflows' {
         $layoutIndex = $selectedLayout.LayoutIndex
         $slide = $presentation.AddSlide($layoutMaster, $layoutIndex)
 
-        $layoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $slide
+        $layoutPlaceholders = Get-OfficePowerPointPlaceholder -FromLayout -Slide $slide
         $layoutPlaceholders.Count | Should -BeGreaterThan 0
 
         $layoutPlaceholder = $layoutPlaceholders | Where-Object { $_.PlaceholderType } | Select-Object -First 1
@@ -257,10 +259,10 @@ Describe 'PowerPointShapeEditing workflows' {
         $reloaded = Open-OfficePowerPoint -Path $path
         try {
             $reloadedSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 1
-            $reloadedLayoutPlaceholders = Get-OfficePowerPointLayoutPlaceholder -Slide $reloadedSlide
+            $reloadedLayoutPlaceholders = Get-OfficePowerPointPlaceholder -FromLayout -Slide $reloadedSlide
             if ($layoutPlaceholder) {
                 $reloadedLayoutPlaceholders.Count | Should -BeGreaterThan 0
-                $reloadedLayoutPlaceholder = Get-OfficePowerPointLayoutPlaceholder -Slide $reloadedSlide -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex
+                $reloadedLayoutPlaceholder = Get-OfficePowerPointPlaceholder -FromLayout -Slide $reloadedSlide -Type $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex
                 $reloadedLayoutPlaceholder | Should -Not -BeNullOrEmpty
                 $reloadedLayoutPlaceholder.Bounds | Should -Not -BeNullOrEmpty
                 [math]::Abs($reloadedLayoutPlaceholder.Bounds.Left.ToPoints() - 48) | Should -BeLessThan 0.1
@@ -284,7 +286,7 @@ Describe 'PowerPointShapeEditing workflows' {
 
         $secondSlide = $presentation.AddSlide(0, 1)
         Set-OfficePowerPointSlide -Slide $secondSlide -Title 'Keep me'
-        Set-OfficePowerPointPlaceholderText -Slide $secondSlide -PlaceholderType Title -Text 'Keep me v2'
+        Set-OfficePowerPointPlaceholder -Slide $secondSlide -Type Title -Text 'Keep me v2'
 
         Save-OfficePowerPoint -Document $presentation
         $presentation.Dispose()
@@ -303,9 +305,9 @@ Describe 'PowerPointShapeEditing workflows' {
         try {
             $afterRemoval.Slides.Count | Should -Be 1
             $remainingSlide = Get-OfficePowerPointSlide -Document $afterRemoval -Slide 1
-            $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -PlaceholderType Title
+            $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -Type Title
             if (-not $remainingPlaceholder) {
-                $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -PlaceholderType CenteredTitle
+                $remainingPlaceholder = Get-OfficePowerPointPlaceholder -Slide $remainingSlide -Type CenteredTitle
             }
             $remainingPlaceholder.Text | Should -Be 'Keep me v2'
         } finally {
@@ -338,9 +340,9 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloaded.Slides.Count | Should -Be 3
 
             $copied = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
-            $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -PlaceholderType Title
+            $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -Type Title
             if (-not $copiedTitle) {
-                $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -PlaceholderType CenteredTitle
+                $copiedTitle = Get-OfficePowerPointPlaceholder -Slide $copied -Type CenteredTitle
             }
 
             $copiedTitle.Text | Should -Be 'Quarterly Overview'
@@ -348,9 +350,9 @@ Describe 'PowerPointShapeEditing workflows' {
             ($copied.Shapes.Count -gt 0) | Should -BeTrue
 
             $lastSlide = Get-OfficePowerPointSlide -Document $reloaded -Slide 3
-            $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -PlaceholderType Title
+            $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -Type Title
             if (-not $lastTitle) {
-                $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -PlaceholderType CenteredTitle
+                $lastTitle = Get-OfficePowerPointPlaceholder -Slide $lastSlide -Type CenteredTitle
             }
 
             $lastTitle.Text | Should -Be 'Closing Slide'
@@ -395,10 +397,10 @@ Describe 'PowerPointShapeEditing workflows' {
         ($sections | Where-Object Name -eq 'Intro').SlideIndices | Should -Contain 0
         ($sections | Where-Object Name -eq 'Deep Dive').SlideIndices | Should -Contain 1
 
-        $replacements = Update-OfficePowerPointText -Presentation $target -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
+        $replacements = Update-OfficePowerPointText -Document $target -OldValue 'FY24' -NewValue 'FY25' -IncludeNotes -PassThru
         $replacements | Should -BeGreaterThan 0
 
-        $importedSlide = Import-OfficePowerPointSlide -Presentation $target -SourcePath $sourcePath -SourceIndex 0 -InsertAt 1
+        $importedSlide = Import-OfficePowerPointSlide -Document $target -LiteralPath $sourcePath -SourceSlide 1 -Position 2 -PassThru
         $importedSlide | Should -Not -BeNullOrEmpty
 
         Save-OfficePowerPoint -Document $target
@@ -408,17 +410,17 @@ Describe 'PowerPointShapeEditing workflows' {
             $reloaded.Slides.Count | Should -Be 3
 
             $slide0 = Get-OfficePowerPointSlide -Document $reloaded -Slide 1
-            $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -PlaceholderType Title
+            $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -Type Title
             if (-not $title0) {
-                $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -PlaceholderType CenteredTitle
+                $title0 = Get-OfficePowerPointPlaceholder -Slide $slide0 -Type CenteredTitle
             }
             $title0.Text | Should -Be 'FY25 Overview'
             (Get-OfficePowerPointNotes -Slide $slide0).Text | Should -Be 'FY25 note for intro'
 
             $slide1 = Get-OfficePowerPointSlide -Document $reloaded -Slide 2
-            $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -PlaceholderType Title
+            $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -Type Title
             if (-not $title1) {
-                $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -PlaceholderType CenteredTitle
+                $title1 = Get-OfficePowerPointPlaceholder -Slide $slide1 -Type CenteredTitle
             }
             $title1.Text | Should -Be 'FY24 Imported'
             (Get-OfficePowerPointNotes -Slide $slide1).Text | Should -Be 'FY24 source notes'
@@ -429,7 +431,7 @@ Describe 'PowerPointShapeEditing workflows' {
             ($sectionInfo | Where-Object Name -eq 'Intro').SlideIndices | Should -Contain 1
             ($sectionInfo | Where-Object Name -eq 'Deep Dive').SlideIndices | Should -Contain 2
 
-            $updatedReplacements = Update-OfficePowerPointText -Presentation $reloaded -OldValue 'FY24' -NewValue 'FY26' -PassThru
+            $updatedReplacements = Update-OfficePowerPointText -Document $reloaded -OldValue 'FY24' -NewValue 'FY26' -PassThru
             $updatedReplacements | Should -BeGreaterThan 0
         } finally {
             if ($reloaded) {

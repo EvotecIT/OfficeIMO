@@ -9,7 +9,7 @@ schema: 2.0.0
 Saves a live Markdown document using its native save policy and keeps it available.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
 Save-OfficeMarkdown [[-Path] <string>] -Document <MarkdownDocument> [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <OfficeLineEnding>] [-UnorderedListMarker <string>] [-AllowLoss] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -38,7 +38,7 @@ Accept explicit native-save omissions, overriding WriteOptions when supplied.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -54,7 +54,7 @@ Markdown document to save.
 
 ```yaml
 Type: MarkdownDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -70,7 +70,7 @@ Controls Markdown image serialization.
 
 ```yaml
 Type: MarkdownImageRenderingMode
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: RichMarkdown, PortableMarkdown, Html
 
@@ -86,7 +86,7 @@ Output line endings.
 
 ```yaml
 Type: OfficeLineEnding
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: LF, CRLF, CR
 
@@ -102,7 +102,7 @@ Return the saved file.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -118,7 +118,7 @@ Optional destination; omission saves to the associated path.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -134,7 +134,7 @@ Unordered list marker.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: -, *, +
 
@@ -150,7 +150,7 @@ Native save settings, or a hashtable of native option properties.
 
 ```yaml
 Type: MarkdownSaveOptions
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -166,7 +166,7 @@ Friendly Markdown writer profile.
 
 ```yaml
 Type: OfficeMarkdownWriteProfile
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values: OfficeIMO, Portable, HtmlImage
 

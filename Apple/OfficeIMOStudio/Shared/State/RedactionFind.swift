@@ -4,9 +4,11 @@ struct RedactionFind: Encodable, Sendable, Equatable {
     var text: String
     var regex = false
     var matchCase = false
+    /// Removes the whole block of text around each match, for matches too close to their neighbours to remove alone.
+    var wholeBlocks = false
 
     var normalized: Self {
-        Self(text: text.trimmingCharacters(in: .whitespaces), regex: regex, matchCase: matchCase)
+        Self(text: text.trimmingCharacters(in: .whitespaces), regex: regex, matchCase: matchCase, wholeBlocks: wholeBlocks)
     }
 }
 

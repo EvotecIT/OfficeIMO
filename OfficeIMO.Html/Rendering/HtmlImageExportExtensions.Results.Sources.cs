@@ -9,6 +9,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        resolved.PageSelection = null;
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
             HtmlRenderResult rendered = HtmlRenderEngine.ExecuteCore(document, request, resolved, operationCancellationToken);
             OfficeImageExportResult? image = null;
@@ -50,6 +51,7 @@ public static partial class HtmlImageExportExtensions {
         HtmlRenderRequest request = HtmlRenderRequest.FromLegacy(
             options, MapEncoder(format), HtmlRenderPageSet.Page(pageIndex));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
+        resolved.PageSelection = null;
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {
             HtmlRenderResult rendered = await HtmlRenderEngine.ExecuteCoreAsync(
                 document, request, resolved, operationCancellationToken).ConfigureAwait(false);
@@ -91,7 +93,7 @@ public static partial class HtmlImageExportExtensions {
             async operationCancellationToken => {
                 rendered = await HtmlRenderEngine.ExecuteCoreAsync(document, request, resolved, operationCancellationToken).ConfigureAwait(false);
                 operationCancellationToken.ThrowIfCancellationRequested();
-                return rendered.Document.Pages.Count;
+                return HtmlRenderResultImageExtensions.ResolveSelection(rendered, resolved).Count;
             },
             async (accept, operationCancellationToken) => {
                 await HtmlRenderResultImageExtensions.ExportImagesCoreAsync(

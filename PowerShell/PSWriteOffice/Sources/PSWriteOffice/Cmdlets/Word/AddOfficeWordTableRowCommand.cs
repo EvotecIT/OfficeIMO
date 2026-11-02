@@ -35,7 +35,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $doc | Close-OfficeWord -Save</code>
 ///   <para>Uses an ordered dictionary so values are written into predictable table columns.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordTableRow")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordTableRow", DefaultParameterSetName = "Default")]
 [OutputType(typeof(WordTableRow))]
 public sealed class AddOfficeWordTableRowCommand : PSCmdlet
 {
