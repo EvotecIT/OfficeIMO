@@ -11,7 +11,7 @@ public class RtfParagraphFormattingTests {
     public void Read_Binds_Paragraph_Shading_And_Borders_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red230\green242\blue255;\red68\green114\blue196;\red0\green170\blue85;}\pard\cbpat1\brdrt\brdrs\brdrw12\brdrcf2\brdrl\brdrdb\brdrw8\brdrcf3 Boxed\par\pard Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(2, result.Document.Paragraphs.Count);
@@ -47,7 +47,7 @@ public class RtfParagraphFormattingTests {
         document.AddParagraph("Plain");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\cbpat1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\brdrt\brdrs\brdrw12\brdrcf2", rtf, StringComparison.Ordinal);
@@ -84,7 +84,7 @@ public class RtfParagraphFormattingTests {
         document.AddParagraph("Plain");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\cbpat1\cfpat2\shading3750\bgdkfdiag", rtf, StringComparison.Ordinal);
         RtfParagraph readShaded = read.Document.Paragraphs[0];
@@ -104,7 +104,7 @@ public class RtfParagraphFormattingTests {
     public void Read_Binds_Paragraph_Shading_Patterns_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red230\green242\blue255;\red68\green114\blue196;}\pard\cbpat1\cfpat2\shading6250\bgdcross Pattern\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -129,7 +129,7 @@ public class RtfParagraphFormattingTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());
@@ -186,7 +186,7 @@ public class RtfParagraphFormattingTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("#E6F2FF", rtfDocument.GetColor(rtfParagraph.BackgroundColorIndex!.Value)!.ToString());

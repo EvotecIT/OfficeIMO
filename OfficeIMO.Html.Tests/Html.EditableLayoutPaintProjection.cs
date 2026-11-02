@@ -83,7 +83,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
             }
             case "rtf": {
                 var result = source.ToRtfDocumentResult();
-                RtfReadResult reopened = RtfDocument.Read(result.Value.ToRtf());
+                RtfReadResult reopened = RtfDocument.ParseResult(result.Value.ToRtf());
                 RtfParagraph frame = Assert.Single(reopened.Document.Paragraphs, paragraph => paragraph.Frame.HasAnyValue);
                 Assert.Equal("Lead Alpha Tail", frame.ToPlainText());
                 Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);

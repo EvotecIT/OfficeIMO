@@ -13,7 +13,7 @@ public class RtfLosslessRoundTripTests {
         const string rtf = @"{\rtf1\ansi{\*\unknown\foo-12 bar \'80}{\object\objdata 0102}\pard Before \bin4 a{b} after\par}";
 
         RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf);
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.DoesNotContain(tree.Diagnostics, diagnostic => diagnostic.Severity == RtfDiagnosticSeverity.Error);
         Assert.Equal(rtf, tree.ToRtf());
@@ -100,7 +100,7 @@ public class RtfLosslessRoundTripTests {
     [Fact]
     public async Task LosslessEditor_SaveLosslessAsync_PreservesSyntaxAndOverwritesAndRewindsOutput() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.AppendParagraph("Next");
 
         using var output = new MemoryStream();
@@ -113,7 +113,7 @@ public class RtfLosslessRoundTripTests {
         Assert.Contains(@"{\*\unknown Keep}", editor.ToRtf(), StringComparison.Ordinal);
         Assert.Contains(@"{\pict\pngblip\bin3 abc}", editor.ToRtf(), StringComparison.Ordinal);
 
-        RtfReadResult edited = RtfDocument.Read(editor.ToRtf());
+        RtfReadResult edited = RtfDocument.ParseResult(editor.ToRtf());
         Assert.Equal(editor.ToRtf(), edited.ToRtfLossless());
     }
 

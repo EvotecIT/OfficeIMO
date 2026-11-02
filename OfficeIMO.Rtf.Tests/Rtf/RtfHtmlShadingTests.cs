@@ -30,7 +30,7 @@ public class RtfHtmlShadingTests {
         Assert.Contains(@"\chshdng3750", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\chbgdkdcross", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.Read(rtf).Document.Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.ParseResult(rtf).Document.Paragraphs);
         Assert.Equal(RtfShadingPattern.DarkForwardDiagonal, roundTripParagraph.ShadingPattern);
         Assert.Equal(6250, roundTripParagraph.ShadingPatternPercent);
         RtfRun roundTripFlag = Assert.Single(roundTripParagraph.Runs, run => run.Text == "flag");

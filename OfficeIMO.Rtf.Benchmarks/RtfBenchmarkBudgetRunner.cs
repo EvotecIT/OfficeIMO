@@ -91,7 +91,7 @@ internal static class RtfBenchmarkBudgetRunner {
             string.Equals(operation, "Lossless", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(operation, "SemanticWrite", StringComparison.OrdinalIgnoreCase)
             ? null
-            : RtfDocument.Read(fixture.Rtf).Document;
+            : RtfDocument.ParseResult(fixture.Rtf).Document;
         RtfToPdfOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
             ? RtfBenchmarkSupport.CreatePdfOptions()
             : null;
@@ -105,15 +105,15 @@ internal static class RtfBenchmarkBudgetRunner {
         long outputBytes;
 
         if (string.Equals(operation, "Parse", StringComparison.OrdinalIgnoreCase)) {
-            RtfReadResult result = RtfDocument.Read(fixture.Rtf);
+            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf);
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "ParseUntrusted", StringComparison.OrdinalIgnoreCase)) {
-            RtfReadResult result = RtfDocument.Read(fixture.Rtf, RtfReadOptions.CreateUntrustedProfile());
+            RtfReadResult result = RtfDocument.ParseResult(fixture.Rtf, RtfReadOptions.CreateUntrustedProfile());
             outputBytes = Encoding.UTF8.GetByteCount(result.ToRtfLossless());
         } else if (string.Equals(operation, "Lossless", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.Read(fixture.Rtf).EditLossless().ToRtf());
+            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.ParseResult(fixture.Rtf).EditLossless().ToRtf());
         } else if (string.Equals(operation, "SemanticWrite", StringComparison.OrdinalIgnoreCase)) {
-            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.Read(fixture.Rtf).Document.ToRtf());
+            outputBytes = Encoding.UTF8.GetByteCount(RtfDocument.ParseResult(fixture.Rtf).Document.ToRtf());
         } else if (string.Equals(operation, "Html", StringComparison.OrdinalIgnoreCase)) {
             outputBytes = Encoding.UTF8.GetByteCount(preparedDocument!.ToHtml());
         } else if (string.Equals(operation, "HtmlWebSafe", StringComparison.OrdinalIgnoreCase)) {

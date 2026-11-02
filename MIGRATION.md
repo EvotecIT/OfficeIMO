@@ -3536,6 +3536,17 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | reading | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null)` | Changed | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null, CancellationToken cancellationToken = default)` | Search accepts cooperative cancellation for both literal and regular-expression matching. Existing source calls compile unchanged; binary consumers must recompile and method-group bindings must include the token or use a lambda. C# literal matching remains the default. |
 
 </details>
+
+#### OfficeIMO.Rtf
+
+<details>
+<summary>1 change</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Lifecycle | `RtfDocument.Read(string, RtfReadOptions?, CancellationToken)` | Merged | `RtfDocument.ParseResult(string, RtfReadOptions?, CancellationToken)` | Use Parse for the model or ParseResult for the model, lossless syntax and diagnostics. |
+
+</details>
 <!-- officeimo-api-map:end -->
 
 Search redaction accepts unencrypted object-stream and cross-reference-stream PDFs, including hybrid, linearized, incremental and `/Extends` inputs, when the complete winning xref map agrees with the reader. It follows empty newest hybrid sections and writes classic output, including empty searches. Free or missing reference targets are written as null. Disagreeing graphs, retained historical matches and compressed encryption remain refused.

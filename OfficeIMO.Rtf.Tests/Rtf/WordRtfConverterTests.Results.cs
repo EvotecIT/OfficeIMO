@@ -83,7 +83,7 @@ public partial class WordRtfConverterTests {
         options.MaxInputCharacters = 4;
 
         Assert.Throws<RtfReadLimitException>(() =>
-            RtfDocument.Read(@"{\rtf1 Too large}", options).ToWordDocumentResult("string"));
+            RtfDocument.ParseResult(@"{\rtf1 Too large}", options).ToWordDocumentResult("string"));
     }
 
     [Fact]

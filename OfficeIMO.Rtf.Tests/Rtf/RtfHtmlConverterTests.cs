@@ -159,7 +159,7 @@ public partial class RtfHtmlConverterTests {
         string rtf = document.ToRtf();
         Assert.Contains(@"\cbpat1", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTripDocument = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTripDocument = RtfDocument.ParseResult(rtf).Document;
         Assert.Equal(1, roundTripDocument.Paragraphs[0].BackgroundColorIndex);
         Assert.Null(roundTripDocument.Paragraphs[1].BackgroundColorIndex);
     }
@@ -256,7 +256,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"{\f1 Times New Roman;}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\f2 Consolas;}", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         RtfParagraph readParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.Contains(readParagraph.Runs, run => run.Text == "Clinical" && run.FontId == 1 && run.FontSize == 13.5d);
         Assert.Contains(readParagraph.Runs, run => run.Text == " code" && run.FontId == 2 && run.FontSize == 13.5d);
@@ -291,7 +291,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\outlinelevel0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\outlinelevel2", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         Assert.Equal(0, roundTrip.Paragraphs[0].OutlineLevel);
         Assert.Equal(2, roundTrip.Paragraphs[1].OutlineLevel);
     }
@@ -331,7 +331,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\ri360", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\fi-240", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         Assert.Equal(720, roundTrip.Paragraphs[0].LeftIndentTwips);
         Assert.Equal(360, roundTrip.Paragraphs[0].RightIndentTwips);
         Assert.Equal(-240, roundTrip.Paragraphs[0].FirstLineIndentTwips);
@@ -361,7 +361,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\pagebb", rtf, StringComparison.Ordinal);
         Assert.Contains(@"After\page \par", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         Assert.True(roundTrip.Paragraphs[0].PageBreakBefore);
         Assert.Contains(roundTrip.Paragraphs[1].Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
     }
@@ -408,7 +408,7 @@ public partial class RtfHtmlConverterTests {
 
         RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
         string rtf = document.ToRtf();
-        string roundTripHtml = RtfDocument.Read(rtf).Document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string roundTripHtml = RtfDocument.ParseResult(rtf).Document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
 
         Assert.Contains("Assessment:", roundTripHtml, StringComparison.Ordinal);
         Assert.Contains("<strong>stable</strong>", roundTripHtml, StringComparison.Ordinal);

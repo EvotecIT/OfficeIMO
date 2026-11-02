@@ -125,26 +125,17 @@ public sealed partial class RtfDocument {
         return document;
     }
 
-    /// <summary>Reads RTF from a string.</summary>
-    public static RtfReadResult Read(string rtf, RtfReadOptions? options = null) {
-        return Read(rtf, options, CancellationToken.None);
-    }
-
-    /// <summary>Reads RTF from a string with cooperative cancellation during CPU-bound parsing.</summary>
-    public static RtfReadResult Read(string rtf, RtfReadOptions? options, CancellationToken cancellationToken) {
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
-        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions, cancellationToken);
-        return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
-    }
-
     /// <summary>Parses RTF text into the semantic document model.</summary>
     public static RtfDocument Parse(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
         ParseResult(rtf, options, cancellationToken).Document;
 
     /// <summary>Parses RTF text and returns the semantic document, lossless syntax, and diagnostics.</summary>
-    public static RtfReadResult ParseResult(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) =>
-        Read(rtf, options, cancellationToken);
+    public static RtfReadResult ParseResult(string rtf, RtfReadOptions? options = null, CancellationToken cancellationToken = default) {
+        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
+        RtfReadOptions readOptions = options ?? RtfReadOptions.CreateOfficeIMOProfile();
+        RtfSyntaxTree tree = RtfSyntaxTree.Parse(rtf, readOptions, cancellationToken);
+        return RtfSemanticReader.Read(tree, readOptions, cancellationToken);
+    }
 
     /// <summary>Loads RTF from a file into the semantic document model.</summary>
     public static RtfDocument Load(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) =>

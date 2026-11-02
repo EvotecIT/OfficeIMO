@@ -25,15 +25,15 @@ public class RtfCoreBenchmarks {
 
     [Benchmark]
     [BenchmarkCategory("Parse")]
-    public RtfReadResult Parse() => RtfDocument.Read(_rtf);
+    public RtfReadResult Parse() => RtfDocument.ParseResult(_rtf);
 
     [Benchmark]
     [BenchmarkCategory("Lossless")]
-    public string LosslessRoundTrip() => RtfDocument.Read(_rtf).EditLossless().ToRtf();
+    public string LosslessRoundTrip() => RtfDocument.ParseResult(_rtf).EditLossless().ToRtf();
 
     [Benchmark]
     [BenchmarkCategory("SemanticWrite")]
-    public string SemanticRewrite() => RtfDocument.Read(_rtf).Document.ToRtf();
+    public string SemanticRewrite() => RtfDocument.ParseResult(_rtf).Document.ToRtf();
 }
 
 [MemoryDiagnoser]
@@ -51,7 +51,7 @@ public class RtfAdapterBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _document = RtfDocument.Read(RtfBenchmarkCorpus.Get(Scale).Rtf).Document;
+        _document = RtfDocument.ParseResult(RtfBenchmarkCorpus.Get(Scale).Rtf).Document;
         _pdfOptions = RtfBenchmarkSupport.CreatePdfOptions();
         _reader = new OfficeDocumentReaderBuilder().AddRtfHandler().Build();
         _readerInput = _document.ToBytes();

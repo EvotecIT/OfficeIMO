@@ -60,7 +60,7 @@ public class RtfGoldenCorpusTests {
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == RtfDiagnosticSeverity.Error);
             Assert.Equal(sourceBytes, result.ToBytesLossless());
             string normalized = result.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-            RtfReadResult normalizedResult = RtfDocument.Read(normalized);
+            RtfReadResult normalizedResult = RtfDocument.ParseResult(normalized);
             Assert.DoesNotContain(normalizedResult.Diagnostics, diagnostic => diagnostic.Severity == RtfDiagnosticSeverity.Error);
 
             string source = result.ToRtfLossless();

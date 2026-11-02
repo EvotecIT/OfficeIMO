@@ -30,7 +30,7 @@ public partial class WordRtfConverterTests {
         RtfDocument converted = opened.ToRtfDocument();
         AssertMixedRunBreakOrder(SelectMixedRunStory(converted, story));
         string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument readback = RtfDocument.Read(artifact).Document;
+        RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
         AssertMixedRunBreakOrder(SelectMixedRunStory(readback, story), allowNoteBodyMarker: story == "footnote");
         AssertMixedRunSourceUnchanged(opened, before);
     }
@@ -125,7 +125,7 @@ public partial class WordRtfConverterTests {
                 });
         }
         string artifact = converted.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument readback = RtfDocument.Read(artifact).Document;
+        RtfDocument readback = RtfDocument.ParseResult(artifact).Document;
         IEnumerable<IRtfInline> readbackInlines = MixedRunBodyBlocks(readback).SelectMany(block => block is RtfParagraph content
             ? content.Inlines.AsEnumerable()
             : new[] { Assert.IsType<RtfImage>(block) }.Cast<IRtfInline>());

@@ -33,7 +33,7 @@ public sealed class GetOfficeRtfCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var result = ParameterSetName == ParameterSetText
-            ? RtfDocument.Read(Text)
+            ? RtfDocument.ParseResult(Text)
             : RtfDocument.LoadResult(PdfCommandUtilities.ResolvePath(this, Path));
         WriteObject(result);
     }

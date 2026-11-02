@@ -20,7 +20,7 @@ public class RtfEditingWorkflowTests {
         Assert.Equal(new[] { middle, first }, document.Blocks.Cast<RtfParagraph>());
         Assert.Equal(new[] { middle, first }, section.Blocks.Cast<RtfParagraph>());
         Assert.Equal(new[] { "Middle", "First" }, document.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
-        Assert.Equal(new[] { "Middle", "First" }, RtfDocument.Read(document.ToRtf()).Document.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+        Assert.Equal(new[] { "Middle", "First" }, RtfDocument.ParseResult(document.ToRtf()).Document.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
     }
 
     [Fact]
@@ -269,7 +269,7 @@ public class RtfEditingWorkflowTests {
     [Fact]
     public void Lossless_Root_Structure_Editing_Preserves_Trailing_Bytes() {
         const string source = "{\\rtf1\\ansi\\pard A\\par\\pard B\\par}\r\n";
-        RtfLosslessEditor editor = RtfDocument.Read(source).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(source).EditLossless();
         int firstParagraphNode = editor.SyntaxTree.Root.Children
             .Select((node, index) => new { node, index })
             .First(item => item.node is RtfControlWord control && control.Name == "pard").index;
@@ -286,7 +286,7 @@ public class RtfEditingWorkflowTests {
     [Fact]
     public void Lossless_Editor_Replaces_Image_And_Header_Content_Without_Touching_Unknown_Syntax() {
         const string source = "{\\rtf1\\ansi{\\header Old header}{\\pict\\pngblip 010203}{\\*\\unknown Keep}\\pard Body\\par}\r\n";
-        RtfLosslessEditor editor = RtfDocument.Read(source).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(source).EditLossless();
         var image = new RtfImage(RtfImageFormat.Jpeg, new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }) {
             SourceWidth = 1,
             SourceHeight = 1
