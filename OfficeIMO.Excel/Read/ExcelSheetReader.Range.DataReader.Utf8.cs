@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     internal sealed partial class ExcelSheetReader {
         private sealed partial class ExcelUtf8RangeRowSource : IDisposable {
             private const int InitialBufferSize = 64 * 1024;
-            private const int MaximumBufferSize = 64 * 1024 * 1024;
+            private const int MaximumBufferSize = 256 * 1024 * 1024;
             private const int MaximumIndexedCells = 1_000_000;
             private const int StringCacheSize = 256;
             private const int MaximumCachedStringBytes = 256;

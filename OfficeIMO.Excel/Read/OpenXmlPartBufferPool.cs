@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     /// </summary>
     internal static class OpenXmlPartBufferPool {
         private const int CapacityQuantum = 64 * 1024;
-        private const int MaximumBufferSize = 64 * 1024 * 1024;
+        private const int MaximumBufferSize = 256 * 1024 * 1024;
         private const long MaximumRetainedBytes = 64L * 1024 * 1024;
         private static readonly object Sync = new object();
         private static readonly Dictionary<int, byte[]> RetainedBuffers = new Dictionary<int, byte[]>();
