@@ -305,8 +305,8 @@ Page, picture and image-asset counts depend on the selected case.
 | `blank` | Empty page. |
 | `blank-pages` | Requested count of empty physical pages, with one shared empty master; count argument required. |
 | `text-pages` | Builds a source-free publication through `PublisherDocument.Create`, `AddPage` and `AddTextFrame`, then projects the first/final frames and stories into the native codecs. Intermediate pages are empty. Arial 12/18 body text, explicit zero column gap; count argument required. |
-| `object-pages` | Builds three pages with an empty applied master through the public authoring model. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped picture is on the last page. The rectangle has no stored story. Image path required. |
-| `image-pages` | Builds three pages with an empty applied master through the public authoring model. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Two image paths required. |
+| `object-pages` | Projects the final public model of three pages with an empty applied master. A red rectangle without outline is on the first page, the middle page is empty, and an uncropped unnamed picture is on the last page. The rectangle has no stored story. Image path required. |
+| `image-pages` | Projects the final public model of three pages with an empty applied master. Two distinct uncropped PNG assets are on the first and last pages; the middle page is empty. Pictures retain the unnamed native profile. Two image paths required. |
 | `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
 | `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
 | `mixed-object-pages` | Projects the final public model with overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
@@ -346,9 +346,15 @@ header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
 
-`CandidateModelProjection` derives the `master-content`, `mixed-object-pages`,
-`multiple-masters` and `paired-masters` codec inputs from the final
-`PublisherDocument`; none maintains a second editable object list.
+`CandidateModelProjection` derives the master-content, mixed-page, object/image-page
+and multiple/paired-master codec inputs from the final `PublisherDocument`;
+none maintains a second editable object list. Current picture bounds, source
+crops, referenced image bytes and model asset identities supply the codec. Named
+profiles derive their native filename and OfficeArt basename from the current
+asset ID and PNG/JPEG content type; unnamed profiles omit both name records.
+Unused model assets are not emitted, and independent assets with identical bytes
+retain separate native bindings. New edited variants have artifact reload proof;
+their native opening, editing, saving and appearance require separate qualification.
 The projection accepts the existing source-free Letter/single-master profile.
 Imported publications, tables, linked or multicolumn text, insets, non-Top
 alignment, wrap references, multiple paragraphs and non-rectangle artwork require

@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.WriterProbe;
 
-/// <summary>Projects the single-master content and mixed-page specimens from their final authoring models into codec inputs.</summary>
+/// <summary>Projects qualified source-free specimens from their final authoring models into codec inputs.</summary>
 internal static class CandidateModelProjection {
     /// <summary>Projects the existing text-only two-centered-master or centered/left/right-master profiles.</summary>
     internal static CandidatePublicationSpec MultipleMasters(PublisherDocument document) {
@@ -38,7 +38,8 @@ internal static class CandidateModelProjection {
         }
     }
 
-    internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document) {
+    /// <summary>Projects ordinary single-master content, preserving each specimen's named or unnamed native picture profile.</summary>
+    internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document, bool includePictureNames = true) {
         if (document.HasNativeSource || document.MasterPages.Count != 1
             || document.MasterPages[0].MasterSide != PublisherMasterPageSide.Single
             || document.Pages.Count is < 1 or > 16
@@ -72,7 +73,7 @@ internal static class CandidateModelProjection {
                     objects.Add(new CandidateObjectSpec(CandidateObjectKind.Picture,
                         new CandidatePlacement(picture.X, picture.Y, picture.Width, picture.Height),
                         Image: image.GetBytes(), PageIndex: index, Paint: picture.CreatePaint(),
-                        ImageName: "Image" + image.Id + (image.ContentType == "image/png" ? ".png" : ".jpg"),
+                        ImageName: includePictureNames ? "Image" + image.Id + (image.ContentType == "image/png" ? ".png" : ".jpg") : null,
                         Crop: picture.Crop, ImageId: image.Id, OnMaster: onMaster));
                 } else if (shapes.TryGetValue(id, out PublisherShape? shape)) {
                     OfficeShape paint = shape.CreateShape();

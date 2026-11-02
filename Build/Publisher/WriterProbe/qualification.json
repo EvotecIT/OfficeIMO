@@ -30401,5 +30401,68 @@
     "modelIntegrity": "Both model projections now refuse that edit without changing the current model run.",
     "existingNativeSpecimenBytesUnchanged": true,
     "publicNativeCreationAdmitted": false
+  },
+  "canonicalImageModelProjection": {
+    "scope": "Opt-in object-pages and unnamed/named/cropped/shared image-page specimens project final public model state through the existing single-master codec adapter.",
+    "sourceFiles": [
+      "CandidateImagePages.cs",
+      "CandidateObjectPages.cs",
+      "CandidateModelProjection.cs"
+    ],
+    "inputImages": [
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesCropped/native-imagepagescropped.png",
+        "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+      },
+      {
+        "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesCropped/native-imagepagescropped-replacement.png",
+        "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+      }
+    ],
+    "baselineNativeFiles": [
+      {
+        "kind": "object-pages",
+        "sha256": "a812efa1c372506c5a1a67ffdaba77c681bafdb8f63698b92023d523381a3263",
+        "bytes": 7168
+      },
+      {
+        "kind": "image-pages",
+        "sha256": "7a8a5fdc98040fc4255499f41fa01c001a52d9a9eaa2ad2641f011f99eb0c946",
+        "bytes": 7680
+      },
+      {
+        "kind": "named-image-pages",
+        "sha256": "c7fca152e66f2902e606a32f7b604af85ae91d6bd56d822eaabfcd0bafe671b3",
+        "bytes": 7680
+      },
+      {
+        "kind": "cropped-image-pages",
+        "sha256": "0c581beb2613f7a575acb2a11890a22781409a87d2d1d51706cddb369d2badfe",
+        "bytes": 7680
+      },
+      {
+        "kind": "shared-image-pages",
+        "sha256": "473e11570b6dfa83f92f9e8c2a6c0dececf1c0fc869c021a7860f35002d04d74",
+        "bytes": 8192
+      }
+    ],
+    "baselineNativeBytesUnchanged": true,
+    "publisherSha256": "cefdd2df1333473865902f88fcaa8b59956b3deb4723436e98be0f6a5f4bd3fd",
+    "proof": [
+      "PreservesObjectAndAllFourImageProfileNativeBytes",
+      "ProjectsFinalPictureEditsIdentityOrderAndNativeNamingProfiles",
+      "ProjectsFinalObjectGeometryPaintAndReferencedImage"
+    ],
+    "observations": [
+      "Late bounds, normalized source crops, shape paint and per-page order are read from current model snapshots.",
+      "Replacing a shared placement retains the other placement and independent equal-byte assets; only referenced assets are emitted.",
+      "Both native filename resources and OfficeArt basename bindings reflect the current asset and PNG/JPEG content type in named profiles; unnamed profiles omit both."
+    ],
+    "limits": [
+      "Existing single-master Letter/ordinary object admission and shared character/paragraph refusal limits remain in force.",
+      "Baseline PNG specimens retain their existing native qualification limits; edited and JPEG replacement variants have encoded-artifact reload evidence only.",
+      "Public native creation, repair-positive recovery and broader appearance/operation qualification remain unqualified."
+    ],
+    "canClosePUB00": false
   }
 }
