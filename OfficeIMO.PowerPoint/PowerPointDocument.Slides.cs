@@ -316,18 +316,25 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointSlide sourceSlide = _slides[index];
             SlidePart sourcePart = sourceSlide.SlidePart;
-            Slide sourceSlideRoot = sourcePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
             uint nextSlideId = GetNextSlideId();
 
             sourceSlide.Save();
+            // An untouched source slide is copied as serialized XML, avoiding a parse, save, and deep clone.
+            bool copiedSerializedSlide = !sourcePart.IsRootElementLoaded;
 
             string slideRelId = GetNextSlideRelationshipId();
             SlidePart slidePart = _presentationPart.AddNewPart<SlidePart>(slideRelId);
-            slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
+            if (copiedSerializedSlide) {
+                using Stream sourceXml = sourcePart.GetStream(FileMode.Open, FileAccess.Read);
+                slidePart.FeedData(sourceXml);
+            } else {
+                Slide sourceSlideRoot = sourcePart.Slide ?? throw new InvalidOperationException("Source slide is missing its slide definition.");
+                slidePart.Slide = (Slide)sourceSlideRoot.CloneNode(true);
+            }
 
             try {
                 CloneSlidePartRelationships(sourcePart, slidePart,
-                    ShouldSharePart, includeDataParts: true);
+                    ShouldShareDuplicatedSlidePart, includeDataParts: true);
                 RemapDuplicatedNotesSlideBacklink(sourcePart, slidePart);
             } catch {
                 try {
@@ -346,7 +353,8 @@ namespace OfficeIMO.PowerPoint {
                 targetIndex);
 
             PowerPointSlide duplicate = new(slidePart, this);
-            duplicate.Hidden = sourceSlide.Hidden;
+            // Serialized copies already carry the source show attribute; Save() only defers loading when no legacy value exists.
+            if (!copiedSerializedSlide) duplicate.Hidden = sourceSlide.Hidden;
             _slides.Insert(targetIndex, duplicate);
             PresentationRoot.Save();
             return duplicate;

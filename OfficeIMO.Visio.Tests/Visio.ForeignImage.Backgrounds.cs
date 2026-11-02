@@ -17,7 +17,7 @@ public partial class VisioForeignImageRenderingTests {
         VisioDocument source = Load(xml);
         VisioPage background = source.Pages[0];
         background.PageScale = new VisioScaleSetting(.5, VisioMeasurementUnit.Inches);
-        source.AddPage("Foreground", 4, 3).SetBackgroundPage(background);
+        source.AddPage("Foreground", OfficeLength.Inches(4), OfficeLength.Inches(3)).SetBackgroundPage(background);
         foreach (VisioDocument document in new[] { source,
             VisioDocument.LoadLegacyXml(new MemoryStream(source.ToLegacyXmlResult().Value)).Value,
             VisioDocument.Load(new MemoryStream(source.ToBytes())) }) {

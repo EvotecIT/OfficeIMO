@@ -357,8 +357,8 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static VisioDocument CreateVisio(string route) {
         VisioDocument document = VisioDocument.Create();
-        document.AddPage("Proof", 8.5, 11).Shapes.Add(
-            new VisioShape("proof", 4.25, 5.5, 6, 1, Marker(route) + " Adapter proof"));
+        document.AddPage("Proof", OfficeLength.Inches(8.5), OfficeLength.Inches(11)).Shapes.Add(
+            new VisioShape("proof", OfficeLength.Inches(4.25), OfficeLength.Inches(5.5), OfficeLength.Inches(6), OfficeLength.Inches(1), Marker(route) + " Adapter proof"));
         return document;
     }
 

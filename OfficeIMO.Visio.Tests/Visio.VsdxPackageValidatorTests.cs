@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(path);
-            VisioPage page = document.AddPage("Page-1", 8.5, 11, VisioMeasurementUnit.Inches);
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Sample"));
+            VisioPage page = document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), scaleUnit: VisioMeasurementUnit.Inches);
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Sample"));
             document.Save();
 
             return path;
@@ -86,8 +86,8 @@ namespace OfficeIMO.Tests {
                 VisioDocument document = VisioDocument.Create(inputPath);
                 document.UseMastersByDefault = true;
                 document.PackageTheme = new VisioPackageTheme { Name = "Validator Theme" };
-                VisioPage page = document.AddPage("Page-1", 8.5, 11, VisioMeasurementUnit.Inches);
-                page.AddRectangle(1, 1, 2, 1, "Sample");
+                VisioPage page = document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), scaleUnit: VisioMeasurementUnit.Inches);
+                page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Sample");
                 document.Save();
 
                 var validator = new VsdxPackageValidator();

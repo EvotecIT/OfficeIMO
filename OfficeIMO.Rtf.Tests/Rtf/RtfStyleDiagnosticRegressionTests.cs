@@ -13,11 +13,11 @@ public sealed class RtfStyleDiagnosticRegressionTests {
     [InlineData(@"\tab\line\par", null)]
     public void NameCharacterControlsArePreservedWithoutFalseOmission(string controls, string? expected) {
         expected ??= "\t" + Environment.NewLine + Environment.NewLine;
-        RtfDocument document = RtfDocument.Read(@"{\rtf1\ansi{\stylesheet{\s1 Named" + controls + @" Style;}}Plain\par}").Document;
+        RtfDocument document = RtfDocument.ParseResult(@"{\rtf1\ansi{\stylesheet{\s1 Named" + controls + @" Style;}}Plain\par}").Document;
         Assert.Equal("Named" + expected + "Style", document.Styles[0].Name);
         var result = document.ToRtfResult();
         result.RequireNoLoss();
-        Assert.Equal(document.Styles[0].Name, RtfDocument.Read(result.Value).Document.Styles[0].Name);
+        Assert.Equal(document.Styles[0].Name, RtfDocument.ParseResult(result.Value).Document.Styles[0].Name);
         document.ToHtmlResult().RtfReport.RequireNoLoss();
     }
 
@@ -26,7 +26,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
     [InlineData(@"{\*\vendorstyle Private}", "RtfNormalizationStyleDestinationOmitted", "vendorstyle")]
     public void UnsupportedStyleSyntaxCannotPassStrictSemanticConversion(string syntax, string code, string feature) {
         string input = @"{\rtf1\ansi{\stylesheet{\s1" + syntax + @" Style;}}\pard\s1 Visible\par}";
-        RtfReadResult read = RtfDocument.Read(input, new RtfReadOptions { WarnOnUnsupportedDestinations = false });
+        RtfReadResult read = RtfDocument.ParseResult(input, new RtfReadOptions { WarnOnUnsupportedDestinations = false });
         Assert.Equal(input, read.ToRtfLossless());
         var result = read.Document.ToRtfResult(new RtfWriteOptions { MaterializeStyleFormatting = false });
         Assert.Contains(result.Report.Diagnostics, item => item.Code == code && item.Feature == feature);
@@ -69,7 +69,7 @@ public sealed class RtfStyleDiagnosticRegressionTests {
     [Fact]
     public void OrdinaryImplicitStyleZeroAndEncodedStyleNamesAreLossFree() {
         const string input = @"{\rtf1\ansi{\stylesheet{\s1\uc1 Named\u233?;}}Plain\par}";
-        RtfDocument document = RtfDocument.Read(input).Document;
+        RtfDocument document = RtfDocument.ParseResult(input).Document;
         document.ToRtfResult().RequireNoLoss();
         document.ToHtmlResult().RtfReport.RequireNoLoss();
         Assert.Equal("Namedé", document.Styles[0].Name);

@@ -14,6 +14,13 @@ internal static class HtmlCssBorderRadiusParser {
         out string detail) {
         radii = default;
         detail = string.Empty;
+        // Most boxes are square; skip tokenising the initial value for every painted box.
+        if ((string.IsNullOrWhiteSpace(style.BorderRadius) || style.BorderRadius == "0")
+            && string.IsNullOrWhiteSpace(style.BorderTopLeftRadius) && string.IsNullOrWhiteSpace(style.BorderTopRightRadius)
+            && string.IsNullOrWhiteSpace(style.BorderBottomRightRadius) && string.IsNullOrWhiteSpace(style.BorderBottomLeftRadius)) {
+            radii = new HtmlResolvedBorderRadii(0D, 0D, 0D, 0D, 0D, 0D, 0D, 0D).Normalize(width, height);
+            return true;
+        }
         bool uprightVerticalText = (style.WritingMode == "vertical-rl" || style.WritingMode == "vertical-lr")
             && style.TextOrientation == "upright";
         if (!TryParseShorthand(style.BorderRadius, width, height, style.Font.Size, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double[] horizontal, out double[] vertical, style.CharacterAdvance, uprightVerticalText)) {

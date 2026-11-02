@@ -9,9 +9,7 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderDefaultOptionsTests {
     [Theory]
-    [InlineData("chunks-path")]
-    [InlineData("chunks-stream")]
-    [InlineData("chunks-bytes")]
+    [InlineData("incremental-bytes")]
     [InlineData("document-path")]
     [InlineData("document-stream")]
     [InlineData("document-bytes")]
@@ -36,17 +34,15 @@ public sealed class ReaderDefaultOptionsTests {
             async Task Read(ReaderOptions? options) {
                 using var stream = new MemoryStream(bytes);
                 switch (route) {
-                    case "chunks-path": reader.Read(path, options); break;
-                    case "chunks-stream": reader.Read(stream, "source.txt", options); break;
-                    case "chunks-bytes": reader.Read(bytes, "source.txt", options); break;
+                    case "incremental-bytes": reader.Enumerate(bytes, "source.txt", options).ToArray(); break;
                     case "document-path": reader.ReadDocument(path, options); break;
                     case "document-stream": reader.ReadDocument(stream, "source.txt", options); break;
                     case "document-bytes": reader.ReadDocument(bytes, "source.txt", options); break;
                     case "async-path": await reader.ReadDocumentAsync(path, options); break;
                     case "async-stream": await reader.ReadDocumentAsync(stream, "source.txt", options); break;
                     case "async-bytes": await reader.ReadDocumentAsync(bytes, "source.txt", options); break;
-                    case "incremental-path": reader.EnumerateChunks(path, options).ToArray(); break;
-                    case "incremental-stream": reader.EnumerateChunks(stream, "source.txt", options).ToArray(); break;
+                    case "incremental-path": reader.Enumerate(path, options).ToArray(); break;
+                    case "incremental-stream": reader.Enumerate(stream, "source.txt", options).ToArray(); break;
                     case "ordered-batch": await reader.ReadDocumentsAsync(new[] { path }, options); break;
                     case "detailed-batch":
                         var detailed = await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
@@ -59,8 +55,8 @@ public sealed class ReaderDefaultOptionsTests {
                         if (error != null) throw error;
                         break;
 #if NET8_0_OR_GREATER
-                    case "async-incremental-path": await foreach (var _ in reader.EnumerateChunksAsync(path, options)) { } break;
-                    case "async-incremental-stream": await foreach (var _ in reader.EnumerateChunksAsync(stream, "source.txt", options)) { } break;
+                    case "async-incremental-path": await foreach (var _ in reader.EnumerateAsync(path, options)) { } break;
+                    case "async-incremental-stream": await foreach (var _ in reader.EnumerateAsync(stream, "source.txt", options)) { } break;
 #endif
                 }
             }

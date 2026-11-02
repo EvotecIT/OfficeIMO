@@ -62,8 +62,8 @@ public sealed class ImageExportConformanceContracts {
 
         using (var visioStream = new MemoryStream()) {
             VisioDocument document = VisioDocument.Create(visioStream);
-            VisioPage page = document.AddPage("Budget").Size(2D, 1D);
-            page.AddRectangle(1D, 0.5D, 1D, 0.5D, "Visio");
+            VisioPage page = document.AddPage("Budget").Size(OfficeLength.Inches(2D), OfficeLength.Inches(1D));
+            page.AddRectangle(OfficeLength.Inches(1D), OfficeLength.Inches(0.5D), OfficeLength.Inches(1D), OfficeLength.Inches(0.5D), "Visio");
             results.Add(page.ExportImage(
                 OfficeImageExportFormat.Webp,
                 new VisioImageExportOptions {

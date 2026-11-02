@@ -177,11 +177,11 @@ public class ReaderMarkdownPipelineBenchmarks {
 
     [Benchmark]
     public ReaderChunk[] ReadHeadingAndTableChunks() =>
-        _headingReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
+        _headingReader.Enumerate(_bytes, "handbook.md", _readerOptions).ToArray();
 
     [Benchmark]
     public ReaderChunk[] ReadParagraphChunks() =>
-        _paragraphReader.Read(_bytes, "handbook.md", _readerOptions).ToArray();
+        _paragraphReader.Enumerate(_bytes, "handbook.md", _readerOptions).ToArray();
 }
 
 [MemoryDiagnoser]

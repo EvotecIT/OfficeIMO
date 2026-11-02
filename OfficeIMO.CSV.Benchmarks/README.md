@@ -2,6 +2,23 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
+## Generated ExcelReader comparison
+
+`CsvExcelReaderGeneratedBenchmarks` selects the existing mixed ten-column
+workload at 50,000 rows. I compare materialized field reads across OfficeIMO,
+ExcelReader.NET, Sylvan, Sep, CsvHelper and Dataplat; object parsing across
+OfficeIMO, ExcelReader.NET and CsvHelper; and complete UTF-8 projected-row writes
+across OfficeIMO and ExcelReader.NET. Setup validates every decoded field,
+header and row count and reopens each writer's output. Validation is outside
+timing. This keeps string reads separate from raw span scans.
+
+The .NET 10 comparison uses the published MIT ExcelReader.NET 7.3.4 package;
+.NET 8 retains the compatible package pin as a separate cohort.
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvExcelReaderGeneratedBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove
+```
+
 ## Asynchronous input
 
 `CsvAsyncReadBenchmarks` compares a `LoadAsync(...).CreateDataReader()` snapshot

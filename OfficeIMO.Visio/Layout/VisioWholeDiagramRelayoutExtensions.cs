@@ -35,28 +35,28 @@ namespace OfficeIMO.Visio {
             Dictionary<VisioShape, int> layers = BuildTopologyLayers(nodes,
                 outgoing);
 
-            double originX = nodes.Min(node => node.PinX);
-            double originY = nodes.Max(node => node.PinY);
+            double originX = nodes.Min(node => node.PinXInches);
+            double originY = nodes.Max(node => node.PinYInches);
             List<IGrouping<int, VisioShape>> orderedLayers = nodes.GroupBy(node => layers[node])
                 .OrderBy(group => group.Key).ToList();
             double layerCursor = resolved.LeftToRight ? originX : originY;
             foreach (IGrouping<int, VisioShape> layer in orderedLayers) {
                 double layerSize = resolved.LeftToRight
-                    ? layer.Max(node => node.Width)
-                    : layer.Max(node => node.Height);
+                    ? layer.Max(node => node.WidthInches)
+                    : layer.Max(node => node.HeightInches);
                 double layerCenter = resolved.LeftToRight
                     ? layerCursor + layerSize / 2D
                     : layerCursor - layerSize / 2D;
                 double cursor = originY;
                 foreach (VisioShape node in layer.OrderBy(node => node.Id, StringComparer.OrdinalIgnoreCase)) {
                     if (resolved.LeftToRight) {
-                        node.PinX = layerCenter;
-                        node.PinY = cursor - node.Height / 2D;
-                        cursor -= node.Height + resolved.NodeSpacing;
+                        node.PinXInches = layerCenter;
+                        node.PinYInches = cursor - node.HeightInches / 2D;
+                        cursor -= node.HeightInches + resolved.NodeSpacing;
                     } else {
-                        node.PinX = cursor + node.Width / 2D;
-                        node.PinY = layerCenter;
-                        cursor += node.Width + resolved.NodeSpacing;
+                        node.PinXInches = cursor + node.WidthInches / 2D;
+                        node.PinYInches = layerCenter;
+                        cursor += node.WidthInches + resolved.NodeSpacing;
                     }
                 }
                 layerCursor += resolved.LeftToRight

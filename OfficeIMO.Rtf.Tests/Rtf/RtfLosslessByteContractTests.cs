@@ -11,7 +11,7 @@ public sealed class RtfLosslessByteContractTests {
     public void CharacterInputReportsWhenNoByteLosslessRepresentationExists() {
         const string source = "{\\rtf1 Unicode ż}";
 
-        RtfReadResult result = RtfDocument.Read(source);
+        RtfReadResult result = RtfDocument.ParseResult(source);
 
         Assert.False(result.HasOriginalBytes);
         Assert.False(result.CanWriteLosslessBytes);

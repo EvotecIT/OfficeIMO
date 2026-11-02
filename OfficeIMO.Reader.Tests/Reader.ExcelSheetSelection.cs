@@ -29,7 +29,7 @@ public sealed class ReaderExcelSheetSelectionTests {
             }
             var options = new ReaderOptions { Projection = projection };
             if (route == "incremental") {
-                var chunks = reader.EnumerateChunks(path, options).ToArray();
+                var chunks = reader.Enumerate(path, options).ToArray();
                 Assert.NotEmpty(chunks);
                 Assert.All(chunks, chunk => Assert.Equal("2", chunk.Location!.Sheet));
                 Assert.Contains(chunks, chunk => chunk.Text!.Contains("Selected second value"));

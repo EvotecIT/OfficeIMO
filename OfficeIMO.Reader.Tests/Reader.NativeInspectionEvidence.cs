@@ -34,7 +34,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
         Assert.Contains(result.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Comment && item.Attributes["isReply"] == "true" && item.Value == "Reply evidence");
         OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
         Assert.Contains(restored.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Revision && item.Value == revision.Value && item.Attributes["partUri"] == revision.Attributes["partUri"]);
-        Assert.Contains(reader.ExtractStructured(restored).Records, item => item.Value == "Tracked source" && item.Location?.SourceBlockKind == "revision");
+        Assert.Contains(restored.ExtractStructured().Records, item => item.Value == "Tracked source" && item.Location?.SourceBlockKind == "revision");
         // Inspection must leave authored review markup intact for a subsequent read.
         using var input = new MemoryStream(bytes, writable: false);
         using WordDocument original = WordDocument.Load(input, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });

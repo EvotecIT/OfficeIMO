@@ -15,7 +15,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Decodes_DoubleByte_Ansi_CodePages(int codePage, string encodedText, string expected) {
         string rtf = "{\\rtf1\\ansi\\ansicpg" + codePage.ToString(CultureInfo.InvariantCulture) + " " + encodedText + "}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(expected, Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
@@ -32,7 +32,7 @@ public partial class RtfDocumentReadWriteTests {
         string rtf = "{\\rtf1\\ansi\\ansicpg" + codePage.ToString(CultureInfo.InvariantCulture) +
             "\\uc2\\u" + unicodeValue.ToString(CultureInfo.InvariantCulture) + fallback + "X}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(expected + "X", Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.Equal(rtf, result.ToRtfLossless());
@@ -42,7 +42,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Consumes_Dbcs_Unicode_Fallback_Per_Source_Byte_In_Metadata() {
         const string rtf = @"{\rtf1\ansi\ansicpg932{\info{\title \uc2\u12354\'82\'a0X}}Body}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal("あX", result.Document.Info.Title);
         Assert.Equal(rtf, result.ToRtfLossless());
@@ -52,7 +52,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Uses_Johab_CodePage_For_Font_Charset_130() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0\fcharset130 Johab;}}\f0 \'88\'61\'90\'61\'94\'61}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(130, Assert.Single(result.Document.Fonts).Charset);
         Assert.Equal("가나다", Assert.Single(result.Document.Paragraphs).ToPlainText());
@@ -119,7 +119,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Uses_Uc_Control_When_Collecting_Metadata_And_Field_Text() {
         const string rtf = @"{\rtf1\ansi{\info{\title \uc2\u380?? Title}}\pard {\field{\*\fldinst HYPERLINK ""https://example.test""}{\fldrslt \uc2\u380?? Link}}\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal("ż Title", result.Document.Info.Title);
         AssertSingleHyperlinkField(Assert.Single(result.Document.Paragraphs), "ż Link");
@@ -129,7 +129,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Scopes_Uc_Control_When_Collecting_Nested_Metadata_And_Field_Text() {
         const string rtf = @"{\rtf1\ansi{\info{\title {\uc2\u380?? Nested} \u380?! After}}\pard {\field{\*\fldinst HYPERLINK ""https://example.test""}{\fldrslt {\uc2\u380?? Nested} \u380?! Link}}\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal("ż Nested ż! After", result.Document.Info.Title);
         AssertSingleHyperlinkField(Assert.Single(result.Document.Paragraphs), "ż Nested ż! Link");
@@ -139,7 +139,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Uses_Unicode_Alternative_From_Upr_Groups_For_Body_Metadata_And_Fields() {
         const string rtf = @"{\rtf1\ansi{\info{\title {\upr{Fallback title}{\*\ud{\u380? title}}}}}\pard {\upr{Fallback body}{\*\ud{\u380? body}}}\par{\field{\*\fldinst HYPERLINK ""https://example.test""}{\fldrslt {\upr{Fallback link}{\*\ud{\u380? link}}}}}}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("ż title", result.Document.Info.Title);
@@ -151,7 +151,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Combines_Unicode_Surrogate_Pairs_In_Body_Metadata_And_Fields() {
         const string rtf = @"{\rtf1\ansi{\info{\title Smile \u-10179?\u-8704?}}\pard Body \u-10179?\u-8704?\par{\field{\*\fldinst HYPERLINK ""https://example.test""}{\fldrslt Link \u-10179?\u-8704?}}}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("Smile 😀", result.Document.Info.Title);
@@ -163,7 +163,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Named_Special_Character_Controls_In_Body_Metadata_And_Fields() {
         const string rtf = @"{\rtf1\ansi{\info{\title A\endash B\emdash C \lquote quote\rquote  \ldblquote double\rdblquote  \bullet}}\pard A\endash B\emdash C \lquote quote\rquote  \ldblquote double\rdblquote  \bullet\par{\field{\*\fldinst HYPERLINK ""https://example.test""}{\fldrslt Link\endash \bullet}}}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("A–B—C ‘quote’ “double” •", result.Document.Info.Title);
@@ -183,7 +183,7 @@ public partial class RtfDocumentReadWriteTests {
         field.AddText(specialText).SetItalic();
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\endash", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\emdash", rtf, StringComparison.Ordinal);

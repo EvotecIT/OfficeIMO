@@ -44,7 +44,7 @@ foreach (string handlerId in requiredHandlers) {
 
 const string csv = "Name,Score\nAlice,42\nBob,51\n";
 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
-List<ReaderChunk> chunks = reader.Read(stream, "scores.csv").ToList();
+List<ReaderChunk> chunks = reader.Enumerate(stream, "scores.csv").ToList();
 if (!chunks.Any(chunk => chunk.Kind == ReaderInputKind.Csv && chunk.Tables is { Count: > 0 })) {
     throw new InvalidOperationException("The NativeAOT all-formats reader lost structured CSV extraction.");
 }

@@ -24,7 +24,7 @@ public sealed class ReaderTextProjectionLimitsTests {
         var error = Assert.Throws<ReaderResourceLimitException>(() => {
             if (entryPoint == "direct") document.ToReadResult(options);
             else if (entryPoint == "document") reader.ReadDocument(source, "words.djvu");
-            else reader.Read(source, "words.djvu").ToArray();
+            else reader.Enumerate(source, "words.djvu").ToArray();
         });
         Assert.Equal(nameof(DjVuReadOptions.MaxTextCharacters), error.LimitName);
         Assert.Equal(8, error.Maximum);

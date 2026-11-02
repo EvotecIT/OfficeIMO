@@ -9,7 +9,7 @@ public sealed partial class EmailDocument {
     public static EmailDocument Load(string filePath, EmailReaderOptions? options = null,
         CancellationToken cancellationToken = default) =>
         GetDocumentOrThrow(new EmailDocumentReader(options ?? EmailReaderOptions.Default)
-            .Read(filePath, cancellationToken));
+            .ReadDocument(filePath, cancellationToken));
 
     /// <summary>
     /// Loads one EML, MSG, or TNEF artifact from memory. Use a source-name reader overload when bytes represent OFT.
@@ -18,7 +18,7 @@ public sealed partial class EmailDocument {
     public static EmailDocument Load(byte[] data, EmailReaderOptions? options = null,
         CancellationToken cancellationToken = default) =>
         GetDocumentOrThrow(new EmailDocumentReader(options ?? EmailReaderOptions.Default)
-            .Read(data, cancellationToken));
+            .ReadDocument(data, cancellationToken));
 
     /// <summary>
     /// Loads one EML, MSG, or TNEF artifact without closing the stream. Seekable streams are read from the beginning
@@ -28,13 +28,13 @@ public sealed partial class EmailDocument {
     public static EmailDocument Load(Stream stream, EmailReaderOptions? options = null,
         CancellationToken cancellationToken = default) =>
         GetDocumentOrThrow(new EmailDocumentReader(options ?? EmailReaderOptions.Default)
-            .Read(stream, cancellationToken));
+            .ReadDocument(stream, cancellationToken));
 
     /// <summary>Asynchronously loads one EML, MSG, or TNEF artifact with the default bounded policy.</summary>
     public static async Task<EmailDocument> LoadAsync(string filePath, EmailReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         EmailReadResult result = await new EmailDocumentReader(options ?? EmailReaderOptions.Default)
-            .ReadAsync(filePath, cancellationToken).ConfigureAwait(false);
+            .ReadDocumentAsync(filePath, cancellationToken).ConfigureAwait(false);
         return GetDocumentOrThrow(result);
     }
 
@@ -45,7 +45,7 @@ public sealed partial class EmailDocument {
     public static async Task<EmailDocument> LoadAsync(Stream stream, EmailReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         EmailReadResult result = await new EmailDocumentReader(options ?? EmailReaderOptions.Default)
-            .ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+            .ReadDocumentAsync(stream, cancellationToken).ConfigureAwait(false);
         return GetDocumentOrThrow(result);
     }
 

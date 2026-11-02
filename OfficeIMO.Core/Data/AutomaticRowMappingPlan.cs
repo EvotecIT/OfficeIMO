@@ -180,19 +180,7 @@ internal sealed partial class AutomaticRowMappingPlan<
             }
         }
 
-        T instance = _constructor is null ? Activator.CreateInstance<T>()
-            : _constructor.Create(binding => DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Property.ValueType),
-                culture, dateTimeFormats, typeConverter, errorValuePolicy);
-        foreach (MappingBinding binding in _assignmentBindings) {
-            instance = binding.ApplyReader(
-                instance,
-                reader,
-                culture,
-                dateTimeFormats,
-                typeConverter,
-                errorValuePolicy);
-        }
-        return instance;
+        return MapReaderRowSlow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
     }
 
     internal Func<DbDataReader, T>? GetFastReaderMap(

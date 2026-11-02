@@ -176,7 +176,7 @@ public sealed class ReaderHierarchicalChunkingTests {
     [Fact]
     public void MarkdownRead_PreservesRawHeadingPathWhileHierarchyKeepsLiteralDelimiter() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Q1 > Q2\\Back\n\nBody");
-        ReaderChunk normal = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(markdown, "note.md"));
+        ReaderChunk normal = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(markdown, "note.md"));
 
         Assert.Equal("Q1 > Q2\\Back", normal.Location.HeadingPath);
 
@@ -197,7 +197,7 @@ public sealed class ReaderHierarchicalChunkingTests {
 
     [Fact]
     public void Chunk_UsesProcessorUpdatedPublicHeadingPathInsteadOfStaleHint() {
-        ReaderChunk chunk = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
+        ReaderChunk chunk = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(
             Encoding.UTF8.GetBytes("# Original > Literal\n\nBody"),
             "note.md"));
         chunk.Location.HeadingPath = "Processed";

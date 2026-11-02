@@ -33,7 +33,7 @@ public sealed class OutlookDistributionListTests {
         };
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument result = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Equal(OutlookItemKind.DistributionList, result.OutlookItemKind);
         Assert.Equal("IPM.DistList", result.MessageClass);

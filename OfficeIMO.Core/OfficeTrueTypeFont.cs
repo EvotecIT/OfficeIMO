@@ -383,15 +383,15 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var key = (text, fontSize);
         if (_measuredWidths.TryGetValue(key, out double measured)) return measured;
         measured = MeasureText(text, fontSize);
-        if (_measuredWidths.Count < MaximumMeasuredTexts) _measuredWidths.TryAdd(key, measured);
+        _measuredWidths.TryAdd(key, measured);
         return measured;
     }
 
     // Layout measures the same words repeatedly, for intrinsic sizes and again for line breaking.
     private const int MaximumMeasuredTextLength = 128;
     private const int MaximumMeasuredTexts = 8192;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<(string, double), double> _measuredWidths =
-        new System.Collections.Concurrent.ConcurrentDictionary<(string, double), double>();
+    private readonly OfficeBoundedCache<(string, double), double> _measuredWidths =
+        new OfficeBoundedCache<(string, double), double>(MaximumMeasuredTexts);
 
     private double MeasureText(string text, double fontSize) {
         var scale = ScaleFor(fontSize);

@@ -16,9 +16,9 @@ public sealed class VisioDrawingReviewRegressionTests {
     [InlineData("arrow")]
     public void EdgeCrossingArtworkKeepsItsVisiblePartInPdf(string kind) {
         VisioDocument source = VisioDocument.Create(); source.UseMastersByDefault = false;
-        VisioPage page = source.AddPage("Edge", 3, 2);
+        VisioPage page = source.AddPage("Edge", OfficeLength.Inches(3), OfficeLength.Inches(2));
         if (kind is "edge" or "rotated") {
-            var shape = page.AddRectangle(0, 1, 1, 1);
+            var shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
             shape.FillColor = OfficeColor.Red;
             if (kind == "rotated") shape.Angle = .5;
         } else {
@@ -51,7 +51,7 @@ public sealed class VisioDrawingReviewRegressionTests {
         byte[] narrow = ManagedTextShapingTestAssets.CreateFont('A');
         byte[] wide = WithWideAdvances(narrow);
         VisioDocument document = VisioDocument.Create(); document.UseMastersByDefault = false;
-        var shape = document.AddPage("Font override").AddRectangle(2, 2, .5, .16, "AAAAAAAAAA");
+        var shape = document.AddPage("Font override").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(.16, VisioMeasurementUnit.Inches)), "AAAAAAAAAA");
         shape.TextStyle = new VisioTextStyle { Size = 6, FontFamily = "Arial", LeftMargin = 0, RightMargin = 0, TopMargin = 0, BottomMargin = 0 };
         var drawingOptions = new VisioDrawingOptions(); drawingOptions.Fonts.Add("Arial", widePdf ? narrow : wide);
         var pdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Arial", widePdf ? wide : narrow));
@@ -70,7 +70,7 @@ public sealed class VisioDrawingReviewRegressionTests {
         using var cancellation = new CancellationTokenSource();
         var provider = new CancellingProvider(cancellation);
         var document = VisioDocument.Create(); document.UseMastersByDefault = false;
-        document.AddPage("Cancellation").AddRectangle(2, 2, 1, 1, "A").TextStyle = new VisioTextStyle { FontFamily = "Arial" };
+        document.AddPage("Cancellation").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "A").TextStyle = new VisioTextStyle { FontFamily = "Arial" };
         var drawingOptions = new VisioDrawingOptions { TextShapingProvider = pdfProvider ? null : provider };
         drawingOptions.Fonts.Add("Arial", ManagedTextShapingTestAssets.CreateFont('A'));
         var options = new VisioToPdfOptions {

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            VisioShape shape = new("1", 2, 3, 4, 5, string.Empty);
+            VisioShape shape = new("1", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(4), OfficeLength.Inches(5), string.Empty);
             shape.Data["Key"] = "Value";
             shape.Text = "Hello";
             page.Shapes.Add(shape);

@@ -23,7 +23,7 @@ public class RtfNativeNoteModeTests {
     [InlineData(@"\fet2\endnotes", false, false, false)]
     public void Parsed_Mode_Projects_Native_Reference_And_All_Note_Paragraphs(
         string controls, bool alternate, bool endnote, bool sectionEnd) {
-        RtfReadResult read = RtfDocument.Read(Source(controls, alternate));
+        RtfReadResult read = RtfDocument.ParseResult(Source(controls, alternate));
         Assert.False(read.HasOriginalBytes); // Character input: policy cannot depend on a retained byte buffer.
         RtfNote raw = Assert.Single(read.Document.Notes);
         Assert.Equal(alternate ? RtfNoteKind.Endnote : RtfNoteKind.Footnote, raw.Kind);
@@ -57,7 +57,7 @@ public class RtfNativeNoteModeTests {
     [InlineData(@"\fet2", @"\fet2", false)]
     public void Clone_Metadata_Edit_And_Normalization_Retain_Parsed_Mode(
         string controls, string normalizedMode, bool endnote) {
-        RtfReadResult read = RtfDocument.Read(Source(controls));
+        RtfReadResult read = RtfDocument.ParseResult(Source(controls));
         Assert.Equal(Source(controls), read.ToRtfLossless());
         RtfDocument copy = read.Document.Clone();
         copy.Info.Title = "Edited metadata";
@@ -65,7 +65,7 @@ public class RtfNativeNoteModeTests {
         Assert.Contains(normalizedMode, written);
         if (normalizedMode != @"\fet2") Assert.DoesNotContain(@"\fet2", written);
         using WordDocument direct = copy.ToWordDocument();
-        using WordDocument normalized = RtfDocument.Read(written).Document.ToWordDocument();
+        using WordDocument normalized = RtfDocument.ParseResult(written).Document.ToWordDocument();
         Assert.Equal(endnote ? 1 : 0, direct.EndNotes.Count);
         Assert.Equal(endnote ? 1 : 0, normalized.EndNotes.Count);
         Assert.Equal(endnote ? 0 : 1, normalized.FootNotes.Count);
@@ -74,7 +74,7 @@ public class RtfNativeNoteModeTests {
 
     [Fact]
     public void Empty_Append_Adopts_Parsed_Note_Defaults_And_Declared_Settings() {
-        RtfDocument source = RtfDocument.Read(Source(@"\endnotes\ftnstart3\ftnnrlc")).Document;
+        RtfDocument source = RtfDocument.ParseResult(Source(@"\endnotes\ftnstart3\ftnnrlc")).Document;
         RtfDocument destination = RtfDocument.Create();
         RtfDocumentMergeResult result = destination.AppendDocument(source);
         result.Report.RequireNoLoss();
@@ -92,7 +92,7 @@ public class RtfNativeNoteModeTests {
     public void Incompatible_Nonempty_Append_Reports_Document_Note_Policy_Loss() {
         RtfDocument destination = RtfDocument.Create();
         destination.AddParagraph("Existing modern body");
-        RtfDocumentMergeResult result = destination.AppendDocument(RtfDocument.Read(Source("")).Document);
+        RtfDocumentMergeResult result = destination.AppendDocument(RtfDocument.ParseResult(Source("")).Document);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "RtfMergeDocumentSettingsFlattened" && d.Detail!.Contains("NoteMode"));
         Assert.Throws<RtfConversionLossException>(result.Report.RequireNoLoss);
         Assert.Contains(@"\fet2", destination.ToRtf());
@@ -106,14 +106,14 @@ public class RtfNativeNoteModeTests {
         source.AddParagraph("Body").AddNoteReference(note);
         string written = source.ToRtf();
         Assert.Contains(@"\fet2", written);
-        using WordDocument word = RtfDocument.Read(written).Document.ToWordDocument();
+        using WordDocument word = RtfDocument.ParseResult(written).Document.ToWordDocument();
         Assert.Single(word.FootNotes);
         Assert.Empty(word.EndNotes);
     }
 
     [Fact]
     public void Projected_Ordinary_And_Explicit_Endnote_Group_Collision_Is_Reported() {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\pard Body{\footnote First}{\footnote\ftnalt Second}\par}").Document;
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi\pard Body{\footnote First}{\footnote\ftnalt Second}\par}").Document;
         RtfConversionResult<WordDocument> result = source.ToWordDocumentResult();
         using WordDocument word = result.Value;
         Assert.Equal(2, word.EndNotes.Count);
@@ -126,7 +126,7 @@ public class RtfNativeNoteModeTests {
     [InlineData(@"\endnotes", @"\ftnbj", false)]
     public void Parsed_Section_Overrides_Resolve_Table_Cell_Note_References(
         string documentPlacement, string sectionPlacement, bool endnote) {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi" + documentPlacement + @"\sectd" + sectionPlacement +
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi" + documentPlacement + @"\sectd" + sectionPlacement +
             @"\trowd\cellx2400\pard\intbl Cell{\footnote\pard First\par Second}\cell\row}").Document;
         using WordDocument word = source.ToWordDocument();
         Assert.Equal(endnote ? 1 : 0, word.EndNotes.Count);
@@ -138,7 +138,7 @@ public class RtfNativeNoteModeTests {
     [Fact]
     public void Unsupported_Mode_Is_Lossless_In_Syntax_And_Diagnosed_During_Normalization() {
         string text = Source(@"\fet9");
-        RtfReadResult read = RtfDocument.Read(text);
+        RtfReadResult read = RtfDocument.ParseResult(text);
         Assert.Equal(text, read.ToRtfLossless());
         Assert.Contains(read.Diagnostics, d => d.Code == "RTF108");
         RtfConversionResult<string> normalized = read.Document.ToRtfResult();

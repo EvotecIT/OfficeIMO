@@ -98,7 +98,7 @@ public class RtfDestinationRegistryTests {
     public void Semantic_Read_Diagnoses_Known_Preserve_Only_Families_And_Keeps_Visible_Text() {
         const string rtf = @"{\rtf1\ansi{\*\themedata 001122}{\*\xe Index entry}{\*\xmlopen\xmlns1}{\*\xmlclose}\pard Visible\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal("Visible", Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.Equal(rtf, result.ToRtfLossless());

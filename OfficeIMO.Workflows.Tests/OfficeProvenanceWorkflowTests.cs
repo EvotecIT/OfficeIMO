@@ -109,7 +109,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string visio = Path.Combine(scope.Path, "drawing.vsdx");
         VisioDocument visioDocument = VisioDocument.Create(visio);
-        visioDocument.AddPage("Page-1", 8.5, 11);
+        visioDocument.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
         visioDocument.Save();
         string odt = Path.Combine(scope.Path, "document.odt");
         OdtDocument openDocument = OdtDocument.Create();
@@ -325,7 +325,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         string source = Path.Combine(scope.Path, "drawing.vsdm");
         string input = Path.Combine(scope.Path, "renamed.vsdx");
         VisioDocument document = VisioDocument.Create(source, VisioPackageType.MacroEnabledDrawing);
-        document.AddPage("Page-1", 8.5, 11);
+        document.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
         document.Save();
         File.Copy(source, input);
 

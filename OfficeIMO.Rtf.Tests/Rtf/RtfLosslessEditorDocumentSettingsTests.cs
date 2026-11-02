@@ -8,7 +8,7 @@ public class RtfLosslessEditorDocumentSettingsTests {
     public void SetDocumentSettings_Replaces_Duplicates_And_Preserves_Metadata_And_Body() {
         const string rtf = @"{\rtf1\ansi\uc2\deftab360\deftab720\deflang1045\deflangfe1041\adeflang1033\viewkind4\viewscale125\viewzk2\viewbksp1\widowctrl\hyphauto0\hyphcaps\hyphconsec3\hyphhotz360\facingp\margmirror\formprot\revprot0\annotprot\readprot0\revisions\revprop3\revbar2\dghspace120\dgvspace180\dghorigin720\dgvorigin900\dghshow2\dgvshow3\dgsnap\dgmargin0\rtldoc{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetDefaultTabWidth(1440);
         editor.SetDefaultLanguages(defaultLanguageId: 1033, defaultAlternateLanguageId: 1045);
         editor.SetDocumentView(kind: 5, zoomKind: 3);
@@ -64,7 +64,7 @@ public class RtfLosslessEditorDocumentSettingsTests {
     public void SetDocumentSettings_Creates_And_Removes_Settings_Before_Metadata() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetDefaultTabWidth(720);
         editor.SetDefaultLanguages(defaultLanguageId: 1045, defaultFarEastLanguageId: 1041, defaultAlternateLanguageId: 1033);
         editor.SetDocumentView(kind: 4, scale: 125, zoomKind: 2, backspaceBehavior: 1);

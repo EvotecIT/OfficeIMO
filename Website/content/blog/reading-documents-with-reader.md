@@ -29,7 +29,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordHandler(new ReaderWordOptions { IncludeFootnotes = true })
     .Build();
 
-var chunks = reader.Read("proposal.docx", new ReaderOptions
+var chunks = reader.Enumerate("proposal.docx", new ReaderOptions
 {
     MaxChars = 4_000,
     ComputeHashes = true
@@ -47,7 +47,7 @@ foreach (var chunk in chunks)
 }
 ```
 
-For file paths, `reader.Read(...)` routes through the handlers configured on that reader and returns `ReaderChunk` items rather than one giant monolithic string. That makes it easier to preserve headings, pages, sheets, slides, and other citation-friendly location data.
+For file paths, `reader.Enumerate(...)` routes through the handlers configured on that reader and returns `ReaderChunk` items rather than one giant monolithic string. That makes it easier to preserve headings, pages, sheets, slides, and other citation-friendly location data.
 
 ## Inspecting Location And Structured Output
 
@@ -76,7 +76,7 @@ Processing a folder of mixed documents is a common ingest scenario:
 ```csharp
 using OfficeIMO.Reader;
 
-var documents = reader.ReadFolderDocuments(
+var documents = reader.EnumerateFolderDocuments(
     folderPath: "/data/documents",
     folderOptions: new ReaderFolderOptions
     {
@@ -107,7 +107,7 @@ LLMs have token limits. You cannot feed a 200-page contract into a single prompt
 ```csharp
 using OfficeIMO.Reader;
 
-var chunks = reader.Read("contract.docx", new ReaderOptions
+var chunks = reader.Enumerate("contract.docx", new ReaderOptions
 {
     MaxChars = 3_000
 }).ToList();

@@ -45,6 +45,8 @@ The implemented vocabulary follows the [OPML 2.0 specification](https://opml.org
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
+`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; parsing text or loading a stream leaves the document detached.
+
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
 

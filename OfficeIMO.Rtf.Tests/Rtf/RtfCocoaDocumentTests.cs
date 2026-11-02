@@ -140,7 +140,7 @@ public class RtfCocoaDocumentTests {
 
     [Fact]
     public void EditingAFontInAnUngroupedTableReplacesIt() {
-        RtfLosslessEditor editor = RtfDocument.Read(Report).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(Report).EditLossless();
         editor.SetFont(1, "Georgia");
 
         RtfDocument document = RtfDocument.Parse(editor.ToRtf());

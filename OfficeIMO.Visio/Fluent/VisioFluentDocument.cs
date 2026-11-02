@@ -26,48 +26,25 @@ namespace OfficeIMO.Visio.Fluent {
             return this;
         }
 
-        /// <summary>
-        /// Adds a page using a direct fluent style (no Add*/With* names) and configures it.
-        /// Mirrors patterns from Markdown/Excel/PowerPoint fluent APIs.
-        /// </summary>
-        /// <param name="name">Page name.</param>
-        /// <param name="configure">Configuration for shapes/connectors on the page.</param>
-        public VisioFluentDocument Page(string name, Action<VisioFluentPage> configure) {
-            var page = _document.AddPage(name);
-            var builder = new VisioFluentPage(this, page);
-            configure?.Invoke(builder);
+        /// <summary>Adds a page and optionally configures it.</summary>
+        public VisioFluentDocument AddPage(string name, OfficeLength? width = null, OfficeLength? height = null,
+            VisioMeasurementUnit scaleUnit = VisioMeasurementUnit.Inches, int? id = null, Action<VisioFluentPage>? configure = null) {
+            ConfigurePage(_document.AddPage(name, width, height, scaleUnit, id), configure);
             return this;
         }
 
-        /// <summary>
-        /// Adds a page with explicit size and configures it.
-        /// </summary>
-        public VisioFluentDocument Page(string name, double width, double height, VisioMeasurementUnit unit, Action<VisioFluentPage> configure) {
-            var page = _document.AddPage(name, width, height, unit);
-            var builder = new VisioFluentPage(this, page);
-            configure?.Invoke(builder);
+        /// <summary>Adds a default-sized page and configures it.</summary>
+        public VisioFluentDocument AddPage(string name, Action<VisioFluentPage> configure) => AddPage(name, configure: configure, width: null);
+
+        /// <summary>Adds a background page and optionally configures it.</summary>
+        public VisioFluentDocument AddBackgroundPage(string name, OfficeLength? width = null, OfficeLength? height = null,
+            VisioMeasurementUnit scaleUnit = VisioMeasurementUnit.Inches, int? id = null, Action<VisioFluentPage>? configure = null) {
+            ConfigurePage(_document.AddBackgroundPage(name, width, height, scaleUnit, id), configure);
             return this;
         }
 
-        /// <summary>
-        /// Adds a Visio background page and configures it.
-        /// </summary>
-        public VisioFluentDocument BackgroundPage(string name, Action<VisioFluentPage> configure) {
-            var page = _document.AddBackgroundPage(name);
-            var builder = new VisioFluentPage(this, page);
-            configure?.Invoke(builder);
-            return this;
-        }
-
-        /// <summary>
-        /// Adds a sized Visio background page and configures it.
-        /// </summary>
-        public VisioFluentDocument BackgroundPage(string name, double width, double height, VisioMeasurementUnit unit, Action<VisioFluentPage> configure) {
-            var page = _document.AddBackgroundPage(name, width, height, unit);
-            var builder = new VisioFluentPage(this, page);
-            configure?.Invoke(builder);
-            return this;
-        }
+        /// <summary>Adds a default-sized background page and configures it.</summary>
+        public VisioFluentDocument AddBackgroundPage(string name, Action<VisioFluentPage> configure) => AddBackgroundPage(name, configure: configure, width: null);
 
         /// <summary>
         /// Applies high-level deterministic cleanup to all foreground pages.
@@ -77,8 +54,6 @@ namespace OfficeIMO.Visio.Fluent {
             _document.PolishDiagrams(options);
             return this;
         }
-
-        // Removed obsolete AddPage overloads to keep the fluent API focused and consistent.
 
         /// <summary>
         /// Ends fluent configuration and returns the underlying document.

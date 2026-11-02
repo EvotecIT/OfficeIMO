@@ -31,7 +31,7 @@ namespace OfficeIMO.Visio.Diagrams {
             bool previousMastersByDefault = _document.UseMastersByDefault;
             _document.UseMastersByDefault = false;
             try {
-                VisioPage page = _document.AddPage(_pageName, pageWidth, pageHeight, _unit);
+                VisioPage page = _document.AddPageInches(_pageName, pageWidth, pageHeight, _unit);
                 page.Grid(visible: false, snap: true);
                 page.AddLayer(LifelineLayer);
                 page.AddLayer(MessageLayer);
@@ -87,7 +87,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, pageWidth / 2D, y, Math.Max(1D, pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, pageWidth / 2D, y, Math.Max(1D, pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioShape CreateParticipantHeader(VisioPage page, ParticipantItem participant, double x, double y) {
-            VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, GetParticipantStencilId(participant.Kind), participant.Id, x, y, _participantWidth, _participantHeight, participant.Text);
+            VisioShape shape = page.AddStencilShapeInches(VisioStencils.Sequence, GetParticipantStencilId(participant.Kind), participant.Id, x, y, _participantWidth, _participantHeight, participant.Text);
             GetParticipantStyle(participant.Kind).ApplyTo(shape);
             shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceParticipant", "STR", prompt: "OfficeIMO semantic kind");
             shape.SetUserCell("OfficeIMO.SequenceParticipantKind", participant.Kind.ToString(), "STR", prompt: "OfficeIMO sequence participant kind");

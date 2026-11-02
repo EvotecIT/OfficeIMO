@@ -14,7 +14,7 @@ namespace OfficeIMO.Archives.Tests {
             if (nested) bytes = Nest(bytes);
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
             using var input = new MemoryStream(bytes);
-            var chunks = reader.Read(input, "input.zip", new() { ComputeHashes = false }).ToArray();
+            var chunks = reader.Enumerate(input, "input.zip", new() { ComputeHashes = false }).ToArray();
             Assert.NotEmpty(chunks);
             Assert.All(chunks, c => Assert.NotEmpty(c.Warnings ?? Array.Empty<string>()));
             Assert.DoesNotContain(chunks, c => c.Text.Contains("original") || c.Text.Contains("nriginal"));
@@ -32,7 +32,7 @@ namespace OfficeIMO.Archives.Tests {
             BitConverter.GetBytes(2u).CopyTo(bytes, ArchiveZipInspectionTests.Central(bytes) + 24);
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
             using var input = new MemoryStream(bytes);
-            var chunks = reader.Read(input, "input.zip", new() { ComputeHashes = false }).ToArray();
+            var chunks = reader.Enumerate(input, "input.zip", new() { ComputeHashes = false }).ToArray();
             Assert.NotEmpty(chunks);
             Assert.All(chunks, c => Assert.NotEmpty(c.Warnings ?? Array.Empty<string>()));
             Assert.DoesNotContain(chunks, c => c.Text == "LO");
@@ -44,7 +44,7 @@ namespace OfficeIMO.Archives.Tests {
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
                 .AddZipHandler(new() { OperationBudget = budget }).Build();
             using var input = new MemoryStream(Nest(ArchiveZipInspectionTests.Zip(("test.txt", "hello"))));
-            var error = Assert.Throws<ReaderResourceLimitException>(() => reader.Read(input, "input.zip").ToArray());
+            var error = Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(input, "input.zip").ToArray());
             Assert.IsType<OfficeInspectionResourceLimitException>(error.InnerException);
         }
 

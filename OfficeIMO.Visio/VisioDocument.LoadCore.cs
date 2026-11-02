@@ -204,7 +204,7 @@ namespace OfficeIMO.Visio {
                 cancellationToken.ThrowIfCancellationRequested();
                 string name = pageRef.Attribute("Name")?.Value ?? "Page";
                 int pageId = int.TryParse(pageRef.Attribute("ID")?.Value, out int tmp) ? tmp : document.Pages.Count;
-                VisioPage page = document.AddPage(name, id: pageId);
+                VisioPage page = document.AddPageInches(name, id: pageId);
                 page.NameU = pageRef.Attribute("NameU")?.Value ?? name;
                 page.IsBackground = TryParseTruthyCellValue(pageRef.Attribute("Background")?.Value);
                 if (int.TryParse(pageRef.Attribute("BackPage")?.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int backPageId)) {
@@ -497,10 +497,10 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (pageWidthInches.HasValue && pageWidthInches.Value > 0) {
-                    page.Width = pageWidthInches.Value;
+                    page.WidthInches = pageWidthInches.Value;
                 }
                 if (pageHeightInches.HasValue && pageHeightInches.Value > 0) {
-                    page.Height = pageHeightInches.Value;
+                    page.HeightInches = pageHeightInches.Value;
                 }
                 page.SetLoadedMargins(leftMargin, rightMargin, topMargin, bottomMargin, marginUnit);
                 page.SetLoadedConnectorSpacingInches(

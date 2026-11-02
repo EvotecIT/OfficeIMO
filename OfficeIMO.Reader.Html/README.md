@@ -61,7 +61,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHtmlHandler(htmlOptions)
     .Build();
 
-foreach (var chunk in reader.Read("page.html", new ReaderOptions {
+foreach (var chunk in reader.Enumerate("page.html", new ReaderOptions {
     MaxChars = 5_000
 })) {
     Console.WriteLine($"{chunk.Id}: {chunk.Location.HeadingPath}");
@@ -79,10 +79,10 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddHtmlHandler()
     .Build();
 
-IReadOnlyList<ReaderTable> tables = reader.ReadTables("report.html",
+IReadOnlyList<ReaderTable> tables = reader.ReadDocument("report.html",
     new ReaderOptions {
         MaxTableRows = 250
-    });
+    }).ExtractTables();
 
 foreach (var table in tables) {
     Console.WriteLine($"{table.Rows.Count} row(s), {table.ColumnProfiles.Count} column profile(s)");

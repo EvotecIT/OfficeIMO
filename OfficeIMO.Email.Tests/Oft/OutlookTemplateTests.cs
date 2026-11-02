@@ -14,8 +14,8 @@ public sealed class OutlookTemplateTests {
         source.Body.Html = "<html><body>Template body</body></html>";
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookTemplate);
-        EmailDocument contentOnly = new EmailDocumentReader().Read(bytes).Document;
-        EmailDocument template = new EmailDocumentReader().Read(bytes, "reusable.oft").Document;
+        EmailDocument contentOnly = new EmailDocumentReader().ReadDocument(bytes).Document;
+        EmailDocument template = new EmailDocumentReader().ReadDocument(bytes, "reusable.oft").Document;
 
         Assert.Equal(EmailFileFormat.OutlookMsg, EmailDocumentReader.DetectFormat(bytes));
         Assert.Equal(EmailFileFormat.OutlookMsg, contentOnly.Format);
@@ -64,7 +64,7 @@ public sealed class OutlookTemplateTests {
         var source = new EmailDocument { OutlookItemKind = itemKind, Subject = itemKind + " template" };
 
         byte[] bytes = source.ToBytes(EmailFileFormat.OutlookTemplate);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes, "typed.oft").Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes, "typed.oft").Document;
 
         Assert.Equal(EmailFileFormat.OutlookTemplate, roundTrip.Format);
         Assert.Equal(itemKind, roundTrip.OutlookItemKind);
@@ -76,7 +76,7 @@ public sealed class OutlookTemplateTests {
         byte[] bytes = source.ToBytes(EmailFileFormat.OutlookTemplate);
         var reader = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true));
 
-        EmailDocument document = reader.Read(bytes, "preserved.oft").Document;
+        EmailDocument document = reader.ReadDocument(bytes, "preserved.oft").Document;
         byte[] preserved = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true))
             .ToBytes(document, EmailFileFormat.OutlookTemplate);
 

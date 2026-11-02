@@ -13,7 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderPaintPhase.Float, HtmlRenderPaintPhase.Content, HtmlRenderPaintPhase.Outline }) {
                 foreach (HtmlRenderVisual visual in normal) {
                     HtmlRenderVisual? fragment = FilterFlowPaint(visual, phase, projectionIdentities);
-                    if (fragment != null) result.Add(fragment.Translate(0D, 0D, result.Count));
+                    if (fragment != null) result.Add(fragment.WithPaintOrder(result.Count, owned: !ReferenceEquals(fragment, visual)));
                 }
             }
             normal.Clear();
@@ -23,7 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // phases. A descendant context also keeps its enclosing clip intact.
             if (HasNestedStackingContext(visual) || ContainsPositionedFlowPaint(visual)) {
                 FlushNormal();
-                result.Add(visual.Translate(0D, 0D, result.Count));
+                result.Add(visual.WithPaintOrder(result.Count, owned: false));
             } else {
                 normal.Add(visual);
             }
@@ -70,7 +70,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             var filtered = new List<HtmlRenderVisual>(groupChildren.Count);
             for (int index = 0; index < groupChildren.Count; index++) {
                 HtmlRenderVisual? child = FilterFlowPaint(groupChildren[index], phase, projectionIdentities);
-                if (child != null) filtered.Add(child);
+                // Number children as the caller's renumbering copy would, so the fragment needs none.
+                if (child != null) filtered.Add(child.WithPaintOrder(filtered.Count, owned: !ReferenceEquals(child, groupChildren[index])));
             }
             if (filtered.Count == 0) return null;
             HtmlRenderVisual[] children = filtered.ToArray();

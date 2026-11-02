@@ -59,7 +59,11 @@ public class MarkPflug65KCsvBenchmarks {
         long characters = 0;
         ulong checksum = ChecksumOffset;
         bool header = true;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             if (header) {
                 header = false;
                 continue;

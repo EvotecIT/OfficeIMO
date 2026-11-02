@@ -15,6 +15,10 @@ namespace OfficeIMO.DocBook;
 /// Source-preserving DocBook 4/5 document with a bounded typed common-structure API and extension access.
 /// </summary>
 public sealed partial class DocBookDocument {
+    private string? _filePath;
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+
     private readonly XDocument _xml;
     private readonly byte[]? _originalBytes;
     private readonly string? _originalText;
@@ -98,7 +102,9 @@ public sealed partial class DocBookDocument {
     /// <summary>Loads a DocBook file.</summary>
     public static DocBookDocument Load(string path, DocBookReadOptions? options = null, CancellationToken cancellationToken = default) {
         using var stream = File.OpenRead(path ?? throw new ArgumentNullException(nameof(path)));
-        return Load(stream, options, cancellationToken);
+        var document = Load(stream, options, cancellationToken);
+        document._filePath = Path.GetFullPath(path);
+        return document;
     }
 
     /// <summary>Loads DocBook from a caller-owned stream while preserving seekable position.</summary>
@@ -384,15 +390,32 @@ public sealed partial class DocBookDocument {
     }
 
     /// <summary>Writes to a caller-owned stream.</summary>
-    public void Write(Stream destination, DocBookWriteOptions? options = null) => OfficeStreamWriter.WriteAllBytes(destination, GetBytes(options));
+    public void Save(Stream destination, DocBookWriteOptions? options = null) => OfficeStreamWriter.WriteAllBytes(destination, ToBytes(options));
     /// <summary>Writes asynchronously to a caller-owned stream.</summary>
-    public Task WriteAsync(Stream destination, DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeStreamWriter.WriteAllBytesAsync(destination, GetBytes(options), cancellationToken);
-    /// <summary>Saves using an atomic same-directory file commit.</summary>
-    public void Save(string path, DocBookWriteOptions? options = null) => OfficeFileCommit.WriteAllBytes(path, GetBytes(options));
-    /// <summary>Saves asynchronously using an atomic same-directory file commit.</summary>
-    public Task SaveAsync(string path, DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeFileCommit.WriteAllBytesAsync(path, GetBytes(options), cancellationToken: cancellationToken);
+    public Task SaveAsync(Stream destination, DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeStreamWriter.WriteAllBytesAsync(destination, ToBytes(options), cancellationToken);
+    /// <summary>Saves to the associated path, failing when no destination is associated.</summary>
+    public void Save(DocBookWriteOptions? options = null) =>
+        Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options);
+
+    /// <summary>Atomically saves native output and associates the successfully written path.</summary>
+    public void Save(string path, DocBookWriteOptions? options = null) {
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAllBytes(fullPath, ToBytes(options));
+        _filePath = fullPath;
+    }
+
+    /// <summary>Asynchronously saves to the associated path.</summary>
+    public Task SaveAsync(DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) =>
+        SaveAsync(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options, cancellationToken);
+
+    /// <summary>Atomically saves native output asynchronously and associates the successfully written path.</summary>
+    public async Task SaveAsync(string path, DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, ToBytes(options), cancellationToken: cancellationToken).ConfigureAwait(false);
+        _filePath = fullPath;
+    }
 
     internal void MarkModified() => _modified = true;
 
@@ -657,7 +680,8 @@ public sealed partial class DocBookDocument {
         }
     }
 
-    private byte[] GetBytes(DocBookWriteOptions? options) {
+    /// <summary>Serializes native bytes, preserving an unchanged source when requested.</summary>
+    public byte[] ToBytes(DocBookWriteOptions? options = null) {
         options ??= new DocBookWriteOptions();
         if (!HasChanges && options.PreserveUnchangedSource && _originalBytes != null) return (byte[])_originalBytes.Clone();
         return Serialize(options);

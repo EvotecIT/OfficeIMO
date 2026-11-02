@@ -116,17 +116,19 @@ public sealed class AddOfficeVisioStencilShapeCommand : PSWriteOffice.Cmdlets.Of
         var catalog = ResolveCatalog(context);
         var stencil = catalog.Get(Stencil);
         var id = string.IsNullOrWhiteSpace(Key) ? CreateUniqueShapeId(page, stencil.Id) : Key!;
+        var x = ToLength(X, page.DefaultUnit);
+        var y = ToLength(Y, page.DefaultUnit);
         var shape = Width.HasValue || Height.HasValue
             ? page.AddStencilShape(
                 catalog,
                 Stencil,
                 id,
-                X,
-                Y,
-                Width ?? ConvertStencilDefaultToPageUnit(stencil.DefaultWidth, stencil, page),
-                Height ?? ConvertStencilDefaultToPageUnit(stencil.DefaultHeight, stencil, page),
+                x,
+                y,
+                Width.HasValue ? ToLength(Width.Value, page.DefaultUnit) : ToLength(stencil.DefaultWidth, stencil.DefaultUnit ?? page.DefaultUnit),
+                Height.HasValue ? ToLength(Height.Value, page.DefaultUnit) : ToLength(stencil.DefaultHeight, stencil.DefaultUnit ?? page.DefaultUnit),
                 Text)
-            : page.AddStencilShape(catalog, Stencil, id, X, Y, Text);
+            : page.AddStencilShape(catalog, Stencil, id, x, y, Text);
 
         VisioShapeCommandUtilities.ApplyShapeStyle(shape, ShapeName ?? Key, NameU, FillColor, LineColor, LineWeight, LinePattern, FillPattern, Angle);
         context?.RegisterShape(page, Key, shape);
@@ -170,18 +172,9 @@ public sealed class AddOfficeVisioStencilShapeCommand : PSWriteOffice.Cmdlets.Of
         }
     }
 
-    private static double ConvertStencilDefaultToPageUnit(double value, VisioStencilShape stencil, VisioPage page) {
-        var sourceUnit = stencil.DefaultUnit ?? page.DefaultUnit;
-        var inches = sourceUnit switch {
-            VisioMeasurementUnit.Centimeters => value / 2.54,
-            VisioMeasurementUnit.Millimeters => value / 25.4,
-            _ => value
-        };
-
-        return page.DefaultUnit switch {
-            VisioMeasurementUnit.Centimeters => inches * 2.54,
-            VisioMeasurementUnit.Millimeters => inches * 25.4,
-            _ => inches
-        };
-    }
+    private static OfficeIMO.OfficeLength ToLength(double value, VisioMeasurementUnit unit) => unit switch {
+        VisioMeasurementUnit.Centimeters => OfficeIMO.OfficeLength.Centimeters(value),
+        VisioMeasurementUnit.Millimeters => OfficeIMO.OfficeLength.Millimeters(value),
+        _ => OfficeIMO.OfficeLength.Inches(value)
+    };
 }

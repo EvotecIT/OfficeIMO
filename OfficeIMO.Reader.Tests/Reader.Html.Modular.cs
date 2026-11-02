@@ -631,7 +631,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var chunks = reader.Read(stream, "registry.html").ToList();
+        var chunks = reader.Enumerate(stream, "registry.html").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
@@ -647,7 +647,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><h2>Registry XHTML</h2><p>From stream.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var chunks = reader.Read(stream, "registry.xhtml").ToList();
+        var chunks = reader.Enumerate(stream, "registry.xhtml").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>
@@ -692,7 +692,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
-        var ex = Assert.Throws<IOException>(() => reader.Read(
+        var ex = Assert.Throws<IOException>(() => reader.Enumerate(
             stream,
             "registry.html",
             new ReaderOptions { MaxInputBytes = 16 }).ToList());
@@ -712,7 +712,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><p>Too much content for this limit.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Read(stream, "configured.html").ToList());
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => reader.Enumerate(stream, "configured.html").ToList());
 
         Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
     }
@@ -729,7 +729,7 @@ public sealed class ReaderHtmlModularTests {
 
         var html = "<html><body><p><a href=\"guide/getting-started\">Docs</a></p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
-        var chunks = reader.Read(stream, "configured.html").ToList();
+        var chunks = reader.Enumerate(stream, "configured.html").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>

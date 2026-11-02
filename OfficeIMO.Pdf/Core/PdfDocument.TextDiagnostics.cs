@@ -269,56 +269,61 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static void AnalyzeCanvasItems(IReadOnlyList<PdfCanvasItem> items, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) {
+    private static void AnalyzeCanvasItems(IReadOnlyList<PdfCanvasItem> items, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, System.Threading.CancellationToken cancellationToken) =>
+        AnalyzeCanvasItems(items, options, defaultFont, diagnostics, new CanvasLocation(null, locationPrefix, null), cancellationToken);
+
+    // Imported layouts nest a clip, structure or artifact around nearly every item. Their
+    // location paths are only read by a diagnostic, so they are built when one is reported.
+    private static void AnalyzeCanvasItems(IReadOnlyList<PdfCanvasItem> items, PdfCreateOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, CanvasLocation locationPrefix, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCanvasItem item = items[itemIndex];
             switch (item) {
                 case PdfCanvasTextItem text:
-                    AddRuns(diagnostics, text.Runs, options, defaultFont, "PdfCanvasText", AppendLocation(locationPrefix, "PdfCanvasText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AddRuns(diagnostics, text.Runs, options, defaultFont, "PdfCanvasText", new CanvasLocation(locationPrefix, "PdfCanvasText", itemIndex));
                     break;
                 case PdfCanvasTextBoxItem textBox:
-                    AddRuns(diagnostics, textBox.Runs, options, defaultFont, "PdfCanvasTextBox", AppendLocation(locationPrefix, "PdfCanvasTextBox[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AddRuns(diagnostics, textBox.Runs, options, defaultFont, "PdfCanvasTextBox", new CanvasLocation(locationPrefix, "PdfCanvasTextBox", itemIndex));
                     break;
                 case PdfCanvasFreeTextAnnotationItem freeText:
-                    AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfCanvasFreeTextAnnotation", AppendLocation(locationPrefix, "PdfCanvasFreeTextAnnotation[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfCanvasFreeTextAnnotation", AppendLocation(locationPrefix.ToString(), "PdfCanvasFreeTextAnnotation[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
                 case PdfCanvasFormFieldItem formField:
-                    AnalyzeCanvasFormField(formField, options, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFormField[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasFormField(formField, options, diagnostics, AppendLocation(locationPrefix.ToString(), "PdfCanvasFormField[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasTableItem table:
-                    AnalyzeTable(table.Block, options, defaultFont, diagnostics, "PdfCanvasTableCell", AppendLocation(locationPrefix, "PdfCanvasTable[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeTable(table.Block, options, defaultFont, diagnostics, "PdfCanvasTableCell", AppendLocation(locationPrefix.ToString(), "PdfCanvasTable[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
                 case PdfCanvasClipItem clip:
-                    AnalyzeCanvasItems(clip.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasClip[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(clip.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasClip", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasEffectItem effect:
-                    AnalyzeCanvasItems(effect.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasEffect[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(effect.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasEffect", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasStructureItem structure:
-                    AnalyzeCanvasItems(structure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasStructure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(structure.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasStructure", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasActualTextItem actualText:
-                    AnalyzeCanvasItems(actualText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasActualText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(actualText.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasActualText", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasArtifactItem artifact:
-                    AnalyzeCanvasItems(artifact.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasArtifact[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(artifact.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasArtifact", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasFigureItem figure:
-                    AnalyzeCanvasItems(figure.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasFigure[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(figure.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasFigure", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasParagraphAnchorItem paragraphAnchor:
-                    AnalyzeCanvasItems(paragraphAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasParagraphAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(paragraphAnchor.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasParagraphAnchor", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasMarginAnchorItem marginAnchor:
-                    AnalyzeCanvasItems(marginAnchor.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasMarginAnchor[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(marginAnchor.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasMarginAnchor", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasBehindTextItem behindText:
-                    AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasBehindText[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeCanvasItems(behindText.Items, options, defaultFont, diagnostics, new CanvasLocation(locationPrefix, "PdfCanvasBehindText", itemIndex), cancellationToken);
                     break;
                 case PdfCanvasDrawingItem drawing:
-                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix, "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
+                    AnalyzeDrawing(drawing.Block, options, defaultFont, diagnostics, AppendLocation(locationPrefix.ToString(), "PdfCanvasDrawing[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"), cancellationToken);
                     break;
             }
         }
@@ -550,6 +555,36 @@ public sealed partial class PdfDocument {
                 diagnostics.Add(diagnostic.WithPageLocation(location, pageNumber));
             }
         }
+    }
+
+    private static void AddRuns(List<PdfTextEncodingDiagnostic> diagnostics, IEnumerable<PdfTextRun> runs, PdfCreateOptions options, PdfStandardFont defaultFont, string source, CanvasLocation location) {
+        if (options.HasDiagnosticsReport) {
+            AddRunTextShapingDiagnostics(runs, options, defaultFont, source);
+        }
+
+        // Analyse once without the path; only text that reports a finding is analysed again with it.
+        if (PdfTextDiagnostics.AnalyzeGeneratedTextRuns(runs, options, defaultFont, source, string.Empty).Count == 0) return;
+        foreach (PdfTextEncodingDiagnostic diagnostic in PdfTextDiagnostics.AnalyzeGeneratedTextRuns(runs, options, defaultFont, source, location.ToString())) {
+            diagnostics.Add(AnnotateDiagnostic(diagnostic, null, null, null));
+        }
+    }
+
+    /// <summary>A canvas item path, joined into its diagnostic location only when read.</summary>
+    private sealed class CanvasLocation {
+        private readonly CanvasLocation? _parent;
+        private readonly string _segment;
+        private readonly int? _index;
+        private string? _text;
+
+        internal CanvasLocation(CanvasLocation? parent, string segment, int? index) {
+            _parent = parent;
+            _segment = segment;
+            _index = index;
+        }
+
+        public override string ToString() => _text ??= _parent == null
+            ? _segment
+            : AppendLocation(_parent.ToString(), _segment + "[" + _index!.Value.ToString(CultureInfo.InvariantCulture) + "]");
     }
 
     private static void AddRuns(List<PdfTextEncodingDiagnostic> diagnostics, IEnumerable<PdfTextRun> runs, PdfCreateOptions options, PdfStandardFont defaultFont, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null, int? pageNumber = null) {

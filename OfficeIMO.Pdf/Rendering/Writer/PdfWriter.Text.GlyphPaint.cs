@@ -105,6 +105,23 @@ internal static partial class PdfWriter {
         return value;
     }
 
+    // Font program bytes are shared by every document fork of a cached program. Parsing and
+    // fingerprinting a large fallback font again for each document's paint diagnostics
+    // dominated small conversions, so the parsed outline program is kept with those bytes.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], IOfficeBoundedFontProgram> GlyphPaintFonts = new();
+
+    private static IOfficeBoundedFontProgram LoadGlyphPaintFont(byte[] data) {
+        if (GlyphPaintFonts.TryGetValue(data, out IOfficeBoundedFontProgram? shared)) return shared;
+        IOfficeBoundedFontProgram font = (IOfficeBoundedFontProgram?)OfficeTrueTypeFont.TryLoad(data)
+            ?? OfficeOpenTypeCffFont.TryLoad(data, null, out _) ?? throw new NotSupportedException("The selected PDF font has no inspectable outline program.");
+        try {
+            GlyphPaintFonts.Add(data, font);
+        } catch (ArgumentException) {
+            if (GlyphPaintFonts.TryGetValue(data, out shared)) return shared;
+        }
+        return font;
+    }
+
     private static IOfficeBoundedFontProgram? GetGlyphPaintFont(RichSeg segment, PdfCreateOptions options,
         Dictionary<byte[], IOfficeBoundedFontProgram> fontCache, Action? fontCacheCleared = null) {
         byte[]? data = null;
@@ -118,8 +135,7 @@ internal static partial class PdfWriter {
         }
         if (data == null) return null;
         if (fontCache.TryGetValue(data, out var cached)) return cached;
-        IOfficeBoundedFontProgram font = (IOfficeBoundedFontProgram?)OfficeTrueTypeFont.TryLoad(data)
-            ?? OfficeOpenTypeCffFont.TryLoad(data, null, out _) ?? throw new NotSupportedException("The selected PDF font has no inspectable outline program.");
+        IOfficeBoundedFontProgram font = LoadGlyphPaintFont(data);
         if (fontCache.Count >= 64) {
             fontCache.Clear();
             fontCacheCleared?.Invoke();

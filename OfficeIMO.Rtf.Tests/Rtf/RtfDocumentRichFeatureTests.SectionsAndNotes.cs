@@ -27,7 +27,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Landscape body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(16838, read.Document.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, read.Document.PageSetup.PaperHeightTwips);
@@ -73,7 +73,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Notes body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(5, read.Document.NoteSettings.FootnoteStartNumber);
         Assert.Equal(RtfNoteNumberRestart.EachSection, read.Document.NoteSettings.FootnoteRestart);
@@ -97,7 +97,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Footnote placement");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(controlWord, rtf, StringComparison.Ordinal);
         Assert.Equal(placement, read.Document.NoteSettings.FootnotePlacement);
@@ -114,7 +114,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Endnote placement");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(controlWord, rtf, StringComparison.Ordinal);
         Assert.Equal(placement, read.Document.NoteSettings.EndnotePlacement);
@@ -142,7 +142,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Settings body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(RtfDocumentCharacterSet.Ansi, read.Document.Settings.CharacterSet);
         Assert.Equal(1250, read.Document.Settings.AnsiCodePage);
@@ -193,7 +193,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.StartsWith(expectedPrefix, rtf, StringComparison.Ordinal);
         Assert.Equal(characterSet, read.Document.Settings.CharacterSet);
@@ -237,7 +237,7 @@ public partial class RtfDocumentRichFeatureTests {
         second.AddParagraph("Second");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\sectd\sbkodd\pgwsxn10000\pghsxn12000\psz5\binfsxn6\binsxn7\marglsxn720\guttersxn240\headery300\footery420\rtlgutter\pgnstarts3\pgnrestart\pgnucrm\pgbrdropt41\pgbrdrl\brdrdot\brdrw8\brsp12\pgbrdrr\brdrdash\brdrw10\brsp14\lndscpsxn\titlepg\vertalc\rtlsect\ftnstart3\ftnrstpg\ftnnauc\ftnbj\aftnstart9\aftnrestart\aftnnalc\aendnotes\linemod2\linex360\linestarts10\lineppage\cols2\colsx720\colno1\colw3000\colsr360\colno2\colw4000\colsr0\linebetcol", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\sectd\sbknone\vertalb\linemod0\linecont\cols1", rtf, StringComparison.Ordinal);
@@ -301,7 +301,7 @@ public partial class RtfDocumentRichFeatureTests {
         section.AddParagraph("Vertical alignment");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(controlWord, rtf, StringComparison.Ordinal);
         Assert.Equal(alignment, Assert.Single(read.Document.Sections).VerticalAlignment);
@@ -318,7 +318,7 @@ public partial class RtfDocumentRichFeatureTests {
         section.AddParagraph("Line numbering");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(controlWord, rtf, StringComparison.Ordinal);
         Assert.Equal(restart, Assert.Single(read.Document.Sections).LineNumbering.Restart);
@@ -333,7 +333,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\header\pard\ql Default header\b  bold\b0 \par", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\headerf\pard\ql First header\par", rtf, StringComparison.Ordinal);
@@ -358,7 +358,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText(" after");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\super 1{\footnote\pard\ql \chftn Footnote text}", rtf, StringComparison.Ordinal);
         Assert.Equal("Body1 after", Assert.Single(read.Document.Paragraphs).ToPlainText());
@@ -380,7 +380,7 @@ public partial class RtfDocumentRichFeatureTests {
         paragraph.AddText(" after");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\super i{\footnote\ftnalt\pard\ql \chftn Endnote text}", rtf, StringComparison.Ordinal);
         Assert.Equal("Bodyi after", Assert.Single(read.Document.Paragraphs).ToPlainText());

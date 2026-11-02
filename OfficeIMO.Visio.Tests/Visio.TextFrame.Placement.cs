@@ -75,8 +75,8 @@ public sealed class VisioTextFramePlacementTests {
         string instance = Shape("1", "3", "3", "2", "1", Math.PI / 2,
             Frame(0.5, 0.5, 1.5, 0.5, 1.5, 0.25, -Math.PI / 2, inherited: true) + Text(rich: false), master: "1");
         VisioDocument document = Load(master, instance);
-        VisioPage scaledPage = document.AddPage("Scaled").Size(8, 8);
-        VisioShape scaled = scaledPage.AddShape("scaled", document.Masters.Single(), 4, 4, 4, 3);
+        VisioPage scaledPage = document.AddPage("Scaled").Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
+        VisioShape scaled = scaledPage.AddShape("scaled", document.Masters.Single(), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, scaledPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, scaledPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, scaledPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, scaledPage.DefaultUnit)));
         Assert.Equal(3, scaled.TextStyle!.TextPinX);
         Assert.Equal(1.5, scaled.TextStyle.TextPinY);
         Assert.Equal(2, scaled.TextStyle.TextWidth);
@@ -103,7 +103,7 @@ public sealed class VisioTextFramePlacementTests {
     [Fact]
     public void AuthoredSingleShapeMasterSuppliesItsTextStyleAndFrameToInstancesAndNativeMasterContent() {
         VisioDocument document = VisioDocument.Create();
-        var blueprint = new VisioShape("1", 1, 0.5, 2, 1, "MMMMMM") {
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "MMMMMM") {
             Angle = Math.PI / 2, FillPattern = 0, LinePattern = 0,
             TextStyle = new VisioTextStyle {
                 FontFamily = "Arial", Size = 16, Color = OfficeColor.Black, BackgroundColor = OfficeColor.Red,
@@ -114,8 +114,8 @@ public sealed class VisioTextFramePlacementTests {
             }
         };
         VisioMaster master = document.RegisterMaster("Authored frame", blueprint);
-        VisioPage page = document.AddPage("Authored").Size(8, 8);
-        VisioShape instance = page.AddShape("instance", master, 3, 3, 2, 1);
+        VisioPage page = document.AddPage("Authored").Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
+        VisioShape instance = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         Assert.NotNull(instance.TextStyle);
         Assert.NotSame(blueprint.TextStyle, instance.TextStyle);
         foreach (VisioDocument candidate in Reopened(document)) {
@@ -174,7 +174,7 @@ public sealed class VisioTextFramePlacementTests {
     private static void AssertPlacement(VisioPage page, double centerX, double centerY, double degrees, bool? rich, int backgrounds = 1) {
         byte[] before = page.OwnerDocument!.ToLegacyXmlResult().Value;
         const double scale = 100;
-        double x = centerX * scale, y = (page.Height - centerY) * scale;
+        double x = centerX * scale, y = (page.Height.ToInches() - centerY) * scale;
         XDocument svg = XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = scale, RenderStencilArtwork = false }));
         OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToPng(new VisioPngSaveOptions {
             PixelsPerInch = scale, Supersampling = 1, RenderStencilArtwork = false

@@ -64,23 +64,23 @@ namespace OfficeIMO.Visio {
         private void WriteMasterBackedShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster master, KeyValuePair<string, string>? originalIdEntry, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
             VisioShape masterShape = shape.MasterShape ?? master.Shape;
             if (WriteMasterDeltasOnly && UsesRawMasterInstanceChildren(shape, master)) {
-                double masterWidth = masterShape.Width > 0 ? masterShape.Width : 1;
-                double masterHeight = masterShape.Height > 0 ? masterShape.Height : 1;
-                double width = shape.Width > 0 ? shape.Width : masterWidth;
-                double height = shape.Height > 0 ? shape.Height : masterHeight;
-                double locPinX = ResolveLocalPin(shape.LocPinX, width, shape.HasExplicitLocPinX);
-                double locPinY = ResolveLocalPin(shape.LocPinY, height, shape.HasExplicitLocPinY);
-                double masterLocPinX = ResolveLocalPin(masterShape.LocPinX, masterWidth, masterShape.HasExplicitLocPinX);
-                double masterLocPinY = ResolveLocalPin(masterShape.LocPinY, masterHeight, masterShape.HasExplicitLocPinY);
+                double masterWidth = masterShape.WidthInches > 0 ? masterShape.WidthInches : 1;
+                double masterHeight = masterShape.HeightInches > 0 ? masterShape.HeightInches : 1;
+                double width = shape.WidthInches > 0 ? shape.WidthInches : masterWidth;
+                double height = shape.HeightInches > 0 ? shape.HeightInches : masterHeight;
+                double locPinX = ResolveLocalPin(shape.LocPinXInches, width, shape.HasExplicitLocPinX);
+                double locPinY = ResolveLocalPin(shape.LocPinYInches, height, shape.HasExplicitLocPinY);
+                double masterLocPinX = ResolveLocalPin(masterShape.LocPinXInches, masterWidth, masterShape.HasExplicitLocPinX);
+                double masterLocPinY = ResolveLocalPin(masterShape.LocPinYInches, masterHeight, masterShape.HasExplicitLocPinY);
                 bool sizeDiffers = Math.Abs(width - masterWidth) > 1e-12 ||
                                    Math.Abs(height - masterHeight) > 1e-12;
                 bool locPinDiffers = Math.Abs(locPinX - masterLocPinX) > 1e-12 ||
                                      Math.Abs(locPinY - masterLocPinY) > 1e-12;
                 if (sizeDiffers || locPinDiffers || Math.Abs(shape.Angle) > 1e-12) {
-                    WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                    WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, locPinX, locPinY, shape.Angle);
                 } else {
-                    WriteCell(writer, ns, "PinX", shape.PinX);
-                    WriteCell(writer, ns, "PinY", shape.PinY);
+                    WriteCell(writer, ns, "PinX", shape.PinXInches);
+                    WriteCell(writer, ns, "PinY", shape.PinYInches);
                 }
 
                 WriteCell(writer, ns, "ObjType", 1);
@@ -100,30 +100,30 @@ namespace OfficeIMO.Visio {
             }
 
             if (WriteMasterDeltasOnly) {
-                double masterWidth = masterShape.Width > 0 ? masterShape.Width : 1;
-                double masterHeight = masterShape.Height > 0 ? masterShape.Height : 1;
-                bool hasWidth = shape.Width > 0;
-                bool hasHeight = shape.Height > 0;
-                bool sizeDiffers = (hasWidth && Math.Abs(shape.Width - masterWidth) > 1e-12) ||
-                                   (hasHeight && Math.Abs(shape.Height - masterHeight) > 1e-12);
+                double masterWidth = masterShape.WidthInches > 0 ? masterShape.WidthInches : 1;
+                double masterHeight = masterShape.HeightInches > 0 ? masterShape.HeightInches : 1;
+                bool hasWidth = shape.WidthInches > 0;
+                bool hasHeight = shape.HeightInches > 0;
+                bool sizeDiffers = (hasWidth && Math.Abs(shape.WidthInches - masterWidth) > 1e-12) ||
+                                   (hasHeight && Math.Abs(shape.HeightInches - masterHeight) > 1e-12);
 
                 if (sizeDiffers) {
-                    double width = hasWidth ? shape.Width : masterWidth;
-                    double height = hasHeight ? shape.Height : masterHeight;
-                    double locPinX = ResolveLocalPin(shape.LocPinX, width, shape.HasExplicitLocPinX);
-                    double locPinY = ResolveLocalPin(shape.LocPinY, height, shape.HasExplicitLocPinY);
-                    WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                    double width = hasWidth ? shape.WidthInches : masterWidth;
+                    double height = hasHeight ? shape.HeightInches : masterHeight;
+                    double locPinX = ResolveLocalPin(shape.LocPinXInches, width, shape.HasExplicitLocPinX);
+                    double locPinY = ResolveLocalPin(shape.LocPinYInches, height, shape.HasExplicitLocPinY);
+                    WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, locPinX, locPinY, shape.Angle);
                 } else {
-                    WriteCell(writer, ns, "PinX", shape.PinX);
-                    WriteCell(writer, ns, "PinY", shape.PinY);
+                    WriteCell(writer, ns, "PinX", shape.PinXInches);
+                    WriteCell(writer, ns, "PinY", shape.PinYInches);
 
-                    double masterLocPinX = ResolveLocalPin(masterShape.LocPinX, masterWidth, masterShape.HasExplicitLocPinX);
-                    double masterLocPinY = ResolveLocalPin(masterShape.LocPinY, masterHeight, masterShape.HasExplicitLocPinY);
-                    if ((shape.HasExplicitLocPinX || Math.Abs(shape.LocPinX) > double.Epsilon) && Math.Abs(shape.LocPinX - masterLocPinX) > 1e-12) {
-                        WriteCell(writer, ns, "LocPinX", shape.LocPinX);
+                    double masterLocPinX = ResolveLocalPin(masterShape.LocPinXInches, masterWidth, masterShape.HasExplicitLocPinX);
+                    double masterLocPinY = ResolveLocalPin(masterShape.LocPinYInches, masterHeight, masterShape.HasExplicitLocPinY);
+                    if ((shape.HasExplicitLocPinX || Math.Abs(shape.LocPinXInches) > double.Epsilon) && Math.Abs(shape.LocPinXInches - masterLocPinX) > 1e-12) {
+                        WriteCell(writer, ns, "LocPinX", shape.LocPinXInches);
                     }
-                    if ((shape.HasExplicitLocPinY || Math.Abs(shape.LocPinY) > double.Epsilon) && Math.Abs(shape.LocPinY - masterLocPinY) > 1e-12) {
-                        WriteCell(writer, ns, "LocPinY", shape.LocPinY);
+                    if ((shape.HasExplicitLocPinY || Math.Abs(shape.LocPinYInches) > double.Epsilon) && Math.Abs(shape.LocPinYInches - masterLocPinY) > 1e-12) {
+                        WriteCell(writer, ns, "LocPinY", shape.LocPinYInches);
                     }
                     if (Math.Abs(shape.Angle - masterShape.Angle) > 1e-12) {
                         WriteCell(writer, ns, "Angle", shape.Angle);
@@ -146,8 +146,8 @@ namespace OfficeIMO.Visio {
                 WriteUserSection(writer, ns, shape.UserCells);
                 WriteTextStyleSections(writer, ns, shape.TextStyle, shape.CharacterSectionSource, shape.ParagraphSectionSource, shape.PreservedNonGeometrySections);
                 WriteHyperlinkSection(writer, ns, shape.Hyperlinks, masterShape.Hyperlinks);
-                double geometryWidth = shape.Width > 0 ? shape.Width : masterWidth;
-                double geometryHeight = shape.Height > 0 ? shape.Height : masterHeight;
+                double geometryWidth = shape.WidthInches > 0 ? shape.WidthInches : masterWidth;
+                double geometryHeight = shape.HeightInches > 0 ? shape.HeightInches : masterHeight;
                 WriteShapeGeometry(writer, ns, shape, master.NameU, geometryWidth, geometryHeight, writeGeneratedGeometryWhenEmpty: false);
                 WriteConnectionSection(writer, ns, shape.ConnectionPoints);
                 WriteDataSection(writer, ns, shape.Data, shape.PreservedDataRows, originalIdEntry, shape.ShapeData, shape.ShapeDataSectionName);
@@ -155,26 +155,26 @@ namespace OfficeIMO.Visio {
                 return;
             }
 
-            double widthValue = shape.Width;
-            if (widthValue <= 0 && masterShape.Width > 0) {
-                widthValue = masterShape.Width;
+            double widthValue = shape.WidthInches;
+            if (widthValue <= 0 && masterShape.WidthInches > 0) {
+                widthValue = masterShape.WidthInches;
             }
             if (widthValue <= 0) {
                 widthValue = 1;
             }
 
-            double heightValue = shape.Height;
-            if (heightValue <= 0 && masterShape.Height > 0) {
-                heightValue = masterShape.Height;
+            double heightValue = shape.HeightInches;
+            if (heightValue <= 0 && masterShape.HeightInches > 0) {
+                heightValue = masterShape.HeightInches;
             }
             if (heightValue <= 0) {
                 heightValue = 1;
             }
 
-            double locPinXValue = ResolveLocalPin(shape.LocPinX, widthValue, shape.HasExplicitLocPinX);
-            double locPinYValue = ResolveLocalPin(shape.LocPinY, heightValue, shape.HasExplicitLocPinY);
+            double locPinXValue = ResolveLocalPin(shape.LocPinXInches, widthValue, shape.HasExplicitLocPinX);
+            double locPinYValue = ResolveLocalPin(shape.LocPinYInches, heightValue, shape.HasExplicitLocPinY);
 
-            WriteXForm(writer, ns, shape.PinX, shape.PinY, widthValue, heightValue, locPinXValue, locPinYValue, shape.Angle);
+            WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, widthValue, heightValue, locPinXValue, locPinYValue, shape.Angle);
             WriteCell(writer, ns, "LineWeight", shape.LineWeight);
             WriteCell(writer, ns, "LinePattern", shape.LinePattern);
             WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
@@ -197,12 +197,12 @@ namespace OfficeIMO.Visio {
         }
 
         private void WriteStandaloneShapeBody(XmlWriter writer, string ns, VisioShape shape, VisioMaster? effectiveMaster, bool isGroup, KeyValuePair<string, string>? originalIdEntry, IReadOnlyDictionary<string, string> persistedIds, IReadOnlyDictionary<string, int> layerIndexes) {
-            double width = shape.Width > 0 ? shape.Width : 1;
-            double height = shape.Height > 0 ? shape.Height : 1;
-            double locPinX = ResolveLocalPin(shape.LocPinX, width, shape.HasExplicitLocPinX);
-            double locPinY = ResolveLocalPin(shape.LocPinY, height, shape.HasExplicitLocPinY);
+            double width = shape.WidthInches > 0 ? shape.WidthInches : 1;
+            double height = shape.HeightInches > 0 ? shape.HeightInches : 1;
+            double locPinX = ResolveLocalPin(shape.LocPinXInches, width, shape.HasExplicitLocPinX);
+            double locPinY = ResolveLocalPin(shape.LocPinYInches, height, shape.HasExplicitLocPinY);
 
-            WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+            WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, locPinX, locPinY, shape.Angle);
             WriteCell(writer, ns, "LineWeight", shape.LineWeight);
             WriteCell(writer, ns, "LinePattern", shape.LinePattern);
             WriteCellValue(writer, ns, "LineColor", shape.LineColor.ToVisioHex());
@@ -237,10 +237,10 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, VisioMaster> effectiveMasters,
             IReadOnlyList<PackageMasterEntry> packageMasters,
             IReadOnlyDictionary<string, int> layerIndexes) {
-            double width = shape.Width > 0 ? shape.Width : 1;
-            double height = shape.Height > 0 ? shape.Height : 1;
-            double locPinX = ResolveLocalPin(shape.LocPinX, width, shape.HasExplicitLocPinX);
-            double locPinY = ResolveLocalPin(shape.LocPinY, height, shape.HasExplicitLocPinY);
+            double width = shape.WidthInches > 0 ? shape.WidthInches : 1;
+            double height = shape.HeightInches > 0 ? shape.HeightInches : 1;
+            double locPinX = ResolveLocalPin(shape.LocPinXInches, width, shape.HasExplicitLocPinX);
+            double locPinY = ResolveLocalPin(shape.LocPinYInches, height, shape.HasExplicitLocPinY);
 
             HashSet<string> emittedTokens = new(StringComparer.OrdinalIgnoreCase);
             bool wroteChildShapes = false;
@@ -282,7 +282,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, int> layerIndexes,
             ref bool wroteChildShapes) {
             if (string.Equals(token, "XForm", StringComparison.OrdinalIgnoreCase)) {
-                WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, locPinX, locPinY, shape.Angle);
                 return true;
             }
 
@@ -358,7 +358,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, int> layerIndexes,
             ref bool wroteChildShapes) {
             if (!HasAnyShapeTransformCellTokens(emittedTokens) && emittedTokens.Add("XForm")) {
-                WriteXForm(writer, ns, shape.PinX, shape.PinY, width, height, locPinX, locPinY, shape.Angle);
+                WriteXForm(writer, ns, shape.PinXInches, shape.PinYInches, width, height, locPinX, locPinY, shape.Angle);
                 MarkShapeTransformCellTokens(emittedTokens);
             }
 

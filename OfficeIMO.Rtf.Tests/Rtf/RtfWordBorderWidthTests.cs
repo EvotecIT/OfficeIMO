@@ -25,7 +25,7 @@ public class RtfWordBorderWidthTests {
         Assert.Equal(15, rtf.Paragraphs.First(candidate => candidate.ToPlainText() == "Boxed").TopBorder.Width);
         Assert.Equal(10, rtf.Blocks.OfType<RtfTable>().Single().Rows[0].Cells[0].TopBorder.Width);
 
-        using WordDocument roundTrip = RtfDocument.Read(word.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(word.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document.ToWordDocument();
         Assert.Equal(OfficeLength.Points(1.5), roundTrip.Borders.TopSize);
         Assert.Equal(OfficeLength.Points(0.75), roundTrip.Paragraphs.First(candidate => candidate.Text == "Boxed").Borders.TopSize);
         Assert.Equal(OfficeLength.Points(0.5), roundTrip.Tables[0].Rows[0].Cells[0].Borders.TopSize);

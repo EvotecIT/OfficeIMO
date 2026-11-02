@@ -14,7 +14,7 @@ public sealed class MsgLocaleTests {
         EmailDocument source = CreateMessage("Locale", locale);
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes);
 
         Assert.Equal(language, result.Document.Mapi.GetValueOrDefault(MapiKnownProperties.PidName.AcceptLanguage));
         AssertMessage(result.Document, "Locale", locale ?? 1033);
@@ -35,7 +35,7 @@ public sealed class MsgLocaleTests {
         source.Headers.Add(new EmailHeader(headerName, "fr-CA"));
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument parsed = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument parsed = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Equal("fr-CA", parsed.Mapi.GetValueOrDefault(MapiKnownProperties.PidName.AcceptLanguage));
         AssertMessage(parsed, "Explicit language", 0);
@@ -47,7 +47,7 @@ public sealed class MsgLocaleTests {
         EmailDocument source = CreateNestedMessages();
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument parsed = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument parsed = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         AssertNestedMessages(parsed, assertLanguage: true);
         AssertNestedMessages(source, assertLanguage: false);

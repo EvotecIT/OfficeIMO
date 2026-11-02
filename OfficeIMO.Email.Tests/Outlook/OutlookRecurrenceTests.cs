@@ -474,7 +474,7 @@ public sealed class OutlookRecurrenceTests {
         };
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument result = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.NotNull(result.Appointment!.Recurrence);
         Assert.True(result.Appointment.Recurrence!.StateDecoded, result.Appointment.Recurrence.DecodeError);
@@ -505,7 +505,7 @@ public sealed class OutlookRecurrenceTests {
         };
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument result = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.NotNull(result.Task!.Recurrence);
         Assert.True(result.Task.Recurrence!.StateDecoded, result.Task.Recurrence.DecodeError);

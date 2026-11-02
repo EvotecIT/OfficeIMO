@@ -20,9 +20,9 @@ namespace OfficeIMO.Tests {
                 firstPage.ViewCenterX = 4;
                 firstPage.ViewCenterY = 5;
 
-                VisioShape firstShape = new("1", 1, 1, 2, 1, "First");
+                VisioShape firstShape = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "First");
                 firstShape.Name = "FirstShape";
-                VisioShape secondShape = new("2", 4, 3, 1.5, 1, "Second");
+                VisioShape secondShape = new("2", OfficeLength.Inches(4), OfficeLength.Inches(3), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "Second");
                 secondShape.Name = "SecondShape";
                 firstPage.Shapes.Add(firstShape);
                 firstPage.Shapes.Add(secondShape);
@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
                 secondPage.ViewCenterX = 3;
                 secondPage.ViewCenterY = 2.5;
 
-                VisioShape thirdShape = new("3", 2, 2, 1, 1, "Third");
-                VisioShape fourthShape = new("4", 5, 1.5, 1.25, 1.25, "Fourth");
+                VisioShape thirdShape = new("3", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Third");
+                VisioShape fourthShape = new("4", OfficeLength.Inches(5), OfficeLength.Inches(1.5), OfficeLength.Inches(1.25), OfficeLength.Inches(1.25), "Fourth");
                 secondPage.Shapes.Add(thirdShape);
                 secondPage.Shapes.Add(fourthShape);
 

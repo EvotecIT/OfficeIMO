@@ -25,10 +25,10 @@ public sealed class VisioMasterTextStyleSerializationTests {
         };
         if (profile == 1) { style!.TextLocPinX = 0.5; style.TextLocPinY = 0.1; style.TextAngle = Math.PI / 2; }
         if (profile == 2) { style!.TextWidth = 0.8; style.TextHeight = 0.4; }
-        var blueprint = new VisioShape("1", 1, 0.5, 2, 1, profile == 3 ? "Blueprint text" : "") { LinePattern = 0, FillPattern = 0, TextStyle = style };
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), profile == 3 ? "Blueprint text" : "") { LinePattern = 0, FillPattern = 0, TextStyle = style };
         VisioMaster master = document.RegisterMaster("Default frame", blueprint);
-        VisioPage seed = document.AddPage("Seed").Size(8, 8);
-        VisioShape blank = seed.AddShape("blank", master, 3, 3, 2, 1);
+        VisioPage seed = document.AddPage("Seed").Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
+        VisioShape blank = seed.AddShape("blank", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, seed.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, seed.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, seed.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, seed.DefaultUnit)));
         Assert.Equal("", blank.Text);
         AssertResolvedFrame(blank.TextStyle, profile, resized: false);
         blank.Text = "MMMMMM";
@@ -47,10 +47,10 @@ public sealed class VisioMasterTextStyleSerializationTests {
         foreach (VisioDocument candidate in Reopened(document)) {
             lane++;
             VisioMaster available = candidate.GetMaster("Default frame");
-            VisioPage ordinary = candidate.AddPage("Object overload " + lane).Size(8, 8);
-            VisioShape normal = ordinary.AddShape("normal", available, 3, 3, 2, 1, text: "MMMMMM");
-            VisioPage resized = candidate.AddPage("Name overload " + lane).Size(8, 8);
-            VisioShape enlarged = resized.AddShape("enlarged", "Default frame", 5, 5, 4, 3, text: "MMMMMM", unit: VisioMeasurementUnit.Inches);
+            VisioPage ordinary = candidate.AddPage("Object overload " + lane).Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
+            VisioShape normal = ordinary.AddShape("normal", available, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, ordinary.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, ordinary.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, ordinary.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, ordinary.DefaultUnit)), text: "MMMMMM");
+            VisioPage resized = candidate.AddPage("Name overload " + lane).Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
+            VisioShape enlarged = resized.AddShape("enlarged", "Default frame", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(3), text: "MMMMMM");
             AssertResolvedFrame(normal.TextStyle, profile, resized: false);
             AssertResolvedFrame(enlarged.TextStyle, profile, resized: true);
             Assert.NotSame(available.Shape.TextStyle, normal.TextStyle);
@@ -85,12 +85,12 @@ public sealed class VisioMasterTextStyleSerializationTests {
         foreach (string name in names) {
             string? sourceName = namedBlueprint ? "Authored blueprint" : null;
             VisioMaster controlMaster = control.RegisterMaster(name, Blueprint(sourceName));
-            controlPage.AddShape(name, controlMaster, 2, 2, 2, 1);
+            controlPage.AddShape(name, controlMaster, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, controlPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, controlPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, controlPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, controlPage.DefaultUnit)));
             VisioShape blueprint = Blueprint(sourceName);
             blueprint.TextStyle = FrameStyle();
             VisioMaster master = styled.RegisterMaster(name, blueprint);
-            VisioShape byMaster = page.AddShape(name + " object", master, 2, 2, 2, 1);
-            VisioShape byName = page.AddShape(name + " name", name, 4, 2, 2, 1, text: "Name overload", unit: VisioMeasurementUnit.Inches);
+            VisioShape byMaster = page.AddShape(name + " object", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
+            VisioShape byName = page.AddShape(name + " name", name, OfficeLength.Inches(4), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), text: "Name overload");
             AssertFrameStyle(byMaster.TextStyle);
             AssertFrameStyle(byName.TextStyle);
             Assert.NotSame(blueprint.TextStyle, byMaster.TextStyle);
@@ -128,8 +128,8 @@ public sealed class VisioMasterTextStyleSerializationTests {
         VisioDocument document = VisioDocument.Create();
         document.UseMastersByDefault = true;
         VisioPage page = document.AddPage("Connected");
-        VisioShape first = page.AddRectangle(1, 2, 2, 1, "First");
-        VisioShape second = page.AddRectangle(5, 2, 2, 1, "Second");
+        VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "First");
+        VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Second");
         page.AddConnector(first, second, ConnectorKind.Dynamic);
         XElement before = MasterShapes(document.ToBytes())["Dynamic connector"];
         VisioMaster master = document.GetMaster("Dynamic connector");
@@ -162,7 +162,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         else Assert.Null(master.Shape.TextStyle.Size);
     }
 
-    private static VisioShape Blueprint(string? name) => new("1", 1, 0.5, 2, 1, "Styled master") { NameU = name };
+    private static VisioShape Blueprint(string? name) => new("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "Styled master") { NameU = name };
 
     private static VisioTextStyle FrameStyle() => new() {
         FontFamily = "Arial", Size = 16, Bold = true, Color = OfficeColor.Red,
@@ -229,7 +229,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         XElement background = Assert.Single(svg.Descendants(Svg + "rect"), rectangle => rectangle.Attribute("data-officeimo-text-background") != null);
         double Read(string name) => double.Parse(background.Attribute(name)!.Value, CultureInfo.InvariantCulture);
         Assert.Equal(centerX * scale, Read("x") + Read("width") / 2, 3);
-        Assert.Equal((page.Height - centerY) * scale, Read("y") + Read("height") / 2, 3);
+        Assert.Equal((page.Height.ToInches() - centerY) * scale, Read("y") + Read("height") / 2, 3);
         OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToPng(new VisioPngSaveOptions {
             PixelsPerInch = scale, Supersampling = 1, RenderStencilArtwork = false
         }), "Default-frame PNG could not be decoded.");
@@ -245,7 +245,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         }
         Assert.True(right >= left && bottom >= top, "Expected a visible text frame background.");
         Assert.InRange((left + right + 1) / 2D, centerX * scale - 1, centerX * scale + 1);
-        Assert.InRange((top + bottom + 1) / 2D, (page.Height - centerY) * scale - 1, (page.Height - centerY) * scale + 1);
+        Assert.InRange((top + bottom + 1) / 2D, (page.Height.ToInches() - centerY) * scale - 1, (page.Height.ToInches() - centerY) * scale + 1);
         Assert.Equal(before, page.OwnerDocument.ToLegacyXmlResult().Value);
     }
 

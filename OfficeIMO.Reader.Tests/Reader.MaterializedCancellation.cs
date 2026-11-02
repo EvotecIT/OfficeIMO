@@ -24,8 +24,8 @@ public sealed class ReaderMaterializedCancellationTests {
         using var cancellation = new CancellationTokenSource();
         try {
             using var iterator = (pathInput
-                ? reader.EnumerateChunks(path, cancellationToken: cancellation.Token)
-                : reader.EnumerateChunks(input, "input.rdr", cancellationToken: cancellation.Token)).GetEnumerator();
+                ? reader.Enumerate(path, cancellationToken: cancellation.Token)
+                : reader.Enumerate(input, "input.rdr", cancellationToken: cancellation.Token)).GetEnumerator();
             Assert.True(iterator.MoveNext());
             Assert.Equal("one", iterator.Current.Text);
             cancellation.Cancel();

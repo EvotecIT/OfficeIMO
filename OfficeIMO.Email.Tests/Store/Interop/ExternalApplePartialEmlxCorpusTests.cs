@@ -36,7 +36,7 @@ public sealed class ExternalApplePartialEmlxCorpusTests {
                 }
             }
             Assert.All(expected, hash => Assert.Contains(hash, payloads));
-            using EmailReadResult exported = new EmailDocumentReader().Read(
+            using EmailReadResult exported = new EmailDocumentReader().ReadDocument(
                 new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(item.Document, EmailFileFormat.Eml));
             string[] exportedHashes = exported.Document.Attachments.Select(attachment => Hash(attachment.Content!)).ToArray();
             Assert.All(expected, hash => Assert.Contains(hash, exportedHashes));

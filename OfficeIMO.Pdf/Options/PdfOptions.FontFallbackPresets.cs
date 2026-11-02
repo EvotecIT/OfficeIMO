@@ -189,8 +189,10 @@ public sealed partial class PdfCreateOptions {
         List<PdfEmbeddedFontFallbackCandidate> candidates,
         int coveredLength,
         int selectableLength) {
-        foreach (PdfEmbeddedFontFallbackCandidate candidate in available) {
-            if (coveredLength == selectableLength || candidates.Count == maximumCandidates) break;
+        // Check before advancing: the installed enumeration loads each family it yields.
+        using IEnumerator<PdfEmbeddedFontFallbackCandidate> enumerator = available.GetEnumerator();
+        while (coveredLength != selectableLength && candidates.Count != maximumCandidates && enumerator.MoveNext()) {
+            PdfEmbeddedFontFallbackCandidate candidate = enumerator.Current;
             candidates.Add(candidate);
             PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText(
                 requiredText,

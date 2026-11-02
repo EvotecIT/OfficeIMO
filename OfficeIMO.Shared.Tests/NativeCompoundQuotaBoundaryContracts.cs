@@ -106,7 +106,7 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
             try {
                 File.WriteAllBytes(path, bytes);
                 if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                else reader.ReadFolder(directory, options: options).ToArray();
+                else reader.EnumerateFolder(directory, options: options).ToArray();
             } finally { File.Delete(path); Directory.Delete(directory); }
         });
         Assert.EndsWith(".MaxDirectoryEntries", error.LimitName, StringComparison.Ordinal); Assert.Equal(3, error.Maximum);

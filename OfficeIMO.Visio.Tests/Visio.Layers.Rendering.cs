@@ -60,7 +60,7 @@ public sealed class VisioLayerRenderingTests {
     [Fact]
     public void DisplayAndUniversalNamesUseCaseInsensitiveFirstMatchAndUnknownMembershipRemainsVisible() {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Aliases").Size(4, 2);
+        VisioPage page = document.AddPage("Aliases").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
         page.Layers.Add(new VisioLayer("Translated name", "Shared") { Visible = false, Print = false });
         page.Layers.Add(new VisioLayer("Shared", "Other") { Visible = true, Print = true });
         VisioShape first = AddColoredShape(page, "First match", 0.7, OfficeColor.Red);
@@ -79,29 +79,29 @@ public sealed class VisioLayerRenderingTests {
             OfficeRasterImage raster = Decode(page.ToPng(new VisioPngSaveOptions {
                 LayerMode = mode, PixelsPerInch = PixelsPerInch, Supersampling = 1, RenderText = false
             }));
-            AssertPixel(raster, PixelsPerInch, page.Height, 0.7, 1.3, OfficeColor.White);
-            AssertPixel(raster, PixelsPerInch, page.Height, 2, 1.3, OfficeColor.Blue);
-            AssertPixel(raster, PixelsPerInch, page.Height, 3.3, 1.3, OfficeColor.Green);
+            AssertPixel(raster, PixelsPerInch, page.Height.ToInches(), 0.7, 1.3, OfficeColor.White);
+            AssertPixel(raster, PixelsPerInch, page.Height.ToInches(), 2, 1.3, OfficeColor.Blue);
+            AssertPixel(raster, PixelsPerInch, page.Height.ToInches(), 3.3, 1.3, OfficeColor.Green);
         }
     }
 
     [Fact]
     public void HiddenGroupKeepsVisibleAndUnassignedChildrenWithTheirNativeTransformsAndDiagnostics() {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Independent children").Size(4, 2);
+        VisioPage page = document.AddPage("Independent children").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
         page.AddLayer("Hidden").Visible = false;
-        var group = new VisioShape("1", 2, 1, 4, 2, "Hidden parent") {
+        var group = new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(4), OfficeLength.Inches(2), "Hidden parent") {
             Type = "Group", NameU = "Parent", FillColor = OfficeColor.Red, LinePattern = 0,
             TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Missing Hidden Parent Font" }
         };
-        var visible = new VisioShape("2", 0.7, 1, 0.8, 0.8, "Visible child") {
+        var visible = new VisioShape("2", OfficeLength.Inches(0.7), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Visible child") {
             NameU = "Visible child", FillColor = OfficeColor.Blue, LinePattern = 0,
             TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Missing Visible Child Font" }
         };
-        var unassigned = new VisioShape("3", 2, 1, 0.8, 0.8, "Unassigned child") {
+        var unassigned = new VisioShape("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Unassigned child") {
             NameU = "Unassigned child", FillColor = OfficeColor.Green, LinePattern = 0
         };
-        var hidden = new VisioShape("4", 3.3, 1, 0.8, 0.8, "Hidden child") {
+        var hidden = new VisioShape("4", OfficeLength.Inches(3.3), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Hidden child") {
             NameU = "Hidden child", FillColor = OfficeColor.Red, LinePattern = 0
         };
         group.Children.Add(visible); group.Children.Add(unassigned); group.Children.Add(hidden);
@@ -123,10 +123,10 @@ public sealed class VisioLayerRenderingTests {
             OfficeRasterImage raster = Decode(current.ToPng(new VisioPngSaveOptions {
                 PixelsPerInch = PixelsPerInch, Supersampling = 1, RenderText = false
             }));
-            AssertPixel(raster, PixelsPerInch, current.Height, 0.7, 1.3, OfficeColor.Blue);
-            AssertPixel(raster, PixelsPerInch, current.Height, 2, 1.3, OfficeColor.Green);
-            AssertPixel(raster, PixelsPerInch, current.Height, 3.3, 1.3, OfficeColor.White);
-            AssertPixel(raster, PixelsPerInch, current.Height, 0.1, 0.1, OfficeColor.White);
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 0.7, 1.3, OfficeColor.Blue);
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 2, 1.3, OfficeColor.Green);
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 3.3, 1.3, OfficeColor.White);
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 0.1, 0.1, OfficeColor.White);
         }
     }
 
@@ -136,12 +136,12 @@ public sealed class VisioLayerRenderingTests {
     [InlineData(VisioLayerRenderMode.All)]
     public void ConnectorLineAndLabelUseOwnMembershipIndependentlyOfHiddenEndpoints(VisioLayerRenderMode mode) {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Independent connectors").Size(5, 3);
+        VisioPage page = document.AddPage("Independent connectors").Size(OfficeLength.Inches(5), OfficeLength.Inches(3));
         page.AddLayer("Disabled").Visible = false;
         page.FindLayer("Disabled")!.Print = false;
         page.AddLayer("Screen").Print = false;
-        VisioShape first = page.AddRectangle(1, 2.5, 0.6, 0.6, string.Empty);
-        VisioShape second = page.AddRectangle(4, 2.5, 0.6, 0.6, string.Empty);
+        VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), string.Empty);
+        VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), string.Empty);
         first.FillColor = second.FillColor = OfficeColor.Green;
         first.LinePattern = second.LinePattern = 0;
         page.AddToLayer("Disabled", first).AddToLayer("Disabled", second);
@@ -164,11 +164,11 @@ public sealed class VisioLayerRenderingTests {
                 LayerMode = mode, PixelsPerInch = PixelsPerInch, Supersampling = 1,
                 RenderText = false, RenderConnectorLabels = false
             }));
-            AssertPixel(raster, PixelsPerInch, current.Height, 2.5, 2.5,
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 2.5, 2.5,
                 mode == VisioLayerRenderMode.Printable ? OfficeColor.White : OfficeColor.Red);
-            AssertPixel(raster, PixelsPerInch, current.Height, 2.5, 0.8,
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 2.5, 0.8,
                 mode == VisioLayerRenderMode.All ? OfficeColor.Blue : OfficeColor.White);
-            AssertPixel(raster, PixelsPerInch, current.Height, 1, 2.7,
+            AssertPixel(raster, PixelsPerInch, current.Height.ToInches(), 1, 2.7,
                 mode == VisioLayerRenderMode.All ? OfficeColor.Green : OfficeColor.White);
             Assert.Equal(2, current.Shapes.Count);
             Assert.Equal(2, current.Connectors.Count);
@@ -180,12 +180,12 @@ public sealed class VisioLayerRenderingTests {
     [InlineData(OfficeImageExportFormat.Png)]
     public void HiddenTextAndForeignContentDoNotTriggerExportLossPolicies(OfficeImageExportFormat format) {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Hidden diagnostics").Size(3, 2);
+        VisioPage page = document.AddPage("Hidden diagnostics").Size(OfficeLength.Inches(3), OfficeLength.Inches(2));
         page.AddLayer("Disabled").Visible = false;
         page.FindLayer("Disabled")!.Print = false;
-        VisioShape text = page.AddRectangle(0.7, 1, 0.8, 0.8, "Hidden text");
+        VisioShape text = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Hidden text");
         text.TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Missing Hidden Shape Font" };
-        VisioShape foreign = page.AddRectangle(2, 1, 0.8, 0.8, string.Empty);
+        VisioShape foreign = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), string.Empty);
         foreign.Type = "Foreign";
         VisioConnector connector = page.AddConnector("label", new OfficePoint(0.5, 0.2), new OfficePoint(2.5, 0.2));
         connector.Label = "Hidden label";
@@ -214,10 +214,10 @@ public sealed class VisioLayerRenderingTests {
     [InlineData("label")]
     public void HiddenObstaclesDoNotDisplaceVisibleConnectorLabels(string obstacleKind) {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Label visibility").Size(4, 3);
+        VisioPage page = document.AddPage("Label visibility").Size(OfficeLength.Inches(4), OfficeLength.Inches(3));
         page.AddLayer("Hidden").Visible = false;
         if (obstacleKind == "shape") {
-            VisioShape obstacle = page.AddRectangle(1.73, 1.5, 0.08, 0.1, string.Empty);
+            VisioShape obstacle = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.73, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.08, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.1, page.DefaultUnit)), string.Empty);
             page.AddToLayer("Hidden", obstacle);
         } else {
             VisioConnector obstacle = page.AddConnector("obstacle", new OfficePoint(2, 1), new OfficePoint(2, 2));
@@ -281,7 +281,7 @@ public sealed class VisioLayerRenderingTests {
 
     private static VisioDocument CreateLayerDocument() {
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Layer flags").Size(6, 2);
+        VisioPage page = document.AddPage("Layer flags").Size(OfficeLength.Inches(6), OfficeLength.Inches(2));
         page.AddLayer("Disabled").Visible = false;
         page.FindLayer("Disabled")!.Print = false;
         page.AddLayer("Screen").Print = false;
@@ -296,7 +296,7 @@ public sealed class VisioLayerRenderingTests {
     }
 
     private static VisioShape AddColoredShape(VisioPage page, string name, double pinX, OfficeColor color) {
-        VisioShape shape = page.AddRectangle(pinX, 1, 0.8, 0.8, name + " text");
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(pinX, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), name + " text");
         shape.NameU = name; shape.FillColor = color; shape.LinePattern = 0;
         shape.TextStyle = new VisioTextStyle { Size = 5 };
         return shape;
