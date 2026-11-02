@@ -7866,3 +7866,7 @@ PDF paragraph font sizes, indents, spacing and tab positions/widths now use `Off
 ## HTML conversion of text no font covers
 
 PDF and image conversions no longer throw `HtmlConversionException` when no available font covers a character. They paint the base character or a replacement box, keep the source text for extraction and report `HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced`. Set `FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss` to keep failing with the `unsupported-text-glyph` diagnostic, or supply a covering face through `Fonts` or a policy-approved `@font-face`.
+
+## HTML-to-Excel error values
+
+A `data-officeimo-value` error value is written as an error cell only when it is one of `#NULL!`, `#DIV/0!`, `#VALUE!`, `#REF!`, `#NAME?`, `#NUM!` or `#N/A`. Any other text, including `#CALC!` and `#SPILL!`, is imported as the visible cell text and reported with `HtmlConversionDiagnosticCodes.SemanticValueInvalid`. Before, such text became an invalid error cell and XLSB saves threw.
