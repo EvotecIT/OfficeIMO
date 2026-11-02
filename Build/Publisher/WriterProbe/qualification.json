@@ -30933,5 +30933,214 @@
       "No public native creation API or broader printer, producer or color-separation profile is qualified by this record."
     ],
     "canClosePUB00": false
+  },
+  "newsletterSourceSaveLifecycle": {
+    "scope": "Public source-save lifecycle on the generated three-page newsletter: linked body replacement, an added paragraph in the final fixed table cell, replacement of one shared image placement, and all three edits together.",
+    "sourceFiles": [
+      "SourceNewsletterLifecycle.cs",
+      "Program.cs"
+    ],
+    "sourceSha256": "13eac7444db9b2d7ccca2c7a9170572a5300836691bd7b636a3ec53698b9d74c",
+    "replacementImage": {
+      "fixture": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/ImagePagesJpegReplacement/native-imagepagesjpegreplacement-replacement.jpg",
+      "sha256": "bab7333dbb8fbc68ed2067e1d870d2359863750ab85c6f52a10f5a550589c50f"
+    },
+    "publicApi": [
+      "PublisherDocument.Load",
+      "ReplaceStoryParagraphs",
+      "ReplaceTableCellParagraphs",
+      "ReplacePictureImage",
+      "Save",
+      "ToPubBytes"
+    ],
+    "consumer": {
+      "assemblyName": "PublisherLifecycleQualification",
+      "targetFramework": "net10.0",
+      "friendAccess": false,
+      "sameSourceAsProbe": true,
+      "identicalOutputAcrossExternalConsumerAndProbe": true,
+      "buildWarnings": 0,
+      "publisherAssemblySha256": "9f7dc8e95a6a53f4602798ef327ffc9fce4c6112166228c6b8fa81731ca10f73"
+    },
+    "nativeBinary": {
+      "version": "16.0.20527.20088",
+      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+    },
+    "nativeFonts": [
+      {
+        "file": "arial.ttf",
+        "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+      },
+      {
+        "file": "arialbd.ttf",
+        "sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+      }
+    ],
+    "cases": [
+      {
+        "kind": "linked",
+        "bytes": 14848,
+        "sha256": "fbbe3b291a81b65c944b3cbb2481fd4c0c3e2f15e9fab585b19656c2562f37da",
+        "saveDiagnostics": [
+          "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+        ],
+        "nativeReadOnlyOpen": true,
+        "nativePdf": {
+          "bytes": 70922,
+          "sha256": "acad74540008a1af139e34f89c802274d5c3c6cc0d1ff11524f7e2ae48c0d1d3",
+          "pages": 3
+        },
+        "nativeCompleteLinkedBodyWords": 120,
+        "nativeFinalCellWords": [
+          "Saturday"
+        ],
+        "unchangedNativePages": [
+          2
+        ],
+        "changedStreams": [
+          "Quill/QuillSub/CONTENTS"
+        ],
+        "changedContentsRecordIds": [],
+        "printAndColorSepRecordsUnchanged": true
+      },
+      {
+        "kind": "table",
+        "bytes": 15360,
+        "sha256": "085bb235261fd3e4163c71140dc0e28b6a27152f06642ef6ac248f6aa6bcd60e",
+        "saveDiagnostics": [
+          "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+        ],
+        "nativeReadOnlyOpen": true,
+        "nativePdf": {
+          "bytes": 72234,
+          "sha256": "3c8df4297502f478085ada20d667abd877905e6fa4d0e7b9b7e69f8f5d84e1ec",
+          "pages": 3
+        },
+        "nativeCompleteLinkedBodyWords": 120,
+        "nativeFinalCellWords": [
+          "Sunday",
+          "10:00"
+        ],
+        "unchangedNativePages": [
+          2,
+          3
+        ],
+        "changedStreams": [
+          "Quill/QuillSub/CONTENTS"
+        ],
+        "changedContentsRecordIds": [],
+        "printAndColorSepRecordsUnchanged": true
+      },
+      {
+        "kind": "image",
+        "bytes": 15872,
+        "sha256": "cbba5eabbfe59db1deb0e76b81af3b0eaf79652909d6ee55dd24a289c3c009db",
+        "saveDiagnostics": [
+          "PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED"
+        ],
+        "nativeReadOnlyOpen": true,
+        "nativePdf": {
+          "bytes": 72321,
+          "sha256": "78bb149881b0f10dac0821cdcfea0a3e03eeb016ac3efd6fee7cde306ba0db7c",
+          "pages": 3
+        },
+        "nativeCompleteLinkedBodyWords": 120,
+        "nativeFinalCellWords": [
+          "Saturday"
+        ],
+        "unchangedNativePages": [
+          1,
+          3
+        ],
+        "changedStreams": [
+          "Contents",
+          "Escher/EscherDelayStm",
+          "Escher/EscherStm"
+        ],
+        "changedContentsRecordIds": [
+          272,
+          285
+        ],
+        "printAndColorSepRecordsUnchanged": true
+      },
+      {
+        "kind": "combined",
+        "bytes": 15872,
+        "sha256": "c44531ceafce1c659cad9878b54c5bae7c9b52ff79b864ad4db8720dc0843bee",
+        "saveDiagnostics": [
+          "PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED",
+          "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+        ],
+        "nativeReadOnlyOpen": true,
+        "nativePdf": {
+          "bytes": 73375,
+          "sha256": "309a086733a64c5c2f199fea9fcfe3394fd98f11116be856be719e47ba60c984",
+          "pages": 3
+        },
+        "nativeCompleteLinkedBodyWords": 120,
+        "nativeFinalCellWords": [
+          "Sunday",
+          "10:00"
+        ],
+        "unchangedNativePages": [],
+        "changedStreams": [
+          "Contents",
+          "Escher/EscherDelayStm",
+          "Escher/EscherStm",
+          "Quill/QuillSub/CONTENTS"
+        ],
+        "changedContentsRecordIds": [
+          272,
+          285
+        ],
+        "printAndColorSepRecordsUnchanged": true
+      }
+    ],
+    "preservation": {
+      "publicExactSourceCopyBeforeAndAfterEachEdit": true,
+      "defaultStrictSaveRefusesWithoutPublishingDestination": true,
+      "explicitAllowRetainsUnassessedReports": true,
+      "pageMasterFrameTablePictureTopologyPreserved": true,
+      "allCompleteStoriesMatchRequestedModelAfterOfficeImoReload": true,
+      "unreplacedMasterImageBytesPreserved": true,
+      "nativeLinkedBodyWordCount": 120,
+      "nativeLinkedBodyCompleteness": "Word coordinates in the two physical body-frame rectangles recover the complete requested 120-word story for each case.",
+      "nativeCellParagraphs": "The final cell contains Sunday and 10:00 on two separate lines in the table and combined cases. Neighboring cell text and stored tracks stay unchanged.",
+      "nativeVisualInspection": "Seven affected PDF pages inspected after Poppler rendering at maximum dimension 900 pixels; all twelve pages participate in the text and pixel checks.",
+      "nativePixelComposition": {
+        "combinedVsLinkedDifferenceBox": [
+          246,
+          448,
+          300,
+          477
+        ],
+        "onlyFinalCellDiffers": true,
+        "combinedVsTableDifferenceBox": [
+          41,
+          141,
+          402,
+          336
+        ],
+        "onlyLeadFrameDiffers": true,
+        "imageVsBaselineDifferenceBox": [
+          40,
+          477,
+          205,
+          587
+        ],
+        "onlyPhysicalPictureDiffers": true
+      },
+      "nativeCombinedPage2MatchesIsolatedImageEdit": true,
+      "nativeCombinedPage3MatchesIsolatedLinkedEdit": true
+    },
+    "limits": [
+      "Native qualification uses read-only COM opening and PDF export; no native edit or resave is claimed.",
+      "Read-only COM opening does not establish repair-free opening or recovery-path acceptance.",
+      "The two existing print-state records remain byte-identical. Print preview and actual printing after these source edits were not exercised.",
+      "The fixture uses one complete unmerged borderless 2x2 table and one ordinary shared image; broader table, linked-flow, image and producer profiles remain separate qualification work.",
+      "Default unassessed-loss diagnostics remain unchanged; this profile does not qualify public template-free creation or remove the explicit Allow requirement."
+    ],
+    "canClosePUB00": false,
+    "canClosePUB04": false
   }
 }

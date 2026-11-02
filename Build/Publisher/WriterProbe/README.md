@@ -39,6 +39,8 @@ dotnet $probe create master-content ./candidate-master-content.pub ./image.png
 
 dotnet $probe create newsletter ./candidate-newsletter.pub ./image.png
 
+dotnet $probe source-newsletter ./candidate-newsletter.pub ./replacement.jpg ./newsletter-source-saves
+
 dotnet $probe create multiple-masters ./candidate-multiple-masters.pub
 
 dotnet $probe create paired-masters ./candidate-paired-masters.pub
@@ -399,6 +401,15 @@ Print to PDF Ready. Their seven native PDF pages render identically before and
 after the print-state correction; their OfficeIMO PDF/SVG bytes are unchanged.
 A subsequent OfficeIMO source-text save changes only Quill, preserves the print
 records and exports the updated recurring heading on all three native PDF pages.
+The `source-newsletter` command exercises the public `Save` API on this generated
+three-page profile. It writes linked-story, final-cell, picture-replacement and
+combined edits to an empty output directory, together with their hashes and save
+diagnostics. The default strict policy refuses these edits; explicit `Allow`
+retains the current unassessed-loss reports. Native read-only opening and PDF
+export qualify all four outputs: complete linked text and cell paragraphs survive,
+one replaced picture leaves the shared master asset intact, and unaffected pages
+and regions match the native baseline. These are source-save observations;
+native editing and resaving remain separate requirements.
 Actual Print dispatch reports the same operation error for the corrected specimen
 and a native-authored control, so printing remains unqualified. Native
 editing/resaving, recovery-path acceptance and general appearance parity also

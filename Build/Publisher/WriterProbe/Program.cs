@@ -13,6 +13,7 @@ internal static class Program {
 
     public static int Main(string[] args) {
         try {
+            if (args.Length == 4 && args[0] == "source-newsletter") return SourceNewsletterLifecycle.Run(args[1], args[2], args[3]);
             if (args.Length == 4 && args[0] == "wrap-order") return SourceWrapOrder.Prepare(args[1], args[2], args[3]);
             if ((args.Length == 3 && args[0] == "preserve") || (args.Length is 8 or 9 && args[0] == "edit")
                 || (args.Length == 5 && args[0] is "edit-text" or "edit-story" or "edit-paragraphs"))
@@ -62,6 +63,7 @@ internal static class Program {
             }
             Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\ncreate <blank-pages|text-pages> <candidate.pub> <page-count>\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
             Console.Error.WriteLine("edit-paragraphs <input.pub> <candidate.pub> <story-id> <paragraph-run-arrays.json>");
+            Console.Error.WriteLine("source-newsletter <generated-newsletter.pub> <replacement-jpeg> <empty-output-directory>");
             Console.Error.WriteLine("wrap-order <input.pub> <candidate.pub> <object-order-and-frame-wraps.json>");
             Console.Error.WriteLine("create <object-pages|mixed-object-pages|master-content|newsletter> <candidate.pub> <image-path>");
             Console.Error.WriteLine("create <linked-story|linked-story-overflow> <candidate.pub>");
