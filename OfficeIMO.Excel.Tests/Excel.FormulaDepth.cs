@@ -924,6 +924,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaEvaluator_ChargesDependencyDepthForARangeReadEarlierInThePass() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Depth");
+            sheet.CellValue(1, 1, 1d);
+            sheet.CellFormula(2, 1, "A1+1");
+            sheet.CellFormula(1, 3, "SUMIFS(A1:A2,A1:A2,\">0\")");
+            sheet.CellFormula(2, 3, "C3+1");
+            sheet.CellFormula(3, 3, "SUMIFS(A1:A2,A1:A2,\">0\")");
+            document.Calculation.MaximumDependencyDepth = 2;
+
+            document.Calculate();
+
+            // C1 reads the range first. C2 reaches it one level deeper, where A2 exceeds the depth budget.
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 3, out string? first));
+            Assert.Equal("3", first);
+            Assert.False(sheet.TryGetCachedFormulaValue(2, 3, out _));
+            Assert.True(sheet.TryGetCachedFormulaValue(3, 3, out string? direct));
+            Assert.Equal("3", direct);
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_EnforcesDependencyDepthAcrossWorksheets() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet source = document.AddSheet("Source");
