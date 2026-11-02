@@ -12,6 +12,18 @@ namespace OfficeIMO.Excel {
 
         internal void Clear() => _length = 0;
 
+        /// <summary>Drops everything after the first <paramref name="length"/> bytes.</summary>
+        internal void Truncate(int length) {
+            if (length < 0 || length > _length) throw new ArgumentOutOfRangeException(nameof(length));
+            _length = length;
+        }
+
+        internal void WriteAscii(string text) {
+            if (text.Length > _buffer.Length - _length) Grow(checked(_length + text.Length));
+            for (int index = 0; index < text.Length; index++) _buffer[_length + index] = (byte)text[index];
+            _length += text.Length;
+        }
+
         internal void ReadFrom(Stream source) {
             while (true) {
                 if (_length == _buffer.Length) Grow(_length + 1);

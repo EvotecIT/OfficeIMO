@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -104,7 +105,10 @@ namespace OfficeIMO.Excel {
             bool serialized = part.IsRootElementLoaded && part.RootElement != null;
             buffer.Clear();
             if (serialized) {
-                part.RootElement!.Save(buffer);
+                if (part.RootElement is not Worksheet worksheet || !ExcelWorksheetGridWriter.TrySave(worksheet, buffer)) {
+                    buffer.Clear();
+                    part.RootElement!.Save(buffer);
+                }
             } else {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 buffer.ReadFrom(stream);

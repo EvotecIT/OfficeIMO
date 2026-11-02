@@ -187,6 +187,21 @@ internal static partial class XlBenchShapeScenarios {
         return total;
     }
 
+    internal static double OfficeImoCalc(Stream? output) {
+        using var document = ExcelDocument.Load(new MemoryStream(CalcWorkbook));
+        var products = document[CalcProductsSheet];
+        for (int i = 0; i < CalcProducts; i++) {
+            products.CellValue(2 + i, CalcUnitPriceColumn, CalcNewPrice(i));
+        }
+        document.Calculate();
+        document[CalcSummarySheet].TryGetCachedFormulaValue(CalcGrandTotalRow, CalcStatColumn, out string? cached);
+        double total = double.Parse(cached!, NumberStyles.Float, CultureInfo.InvariantCulture);
+        if (output != null) {
+            document.Save(output);
+        }
+        return total;
+    }
+
     internal static byte[] OfficeImoTemplate() {
         using var document = ExcelDocument.Load(new MemoryStream(TemplateWorkbook));
         var sheet = document.Sheets.First(candidate => candidate.Name == "Report");

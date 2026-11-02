@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel {
         private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
         private static readonly string[] CellTypes = { "s", "str", "n", "b", "e" };
         private static readonly string[] FormulaTypes = { "normal", "array", "shared", "dataTable" };
+        private static readonly string?[] SmallNumbers = new string?[10000];
 
         /// <summary>Loads <paramref name="part"/> and returns true, or leaves it unloaded and returns false.</summary>
         internal static bool TryLoad(WorksheetPart part) {
@@ -93,30 +94,32 @@ namespace OfficeIMO.Excel {
             internal static readonly Tags XPrefixed = new Tags("x:");
 
             private Tags(string prefix) {
-                GridStart = Encoding.ASCII.GetBytes("<" + prefix + "sheetData>");
+                GridStart = Bytes("<" + prefix + "sheetData>");
                 EmptyGrid = "<" + prefix + "sheetData/>";
-                GridEnd = "</" + prefix + "sheetData>";
-                Row = "<" + prefix + "row";
-                RowEnd = "</" + prefix + "row>";
-                Cell = "<" + prefix + "c";
-                CellEnd = "</" + prefix + "c>";
-                Formula = "<" + prefix + "f";
-                FormulaEnd = "</" + prefix + "f>";
-                Value = "<" + prefix + "v>";
-                ValueEnd = "</" + prefix + "v>";
+                GridEnd = Bytes("</" + prefix + "sheetData>");
+                Row = Bytes("<" + prefix + "row");
+                RowEnd = Bytes("</" + prefix + "row>");
+                Cell = Bytes("<" + prefix + "c");
+                CellEnd = Bytes("</" + prefix + "c>");
+                Formula = Bytes("<" + prefix + "f");
+                FormulaEnd = Bytes("</" + prefix + "f>");
+                Value = Bytes("<" + prefix + "v>");
+                ValueEnd = Bytes("</" + prefix + "v>");
             }
+
+            private static byte[] Bytes(string ascii) => Encoding.ASCII.GetBytes(ascii);
 
             internal byte[] GridStart { get; }
             internal string EmptyGrid { get; }
-            internal string GridEnd { get; }
-            internal string Row { get; }
-            internal string RowEnd { get; }
-            internal string Cell { get; }
-            internal string CellEnd { get; }
-            internal string Formula { get; }
-            internal string FormulaEnd { get; }
-            internal string Value { get; }
-            internal string ValueEnd { get; }
+            internal byte[] GridEnd { get; }
+            internal byte[] Row { get; }
+            internal byte[] RowEnd { get; }
+            internal byte[] Cell { get; }
+            internal byte[] CellEnd { get; }
+            internal byte[] Formula { get; }
+            internal byte[] FormulaEnd { get; }
+            internal byte[] Value { get; }
+            internal byte[] ValueEnd { get; }
         }
 
         private ref struct GridReader {
@@ -124,6 +127,7 @@ namespace OfficeIMO.Excel {
             private readonly Tags _tags;
             private readonly bool _dyDescentDeclared;
             private int _position;
+            private string? _spans;
 
             internal GridReader(ReadOnlySpan<byte> xml, int position, Tags tags, bool dyDescentDeclared) {
                 _xml = xml;
@@ -152,15 +156,14 @@ namespace OfficeIMO.Excel {
             private bool TryReadRowAttributes(Row row, out bool hasContent) {
                 while (TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) {
                     if (done) return true;
-                    string text = Text(value);
-                    if (Is(name, "r")) { if (row.RowIndex != null) return false; row.RowIndex = new UInt32Value { InnerText = text }; }
-                    else if (Is(name, "spans")) { if (row.Spans != null) return false; row.Spans = new ListValue<StringValue> { InnerText = text }; }
-                    else if (Is(name, "s")) { if (row.StyleIndex != null) return false; row.StyleIndex = new UInt32Value { InnerText = text }; }
-                    else if (Is(name, "customFormat")) { if (row.CustomFormat != null) return false; row.CustomFormat = new BooleanValue { InnerText = text }; }
-                    else if (Is(name, "ht")) { if (row.Height != null) return false; row.Height = new DoubleValue { InnerText = text }; }
-                    else if (Is(name, "hidden")) { if (row.Hidden != null) return false; row.Hidden = new BooleanValue { InnerText = text }; }
-                    else if (Is(name, "customHeight")) { if (row.CustomHeight != null) return false; row.CustomHeight = new BooleanValue { InnerText = text }; }
-                    else if (Is(name, "x14ac:dyDescent")) { if (!_dyDescentDeclared || row.DyDescent != null) return false; row.DyDescent = new DoubleValue { InnerText = text }; }
+                    if (Is(name, "r"u8)) { if (row.RowIndex != null) return false; row.RowIndex = new UInt32Value { InnerText = Number(value) }; }
+                    else if (Is(name, "spans"u8)) { if (row.Spans != null) return false; row.Spans = new ListValue<StringValue> { InnerText = Spans(value) }; }
+                    else if (Is(name, "s"u8)) { if (row.StyleIndex != null) return false; row.StyleIndex = new UInt32Value { InnerText = Number(value) }; }
+                    else if (Is(name, "customFormat"u8)) { if (row.CustomFormat != null) return false; row.CustomFormat = new BooleanValue { InnerText = Text(value) }; }
+                    else if (Is(name, "ht"u8)) { if (row.Height != null) return false; row.Height = new DoubleValue { InnerText = Text(value) }; }
+                    else if (Is(name, "hidden"u8)) { if (row.Hidden != null) return false; row.Hidden = new BooleanValue { InnerText = Text(value) }; }
+                    else if (Is(name, "customHeight"u8)) { if (row.CustomHeight != null) return false; row.CustomHeight = new BooleanValue { InnerText = Text(value) }; }
+                    else if (Is(name, "x14ac:dyDescent"u8)) { if (!_dyDescentDeclared || row.DyDescent != null) return false; row.DyDescent = new DoubleValue { InnerText = Text(value) }; }
                     else return false;
                 }
                 hasContent = false;
@@ -170,18 +173,24 @@ namespace OfficeIMO.Excel {
             private bool TryReadCell(Row row) {
                 var cell = new Cell();
                 bool hasContent;
+                // Duplicates are tracked locally: each SDK attribute getter walks the element's attribute list.
+                bool reference = false, style = false, type = false;
                 while (true) {
                     if (!TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) return false;
                     if (done) break;
-                    if (Is(name, "r")) {
-                        if (cell.CellReference != null) return false;
+                    if (name.Length != 1) return false;
+                    if (name[0] == (byte)'r') {
+                        if (reference) return false;
+                        reference = true;
                         cell.CellReference = Text(value);
-                    } else if (Is(name, "s")) {
-                        if (cell.StyleIndex != null) return false;
-                        cell.StyleIndex = new UInt32Value { InnerText = Text(value) };
-                    } else if (Is(name, "t")) {
-                        if (cell.DataType != null || !IsAnyOf(value, CellTypes)) return false;
-                        cell.DataType = new EnumValue<CellValues> { InnerText = Text(value) };
+                    } else if (name[0] == (byte)'s') {
+                        if (style) return false;
+                        style = true;
+                        cell.StyleIndex = new UInt32Value { InnerText = Number(value) };
+                    } else if (name[0] == (byte)'t') {
+                        if (type || Known(value, CellTypes) is not string cellType) return false;
+                        type = true;
+                        cell.DataType = new EnumValue<CellValues> { InnerText = cellType };
                     } else {
                         return false;
                     }
@@ -202,20 +211,25 @@ namespace OfficeIMO.Excel {
             private bool TryReadFormula(Cell cell) {
                 var formula = new CellFormula();
                 bool hasContent;
+                bool type = false, reference = false, sharedIndex = false, calculate = false;
                 while (true) {
                     if (!TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) return false;
                     if (done) break;
-                    if (Is(name, "t")) {
-                        if (formula.FormulaType != null || !IsAnyOf(value, FormulaTypes)) return false;
-                        formula.FormulaType = new EnumValue<CellFormulaValues> { InnerText = Text(value) };
-                    } else if (Is(name, "ref")) {
-                        if (formula.Reference != null) return false;
+                    if (Is(name, "t"u8)) {
+                        if (type || Known(value, FormulaTypes) is not string formulaType) return false;
+                        type = true;
+                        formula.FormulaType = new EnumValue<CellFormulaValues> { InnerText = formulaType };
+                    } else if (Is(name, "ref"u8)) {
+                        if (reference) return false;
+                        reference = true;
                         formula.Reference = Text(value);
-                    } else if (Is(name, "si")) {
-                        if (formula.SharedIndex != null) return false;
-                        formula.SharedIndex = new UInt32Value { InnerText = Text(value) };
-                    } else if (Is(name, "ca")) {
-                        if (formula.CalculateCell != null) return false;
+                    } else if (Is(name, "si"u8)) {
+                        if (sharedIndex) return false;
+                        sharedIndex = true;
+                        formula.SharedIndex = new UInt32Value { InnerText = Number(value) };
+                    } else if (Is(name, "ca"u8)) {
+                        if (calculate) return false;
+                        calculate = true;
                         formula.CalculateCell = new BooleanValue { InnerText = Text(value) };
                     } else {
                         return false;
@@ -237,7 +251,7 @@ namespace OfficeIMO.Excel {
                 if (_position >= _xml.Length) return false;
                 byte next = _xml[_position];
                 if (next == (byte)'>') { _position++; hasContent = done = true; return true; }
-                if (next == (byte)'/') { done = true; return Skip("/>"); }
+                if (next == (byte)'/') { done = true; return Skip("/>"u8); }
                 if (next != (byte)' ') return false;
                 _position++;
 
@@ -256,7 +270,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            private bool TryReadText(string endTag, out string? text) {
+            private bool TryReadText(byte[] endTag, out string? text) {
                 text = null;
                 int length = _xml.Slice(_position).IndexOf((byte)'<');
                 if (length <= 0) return false;
@@ -270,7 +284,7 @@ namespace OfficeIMO.Excel {
                 if (raw[0] <= (byte)' ' || raw[raw.Length - 1] <= (byte)' ') return false;
                 _position += length;
                 if (!Skip(endTag)) return false;
-                if (!escaped) { text = Text(raw); return true; }
+                if (!escaped) { text = Number(raw); return true; }
                 text = TryDecode(raw);
                 return text != null;
             }
@@ -290,8 +304,8 @@ namespace OfficeIMO.Excel {
                 return text.ToString();
             }
 
-            private bool Skip(string token) {
-                if (!Matches(_xml, _position, token)) return false;
+            private bool Skip(ReadOnlySpan<byte> token) {
+                if (!_xml.Slice(_position).StartsWith(token)) return false;
                 _position += token.Length;
                 return true;
             }
@@ -304,13 +318,34 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            private static bool Is(ReadOnlySpan<byte> name, string expected) => name.Length == expected.Length && Matches(name, 0, expected);
+            private static bool Is(ReadOnlySpan<byte> name, ReadOnlySpan<byte> expected) => name.SequenceEqual(expected);
 
-            private static bool IsAnyOf(ReadOnlySpan<byte> value, string[] expected) {
+            /// <summary>Returns the listed spelling of <paramref name="value"/>, so each cell does not allocate its own copy.</summary>
+            private static string? Known(ReadOnlySpan<byte> value, string[] expected) {
                 foreach (string candidate in expected) {
-                    if (Is(value, candidate)) return true;
+                    if (value.Length == candidate.Length && Matches(value, 0, candidate)) return candidate;
                 }
-                return false;
+                return null;
+            }
+
+            /// <summary>Rows usually repeat one span, so the previous row's text is reused when the bytes match.</summary>
+            private string Spans(ReadOnlySpan<byte> value) {
+                if (_spans != null && value.Length == _spans.Length && Matches(value, 0, _spans)) return _spans;
+                return _spans = Text(value);
+            }
+
+            /// <summary>
+            /// Short canonical integers, the bulk of style indexes and shared-string values, come from one shared table.
+            /// Anything else, including a leading zero the SDK would keep verbatim, gets its own string.
+            /// </summary>
+            private static string Number(ReadOnlySpan<byte> ascii) {
+                if (ascii.Length == 0 || ascii.Length > 4 || (ascii[0] == (byte)'0' && ascii.Length > 1)) return Text(ascii);
+                int number = 0;
+                foreach (byte digit in ascii) {
+                    if (digit < (byte)'0' || digit > (byte)'9') return Text(ascii);
+                    number = number * 10 + digit - '0';
+                }
+                return SmallNumbers[number] ??= Text(ascii);
             }
 
             private static string Text(ReadOnlySpan<byte> ascii) {

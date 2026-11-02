@@ -30,10 +30,11 @@ records writer buffering and reader allocation results, including ordinary defau
 
 `--compare-xlbench-shapes` compares OfficeIMO with the plain Open XML SDK on the workload shapes of the
 [XLBench](https://github.com/jafin/XLBench) scenarios: write, read all, 20 sheets, report, edit, insert,
-template and properties, plus read-while-writing, wide-read, edited-read and edited-sheets-read, which time reads of a workbook with unsaved cells, of a sheet too wide for one buffered chunk, and of an edited package. Source workbooks are built with ClosedXML outside measurement.
+calc, template and properties, plus read-while-writing, wide-read, edited-read and edited-sheets-read, which time reads of a workbook with unsaved cells, of a sheet too wide for one buffered chunk, and of an edited package. Source workbooks are built with ClosedXML outside measurement.
 Number and stock values are deterministic stand-ins with the same dimensions. Before timing, one saved workbook from each
 implementation is reopened with the SDK and ClosedXML, passes `OpenXmlValidator` and has its scenario content checked.
 `edit` and `insert` follow XLBench by not saving on the OfficeIMO side; `edit-save` and `insert-save` include the save.
+`calc` has no SDK column because the SDK has no calculation engine; its saved workbook is checked against every order's net and category and the grand total computed in C#.
 
 ```powershell
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --compare-xlbench-shapes 9 2

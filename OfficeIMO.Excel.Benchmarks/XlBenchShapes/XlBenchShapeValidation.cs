@@ -88,6 +88,18 @@ internal static class XlBenchShapeValidation {
         }
     }
 
+    internal static void Calc(string label, byte[] bytes) {
+        ValidateSchema(label, bytes, null);
+        var (net, category, total) = CalcExpected();
+        using var workbook = new XLWorkbook(new MemoryStream(bytes));
+        var orders = workbook.Worksheet(CalcOrdersSheet);
+        for (int i = 0; i < CalcOrders; i++) {
+            Near(label, $"net {i + 2}", net[i], orders.Cell(i + 2, 9).CachedValue.GetNumber());
+            Equal(label, $"category {i + 2}", category[i], orders.Cell(i + 2, 6).CachedValue.GetText());
+        }
+        Near(label, "grand total", total, workbook.Worksheet(CalcSummarySheet).Cell(CalcGrandTotalRow, CalcStatColumn).CachedValue.GetNumber());
+    }
+
     internal static void Template(string label, byte[] bytes) {
         ValidateSchema(label, bytes, TemplateWorkbook);
         int lastRow = TemplateFirstRow + TemplateRows - 1;

@@ -58,14 +58,63 @@ namespace OfficeIMO.Excel {
             }
 
             remainingCellBudget -= cellCount;
+            if (TryReuseCalculatedRange(sheet, r1, c1, r2, c2, out values)) return true;
             values = new List<FormulaArgumentValue>(cellCount);
-            for (int row = r1; row <= r2; row++) {
-                for (int column = c1; column <= c2; column++) {
-                    values.Add(ResolveFormulaDependency(sheet, row, column));
+            FormulaEvaluationDepthFrame? frame = BeginCalculatedRange();
+            bool complete = false;
+            try {
+                for (int row = r1; row <= r2; row++) {
+                    for (int column = c1; column <= c2; column++) {
+                        values.Add(ResolveFormulaDependency(sheet, row, column));
+                    }
                 }
+                complete = true;
+            } finally {
+                if (frame != null) EndCalculatedRange(frame, complete, sheet, r1, c1, r2, c2, values);
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Returns a range already resolved in this pass. Its cells cannot change within a pass, so aggregates over a
+        /// shared column read it once; the dependency depth it recorded is charged as resolving each cell would.
+        /// </summary>
+        private bool TryReuseCalculatedRange(ExcelSheet sheet, int r1, int c1, int r2, int c2, out List<FormulaArgumentValue> values) {
+            values = null!;
+            if (_formulaCalculationContext is not { IsDisposed: false } context
+                || _formulaEvaluationStack == null
+                || _formulaEvaluationDepthFrames is not { Count: > 0 } frames
+                || !context.Ranges.TryGetValue((sheet._worksheetPartValue, r1, c1, r2, c2), out var range)
+                || _formulaEvaluationStack.Count + range.Depth > _excelDocument.Calculation.MaximumDependencyDepth) return false;
+            frames.Peek().IncludeChild(range.Depth);
+            values = new List<FormulaArgumentValue>(range.Values);
+            return true;
+        }
+
+        /// <summary>Collects the range's dependency outcome in a frame of its own, so it can be kept and later charged again.</summary>
+        private FormulaEvaluationDepthFrame? BeginCalculatedRange() {
+            if (_formulaCalculationContext is not { IsDisposed: false }
+                || _formulaEvaluationCache == null
+                || _formulaEvaluationDepthFrames is not { Count: > 0 } frames
+                || frames.Peek().DependencyGuardBlocked) return null;
+            var frame = new FormulaEvaluationDepthFrame();
+            frames.Push(frame);
+            return frame;
+        }
+
+        private void EndCalculatedRange(FormulaEvaluationDepthFrame frame, bool complete, ExcelSheet sheet,
+            int r1, int c1, int r2, int c2, List<FormulaArgumentValue> values) {
+            _formulaEvaluationDepthFrames!.Pop();
+            FormulaEvaluationDepthFrame parent = _formulaEvaluationDepthFrames.Peek();
+            parent.IncludeChild(frame.MaximumChildDepth);
+            if (frame.DependencyGuardBlocked) parent.BlockByDependencyGuard();
+            if (frame.UsedUnevaluatedFormulaCache) parent.MarkUnevaluatedFormulaCache();
+            if (complete && !frame.DependencyGuardBlocked && !frame.UsedUnevaluatedFormulaCache
+                && _formulaCalculationContext is { IsDisposed: false } context
+                && !values.Exists(static value => value.IsUnresolvedFormula)) {
+                context.Ranges[(sheet._worksheetPartValue, r1, c1, r2, c2)] = (values.ToArray(), frame.MaximumChildDepth);
+            }
         }
 
         private static bool TryGetFormulaRangeCellCount(int r1, int c1, int r2, int c2, out int cellCount) {
