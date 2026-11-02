@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPageProjector {
-    private IReadOnlyList<OfficeTextFlowRegion> TextExclusions(PublisherFrameState frame) {
-        var result = new List<OfficeTextFlowRegion>();
+    private IReadOnlyList<PreparedTextExclusion> TextExclusions(PublisherFrameState frame) {
+        var result = new List<PreparedTextExclusion>();
         if (frame.WrapObjectIds.Count == 0) return result;
         OfficeTransform toFrame = frame.PageTransform.Invert();
         foreach (uint id in frame.WrapObjectIds) {
@@ -23,22 +23,32 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(id));
             var local = obstacle.PageTransform.Then(toFrame).TransformRectangleBounds(-margin.Left, -margin.Top,
                 obstacle.Width + margin.Horizontal, obstacle.Height + margin.Vertical);
-            result.Add(new OfficeTextFlowRegion(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top));
+            OfficeTextWrapSide side = info?.NativeMode switch {
+                PublisherNativeWrapMode.RectangularLeft => OfficeTextWrapSide.Left,
+                PublisherNativeWrapMode.RectangularRight => OfficeTextWrapSide.Right,
+                PublisherNativeWrapMode.RectangularLarger => OfficeTextWrapSide.Larger,
+                _ => OfficeTextWrapSide.Both
+            };
+            result.Add(new PreparedTextExclusion(new OfficeTextFlowRegion(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top), side));
             if (info?.Tight == true)
                 _context.Add("PUB_TIGHT_TEXT_WRAP_APPROXIMATED", "A native wrap polygon uses its transformed bounding rectangle. Tight and through-outline text paths are not reproduced.",
                     OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(id));
         }
-        _context.Add("PUB_TEXT_WRAP_APPROXIMATED", UsesBothSideWrap(frame)
-            ? "Native rectangular both-side wrap references and distances exclude transformed object rectangles. Text flows left to right through free intervals on a shared baseline; native line fitting and outline wrapping can differ."
+        _context.Add("PUB_TEXT_WRAP_APPROXIMATED", UsesRectangularWrap(frame)
+            ? "Native rectangular wrap references and distances exclude transformed object rectangles. Both uses successive free intervals on a shared baseline; Left, Right and Larger select a side per text column, with left selected on an equal-width Larger tie. Native line fitting and outline wrapping can differ."
             : "Native wrap references and distances exclude transformed object rectangles. Unqualified wrap modes use the widest available interval per horizontal band; native side selection and outline wrapping can differ.",
             OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(frame.Id));
         return result;
     }
 
-    private bool UsesBothSideWrap(PublisherFrameState frame) => frame.VerticalAlignment == OfficeTextVerticalAlignment.Top &&
+    private bool UsesRectangularWrap(PublisherFrameState frame) => frame.VerticalAlignment == OfficeTextVerticalAlignment.Top &&
         frame.WrapObjectIds.Count != 0 && frame.WrapObjectIds.All(id =>
         _publication.Text.WrapInfo.TryGetValue(id, out PublisherWrapInfo? wrap) &&
-        wrap.NativeMode == PublisherNativeWrapMode.RectangularBoth && !wrap.Tight && !wrap.NegativeMargins);
+        wrap.NativeMode is PublisherNativeWrapMode.RectangularBoth or PublisherNativeWrapMode.RectangularLeft
+            or PublisherNativeWrapMode.RectangularRight or PublisherNativeWrapMode.RectangularLarger
+        && !wrap.Tight && !wrap.NegativeMargins);
+
+    private sealed record PreparedTextExclusion(OfficeTextFlowRegion Bounds, OfficeTextWrapSide Side);
 
     private PublisherImportedWrapObject? CurrentWrapObject(uint id) {
         if (_publication.Tables.TryGetValue(id, out PublisherTableState? table))

@@ -14,15 +14,22 @@ internal static class PublisherWrapRelationships {
             || distance.Length > 1 || distance.Any(field => field.Type != 0)) return PublisherNativeWrapMode.Unknown;
         if (mode.Length == 1 && mode[0].Value == 0x100)
             return PublisherNativeWrapMode.None;
-        // Native side controls use field05; only the omitted both-side default
-        // and rectangular, non-outline, nonnegative-margin obstacles are qualified.
+        PublisherBlock[] side = source.Fields.Where(field => field.Id == 5).ToArray();
+        if (side.Length > 1 || side.Any(field => field.Type != 0x10)) return PublisherNativeWrapMode.Unknown;
+        // Rendering recognizes native field05 side controls. Relationship
+        // regeneration below still admits only the qualified both-side profile.
         // An omitted mode is native square wrapping (also with automatic distances);
         // ordinary rectangle/text-box through wrapping has the same solid contour.
-        if (!negativeMargins && !tight && source.Fields.All(field => field.Id != 5)
+        if (!negativeMargins && !tight
             && !OfficeArtCustomPathProjector.HasPath(artwork.Properties)
             && (picture || artwork.Type is 1 or 202)
             && (mode.Length == 0 || !picture && mode[0].Value == 0x103))
-            return PublisherNativeWrapMode.RectangularBoth;
+            return side.Length == 0 ? PublisherNativeWrapMode.RectangularBoth : side[0].Value switch {
+                0x101 => PublisherNativeWrapMode.RectangularLeft,
+                0x102 => PublisherNativeWrapMode.RectangularRight,
+                0x103 => PublisherNativeWrapMode.RectangularLarger,
+                _ => PublisherNativeWrapMode.Unknown
+            };
         return PublisherNativeWrapMode.Unknown;
     }
 

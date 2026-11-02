@@ -325,3 +325,10 @@ those fields, resets to its own native defaults. Publisher's getters report a
 native save/reopen. The retained native-resaved PUB/PDF files protect selected
 snapshot decoding and byte-exact unmodified source saves; they do not qualify
 template-free creation or repair-free opening.
+
+WrapObjectOrderLargerLeft moves both obstacles so their left interval is wider;
+WrapObjectOrderLargerTie centers each obstacle to give equal free widths. Native
+Publisher chooses left in both cases. WrapObjectOrderLargerColumns uses two
+Top-aligned columns with the original obstacles: the first column chooses left,
+and the second remains unobstructed. Their native PUB/PDF/contract/PNG files
+qualify rectangular side selection separately from native relationship editing.

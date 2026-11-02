@@ -80,12 +80,24 @@ public sealed class PublisherWrapEditingTests {
         Assert.Equal(new uint[] { 294, 295 }, Frame(PublisherDocument.Load(loaded.ToPubBytes(Allow()))).WrapObjectIds);
     }
 
-    [Fact]
-    public void Unsupported_native_wrap_side_refuses_order_changes_before_model_commit() {
-        byte[] source = Source("WrapObjectOrderLeft"); var d = PublisherDocument.Load(source); var page = d.Pages[0];
+    [Theory]
+    [InlineData("WrapObjectOrderLeft")]
+    [InlineData("WrapObjectOrderRight")]
+    [InlineData("WrapObjectOrderLarger")]
+    public void Unsupported_native_wrap_side_refuses_order_changes_and_geometry_save(string control) {
+        byte[] source = Source(control); var d = PublisherDocument.Load(source); var page = d.Pages[0];
         Assert.Equal(new uint[] { 294, 295 }, Frame(d).WrapObjectIds);
         Assert.Throws<NotSupportedException>(() => d.SetPageObjectOrder(page.Id, new uint[] { 295, 294, 293 }));
         Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToPubBytes());
+        d.SetShapeBounds(294, 480, 132, 72, 72);
+        Assert.Throws<OfficeConversionException>(() => d.ToPubBytes(Allow()));
+        d.SetShapeBounds(294, 180, 132, 72, 72); Assert.Equal(source, d.ToPubBytes());
+        d.SetPictureBounds(295, 480, 264, 96, 96);
+        Assert.Throws<OfficeConversionException>(() => d.ToPubBytes(Allow()));
+        d.SetPictureBounds(295, 144, 264, 96, 96); Assert.Equal(source, d.ToPubBytes());
+        d.SetTextFrameBounds(293, 480, 72, 100, 504);
+        Assert.Throws<OfficeConversionException>(() => d.ToPubBytes(Allow()));
+        d.SetTextFrameBounds(293, 72, 72, 360, 504); Assert.Equal(source, d.ToPubBytes());
     }
 
     private static PublisherTextFrame Frame(PublisherDocument d) => d.Pages[0].TextFrames.Single(f => f.Id == 293);

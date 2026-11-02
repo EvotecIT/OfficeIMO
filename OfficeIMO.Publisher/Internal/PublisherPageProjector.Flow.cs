@@ -27,15 +27,19 @@ internal sealed partial class PublisherPageProjector {
                 double width = frame.ColumnWidth;
                 double height = frame.ContentHeight;
                 var content = new List<PreparedTextRegion>();
-                IReadOnlyList<OfficeTextFlowRegion> exclusions = TextExclusions(frame);
+                IReadOnlyList<PreparedTextExclusion> exclusions = TextExclusions(frame);
                 int? start = unavailable ? null : flow.HasRemaining ? Math.Min(flow.CharacterPosition, story.Text.Length) : story.Text.Length;
                 if (!unavailable && width > 0 && height > 0) {
                     _textMetrics ??= new OfficeRasterCanvas(new OfficeRasterImage(1, 1), null, _context.Options.Fonts, cancellationToken: _context.Token);
                     for (int column = 0; column < columns && flow.HasRemaining; column++) {
                         if (!frame.IsAuthored) _context.Record();
                         var area = new OfficeTextFlowRegion(padding.Left + column * (width + frame.ColumnSpacing), padding.Top, width, height);
-                        if (exclusions.Count != 0 && UsesBothSideWrap(frame)) {
-                            foreach (OfficeRichTextFlowFragment fragment in flow.TakeAround(area, exclusions,
+                        if (exclusions.Count != 0 && UsesRectangularWrap(frame)) {
+                            var masks = exclusions.Select(e => {
+                                _context.Record();
+                                return OfficeTextFlowRegions.RestrictSide(area, e.Bounds, e.Side);
+                            }).ToArray();
+                            foreach (OfficeRichTextFlowFragment fragment in flow.TakeAround(area, masks,
                                 _textMetrics.CreateDrawingTextMetrics(), _context.Record, _context.Token)) {
                                 OfficeTextFlowRegion region = fragment.Region;
                                 // Flow already admitted this exact line. Retain
@@ -46,7 +50,7 @@ internal sealed partial class PublisherPageProjector {
                             continue;
                         }
                         IReadOnlyList<OfficeTextFlowRegion> regions = exclusions.Count == 0 ? new[] { area } :
-                            OfficeTextFlowRegions.Exclude(area, exclusions, _context.Record, _context.Token);
+                            OfficeTextFlowRegions.Exclude(area, exclusions.Select(e => e.Bounds).ToArray(), _context.Record, _context.Token);
                         foreach (OfficeTextFlowRegion region in regions) {
                             if (!flow.HasRemaining) break;
                             IReadOnlyList<OfficeRichTextParagraph> paragraphs = flow.Take(region.Width, region.Height,

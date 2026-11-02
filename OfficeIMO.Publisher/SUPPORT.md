@@ -101,7 +101,7 @@ still consume the image-processing byte budget.
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; marker shadows and decorations on unsupported open geometry are omitted with diagnostics |
 | Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
-| Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions; left-to-right intervals on a shared baseline for qualified rectangular Both wrapping in Top-aligned frames | Other profiles use the widest available interval per horizontal band; non-default sides, Center/Bottom wrapping, tight/through outlines and native line fitting need broader qualification |
+| Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions; Top-aligned rectangular Both uses successive intervals on a shared baseline; Left, Right and Larger select the permitted side per column, with left selected on an equal-width Larger tie | Center/Bottom and unqualified outline modes retain the widest-band fallback; native line fitting, hyphenation, transformed-side behavior and additional producers need broader qualification. Side rendering does not qualify native wrap relationship editing |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
 | Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
 | Picture creation | `AddPicture` appends an uncropped rectangular placement from owned static PNG/JPEG bytes or an existing document image ID on a qualified document/master page, with explicit point bounds, no fill/outline/effects/transform or story/wrap references; shared object and separate image allocators, current exports | Non-normal EXIF orientation, animated PNG, other formats and invalid content reject creation. No automatic DPI sizing, effect authoring, external links or public native PUB creation; the crop API applies to eligible authored and imported placements |
@@ -401,8 +401,8 @@ separates these observations from the earlier admission-only profile.
 
 Reference regeneration and rendering are qualified separately. The
 [rectangular both-side flow](#native-rectangular-both-side-text-flow) below covers
-a bounded rendering profile; general side/outline wrapping and native repair-free
-opening remain unqualified.
+a bounded rendering profile, extended by [rectangular side selection](#native-rectangular-side-selection).
+General outline wrapping and native repair-free opening remain unqualified.
 
 ### Native rectangular both-side text flow
 
@@ -417,7 +417,8 @@ stories and overflow remain distinct from painted text.
 The profile covers explicit square Both wrapping and the qualified ordinary
 rectangular defaults without tight outlines or negative distances. Center/Bottom
 frames and unqualified side/outline modes retain the established widest-interval
-path. Native fitting, hyphenation, transformed contours, column balancing and
+path. The separately qualified [Left/Right/Larger profile](#native-rectangular-side-selection)
+uses the same row engine. Native fitting, hyphenation, transformed contours, column balancing and
 complex-script appearance remain approximation boundaries.
 
 Shared line measurement uses growing lookahead windows ending at complete words
@@ -435,6 +436,31 @@ matched positions differ by at most 0.051 pt horizontally and 0.137 pt verticall
 with the recorded Arial font. Default-distance hyphenation and other native line
 assignments still differ. The qualification record separates these observations
 from pixel parity and native-writer acceptance.
+
+### Native rectangular side selection
+
+Top-aligned rectangular Left and Right wrap references restrict each affected
+row to the named side. Larger compares the free widths within the current text
+column and selects left when they are equal. The mask retains its vertical extent;
+objects wholly outside a column do not exclude that column. Selected lines use
+the same source-range, baseline, hard-break, spacing and work-budget handling as
+Both wrapping.
+
+The `rectangularSideTextFlow` qualification covers the retained native Left,
+Right and Larger controls and three independent controls for left-wider Larger,
+equal-width Larger and two-column Larger. With the recorded Arial font, Left
+improves from 11 to 20 exact trimmed line-text matches out of 27 native lines.
+Matched-line vertical differences are below 0.154 pt across these controls;
+two-column horizontal positions can differ by 0.411 pt. Hyphenation and line
+assignments remain approximate. The ten unaffected controls retain identical
+managed pixels at 144 dpi, and all sixteen unedited publications save byte-exactly.
+
+This rendering profile does not admit side-wrap relationship regeneration.
+Ordering changes with those relationships are rejected; semantic geometry edits
+remain available, but native save refuses their unqualified relationship changes,
+including with an allowing loss policy. Restoring the source geometry retains the
+exact-source save path. Center/Bottom, tight and through outlines, transformed-side
+selection, additional producers and native appearance parity remain unqualified.
 
 ### Empty-paragraph refill with retained formatting
 

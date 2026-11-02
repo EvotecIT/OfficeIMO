@@ -29825,6 +29825,201 @@
     ],
     "canClosePUB00": false
   },
+  "rectangularSideTextFlow": {
+    "scope": "Top-aligned imported rectangular Left/Right/Larger rendering; native relationship editing remains separate and unqualified.",
+    "contracts": [
+      "Left and Right keep every affected row on the named side.",
+      "Larger compares free widths in the current text column; equal widths choose left.",
+      "Off-column masks do not exclude that column; complete rows use existing Both flow/baseline/source/budget handling.",
+      "Unedited native source remains byte-exact; native ordering rejects side-wrap changes and geometry native save refuses unqualified relationships even with Allow."
+    ],
+    "nativeReferenceContract": "Existing WrapObjectOrderLeft/Right/Larger plus independently native-authored LargerLeft/LargerTie/LargerColumns; no OfficeIMO-authored reference.",
+    "nativeProducerVersions": [
+      "16.0.20527.20088"
+    ],
+    "fontSha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a",
+    "coreSha256": "d9583195d0458235df82db7fa431469f8289363c802e3a32b0c210cdbbaba359",
+    "publisherSha256": "d8cf559c5d7795be6eaedd5993a062db8c7a38fa55b10390ff90fdf081a2d36d",
+    "nativeControls": [
+      {
+        "name": "WrapObjectOrderLeft",
+        "sourceSha256": "80f3e065a88b9850a0679c83fedb50c93cc60c389b802cf2ac738c6cd1366777",
+        "nativePdfSha256": "6b05cd44d5c44e221d6683a2c31699371698b21aa0cab67cd68ac954b2b9b5b8"
+      },
+      {
+        "name": "WrapObjectOrderRight",
+        "sourceSha256": "6c09bbd12a5b32b1ae431f8e757bd49499b07104fdce2701df5b74d6100e9a6e",
+        "nativePdfSha256": "fae9ed16c886cf61126fa866e3a8d1562585e3e223f67f59850260527e89cbed"
+      },
+      {
+        "name": "WrapObjectOrderLarger",
+        "sourceSha256": "a27fe7de0063ba6a67c73d287bcfe1cb864b1ab6b73e2bf2d825834a4c91f3f2",
+        "nativePdfSha256": "2f9574c976d034bcb710e9a5322883c15afbcee6c163b087459a170922c2a6b5"
+      },
+      {
+        "name": "WrapObjectOrderLargerLeft",
+        "sourceSha256": "9cc1d322bf9c5f8691b827b66fe80ee0778288c68a6e91b312306a157d0b69d7",
+        "nativePdfSha256": "73103d231e55159b7eac729f31850b5504a28ec938db6a8367c3641f4f23f9d7"
+      },
+      {
+        "name": "WrapObjectOrderLargerTie",
+        "sourceSha256": "b903e6989183b88a6835cad775f0faf36d8dfe96c8d65edec7c71aa2e1ebf6e6",
+        "nativePdfSha256": "a87ebc46dc717f2b79946e2f092a021709678fcb3c7d44b23b4973e56828c5ea"
+      },
+      {
+        "name": "WrapObjectOrderLargerColumns",
+        "sourceSha256": "4ee334bfbee88dee706060d0ca886cbfe09505da9cb70d1119a258bda1e62675",
+        "nativePdfSha256": "d1ded6b76987f6481f5303763af6ce70b44932299d8adacaf8f2a0a7b1e8901c"
+      }
+    ],
+    "sideLineObservations": [
+      {
+        "name": "WrapObjectOrderLeft",
+        "nativeLines": 27,
+        "sourceSha256": "80f3e065a88b9850a0679c83fedb50c93cc60c389b802cf2ac738c6cd1366777",
+        "before": {
+          "lines": 24,
+          "exactTrimmedLineMatches": 11,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 50.535797119140625,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "final": {
+          "lines": 26,
+          "exactTrimmedLineMatches": 20,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.15277099609375,
+          "sha256": "02e1a7217f5c27aa229c4813ae5214caf90a28e11f32b7e19b900a2a60dc1200"
+        }
+      },
+      {
+        "name": "WrapObjectOrderRight",
+        "nativeLines": 26,
+        "sourceSha256": "6c09bbd12a5b32b1ae431f8e757bd49499b07104fdce2701df5b74d6100e9a6e",
+        "before": {
+          "lines": 24,
+          "exactTrimmedLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 85.99081420898438,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "final": {
+          "lines": 25,
+          "exactTrimmedLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "873c0ee68a9bc428af56fdcf18dda6d8b34fd8cc13aecd0135490b271c7d64a6"
+        }
+      },
+      {
+        "name": "WrapObjectOrderLarger",
+        "nativeLines": 26,
+        "sourceSha256": "a27fe7de0063ba6a67c73d287bcfe1cb864b1ab6b73e2bf2d825834a4c91f3f2",
+        "before": {
+          "lines": 24,
+          "exactTrimmedLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 85.99081420898438,
+          "sha256": "d9c18af6ccbe45c526bfb51e24bbd07df682e4af2481830f178d84c64478b402"
+        },
+        "final": {
+          "lines": 25,
+          "exactTrimmedLineMatches": 23,
+          "maxMatchedXDelta": 0.0500030517578125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "873c0ee68a9bc428af56fdcf18dda6d8b34fd8cc13aecd0135490b271c7d64a6"
+        }
+      },
+      {
+        "name": "WrapObjectOrderLargerLeft",
+        "nativeLines": 26,
+        "sourceSha256": "9cc1d322bf9c5f8691b827b66fe80ee0778288c68a6e91b312306a157d0b69d7",
+        "final": {
+          "lines": 25,
+          "exactTrimmedLineMatches": 23,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.136810302734375,
+          "sha256": "8221b713bd9f051e24281482a5c9d9b07b02ecf3046bf2334955d53c16d212fd"
+        }
+      },
+      {
+        "name": "WrapObjectOrderLargerTie",
+        "nativeLines": 26,
+        "sourceSha256": "b903e6989183b88a6835cad775f0faf36d8dfe96c8d65edec7c71aa2e1ebf6e6",
+        "final": {
+          "lines": 25,
+          "exactTrimmedLineMatches": 23,
+          "maxMatchedXDelta": 0.0240020751953125,
+          "maxMatchedYDelta": 0.12481689453125,
+          "sha256": "c5d3f41f392bc2f7f1255410997de85eee6d417bc59dc889c3a508ceb30c9ad2"
+        }
+      },
+      {
+        "name": "WrapObjectOrderLargerColumns",
+        "nativeLines": 46,
+        "sourceSha256": "4ee334bfbee88dee706060d0ca886cbfe09505da9cb70d1119a258bda1e62675",
+        "final": {
+          "lines": 45,
+          "exactTrimmedLineMatches": 33,
+          "maxMatchedXDelta": 0.410003662109375,
+          "maxMatchedYDelta": 0.15277099609375,
+          "sha256": "2424f66d782b4928e0177734622272c611b6f836903f763194ff13b4b9e415c5"
+        }
+      }
+    ],
+    "comparisonMethod": "Nearest equal trimmed line text and coordinates; independently inspect exported PDF paint. No native pixel parity claim.",
+    "unchangedControls": {
+      "count": 10,
+      "managedPdfPixelsUnchanged144dpi": true
+    },
+    "longParagraph": {
+      "characters": 99000,
+      "placedCharacters": 1309,
+      "overflow": true,
+      "completeSourceRetained": true
+    },
+    "powerShell": {
+      "version": "7.6.9",
+      "workflows": 16,
+      "allNativeNoopsExact": true,
+      "allPdfPixelsEqual144dpi": true,
+      "publisherSha256": "7fd61382af99a6abc1fa471743a4d349de4d5f512c9b694b43feff704b9627dd"
+    },
+    "validation": {
+      "publisher": {
+        "net10.0": 1084,
+        "net8.0": 1084,
+        "net472": 1084
+      },
+      "drawingFocused": {
+        "net10.0": 96,
+        "net8.0": 96,
+        "net472": 96
+      },
+      "reader": 93,
+      "readerPublisherNetstandard20Build": "passed",
+      "sourcePowerShellNet8Build": "passed"
+    },
+    "regressionEvidence": {
+      "nativeSideRenderingBefore": {
+        "rows": 5,
+        "result": "Each fails at intended successive-row assertion."
+      },
+      "correctedSafetyTest": "Initial test incorrectly required geometry model edits to throw; corrected to actual native-save refusal, retaining pre-commit ordering refusal and exact source restoration."
+    },
+    "visualInspection": {
+      "cases": "Left, Right, Larger, left-wider Larger, equal-width Larger and two-column Larger",
+      "observed": "Side placement and unobstructed second column agree with controls; native line fitting and hyphenation still differ."
+    },
+    "limits": [
+      "No native side relationship writing admission.",
+      "Top rectangular non-outline nonnegative-distance profile; transformed-side selection and additional producers unqualified.",
+      "Native hyphenation/line fitting/column positions still differ.",
+      "No PUB00 repair-free acceptance claim."
+    ],
+    "canClosePUB00": false,
+    "allNativeNoopControls": 16
+  },
   "repairControlBoundaries": {
     "sourceCommit": "761ff2887a9adb89b0bc6c7bb1b8345fd9e40c2a",
     "scope": "Bounded native recovery-control investigation; these controls do not establish successful repair or repair-free opening.",

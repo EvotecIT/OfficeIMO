@@ -100,7 +100,7 @@ internal sealed partial class PublisherTextState {
 internal sealed record PublisherWrapInfo(OfficeTextPadding Margins, bool NegativeMargins, bool Tight,
     PublisherNativeWrapMode NativeMode = PublisherNativeWrapMode.Unknown);
 
-internal enum PublisherNativeWrapMode { Unknown, None, RectangularBoth }
+internal enum PublisherNativeWrapMode { Unknown, None, RectangularBoth, RectangularLeft, RectangularRight, RectangularLarger }
 
 /// <summary>Immutable wrap placement for object kinds whose editable geometry has not yet been migrated.</summary>
 internal sealed record PublisherImportedWrapObject(uint? PageId, double X, double Y, double Width, double Height,

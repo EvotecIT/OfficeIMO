@@ -9,7 +9,8 @@ function Add-NativeWrapOrderControl {
     param($FirstPage, [string]$ImagePath,
         [ValidateSet('Original','Reverse','RectangleOnly','PictureOnly','Swap')][string]$Order='Original',
         [switch]$NoWrap, [ValidateRange(0,3)][int]$Side=0, [switch]$Outside,
-        [switch]$FrameOutside, [switch]$Layout, [switch]$UseDefaults)
+        [switch]$FrameOutside, [switch]$Layout, [switch]$UseDefaults, [switch]$Columns,
+        [ValidateSet('Default','Left','Tie')][string]$LargerPlacement='Default')
 
     $text = ((1..8 | ForEach-Object {
         'Paragraph {0}. Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau.' -f $_
@@ -17,14 +18,18 @@ function Add-NativeWrapOrderControl {
     $frameLeft = if ($FrameOutside) { 480 } else { 72 }
     $frameWidth = if ($FrameOutside) { 100 } else { 360 }
     $frame = Add-TextFrame $FirstPage 'WrappedStory' $text $frameLeft 72 $frameWidth 504 14
-    if ($Layout) {
+    if ($Layout -or $Columns) {
         $format = $frame.TextFrame; $objects.Add($format)
         $format.Columns = 2; $format.ColumnSpacing = 6
-        $format.MarginLeft = 4; $format.MarginTop = 5; $format.MarginRight = 6; $format.MarginBottom = 7
-        $format.VerticalTextAlignment = 1
+        if ($Layout) {
+            $format.MarginLeft = 4; $format.MarginTop = 5; $format.MarginRight = 6; $format.MarginBottom = 7
+            $format.VerticalTextAlignment = 1
+        }
     }
     $rectangleLeft = if ($Outside) { 480 } else { 180 }
     $pictureLeft = if ($Outside) { 480 } else { 144 }
+    if ($LargerPlacement -eq 'Left') { $rectangleLeft = 252; $pictureLeft = 264 }
+    elseif ($LargerPlacement -eq 'Tie') { $rectangleLeft = 216; $pictureLeft = 204 }
     $rectangle = $FirstPage.Shapes.AddShape(1, $rectangleLeft, 132, 72, 72)
     $objects.Add($rectangle)
     $rectangle.Name = 'WrapRectangle'
