@@ -12976,20 +12976,20 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 570,
+    "changes": 574,
     "byAction": {
-      "rename": 8,
+      "change": 179,
+      "rename": 9,
       "merge": 366,
-      "change": 176,
       "remove": 7,
       "internalize": 11,
       "keep": 1,
       "move": 1
     },
     "byCategory": {
-      "naming": 1,
-      "lifecycle": 29,
-      "authoring": 36,
+      "authoring": 38,
+      "naming": 2,
+      "lifecycle": 30,
       "units": 452,
       "options": 5,
       "conversion": 39,

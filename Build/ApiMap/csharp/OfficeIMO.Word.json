@@ -6652,6 +6652,16 @@
       "category": "naming",
       "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
       "applied": true
+    },
+    {
+      "old": "WordDocument.SignPackageSignature(path, provider, certificate[, options])",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.SignPackage(path, provider, certificate, options)",
+      "category": "naming",
+      "replacement": "Pass OfficePackageSigningOptions explicitly for shared signing; WordPackageSigningOptions selects the richer Word-specific result. The same requirement applies to TrySignPackage. Static ValidateSignatures retains optional validation settings.",
+      "reason": "The shared options argument is required to distinguish the shared result from existing Word-specific signing evidence.",
+      "applied": true
     }
   ],
   "packageMoves": [
@@ -8326,12 +8336,12 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 364,
+    "changes": 366,
     "byAction": {
       "merge": 127,
       "change": 139,
       "remove": 26,
-      "rename": 15,
+      "rename": 17,
       "internalize": 27,
       "keep": 29,
       "move": 1
@@ -8343,7 +8353,7 @@
       "options": 4,
       "conversion": 42,
       "package": 1,
-      "naming": 11,
+      "naming": 13,
       "visibility": 48
     },
     "packageMoves": 3
