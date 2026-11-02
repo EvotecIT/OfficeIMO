@@ -49,7 +49,7 @@ public sealed class AddOfficeVisioPageCommand : PSWriteOffice.Cmdlets.OfficeMuta
     protected override void ProcessRecord() {
         var context = VisioDslContext.Current;
         var document = Document ?? (context ?? VisioDslContext.Require(this)).Document;
-        var page = document.AddPage(Name, Width.ToInches(), Height.ToInches());
+        var page = document.AddPage(Name, Width, Height);
         page.DefaultUnit = DisplayUnit;
         page.ScaleMeasurementUnit = DisplayUnit;
 

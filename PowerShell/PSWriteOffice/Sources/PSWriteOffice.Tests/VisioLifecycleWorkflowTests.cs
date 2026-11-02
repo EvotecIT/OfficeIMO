@@ -32,8 +32,8 @@ public sealed class VisioLifecycleWorkflowTests {
         var shape = Assert.IsAssignableFrom<VisioShape>(Assert.Single(shell.Invoke()).BaseObject);
         Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
         Assert.Same(shape, Assert.Single(page.Shapes));
-        Assert.Equal(2, shape.PinX, 6);
-        Assert.Equal(1, shape.PinY, 6);
+        Assert.Equal(2, shape.PinX.ToInches(), 6);
+        Assert.Equal(1, shape.PinY.ToInches(), 6);
         Assert.Equal(width, shape.Width.ToInches(), 6);
         Assert.Equal(height, shape.Height.ToInches(), 6);
         Assert.Equal(2D / 72D, shape.LineWeight, 6);

@@ -61,10 +61,10 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             }
             var label = edge.ResolvedLabelBounds!.Value;
             var bounds = connector.GetLabelBounds();
-            Assert.Equal(label.X / ppi, bounds.Left.ToInches(), 6);
-            Assert.Equal((envelope.Height.Value - label.Y - label.Height) / ppi, bounds.Bottom.ToInches(), 6);
-            Assert.Equal((label.X + label.Width) / ppi, bounds.Right.ToInches(), 6);
-            Assert.Equal((envelope.Height.Value - label.Y) / ppi, bounds.Top.ToInches(), 6);
+            Assert.Equal(OfficeLength.Inches(label.X / ppi), bounds.Left);
+            Assert.Equal(OfficeLength.Inches((envelope.Height.Value - label.Y - label.Height) / ppi), bounds.Bottom);
+            Assert.Equal(OfficeLength.Inches((label.X + label.Width) / ppi), bounds.Right);
+            Assert.Equal(OfficeLength.Inches((envelope.Height.Value - label.Y) / ppi), bounds.Top);
         }
 
         Check(result.Page);
