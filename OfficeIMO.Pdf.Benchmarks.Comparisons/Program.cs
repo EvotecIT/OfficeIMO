@@ -79,7 +79,7 @@ static string? ReadOption(string[] values, string option) {
 static string FindRepositoryRoot() {
     string? current = Directory.GetCurrentDirectory();
     while (!string.IsNullOrWhiteSpace(current)) {
-        if (File.Exists(Path.Combine(current, "OfficeIMO.sln"))) {
+        if (File.Exists(Path.Combine(current, "OfficeIMO.slnx"))) {
             return current;
         }
 

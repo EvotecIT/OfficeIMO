@@ -65,8 +65,8 @@ jobs:
 
       - name: Build .NET solution
         run: |
-          dotnet restore Sources/PSWriteOffice.sln
-          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+          dotnet restore Sources/PSWriteOffice.slnx
+          dotnet build Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run PowerShell tests
         shell: powershell
@@ -96,8 +96,8 @@ jobs:
 
       - name: Build .NET solution
         run: |
-          dotnet restore Sources/PSWriteOffice.sln
-          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+          dotnet restore Sources/PSWriteOffice.slnx
+          dotnet build Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run PowerShell tests
         shell: pwsh
@@ -191,8 +191,8 @@ jobs:
 
       - name: Build .NET solution
         run: |
-          dotnet restore Sources/PSWriteOffice.sln
-          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+          dotnet restore Sources/PSWriteOffice.slnx
+          dotnet build Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run PowerShell tests
         shell: pwsh
@@ -222,8 +222,8 @@ jobs:
 
       - name: Build .NET solution
         run: |
-          dotnet restore Sources/PSWriteOffice.sln
-          dotnet build Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+          dotnet restore Sources/PSWriteOffice.slnx
+          dotnet build Sources/PSWriteOffice.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run PowerShell tests
         shell: pwsh

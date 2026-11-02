@@ -24,7 +24,7 @@ removal-output size in the manually dispatched Security and Provenance Evidence
 workflow. Ordinary pull-request runs execute the deterministic
 `validate` preflight, which keeps content fidelity authoritative.
 
-The project stays outside `OfficeIMO.sln`. No external library is presented as
+The project stays outside `OfficeIMO.slnx`. No external library is presented as
 a performance comparator because no official managed .NET C2PA library exposes
 the same bounded structural inspect-and-selective-remove contract. The existing
 `OfficeIMO.Provenance.C2pa` adapter and host-supplied `c2patool` remain the

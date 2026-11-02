@@ -8,7 +8,7 @@ metadata and content, extract normalized visible chapter text, and enumerate
 every file in spine reading order.
 
 VersOne.Epub and HtmlAgilityPack remain benchmark-only dependencies. This
-project is intentionally not part of `OfficeIMO.sln`, so normal restore, build,
+project is intentionally not part of `OfficeIMO.slnx`, so normal restore, build,
 test, and package operations do not acquire them. OfficeIMO also extracts
 structured-content flags, diagnostics, navigation, and manifest resources as
 part of its normal full load; the validator compares only the contracts both
