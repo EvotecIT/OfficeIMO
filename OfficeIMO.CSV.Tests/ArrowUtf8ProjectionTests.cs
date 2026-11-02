@@ -88,7 +88,8 @@ public sealed class ArrowUtf8ProjectionTests {
         string csv = (explicitHeader ? string.Empty : "Id,Name,Empty,Long\n")
             + string.Concat(rows.Select(row => string.Join(",", row) + "\n"));
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-        using var reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions {
+        using var reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
             Header = explicitHeader ? header : null, HasHeaderRow = !explicitHeader,
         });
         Assert.Equal(header, Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray());
@@ -119,7 +120,7 @@ public sealed class ArrowUtf8ProjectionTests {
     public void CsvStringProjectionPreservesQuotedNormalizationMissingAndNullMarkers(string? nullValue) {
         const string csv = "Name,Empty,Optional\nplain,,value\n\"a\"\"b\nend\",\"\",NULL\nlast\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-        using var reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { NullValue = nullValue });
+        using var reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { NullValue = nullValue });
         using RecordBatch batch = Assert.Single(reader.ReadArrowBatches(new ArrowReadOptions { BatchSize = 10 }));
 
         Assert.Equal(3, batch.Length);
@@ -141,7 +142,7 @@ public sealed class ArrowUtf8ProjectionTests {
             firstDate.AddTicks(row).ToString("O", CultureInfo.InvariantCulture) + "," +
             (row + 0.25d).ToString(CultureInfo.InvariantCulture) + "\n"));
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
-        using var reader = CsvDocument.OpenDataReader(stream);
+        using var reader = CsvDocument.OpenReader(stream);
         List<RecordBatch> batches = await ReadBatches(reader, new ArrowReadOptions {
             BatchSize = 17,
             ColumnTypes = new[] { typeof(string), typeof(long), typeof(DateTime), typeof(double) },

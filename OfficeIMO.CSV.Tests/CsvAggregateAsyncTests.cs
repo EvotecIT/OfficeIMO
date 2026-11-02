@@ -31,8 +31,8 @@ public sealed class CsvAggregateAsyncTests {
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(text), chunk);
         var created = new ConcurrentBag<AsyncState>();
         int builders = 0;
-        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(
-            input, () => { var state = new AsyncState(); created.Add(state); return state; },
+        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(input,
+            () => { var state = new AsyncState(); created.Add(state); return state; },
             header => {
                 builders++;
                 int id = header.GetOrdinal("Id"), name = header.GetOrdinal("Name");
@@ -49,10 +49,12 @@ public sealed class CsvAggregateAsyncTests {
                     state.Ids.Add(value);
                     state.Sum += row.GetInt64(id);
                 };
-            }, static (left, right) => { Assert.NotSame(left, right); left.Ids.AddRange(right.Ids); left.Sum += right.Sum; return left; },
-            loadOptions: new CsvLoadOptions {
+            },
+            static (left, right) => { Assert.NotSame(left, right); left.Ids.AddRange(right.Ids); left.Sum += right.Sum; return left; },
+            options: new CsvReaderOptions {
                 Culture = CultureInfo.GetCultureInfo("pl-PL"), DateTimeFormats = new[] { "dd/MM/yyyy" },
-            }, parallelOptions: Options(degree, 3));
+            },
+            parallelOptions: Options(degree, 3));
         Assert.Equal(1, builders);
         Assert.Equal(Enumerable.Range(1, 32), result.Ids);
         Assert.Equal(528, result.Sum);
@@ -78,8 +80,8 @@ public sealed class CsvAggregateAsyncTests {
         string[] trailing = { "", "", "last", "", "", "" };
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(text), chunk);
         int factories = 0, merges = 0;
-        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(
-            input, () => { Interlocked.Increment(ref factories); return new AsyncState(); },
+        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(input,
+            () => { Interlocked.Increment(ref factories); return new AsyncState(); },
             header => {
                 Assert.Equal(4, header.Count);
                 return (ref AsyncState state, CsvRecord row) => {
@@ -94,15 +96,18 @@ public sealed class CsvAggregateAsyncTests {
                     Assert.False(row.IsNull(3));
                     state.Ids.Add(id);
                 };
-            }, (left, right) => {
+            },
+            (left, right) => {
                 Interlocked.Increment(ref merges);
                 Assert.NotSame(left, right);
                 left.Ids.AddRange(right.Ids);
                 return left;
-            }, loadOptions: new CsvLoadOptions {
+            },
+            options: new CsvReaderOptions {
                 TrimWhitespace = true, NullValue = "NULL",
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields,
-            }, parallelOptions: Options(4, 8));
+            },
+            parallelOptions: Options(4, 8));
         Assert.Equal(Enumerable.Range(1, 6), result.Ids);
         Assert.Equal(2, factories);
         Assert.Equal(1, merges);
@@ -116,11 +121,11 @@ public sealed class CsvAggregateAsyncTests {
     public async Task MalformedQuotedRecordDoesNotDispatchValidPrefixOfIncompleteBatch(int chunk) {
         using var input = new AsyncInput(Encoding.UTF8.GetBytes("Id,Name\n1,raw\n2,also raw\n3,\"unfinished"), chunk);
         int factories = 0, callbacks = 0, merges = 0;
-        await Assert.ThrowsAsync<CsvParseException>(() => CsvDocument.AggregateRowsAsParallelAsync<int>(
-            input, () => { Interlocked.Increment(ref factories); return 0; },
+        await Assert.ThrowsAsync<CsvParseException>(() => CsvDocument.AggregateRowsAsParallelAsync<int>(input,
+            () => { Interlocked.Increment(ref factories); return 0; },
             _ => (ref int rows, CsvRecord row) => { Interlocked.Increment(ref callbacks); rows++; },
             (left, right) => { Interlocked.Increment(ref merges); return left + right; },
-            loadOptions: new CsvLoadOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict },
+            options: new CsvReaderOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict },
             parallelOptions: Options(4, 8)));
         Assert.Equal(1, factories);
         Assert.Equal(0, callbacks);
@@ -132,8 +137,8 @@ public sealed class CsvAggregateAsyncTests {
     [Fact]
     public async Task DetachedRecordsKeepNullMarkerMissingEmptyAndStaticFieldsDistinct() {
         using var input = new AsyncInput(Encoding.UTF8.GetBytes("Id,Value\n1,NULL\n2\n3,\n"), 1);
-        Counts counts = await CsvDocument.AggregateRowsAsParallelAsync(
-            input, static () => new Counts(),
+        Counts counts = await CsvDocument.AggregateRowsAsParallelAsync(input,
+            static () => new Counts(),
             header => {
                 Assert.Equal(4, header.Count);
                 return (ref Counts state, CsvRecord row) => {
@@ -151,10 +156,12 @@ public sealed class CsvAggregateAsyncTests {
                     if (row.IsNull(1)) state.Nulls++;
                     if (row.IsMissing(1)) state.Missing++;
                 };
-            }, static (left, right) => new Counts { Rows = left.Rows + right.Rows, Nulls = left.Nulls + right.Nulls, Missing = left.Missing + right.Missing },
-            loadOptions: new CsvLoadOptions {
+            },
+            static (left, right) => new Counts { Rows = left.Rows + right.Rows, Nulls = left.Nulls + right.Nulls, Missing = left.Missing + right.Missing },
+            options: new CsvReaderOptions {
                 NullValue = "NULL", StaticColumns = new Dictionary<string, object?> { ["Batch"] = 7, ["Empty"] = null },
-            }, parallelOptions: Options(3, 1));
+            },
+            parallelOptions: Options(3, 1));
         Assert.Equal(3, counts.Rows);
         Assert.Equal(1, counts.Nulls);
         Assert.Equal(1, counts.Missing);
@@ -168,12 +175,11 @@ public sealed class CsvAggregateAsyncTests {
         int factories = 0, merges = 0;
         var schema = new CsvSchemaBuilder().Column("Id").AsInt32()
             .ConvertUsing(value => Convert.ToInt32(value, CultureInfo.InvariantCulture) + 100).Done().Build();
-        int sum = await CsvDocument.AggregateRowsAsParallelAsync<int>(
-            input, () => { factories++; return 0; },
+        int sum = await CsvDocument.AggregateRowsAsParallelAsync<int>(input,
+            () => { factories++; return 0; },
             _ => (ref int total, CsvRecord row) => { Assert.Equal(3, row.GetSpan(0).Length); total += row.GetInt32(0); },
             (left, right) => { merges++; return left + right; },
-            loadOptions: new CsvLoadOptions { TrimWhitespace = true, MaxFieldLength = 20 },
-            readerOptions: new CsvDataReaderOptions { Schema = inferred ? null : schema, InferSchema = inferred, SchemaSampleSize = 2 },
+            options: new CsvReaderOptions { TrimWhitespace = true, MaxFieldLength = 20, Schema = inferred ? null : schema, InferSchema = inferred, SchemaSampleRows = 2 },
             parallelOptions: Options(4, 1));
         Assert.Equal(inferred ? 3 : 203, sum);
         Assert.Equal(1, factories);
@@ -196,15 +202,17 @@ public sealed class CsvAggregateAsyncTests {
         using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         int active = 0;
-        Task<int> work = CsvDocument.AggregateRowsAsParallelAsync<int>(
-            input, static () => 0,
+        Task<int> work = CsvDocument.AggregateRowsAsParallelAsync<int>(input,
+            static () => 0,
             _ => (ref int rows, CsvRecord row) => {
                 Interlocked.Increment(ref active);
                 try { entered.TrySetResult(); release.Wait(); rows += row.GetInt32(0); }
                 finally { Interlocked.Decrement(ref active); }
-            }, static (left, right) => left + right,
-            loadOptions: new CsvLoadOptions { CancellationToken = loadToken ? cancel.Token : default },
-            parallelOptions: Options(2, 2), cancellationToken: loadToken ? default : cancel.Token);
+            },
+            static (left, right) => left + right,
+            options: new CsvReaderOptions { CancellationToken = loadToken ? cancel.Token : default },
+            parallelOptions: Options(2, 2),
+            cancellationToken: loadToken ? default : cancel.Token);
         try {
             await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
             Assert.True(input.BytesRead < bytes.Length);
@@ -278,10 +286,10 @@ public sealed class CsvAggregateAsyncTests {
 
     [Fact]
     public async Task InputFieldAndWidthLimitsEndTheOperationAndPreserveCallerStream() {
-        await AssertLimit<InvalidDataException>("V\nlong\n", new CsvLoadOptions { MaxInputBytes = 2 });
-        await AssertLimit<CsvParseException>("V\nlong\n", new CsvLoadOptions { MaxFieldLength = 3 });
-        await AssertLimit<CsvException>("A,B\n1,2\n3\n", new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict });
-        await AssertLimit<CsvParseException>("Id,Name\n1,first\n2,\"unfinished", new CsvLoadOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict });
+        await AssertLimit<InvalidDataException>("V\nlong\n", new CsvReaderOptions { MaxInputBytes = 2 });
+        await AssertLimit<CsvParseException>("V\nlong\n", new CsvReaderOptions { MaxFieldLength = 3 });
+        await AssertLimit<CsvException>("A,B\n1,2\n3\n", new CsvReaderOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict });
+        await AssertLimit<CsvParseException>("Id,Name\n1,first\n2,\"unfinished", new CsvReaderOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict });
     }
 
     [Fact]
@@ -320,7 +328,8 @@ public sealed class CsvAggregateAsyncTests {
         await CsvDocument.Parse("Id,Name\n1,Żółć\n2,last\n").SaveAsync(encoded,
             new CsvSaveOptions { IncludeHeader = false, Encoding = new UnicodeEncoding(false, true), CompressionType = CsvCompressionType.GZip });
         using var input = new AsyncInput(encoded.ToArray(), 2);
-        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(input, static () => new AsyncState(),
+        AsyncState result = await CsvDocument.AggregateRowsAsParallelAsync(input,
+            static () => new AsyncState(),
             header => {
                 Assert.Equal("Column1", header[0]);
                 return (ref AsyncState state, CsvRecord row) => {
@@ -328,8 +337,10 @@ public sealed class CsvAggregateAsyncTests {
                     Assert.Equal(id == 1 ? "Żółć" : "last", row.GetSpan(1).ToString());
                     state.Ids.Add(id);
                 };
-            }, static (left, right) => { left.Ids.AddRange(right.Ids); return left; },
-            loadOptions: new CsvLoadOptions { HasHeaderRow = false, CompressionType = CsvCompressionType.GZip }, parallelOptions: Options(2, 1));
+            },
+            static (left, right) => { left.Ids.AddRange(right.Ids); return left; },
+            options: new CsvReaderOptions { HasHeaderRow = false, CompressionType = CsvCompressionType.GZip },
+            parallelOptions: Options(2, 1));
         Assert.Equal(new[] { 1, 2 }, result.Ids);
         Assert.True(input.CanRead);
     }
@@ -343,10 +354,12 @@ public sealed class CsvAggregateAsyncTests {
         cancel.Cancel();
         int factories = 0, builders = 0;
         OperationCanceledException error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            CsvDocument.AggregateRowsAsParallelAsync<int>(input, () => { factories++; return 0; },
-                _ => { builders++; return (ref int sum, CsvRecord row) => sum++; }, static (left, right) => left + right,
-                loadOptions: new CsvLoadOptions { CancellationToken = loadToken ? cancel.Token : default },
-                cancellationToken: loadToken ? default : cancel.Token));
+            CsvDocument.AggregateRowsAsParallelAsync<int>(input,
+            () => { factories++; return 0; },
+            _ => { builders++; return (ref int sum, CsvRecord row) => sum++; },
+            static (left, right) => left + right,
+            options: new CsvReaderOptions { CancellationToken = loadToken ? cancel.Token : default },
+            cancellationToken: loadToken ? default : cancel.Token));
         Assert.Equal(cancel.Token, error.CancellationToken);
         Assert.Equal(0, input.AsyncReads);
         Assert.Equal(0, factories);
@@ -368,14 +381,18 @@ public sealed class CsvAggregateAsyncTests {
         Assert.True(input.CanRead);
     }
 
-    private static async Task AssertLimit<TException>(string text, CsvLoadOptions options) where TException : Exception {
+    private static async Task AssertLimit<TException>(string text, CsvReaderOptions options) where TException : Exception {
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(text), 1);
         int active = 0;
-        await Assert.ThrowsAnyAsync<TException>(() => CsvDocument.AggregateRowsAsParallelAsync<int>(input, static () => 0,
+        await Assert.ThrowsAnyAsync<TException>(() => CsvDocument.AggregateRowsAsParallelAsync<int>(input,
+            static () => 0,
             _ => (ref int rows, CsvRecord row) => {
                 Interlocked.Increment(ref active);
                 try { rows++; } finally { Interlocked.Decrement(ref active); }
-            }, static (left, right) => left + right, loadOptions: options, parallelOptions: Options(3, 1)));
+            },
+            static (left, right) => left + right,
+            options: options,
+            parallelOptions: Options(3, 1)));
         Assert.Equal(0, Volatile.Read(ref active));
         Assert.True(input.CanRead);
     }

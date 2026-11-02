@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-11-02T00:50:04.7138310Z",
-  "sourceCount": 122,
-  "referenceCount": 100463,
+  "generatedAtUtc": "2026-11-02T16:35:35.5204290Z",
+  "sourceCount": 2,
+  "referenceCount": 100588,
   "duplicateCount": 0,
   "references": [
     {
@@ -6068,6 +6068,24 @@
       "aliases": [
         "global::OfficeIMO.CSV.CsvQuoteParsingMode.Strict",
         "OfficeIMO.CSV.CsvQuoteParsingMode.Strict"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.CSV.CsvReaderOptions.DefaultMaxCommentContinuationLines",
+      "name": "CsvReaderOptions.DefaultMaxCommentContinuationLines",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#field-defaultmaxcommentcontinuationlines",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DefaultMaxCommentContinuationLines",
+        "OfficeIMO.CSV.CsvReaderOptions.DefaultMaxCommentContinuationLines"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.CSV.CsvReaderOptions.DefaultMaxInputBytes",
+      "name": "CsvReaderOptions.DefaultMaxInputBytes",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#field-defaultmaxinputbytes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DefaultMaxInputBytes",
+        "OfficeIMO.CSV.CsvReaderOptions.DefaultMaxInputBytes"
       ]
     },
     {
@@ -119094,49 +119112,518 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDataReaderOptions.#ctor",
-      "name": "CsvDataReaderOptions.CsvDataReaderOptions",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#constructor-ctor",
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.Close",
+      "name": "CsvDataReader.Close",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-close",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.#ctor",
-        "OfficeIMO.CSV.CsvDataReaderOptions.#ctor"
+        "global::OfficeIMO.CSV.CsvDataReader.Close",
+        "OfficeIMO.CSV.CsvDataReader.Close"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDataReaderOptions.Equals(System.Object)",
-      "name": "CsvDataReaderOptions.Equals",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#method-equals-object",
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.CloseAsync",
+      "name": "CsvDataReader.CloseAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-closeasync",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.Equals",
-        "OfficeIMO.CSV.CsvDataReaderOptions.Equals",
-        "OfficeIMO.CSV.CsvDataReaderOptions.Equals(System.Object)"
+        "global::OfficeIMO.CSV.CsvDataReader.CloseAsync",
+        "OfficeIMO.CSV.CsvDataReader.CloseAsync"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDataReaderOptions.GetHashCode",
-      "name": "CsvDataReaderOptions.GetHashCode",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#method-gethashcode",
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.Dispose",
+      "name": "CsvDataReader.Dispose",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-dispose",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.GetHashCode",
-        "OfficeIMO.CSV.CsvDataReaderOptions.GetHashCode"
+        "global::OfficeIMO.CSV.CsvDataReader.Dispose",
+        "OfficeIMO.CSV.CsvDataReader.Dispose"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDataReaderOptions.GetType",
-      "name": "CsvDataReaderOptions.GetType",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#method-gettype",
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.DisposeAsync",
+      "name": "CsvDataReader.DisposeAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-disposeasync",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.GetType",
-        "OfficeIMO.CSV.CsvDataReaderOptions.GetType"
+        "global::OfficeIMO.CSV.CsvDataReader.DisposeAsync",
+        "OfficeIMO.CSV.CsvDataReader.DisposeAsync"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDataReaderOptions.ToString",
-      "name": "CsvDataReaderOptions.ToString",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#method-tostring",
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.Equals(System.Object)",
+      "name": "CsvDataReader.Equals",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-equals-object",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.ToString",
-        "OfficeIMO.CSV.CsvDataReaderOptions.ToString"
+        "global::OfficeIMO.CSV.CsvDataReader.Equals",
+        "OfficeIMO.CSV.CsvDataReader.Equals",
+        "OfficeIMO.CSV.CsvDataReader.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetBoolean(System.Int32)",
+      "name": "CsvDataReader.GetBoolean",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getboolean-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetBoolean",
+        "OfficeIMO.CSV.CsvDataReader.GetBoolean",
+        "OfficeIMO.CSV.CsvDataReader.GetBoolean(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetByte(System.Int32)",
+      "name": "CsvDataReader.GetByte",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getbyte-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetByte",
+        "OfficeIMO.CSV.CsvDataReader.GetByte",
+        "OfficeIMO.CSV.CsvDataReader.GetByte(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetBytes(System.Int32,System.Int64,System.Byte[],System.Int32,System.Int32)",
+      "name": "CsvDataReader.GetBytes",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getbytes-int32-int64-byte-int32-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetBytes",
+        "OfficeIMO.CSV.CsvDataReader.GetBytes",
+        "OfficeIMO.CSV.CsvDataReader.GetBytes(System.Int32,System.Int64,System.Byte[],System.Int32,System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetChar(System.Int32)",
+      "name": "CsvDataReader.GetChar",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getchar-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetChar",
+        "OfficeIMO.CSV.CsvDataReader.GetChar",
+        "OfficeIMO.CSV.CsvDataReader.GetChar(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetChars(System.Int32,System.Int64,System.Char[],System.Int32,System.Int32)",
+      "name": "CsvDataReader.GetChars",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getchars-int32-int64-char-int32-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetChars",
+        "OfficeIMO.CSV.CsvDataReader.GetChars",
+        "OfficeIMO.CSV.CsvDataReader.GetChars(System.Int32,System.Int64,System.Char[],System.Int32,System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetColumnSchemaAsync(CancellationToken)",
+      "name": "CsvDataReader.GetColumnSchemaAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getcolumnschemaasync-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetColumnSchemaAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetColumnSchemaAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetColumnSchemaAsync(CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetData(System.Int32)",
+      "name": "CsvDataReader.GetData",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getdata-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetData",
+        "OfficeIMO.CSV.CsvDataReader.GetData",
+        "OfficeIMO.CSV.CsvDataReader.GetData(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetDataTypeName(System.Int32)",
+      "name": "CsvDataReader.GetDataTypeName",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getdatatypename-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetDataTypeName",
+        "OfficeIMO.CSV.CsvDataReader.GetDataTypeName",
+        "OfficeIMO.CSV.CsvDataReader.GetDataTypeName(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetDateTime(System.Int32)",
+      "name": "CsvDataReader.GetDateTime",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getdatetime-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetDateTime",
+        "OfficeIMO.CSV.CsvDataReader.GetDateTime",
+        "OfficeIMO.CSV.CsvDataReader.GetDateTime(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetDecimal(System.Int32)",
+      "name": "CsvDataReader.GetDecimal",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getdecimal-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetDecimal",
+        "OfficeIMO.CSV.CsvDataReader.GetDecimal",
+        "OfficeIMO.CSV.CsvDataReader.GetDecimal(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetDouble(System.Int32)",
+      "name": "CsvDataReader.GetDouble",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getdouble-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetDouble",
+        "OfficeIMO.CSV.CsvDataReader.GetDouble",
+        "OfficeIMO.CSV.CsvDataReader.GetDouble(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetEnumerator",
+      "name": "CsvDataReader.GetEnumerator",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getenumerator",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetEnumerator",
+        "OfficeIMO.CSV.CsvDataReader.GetEnumerator"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetFieldType(System.Int32)",
+      "name": "CsvDataReader.GetFieldType",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getfieldtype-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetFieldType",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldType",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldType(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync(System.Int32)",
+      "name": "CsvDataReader.GetFieldValueAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getfieldvalueasync-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync(System.Int32,CancellationToken)",
+      "name": "CsvDataReader.GetFieldValueAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getfieldvalueasync-int32-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldValueAsync(System.Int32,CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetFieldValue\u0060\u00601(System.Int32)",
+      "name": "CsvDataReader.GetFieldValue\u0060\u00601",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getfieldvalue-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetFieldValue\u0060\u00601",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldValue\u0060\u00601",
+        "OfficeIMO.CSV.CsvDataReader.GetFieldValue\u0060\u00601(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetFloat(System.Int32)",
+      "name": "CsvDataReader.GetFloat",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getfloat-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetFloat",
+        "OfficeIMO.CSV.CsvDataReader.GetFloat",
+        "OfficeIMO.CSV.CsvDataReader.GetFloat(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetGuid(System.Int32)",
+      "name": "CsvDataReader.GetGuid",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getguid-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetGuid",
+        "OfficeIMO.CSV.CsvDataReader.GetGuid",
+        "OfficeIMO.CSV.CsvDataReader.GetGuid(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetHashCode",
+      "name": "CsvDataReader.GetHashCode",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetHashCode",
+        "OfficeIMO.CSV.CsvDataReader.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetInt16(System.Int32)",
+      "name": "CsvDataReader.GetInt16",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getint16-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetInt16",
+        "OfficeIMO.CSV.CsvDataReader.GetInt16",
+        "OfficeIMO.CSV.CsvDataReader.GetInt16(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetInt32(System.Int32)",
+      "name": "CsvDataReader.GetInt32",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getint32-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetInt32",
+        "OfficeIMO.CSV.CsvDataReader.GetInt32",
+        "OfficeIMO.CSV.CsvDataReader.GetInt32(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetInt64(System.Int32)",
+      "name": "CsvDataReader.GetInt64",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getint64-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetInt64",
+        "OfficeIMO.CSV.CsvDataReader.GetInt64",
+        "OfficeIMO.CSV.CsvDataReader.GetInt64(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetLifetimeService",
+      "name": "CsvDataReader.GetLifetimeService",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getlifetimeservice",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetLifetimeService",
+        "OfficeIMO.CSV.CsvDataReader.GetLifetimeService"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetName(System.Int32)",
+      "name": "CsvDataReader.GetName",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getname-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetName",
+        "OfficeIMO.CSV.CsvDataReader.GetName",
+        "OfficeIMO.CSV.CsvDataReader.GetName(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetOrdinal(System.String)",
+      "name": "CsvDataReader.GetOrdinal",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getordinal-string",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetOrdinal",
+        "OfficeIMO.CSV.CsvDataReader.GetOrdinal",
+        "OfficeIMO.CSV.CsvDataReader.GetOrdinal(System.String)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetProviderSpecificFieldType(System.Int32)",
+      "name": "CsvDataReader.GetProviderSpecificFieldType",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getproviderspecificfieldtype-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetProviderSpecificFieldType",
+        "OfficeIMO.CSV.CsvDataReader.GetProviderSpecificFieldType",
+        "OfficeIMO.CSV.CsvDataReader.GetProviderSpecificFieldType(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValue(System.Int32)",
+      "name": "CsvDataReader.GetProviderSpecificValue",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getproviderspecificvalue-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValue",
+        "OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValue",
+        "OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValue(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValues(Object[])",
+      "name": "CsvDataReader.GetProviderSpecificValues",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getproviderspecificvalues-object",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValues",
+        "OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValues",
+        "OfficeIMO.CSV.CsvDataReader.GetProviderSpecificValues(Object[])"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetSchemaTable",
+      "name": "CsvDataReader.GetSchemaTable",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getschematable",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetSchemaTable",
+        "OfficeIMO.CSV.CsvDataReader.GetSchemaTable"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetSchemaTableAsync(CancellationToken)",
+      "name": "CsvDataReader.GetSchemaTableAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getschematableasync-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetSchemaTableAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetSchemaTableAsync",
+        "OfficeIMO.CSV.CsvDataReader.GetSchemaTableAsync(CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetStream(System.Int32)",
+      "name": "CsvDataReader.GetStream",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getstream-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetStream",
+        "OfficeIMO.CSV.CsvDataReader.GetStream",
+        "OfficeIMO.CSV.CsvDataReader.GetStream(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetString(System.Int32)",
+      "name": "CsvDataReader.GetString",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getstring-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetString",
+        "OfficeIMO.CSV.CsvDataReader.GetString",
+        "OfficeIMO.CSV.CsvDataReader.GetString(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetTextReader(System.Int32)",
+      "name": "CsvDataReader.GetTextReader",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-gettextreader-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetTextReader",
+        "OfficeIMO.CSV.CsvDataReader.GetTextReader",
+        "OfficeIMO.CSV.CsvDataReader.GetTextReader(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetType",
+      "name": "CsvDataReader.GetType",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetType",
+        "OfficeIMO.CSV.CsvDataReader.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetValue(System.Int32)",
+      "name": "CsvDataReader.GetValue",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getvalue-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetValue",
+        "OfficeIMO.CSV.CsvDataReader.GetValue",
+        "OfficeIMO.CSV.CsvDataReader.GetValue(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.GetValues(System.Object[])",
+      "name": "CsvDataReader.GetValues",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-getvalues-object",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.GetValues",
+        "OfficeIMO.CSV.CsvDataReader.GetValues",
+        "OfficeIMO.CSV.CsvDataReader.GetValues(System.Object[])"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.InitializeLifetimeService",
+      "name": "CsvDataReader.InitializeLifetimeService",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-initializelifetimeservice",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.InitializeLifetimeService",
+        "OfficeIMO.CSV.CsvDataReader.InitializeLifetimeService"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.IsDBNull(System.Int32)",
+      "name": "CsvDataReader.IsDBNull",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-isdbnull-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.IsDBNull",
+        "OfficeIMO.CSV.CsvDataReader.IsDBNull",
+        "OfficeIMO.CSV.CsvDataReader.IsDBNull(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.IsDBNullAsync(System.Int32)",
+      "name": "CsvDataReader.IsDBNullAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-isdbnullasync-int32",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.IsDBNullAsync",
+        "OfficeIMO.CSV.CsvDataReader.IsDBNullAsync",
+        "OfficeIMO.CSV.CsvDataReader.IsDBNullAsync(System.Int32)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.IsDBNullAsync(System.Int32,CancellationToken)",
+      "name": "CsvDataReader.IsDBNullAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-isdbnullasync-int32-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.IsDBNullAsync",
+        "OfficeIMO.CSV.CsvDataReader.IsDBNullAsync",
+        "OfficeIMO.CSV.CsvDataReader.IsDBNullAsync(System.Int32,CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.NextResult",
+      "name": "CsvDataReader.NextResult",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-nextresult",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.NextResult",
+        "OfficeIMO.CSV.CsvDataReader.NextResult"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.NextResultAsync",
+      "name": "CsvDataReader.NextResultAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-nextresultasync",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.NextResultAsync",
+        "OfficeIMO.CSV.CsvDataReader.NextResultAsync"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.NextResultAsync(System.Threading.CancellationToken)",
+      "name": "CsvDataReader.NextResultAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-nextresultasync-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.NextResultAsync",
+        "OfficeIMO.CSV.CsvDataReader.NextResultAsync",
+        "OfficeIMO.CSV.CsvDataReader.NextResultAsync(System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.Read",
+      "name": "CsvDataReader.Read",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-read",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.Read",
+        "OfficeIMO.CSV.CsvDataReader.Read"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.ReadAsync",
+      "name": "CsvDataReader.ReadAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-readasync",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.ReadAsync",
+        "OfficeIMO.CSV.CsvDataReader.ReadAsync"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.ReadAsync(System.Threading.CancellationToken)",
+      "name": "CsvDataReader.ReadAsync",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-readasync-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.ReadAsync",
+        "OfficeIMO.CSV.CsvDataReader.ReadAsync",
+        "OfficeIMO.CSV.CsvDataReader.ReadAsync(System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.ToString",
+      "name": "CsvDataReader.ToString",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.ToString",
+        "OfficeIMO.CSV.CsvDataReader.ToString"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvDataReader.TryGetUtf8Text(System.Int32,System.ReadOnlySpan{System.Byte})",
+      "name": "CsvDataReader.TryGetUtf8Text",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#method-trygetutf8text-int32-readonlyspan-system-byte",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.TryGetUtf8Text",
+        "OfficeIMO.CSV.CsvDataReader.TryGetUtf8Text",
+        "OfficeIMO.CSV.CsvDataReader.TryGetUtf8Text(System.Int32,System.ReadOnlySpan{System.Byte})"
       ]
     },
     {
@@ -119271,33 +119758,33 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.IO.Stream,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.IO.Stream,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-aggregaterowsasparallelasync-io-stream-func-officeimo-csv-csvrecordaccumulatorbuilder-func-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-aggregaterowsasparallelasync-io-stream-func-officeimo-csv-csvrecordaccumulatorbuilder-func-officeimo-csv-csvreaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.IO.Stream,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.IO.Stream,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-aggregaterowsasparallelasync-string-func-officeimo-csv-csvrecordaccumulatorbuilder-func-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-aggregaterowsasparallelasync-string-func-officeimo-csv-csvrecordaccumulatorbuilder-func-officeimo-csv-csvreaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.AggregateRowsAsParallelAsync\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.AggregateTextRowsAsParallel\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.AggregateTextRowsAsParallel\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.AggregateTextRowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-aggregatetextrowsasparallel-string-func-officeimo-csv-csvrecordaccumulatorbuilder-func-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-aggregatetextrowsasparallel-string-func-officeimo-csv-csvrecordaccumulatorbuilder-func-officeimo-csv-csvreaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.AggregateTextRowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.AggregateTextRowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.AggregateTextRowsAsParallel\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.AggregateTextRowsAsParallel\u0060\u00601(System.String,System.Func{\u0060\u00600},OfficeIMO.CSV.CsvRecordAccumulatorBuilder{\u0060\u00600},System.Func{\u0060\u00600,\u0060\u00600,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -119310,13 +119797,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.CreateDataReader(OfficeIMO.CSV.CsvDataReaderOptions)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.CreateDataReader(OfficeIMO.CSV.CsvReaderOptions)",
       "name": "CsvDocument.CreateDataReader",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-createdatareader-officeimo-csv-csvdatareaderoptions",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-createdatareader-officeimo-csv-csvreaderoptions",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.CreateDataReader",
         "OfficeIMO.CSV.CsvDocument.CreateDataReader",
-        "OfficeIMO.CSV.CsvDocument.CreateDataReader(OfficeIMO.CSV.CsvDataReaderOptions)"
+        "OfficeIMO.CSV.CsvDocument.CreateDataReader(OfficeIMO.CSV.CsvReaderOptions)"
       ]
     },
     {
@@ -119438,53 +119925,53 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenDataReader(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions)",
-      "name": "CsvDocument.OpenDataReader",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-opendatareader-io-stream-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenReader(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions)",
+      "name": "CsvDocument.OpenReader",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-openreader-io-stream-officeimo-csv-csvreaderoptions",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDocument.OpenDataReader",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReader",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReader(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions)"
+        "global::OfficeIMO.CSV.CsvDocument.OpenReader",
+        "OfficeIMO.CSV.CsvDocument.OpenReader",
+        "OfficeIMO.CSV.CsvDocument.OpenReader(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenDataReader(System.String,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions)",
-      "name": "CsvDocument.OpenDataReader",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-opendatareader-string-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenReader(System.IO.TextReader,OfficeIMO.CSV.CsvReaderOptions)",
+      "name": "CsvDocument.OpenReader",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-openreader-io-textreader-officeimo-csv-csvreaderoptions",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDocument.OpenDataReader",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReader",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReader(System.String,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions)"
+        "global::OfficeIMO.CSV.CsvDocument.OpenReader",
+        "OfficeIMO.CSV.CsvDocument.OpenReader",
+        "OfficeIMO.CSV.CsvDocument.OpenReader(System.IO.TextReader,OfficeIMO.CSV.CsvReaderOptions)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,System.Threading.CancellationToken)",
-      "name": "CsvDocument.OpenDataReaderAsync",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-opendatareaderasync-io-stream-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions-threading-cancellationtoken",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenReader(System.String,OfficeIMO.CSV.CsvReaderOptions)",
+      "name": "CsvDocument.OpenReader",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-openreader-string-officeimo-csv-csvreaderoptions",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,System.Threading.CancellationToken)"
+        "global::OfficeIMO.CSV.CsvDocument.OpenReader",
+        "OfficeIMO.CSV.CsvDocument.OpenReader",
+        "OfficeIMO.CSV.CsvDocument.OpenReader(System.String,OfficeIMO.CSV.CsvReaderOptions)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(System.String,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,System.Threading.CancellationToken)",
-      "name": "CsvDocument.OpenDataReaderAsync",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-opendatareaderasync-string-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions-threading-cancellationtoken",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenReaderAsync(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
+      "name": "CsvDocument.OpenReaderAsync",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-openreaderasync-io-stream-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync",
-        "OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(System.String,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,System.Threading.CancellationToken)"
+        "global::OfficeIMO.CSV.CsvDocument.OpenReaderAsync",
+        "OfficeIMO.CSV.CsvDocument.OpenReaderAsync",
+        "OfficeIMO.CSV.CsvDocument.OpenReaderAsync(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenTextDataReader(System.String,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions)",
-      "name": "CsvDocument.OpenTextDataReader",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-opentextdatareader-string-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.OpenReaderAsync(System.String,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
+      "name": "CsvDocument.OpenReaderAsync",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-openreaderasync-string-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDocument.OpenTextDataReader",
-        "OfficeIMO.CSV.CsvDocument.OpenTextDataReader",
-        "OfficeIMO.CSV.CsvDocument.OpenTextDataReader(System.String,OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions)"
+        "global::OfficeIMO.CSV.CsvDocument.OpenReaderAsync",
+        "OfficeIMO.CSV.CsvDocument.OpenReaderAsync",
+        "OfficeIMO.CSV.CsvDocument.OpenReaderAsync(System.String,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -119498,13 +119985,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.ReadTextRowsAsParallel\u0060\u00601(System.String,OfficeIMO.CSV.CsvRecordFactoryBuilder{\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.ReadTextRowsAsParallel\u0060\u00601(System.String,OfficeIMO.CSV.CsvRecordFactoryBuilder{\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.ReadTextRowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-readtextrowsasparallel-string-officeimo-csv-csvrecordfactorybuilder-officeimo-csv-csvloadoptions-officeimo-csv-csvdatareaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-readtextrowsasparallel-string-officeimo-csv-csvrecordfactorybuilder-officeimo-csv-csvreaderoptions-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.ReadTextRowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.ReadTextRowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.ReadTextRowsAsParallel\u0060\u00601(System.String,OfficeIMO.CSV.CsvRecordFactoryBuilder{\u0060\u00600},OfficeIMO.CSV.CsvLoadOptions,OfficeIMO.CSV.CsvDataReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.ReadTextRowsAsParallel\u0060\u00601(System.String,OfficeIMO.CSV.CsvRecordFactoryBuilder{\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -119518,63 +120005,63 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.RowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsasparallel-officeimo-csv-csvdocument-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsasparallel-officeimo-csv-csvdocument-officeimo-data-parallelrowmappingoptions-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.RowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsasparallel-officeimo-csv-csvdocument-action-officeimo-data-rowmapper-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsasparallel-officeimo-csv-csvdocument-action-officeimo-data-rowmapper-officeimo-data-parallelrowmappingoptions-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.RowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsasparallel-officeimo-csv-csvdocument-func-system-data-idatarecord-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsasparallel-officeimo-csv-csvdocument-func-system-data-idatarecord-officeimo-data-parallelrowmappingoptions-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.RowsAs\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsas-officeimo-csv-csvdocument",
+      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsas-officeimo-csv-csvdocument-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument)"
+        "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}})",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.RowsAs\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsas-officeimo-csv-csvdocument-action-officeimo-data-rowmapper",
+      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsas-officeimo-csv-csvdocument-action-officeimo-data-rowmapper-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}})"
+        "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600})",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.RowsAs\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsas-officeimo-csv-csvdocument-func-system-data-idatarecord",
+      "href": "/api/csv/officeimo-csv-csvdocument/#extension-rowsas-officeimo-csv-csvdocument-func-system-data-idatarecord-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601",
         "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601",
-        "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600})"
+        "OfficeIMO.CSV.CsvDocument.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -120237,63 +120724,63 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvMappingExtensions.RowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsasparallel-officeimo-csv-csvdocument-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsasparallel-officeimo-csv-csvdocument-officeimo-data-parallelrowmappingoptions-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvMappingExtensions.RowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsasparallel-officeimo-csv-csvdocument-action-officeimo-data-rowmapper-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsasparallel-officeimo-csv-csvdocument-action-officeimo-data-rowmapper-officeimo-data-parallelrowmappingoptions-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvMappingExtensions.RowsAsParallel\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsasparallel-officeimo-csv-csvdocument-func-system-data-idatarecord-officeimo-data-parallelrowmappingoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsasparallel-officeimo-csv-csvdocument-func-system-data-idatarecord-officeimo-data-parallelrowmappingoptions-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601",
         "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601",
-        "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument)",
+      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvMappingExtensions.RowsAs\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsas-officeimo-csv-csvdocument",
+      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsas-officeimo-csv-csvdocument-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601",
         "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601",
-        "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument)"
+        "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}})",
+      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvMappingExtensions.RowsAs\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsas-officeimo-csv-csvdocument-action-officeimo-data-rowmapper",
+      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsas-officeimo-csv-csvdocument-action-officeimo-data-rowmapper-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601",
         "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601",
-        "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}})"
+        "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600})",
+      "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
       "name": "CsvMappingExtensions.RowsAs\u0060\u00601",
-      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsas-officeimo-csv-csvdocument-func-system-data-idatarecord",
+      "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-rowsas-officeimo-csv-csvdocument-func-system-data-idatarecord-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601",
         "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601",
-        "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600})"
+        "OfficeIMO.CSV.CsvMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.CSV.CsvDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -120621,6 +121108,16 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.CSV.CsvProfiles.CreateReaderOptions(OfficeIMO.CSV.CsvProfile)",
+      "name": "CsvProfiles.CreateReaderOptions",
+      "href": "/api/csv/officeimo-csv-csvprofiles/#method-createreaderoptions-officeimo-csv-csvprofile",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvProfiles.CreateReaderOptions",
+        "OfficeIMO.CSV.CsvProfiles.CreateReaderOptions",
+        "OfficeIMO.CSV.CsvProfiles.CreateReaderOptions(OfficeIMO.CSV.CsvProfile)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.CSV.CsvProfiles.CreateSaveOptions(OfficeIMO.CSV.CsvProfile)",
       "name": "CsvProfiles.CreateSaveOptions",
       "href": "/api/csv/officeimo-csv-csvprofiles/#method-createsaveoptions-officeimo-csv-csvprofile",
@@ -120904,6 +121401,61 @@
         "global::OfficeIMO.CSV.CsvQuoteParsingMode.ToString",
         "OfficeIMO.CSV.CsvQuoteParsingMode.ToString",
         "OfficeIMO.CSV.CsvQuoteParsingMode.ToString(System.String,IFormatProvider)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvReaderOptions.#ctor",
+      "name": "CsvReaderOptions.CsvReaderOptions",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.#ctor",
+        "OfficeIMO.CSV.CsvReaderOptions.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvReaderOptions.Clone",
+      "name": "CsvReaderOptions.Clone",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#method-clone",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Clone",
+        "OfficeIMO.CSV.CsvReaderOptions.Clone"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvReaderOptions.Equals(System.Object)",
+      "name": "CsvReaderOptions.Equals",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Equals",
+        "OfficeIMO.CSV.CsvReaderOptions.Equals",
+        "OfficeIMO.CSV.CsvReaderOptions.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvReaderOptions.GetHashCode",
+      "name": "CsvReaderOptions.GetHashCode",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.GetHashCode",
+        "OfficeIMO.CSV.CsvReaderOptions.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvReaderOptions.GetType",
+      "name": "CsvReaderOptions.GetType",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.GetType",
+        "OfficeIMO.CSV.CsvReaderOptions.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvReaderOptions.ToString",
+      "name": "CsvReaderOptions.ToString",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ToString",
+        "OfficeIMO.CSV.CsvReaderOptions.ToString"
       ]
     },
     {
@@ -194878,6 +195430,66 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.RowsAsParallel\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocument/#extension-rowsasparallel-officeimo-excel-exceldocument-officeimo-data-parallelrowmappingoptions-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.RowsAsParallel\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocument/#extension-rowsasparallel-officeimo-excel-exceldocument-action-officeimo-data-rowmapper-officeimo-data-parallelrowmappingoptions-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.RowsAsParallel\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocument/#extension-rowsasparallel-officeimo-excel-exceldocument-func-system-data-idatarecord-officeimo-data-parallelrowmappingoptions-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.RowsAs\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocument/#extension-rowsas-officeimo-excel-exceldocument-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.RowsAs\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocument/#extension-rowsas-officeimo-excel-exceldocument-action-officeimo-data-rowmapper-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocument.RowsAs\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocument/#extension-rowsas-officeimo-excel-exceldocument-func-system-data-idatarecord-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocument.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.Excel.ExcelDocument.RunWorkbookDoctor(OfficeIMO.Excel.ExcelWorkbookDoctorOptions)",
       "name": "ExcelDocument.RunWorkbookDoctor",
       "href": "/api/excel/officeimo-excel-exceldocument/#method-runworkbookdoctor-officeimo-excel-excelworkbookdoctoroptions",
@@ -195351,6 +195963,103 @@
         "global::OfficeIMO.Excel.ExcelDocument.ValidateVbaSignatures",
         "OfficeIMO.Excel.ExcelDocument.ValidateVbaSignatures",
         "OfficeIMO.Excel.ExcelDocument.ValidateVbaSignatures(System.String,OfficeIMO.Security.IOfficeSecurityProvider,OfficeIMO.Security.OfficeVbaSignatureInspectionOptions)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.Equals(System.Object)",
+      "name": "ExcelDocumentMappingExtensions.Equals",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.Equals",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.Equals",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.GetHashCode",
+      "name": "ExcelDocumentMappingExtensions.GetHashCode",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.GetHashCode",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.GetType",
+      "name": "ExcelDocumentMappingExtensions.GetType",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.GetType",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-rowsasparallel-officeimo-excel-exceldocument-officeimo-data-parallelrowmappingoptions-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-rowsasparallel-officeimo-excel-exceldocument-action-officeimo-data-rowmapper-officeimo-data-parallelrowmappingoptions-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-rowsasparallel-officeimo-excel-exceldocument-func-system-data-idatarecord-officeimo-data-parallelrowmappingoptions-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Data.ParallelRowMappingOptions,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-rowsas-officeimo-excel-exceldocument-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-rowsas-officeimo-excel-exceldocument-action-officeimo-data-rowmapper-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Action{OfficeIMO.Data.RowMapper{\u0060\u00600}},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)",
+      "name": "ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-rowsas-officeimo-excel-exceldocument-func-system-data-idatarecord-officeimo-excel-excelreaderoptions-threading-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs\u0060\u00601(OfficeIMO.Excel.ExcelDocument,System.Func{System.Data.IDataRecord,\u0060\u00600},OfficeIMO.Excel.ExcelReaderOptions,System.Threading.CancellationToken)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.Excel.ExcelDocumentMappingExtensions.ToString",
+      "name": "ExcelDocumentMappingExtensions.ToString",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions.ToString",
+        "OfficeIMO.Excel.ExcelDocumentMappingExtensions.ToString"
       ]
     },
     {
@@ -551724,13 +552433,13 @@
       ]
     },
     {
-      "uid": "OfficeIMO.CSV.CsvDataReaderOptions",
-      "name": "CsvDataReaderOptions",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/",
+      "uid": "OfficeIMO.CSV.CsvDataReader",
+      "name": "CsvDataReader",
+      "href": "/api/csv/officeimo-csv-csvdatareader/",
       "aliases": [
-        "CsvDataReaderOptions",
-        "global::OfficeIMO.CSV.CsvDataReaderOptions",
-        "T:OfficeIMO.CSV.CsvDataReaderOptions"
+        "CsvDataReader",
+        "global::OfficeIMO.CSV.CsvDataReader",
+        "T:OfficeIMO.CSV.CsvDataReader"
       ]
     },
     {
@@ -551891,6 +552600,16 @@
         "CsvQuoteParsingMode",
         "global::OfficeIMO.CSV.CsvQuoteParsingMode",
         "T:OfficeIMO.CSV.CsvQuoteParsingMode"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.CSV.CsvReaderOptions",
+      "name": "CsvReaderOptions",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/",
+      "aliases": [
+        "CsvReaderOptions",
+        "global::OfficeIMO.CSV.CsvReaderOptions",
+        "T:OfficeIMO.CSV.CsvReaderOptions"
       ]
     },
     {
@@ -561701,6 +562420,16 @@
         "ExcelTabularRowWriter",
         "global::OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter",
         "T:OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter"
+      ]
+    },
+    {
+      "uid": "OfficeIMO.Excel.ExcelDocumentMappingExtensions",
+      "name": "ExcelDocumentMappingExtensions",
+      "href": "/api/excel/officeimo-excel-exceldocumentmappingextensions/",
+      "aliases": [
+        "ExcelDocumentMappingExtensions",
+        "global::OfficeIMO.Excel.ExcelDocumentMappingExtensions",
+        "T:OfficeIMO.Excel.ExcelDocumentMappingExtensions"
       ]
     },
     {
@@ -618287,39 +619016,111 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.CSV.CsvDataReaderOptions.InferSchema",
-      "name": "CsvDataReaderOptions.InferSchema",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#property-inferschema",
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.Delimiter",
+      "name": "CsvDataReader.Delimiter",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-delimiter",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.InferSchema",
-        "OfficeIMO.CSV.CsvDataReaderOptions.InferSchema"
+        "global::OfficeIMO.CSV.CsvDataReader.Delimiter",
+        "OfficeIMO.CSV.CsvDataReader.Delimiter"
       ]
     },
     {
-      "uid": "P:OfficeIMO.CSV.CsvDataReaderOptions.ParallelProcessing",
-      "name": "CsvDataReaderOptions.ParallelProcessing",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#property-parallelprocessing",
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.DelimiterText",
+      "name": "CsvDataReader.DelimiterText",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-delimitertext",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.ParallelProcessing",
-        "OfficeIMO.CSV.CsvDataReaderOptions.ParallelProcessing"
+        "global::OfficeIMO.CSV.CsvDataReader.DelimiterText",
+        "OfficeIMO.CSV.CsvDataReader.DelimiterText"
       ]
     },
     {
-      "uid": "P:OfficeIMO.CSV.CsvDataReaderOptions.Schema",
-      "name": "CsvDataReaderOptions.Schema",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#property-schema",
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.Depth",
+      "name": "CsvDataReader.Depth",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-depth",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.Schema",
-        "OfficeIMO.CSV.CsvDataReaderOptions.Schema"
+        "global::OfficeIMO.CSV.CsvDataReader.Depth",
+        "OfficeIMO.CSV.CsvDataReader.Depth"
       ]
     },
     {
-      "uid": "P:OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize",
-      "name": "CsvDataReaderOptions.SchemaSampleSize",
-      "href": "/api/csv/officeimo-csv-csvdatareaderoptions/#property-schemasamplesize",
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.FieldCount",
+      "name": "CsvDataReader.FieldCount",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-fieldcount",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize",
-        "OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize"
+        "global::OfficeIMO.CSV.CsvDataReader.FieldCount",
+        "OfficeIMO.CSV.CsvDataReader.FieldCount"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.HasRows",
+      "name": "CsvDataReader.HasRows",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-hasrows",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.HasRows",
+        "OfficeIMO.CSV.CsvDataReader.HasRows"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.IsClosed",
+      "name": "CsvDataReader.IsClosed",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-isclosed",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.IsClosed",
+        "OfficeIMO.CSV.CsvDataReader.IsClosed"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.Item",
+      "name": "CsvDataReader.Item",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-item-string",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.Item",
+        "OfficeIMO.CSV.CsvDataReader.Item"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.PhysicalEndLineNumber",
+      "name": "CsvDataReader.PhysicalEndLineNumber",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-physicalendlinenumber",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.PhysicalEndLineNumber",
+        "OfficeIMO.CSV.CsvDataReader.PhysicalEndLineNumber"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.PhysicalLineNumber",
+      "name": "CsvDataReader.PhysicalLineNumber",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-physicallinenumber",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.PhysicalLineNumber",
+        "OfficeIMO.CSV.CsvDataReader.PhysicalLineNumber"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.RecordNumber",
+      "name": "CsvDataReader.RecordNumber",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-recordnumber",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.RecordNumber",
+        "OfficeIMO.CSV.CsvDataReader.RecordNumber"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.RecordsAffected",
+      "name": "CsvDataReader.RecordsAffected",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-recordsaffected",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.RecordsAffected",
+        "OfficeIMO.CSV.CsvDataReader.RecordsAffected"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvDataReader.VisibleFieldCount",
+      "name": "CsvDataReader.VisibleFieldCount",
+      "href": "/api/csv/officeimo-csv-csvdatareader/#property-visiblefieldcount",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvDataReader.VisibleFieldCount",
+        "OfficeIMO.CSV.CsvDataReader.VisibleFieldCount"
       ]
     },
     {
@@ -618359,12 +619160,12 @@
       ]
     },
     {
-      "uid": "P:OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize",
-      "name": "CsvDataTableOptions.SchemaSampleSize",
-      "href": "/api/csv/officeimo-csv-csvdatatableoptions/#property-schemasamplesize",
+      "uid": "P:OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows",
+      "name": "CsvDataTableOptions.SchemaSampleRows",
+      "href": "/api/csv/officeimo-csv-csvdatatableoptions/#property-schemasamplerows",
       "aliases": [
-        "global::OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize",
-        "OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize"
+        "global::OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows",
+        "OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows"
       ]
     },
     {
@@ -618986,6 +619787,393 @@
       "aliases": [
         "global::OfficeIMO.CSV.CsvProgress.RecordsRead",
         "OfficeIMO.CSV.CsvProgress.RecordsRead"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.AllowEmptyLines",
+      "name": "CsvReaderOptions.AllowEmptyLines",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-allowemptylines",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.AllowEmptyLines",
+        "OfficeIMO.CSV.CsvReaderOptions.AllowEmptyLines"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.CancellationToken",
+      "name": "CsvReaderOptions.CancellationToken",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.CancellationToken",
+        "OfficeIMO.CSV.CsvReaderOptions.CancellationToken"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.CollectParseErrors",
+      "name": "CsvReaderOptions.CollectParseErrors",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-collectparseerrors",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.CollectParseErrors",
+        "OfficeIMO.CSV.CsvReaderOptions.CollectParseErrors"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.ColumnCountMismatchPolicy",
+      "name": "CsvReaderOptions.ColumnCountMismatchPolicy",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-columncountmismatchpolicy",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ColumnCountMismatchPolicy",
+        "OfficeIMO.CSV.CsvReaderOptions.ColumnCountMismatchPolicy"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.CommentCharacter",
+      "name": "CsvReaderOptions.CommentCharacter",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-commentcharacter",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.CommentCharacter",
+        "OfficeIMO.CSV.CsvReaderOptions.CommentCharacter"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.CompressionType",
+      "name": "CsvReaderOptions.CompressionType",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-compressiontype",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.CompressionType",
+        "OfficeIMO.CSV.CsvReaderOptions.CompressionType"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.Culture",
+      "name": "CsvReaderOptions.Culture",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-culture",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Culture",
+        "OfficeIMO.CSV.CsvReaderOptions.Culture"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.DateTimeFormats",
+      "name": "CsvReaderOptions.DateTimeFormats",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-datetimeformats",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DateTimeFormats",
+        "OfficeIMO.CSV.CsvReaderOptions.DateTimeFormats"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.Delimiter",
+      "name": "CsvReaderOptions.Delimiter",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-delimiter",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Delimiter",
+        "OfficeIMO.CSV.CsvReaderOptions.Delimiter"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.DelimiterCandidates",
+      "name": "CsvReaderOptions.DelimiterCandidates",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-delimitercandidates",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DelimiterCandidates",
+        "OfficeIMO.CSV.CsvReaderOptions.DelimiterCandidates"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.DelimiterText",
+      "name": "CsvReaderOptions.DelimiterText",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-delimitertext",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DelimiterText",
+        "OfficeIMO.CSV.CsvReaderOptions.DelimiterText"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.DetectDelimiter",
+      "name": "CsvReaderOptions.DetectDelimiter",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-detectdelimiter",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DetectDelimiter",
+        "OfficeIMO.CSV.CsvReaderOptions.DetectDelimiter"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.DetectEncodingFromByteOrderMarks",
+      "name": "CsvReaderOptions.DetectEncodingFromByteOrderMarks",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-detectencodingfrombyteordermarks",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DetectEncodingFromByteOrderMarks",
+        "OfficeIMO.CSV.CsvReaderOptions.DetectEncodingFromByteOrderMarks"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.DuplicateHeaderBehavior",
+      "name": "CsvReaderOptions.DuplicateHeaderBehavior",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-duplicateheaderbehavior",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.DuplicateHeaderBehavior",
+        "OfficeIMO.CSV.CsvReaderOptions.DuplicateHeaderBehavior"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.Encoding",
+      "name": "CsvReaderOptions.Encoding",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-encoding",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Encoding",
+        "OfficeIMO.CSV.CsvReaderOptions.Encoding"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.GenerateMissingHeaderNames",
+      "name": "CsvReaderOptions.GenerateMissingHeaderNames",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-generatemissingheadernames",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.GenerateMissingHeaderNames",
+        "OfficeIMO.CSV.CsvReaderOptions.GenerateMissingHeaderNames"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.HasHeaderRow",
+      "name": "CsvReaderOptions.HasHeaderRow",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-hasheaderrow",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.HasHeaderRow",
+        "OfficeIMO.CSV.CsvReaderOptions.HasHeaderRow"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.Header",
+      "name": "CsvReaderOptions.Header",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-header",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Header",
+        "OfficeIMO.CSV.CsvReaderOptions.Header"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.InferSchema",
+      "name": "CsvReaderOptions.InferSchema",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-inferschema",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.InferSchema",
+        "OfficeIMO.CSV.CsvReaderOptions.InferSchema"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.InternStrings",
+      "name": "CsvReaderOptions.InternStrings",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-internstrings",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.InternStrings",
+        "OfficeIMO.CSV.CsvReaderOptions.InternStrings"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MappingErrorValuePolicy",
+      "name": "CsvReaderOptions.MappingErrorValuePolicy",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-mappingerrorvaluepolicy",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MappingErrorValuePolicy",
+        "OfficeIMO.CSV.CsvReaderOptions.MappingErrorValuePolicy"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MaxCommentContinuationLines",
+      "name": "CsvReaderOptions.MaxCommentContinuationLines",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-maxcommentcontinuationlines",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MaxCommentContinuationLines",
+        "OfficeIMO.CSV.CsvReaderOptions.MaxCommentContinuationLines"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MaxDecompressedBytes",
+      "name": "CsvReaderOptions.MaxDecompressedBytes",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-maxdecompressedbytes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MaxDecompressedBytes",
+        "OfficeIMO.CSV.CsvReaderOptions.MaxDecompressedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MaxFieldLength",
+      "name": "CsvReaderOptions.MaxFieldLength",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-maxfieldlength",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MaxFieldLength",
+        "OfficeIMO.CSV.CsvReaderOptions.MaxFieldLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MaxInputBytes",
+      "name": "CsvReaderOptions.MaxInputBytes",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-maxinputbytes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MaxInputBytes",
+        "OfficeIMO.CSV.CsvReaderOptions.MaxInputBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MaxParseErrors",
+      "name": "CsvReaderOptions.MaxParseErrors",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-maxparseerrors",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MaxParseErrors",
+        "OfficeIMO.CSV.CsvReaderOptions.MaxParseErrors"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.MaxQuotedFieldLength",
+      "name": "CsvReaderOptions.MaxQuotedFieldLength",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-maxquotedfieldlength",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.MaxQuotedFieldLength",
+        "OfficeIMO.CSV.CsvReaderOptions.MaxQuotedFieldLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.NormalizeQuotes",
+      "name": "CsvReaderOptions.NormalizeQuotes",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-normalizequotes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.NormalizeQuotes",
+        "OfficeIMO.CSV.CsvReaderOptions.NormalizeQuotes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.NullValue",
+      "name": "CsvReaderOptions.NullValue",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-nullvalue",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.NullValue",
+        "OfficeIMO.CSV.CsvReaderOptions.NullValue"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.ParallelProcessing",
+      "name": "CsvReaderOptions.ParallelProcessing",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-parallelprocessing",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ParallelProcessing",
+        "OfficeIMO.CSV.CsvReaderOptions.ParallelProcessing"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.ParseErrorAction",
+      "name": "CsvReaderOptions.ParseErrorAction",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-parseerroraction",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ParseErrorAction",
+        "OfficeIMO.CSV.CsvReaderOptions.ParseErrorAction"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.ParseErrors",
+      "name": "CsvReaderOptions.ParseErrors",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-parseerrors",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ParseErrors",
+        "OfficeIMO.CSV.CsvReaderOptions.ParseErrors"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.ProgressCallback",
+      "name": "CsvReaderOptions.ProgressCallback",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-progresscallback",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ProgressCallback",
+        "OfficeIMO.CSV.CsvReaderOptions.ProgressCallback"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.ProgressReportInterval",
+      "name": "CsvReaderOptions.ProgressReportInterval",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-progressreportinterval",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.ProgressReportInterval",
+        "OfficeIMO.CSV.CsvReaderOptions.ProgressReportInterval"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.QuoteParsingMode",
+      "name": "CsvReaderOptions.QuoteParsingMode",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-quoteparsingmode",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.QuoteParsingMode",
+        "OfficeIMO.CSV.CsvReaderOptions.QuoteParsingMode"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.RecognizeW3CFieldsHeader",
+      "name": "CsvReaderOptions.RecognizeW3CFieldsHeader",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-recognizew3cfieldsheader",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.RecognizeW3CFieldsHeader",
+        "OfficeIMO.CSV.CsvReaderOptions.RecognizeW3CFieldsHeader"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.Schema",
+      "name": "CsvReaderOptions.Schema",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-schema",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.Schema",
+        "OfficeIMO.CSV.CsvReaderOptions.Schema"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows",
+      "name": "CsvReaderOptions.SchemaSampleRows",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-schemasamplerows",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows",
+        "OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.SkipCommentRows",
+      "name": "CsvReaderOptions.SkipCommentRows",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-skipcommentrows",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.SkipCommentRows",
+        "OfficeIMO.CSV.CsvReaderOptions.SkipCommentRows"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.SkipCommentRowsBeforeHeader",
+      "name": "CsvReaderOptions.SkipCommentRowsBeforeHeader",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-skipcommentrowsbeforeheader",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.SkipCommentRowsBeforeHeader",
+        "OfficeIMO.CSV.CsvReaderOptions.SkipCommentRowsBeforeHeader"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.SkipInitialRecords",
+      "name": "CsvReaderOptions.SkipInitialRecords",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-skipinitialrecords",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.SkipInitialRecords",
+        "OfficeIMO.CSV.CsvReaderOptions.SkipInitialRecords"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.StaticColumns",
+      "name": "CsvReaderOptions.StaticColumns",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-staticcolumns",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.StaticColumns",
+        "OfficeIMO.CSV.CsvReaderOptions.StaticColumns"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvReaderOptions.TrimWhitespace",
+      "name": "CsvReaderOptions.TrimWhitespace",
+      "href": "/api/csv/officeimo-csv-csvreaderoptions/#property-trimwhitespace",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvReaderOptions.TrimWhitespace",
+        "OfficeIMO.CSV.CsvReaderOptions.TrimWhitespace"
       ]
     },
     {
@@ -657182,15 +658370,6 @@
       "aliases": [
         "global::OfficeIMO.Excel.Csv.ExcelCsvImportOptions.IncludeHeaders",
         "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.IncludeHeaders"
-      ]
-    },
-    {
-      "uid": "P:OfficeIMO.Excel.Csv.ExcelCsvImportOptions.LoadOptions",
-      "name": "ExcelCsvImportOptions.LoadOptions",
-      "href": "/api/excel-csv/officeimo-excel-csv-excelcsvimportoptions/#property-loadoptions",
-      "aliases": [
-        "global::OfficeIMO.Excel.Csv.ExcelCsvImportOptions.LoadOptions",
-        "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.LoadOptions"
       ]
     },
     {
@@ -967288,7 +968467,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 100461,
-  "referenceDeltaCount": 2,
-  "referenceDeltaPercent": 0.002
+  "previousReferenceCount": 100588,
+  "referenceDeltaCount": 0,
+  "referenceDeltaPercent": 0
 }

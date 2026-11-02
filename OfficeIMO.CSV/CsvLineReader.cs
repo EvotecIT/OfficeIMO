@@ -26,7 +26,7 @@ internal sealed partial class CsvLineReader : IDisposable
     private readonly TextReader _reader;
     private char[] _buffer;
     private readonly CancellationToken _cancellationToken;
-    private readonly CsvLoadOptions? _options;
+    private readonly CsvParsingSettings? _options;
     private CancellationToken _operationCancellationToken;
     private int _position;
     private int _length;
@@ -66,7 +66,7 @@ internal sealed partial class CsvLineReader : IDisposable
         _buffer = ArrayPool<char>.Shared.Rent(DefaultBufferSize);
     }
 
-    public CsvLineReader(TextReader reader, CsvLoadOptions options)
+    public CsvLineReader(TextReader reader, CsvParsingSettings options)
         : this(reader, options?.CancellationToken ?? throw new ArgumentNullException(nameof(options)))
     {
         _options = options;

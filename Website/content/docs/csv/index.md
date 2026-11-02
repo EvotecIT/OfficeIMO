@@ -69,7 +69,7 @@ foreach (var row in csv.Rows) {
 }
 ```
 
-### Load Options
+### Reader options
 
 ```csharp
 using System.Text;
@@ -83,10 +83,13 @@ var csv = CsvDocument.Load("data.csv", new CsvLoadOptions {
 
 ### Forward-only reading
 
-For large files, use the standard data-reader entry point instead of loading a document:
+`CsvLoadOptions` supplies parsing settings to `Load` and `Parse`.
+`CsvReaderOptions` supplies parsing and projection settings to `OpenReader`.
+Shared parsing concepts use the same property names and defaults on both types. For large files, open a forward-only `CsvDataReader` instead of
+loading a document:
 
 ```csharp
-using var reader = CsvDocument.OpenDataReader("large.csv");
+using CsvDataReader reader = CsvDocument.OpenReader("large.csv");
 
 while (reader.Read()) {
     Console.WriteLine(reader.GetString(reader.GetOrdinal("Name")));

@@ -1,0 +1,21 @@
+{
+  "package": "OfficeIMO.Excel.Csv",
+  "changes": [
+    {
+      "old": "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.LoadOptions",
+      "kind": "property",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions",
+      "replacement": "Move LoadOptions parsing settings into the CsvReaderOptions assigned to ReaderOptions, alongside Schema, InferSchema and ParallelProcessing.",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions : CsvDataReaderOptions",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions : CsvReaderOptions",
+      "replacement": "Use one CsvReaderOptions object. The import defaults keep DetectDelimiter = true and InferSchema = true; when replacing the object, set the defaults your import needs.",
+      "category": "options"
+    }
+  ]
+}

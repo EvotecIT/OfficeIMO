@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.CSV;
 
-internal sealed partial class CsvDataReader
+public partial class CsvDataReader
 {
     /// <summary>Advances an internal record consumer without adapting completed incremental reads to Task.</summary>
     internal ValueTask<bool> ReadRecordAsync(CancellationToken cancellationToken) =>

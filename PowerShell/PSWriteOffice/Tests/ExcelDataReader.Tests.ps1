@@ -23,7 +23,7 @@ Describe 'Excel IDataReader import' {
         $parameters = (Get-Command Import-OfficeExcel).Parameters.Keys
 
         $parameters | Should -Contain 'AsDataReader'
-        $parameters | Should -Contain 'SchemaSampleSize'
+        $parameters | Should -Contain 'SchemaSampleRows'
         $parameters | Should -Contain 'ChunkRows'
     }
 
@@ -36,7 +36,7 @@ Describe 'Excel IDataReader import' {
             [pscustomobject]@{ Id = 3; Name = 'Gamma' }
         ) | Export-OfficeExcel -Path $xlsx -WorksheetName Data -TableName Data
 
-        $reader = Import-OfficeExcel -Path $xlsx -WorksheetName Data -AsDataReader -ChunkRows 1 -SchemaSampleSize 2
+        $reader = Import-OfficeExcel -Path $xlsx -WorksheetName Data -AsDataReader -ChunkRows 1 -SchemaSampleRows 2
         try {
             $reader | Should -BeOfType ([System.Data.IDataReader])
             $reader.FieldCount | Should -Be 2

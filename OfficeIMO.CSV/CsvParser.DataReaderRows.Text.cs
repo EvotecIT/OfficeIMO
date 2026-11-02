@@ -14,7 +14,7 @@ internal static partial class CsvParser
     {
         private readonly string _text;
         private readonly int _endPosition;
-        private readonly CsvLoadOptions _options;
+        private readonly CsvParsingSettings _options;
         private CsvTextFieldSpanReadState _state;
         private CsvDataReaderTextRowVisitor _visitor;
         private CsvTextDataReaderBatch? _batch;
@@ -23,7 +23,7 @@ internal static partial class CsvParser
 
         internal CsvTextDataReaderRowSource(
             string text,
-            CsvLoadOptions options,
+            CsvParsingSettings options,
             int recordsToSkip,
             int sourceColumnCount)
             : this(text, options, recordsToSkip, sourceColumnCount, 0, text.Length)
@@ -32,7 +32,7 @@ internal static partial class CsvParser
 
         internal CsvTextDataReaderRowSource(
             string text,
-            CsvLoadOptions options,
+            CsvParsingSettings options,
             int recordsToSkip,
             int sourceColumnCount,
             int startPosition,
@@ -70,7 +70,7 @@ internal static partial class CsvParser
 
         internal int SourceColumnCount => _visitor.SourceColumnCount;
 
-        internal CsvLoadOptions Options => _options;
+        internal CsvParsingSettings Options => _options;
 
         internal int PrepareForParallelPartition(CancellationToken cancellationToken)
         {
@@ -408,7 +408,7 @@ internal static partial class CsvParser
         }
     }
 
-    internal static bool CanReadDataReaderRowsFromText(string text, CsvLoadOptions options)
+    internal static bool CanReadDataReaderRowsFromText(string text, CsvParsingSettings options)
     {
         return !HasFieldLengthLimits(options) &&
             !UsesTextDelimiter(options) &&
@@ -421,7 +421,7 @@ internal static partial class CsvParser
 
     internal static bool TryGetFirstTextDataReaderRecordFieldCount(
         string text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip,
         out int fieldCount)
     {
@@ -461,7 +461,7 @@ internal static partial class CsvParser
 
     private static void SkipPendingTextDataReaderRecords(
         ReadOnlySpan<char> text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         CancellationToken cancellationToken,
         ref CsvTextFieldSpanReadState state)
     {
@@ -575,7 +575,7 @@ internal static partial class CsvParser
 
     private static CsvTextFieldSpanReadState CreateTextFieldSpanReadState(
         ReadOnlySpan<char> text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         int recordsToSkip)
     {
         var delimiter = GetDelimiterChar(options);
@@ -600,7 +600,7 @@ internal static partial class CsvParser
 
     private static bool TryReadNextTextRecordFieldSpans<TVisitor>(
         ReadOnlySpan<char> text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref CsvTextFieldSpanReadState state,
         ref TVisitor fieldVisitor,

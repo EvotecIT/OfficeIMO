@@ -18,8 +18,10 @@ public partial class Excel {
         Assert.Equal("Data", sheets[0].Name);
     }
 
-    [Fact]
-    public void RowsAs_UsesThePopulatedRangeWhenNoRangeIsSpecified() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RowsAs_UsesThePopulatedRangeWhenNoRangeIsSpecified(bool wholeDocument) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO-RowsAs-{Guid.NewGuid():N}.xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
@@ -32,7 +34,9 @@ public partial class Excel {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            TypedSalesRow row = Assert.Single(loaded.GetSheet("Data").RowsAs<TypedSalesRow>());
+            TypedSalesRow row = Assert.Single(wholeDocument
+                ? loaded.RowsAs<TypedSalesRow>(new ExcelReaderOptions { SheetName = "Data" })
+                : loaded.GetSheet("Data").RowsAs<TypedSalesRow>());
 
             Assert.Equal(42, row.OrderId);
             Assert.Equal(165258.24m, row.Amount);
@@ -163,8 +167,10 @@ public partial class Excel {
         Assert.Equal(usedRangeRow.Amount, specifiedRangeRow.Amount);
     }
 
-    [Fact]
-    public void RowsAs_FactorySupportsPositionalRecordsForUsedAndSpecifiedRanges() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RowsAs_FactorySupportsPositionalRecordsForUsedAndSpecifiedRanges(bool wholeDocument) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Order Number");
@@ -172,10 +178,11 @@ public partial class Excel {
         sheet.CellValue(2, 1, 42);
         sheet.CellValue(2, 2, 12.5m);
 
-        PositionalSalesRow usedRangeRow = Assert.Single(sheet.RowsAs(factory: row =>
-            new PositionalSalesRow(
-                row.GetInt32(row.GetOrdinal("Order Number")),
-                row.GetDecimal(row.GetOrdinal("Amount")))));
+        Func<System.Data.IDataRecord, PositionalSalesRow> factory = row => new PositionalSalesRow(
+            row.GetInt32(row.GetOrdinal("Order Number")), row.GetDecimal(row.GetOrdinal("Amount")));
+        PositionalSalesRow usedRangeRow = Assert.Single(wholeDocument
+            ? document.RowsAs(factory: factory, options: new ExcelReaderOptions { SheetName = "Data" })
+            : sheet.RowsAs(factory: factory));
         PositionalSalesRow specifiedRangeRow = Assert.Single(sheet.RowsAs("A1:B2", factory: row =>
             new PositionalSalesRow(
                 row.GetInt32(row.GetOrdinal("Order Number")),
@@ -185,8 +192,10 @@ public partial class Excel {
         Assert.Equal(usedRangeRow, specifiedRangeRow);
     }
 
-    [Fact]
-    public void RowsAsParallel_PreservesOrderAcrossAutomaticExplicitAndFactoryMappings() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RowsAsParallel_PreservesOrderAcrossAutomaticExplicitAndFactoryMappings(bool wholeDocument) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "OrderId");
@@ -203,7 +212,9 @@ public partial class Excel {
         };
         const string range = "A1:B1026";
 
-        TypedSalesRow[] automatic = sheet.RowsAsParallel<TypedSalesRow>(range, parallel).ToArray();
+        TypedSalesRow[] automatic = (wholeDocument
+            ? document.RowsAsParallel<TypedSalesRow>(parallel, new ExcelReaderOptions { SheetName = "Data", A1Range = range })
+            : sheet.RowsAsParallel<TypedSalesRow>(range, parallel)).ToArray();
         TypedSalesRow[] explicitRows = sheet.RowsAsParallel<TypedSalesRow>(range, map => map
             .FromColumn<int>("OrderId", static (row, value) => { row.OrderId = value; return row; })
             .FromColumn<decimal>("Amount", static (row, value) => { row.Amount = value; return row; }), parallel).ToArray();

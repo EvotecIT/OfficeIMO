@@ -3,6 +3,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Parser;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Text;
 
@@ -65,15 +66,23 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMOTextOwnedAggregate() {
             string text = File.ReadAllText(_fixture.Path);
-            AggregateState state = CsvDocument.AggregateTextRowsAsParallel(text, NewState, BuildAccumulator, Merge,
-                loadOptions: LoadOptions(), parallelOptions: ParallelOptions());
+            AggregateState state = CsvDocument.AggregateTextRowsAsParallel(text,
+            NewState,
+            BuildAccumulator,
+            Merge,
+            options: LoadOptions(),
+            parallelOptions: ParallelOptions());
             return _fixture.Check(state.Sum, state.Count);
         }
 
         [Benchmark]
         public async Task<long> OfficeIMOAsyncPathAggregate() {
             AggregateState state = await CsvDocument.AggregateRowsAsParallelAsync(_fixture.Path,
-                NewState, BuildAccumulator, Merge, loadOptions: LoadOptions(), parallelOptions: ParallelOptions());
+            NewState,
+            BuildAccumulator,
+            Merge,
+            options: LoadOptions(),
+            parallelOptions: ParallelOptions());
             return _fixture.Check(state.Sum, state.Count);
         }
 
@@ -85,20 +94,28 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 4096, FileOptions.Asynchronous | FileOptions.SequentialScan);
             if (!probe) {
                 AggregateState state = await CsvDocument.AggregateRowsAsParallelAsync(file,
-                    NewState, BuildAccumulator, Merge, loadOptions: LoadOptions(), parallelOptions: ParallelOptions());
+            NewState,
+            BuildAccumulator,
+            Merge,
+            options: LoadOptions(),
+            parallelOptions: ParallelOptions());
                 return _fixture.Check(state.Sum, state.Count);
             }
             using CsvAggregateAsyncProbe observed = new CsvAggregateAsyncProbe(file);
             AggregateState proved = await CsvDocument.AggregateRowsAsParallelAsync(observed,
-                NewState, BuildAccumulator, Merge, loadOptions: LoadOptions(), parallelOptions: ParallelOptions());
+            NewState,
+            BuildAccumulator,
+            Merge,
+            options: LoadOptions(),
+            parallelOptions: ParallelOptions());
             if (observed.AsyncReads == 0 || observed.SyncReads != 0)
                 throw new InvalidDataException("CSV async aggregation did not use actual asynchronous input reads.");
             Console.WriteLine($"CSV stream qualification: asyncReads={observed.AsyncReads}; syncReads={observed.SyncReads}.");
             return _fixture.Check(proved.Sum, proved.Count);
         }
 
-        private CsvLoadOptions LoadOptions() => new() {
-            MaxInputBytes = Math.Max(CsvLoadOptions.DefaultMaxInputBytes, _fixture.Bytes),
+        private CsvReaderOptions LoadOptions() => new() {
+            MaxInputBytes = Math.Max(CsvReaderOptions.DefaultMaxInputBytes, _fixture.Bytes),
         };
         private ParallelRowMappingOptions ParallelOptions() => new() { MaxDegreeOfParallelism = Dop == 0 ? null : Dop };
         private static AggregateState NewState() => default;

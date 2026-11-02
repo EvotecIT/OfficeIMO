@@ -65,7 +65,7 @@ Cold identity logging hashes package bytes alone and does not open ZIP entries.
 The existing cold fixture shape check stays in setup; full field proof runs
 through the separate `--validate-cold` qualification command.
 
-OfficeIMO uses `ExcelDocument.OpenDataReader` and typed getters; ExcelReader uses
+OfficeIMO uses `ExcelDocument.OpenReader` and typed getters; ExcelReader uses
 `ExcelParser.FromAttributes<TypedRecord>().Parse(workbook.FirstSheet)`; Sylvan
 uses `GetRecords<TypedRecord>()`. These reproduce the public API work in the
 [upstream typed comparison](https://github.com/GabrielMarquezMatte/ExcelReader/blob/ca5b50f99e8ef57ab476f0a2bc8043558d58b28d/tests/ExcelReader.Benchmarks/Parse/ParseBenchmark.cs).
@@ -232,7 +232,7 @@ loop reports no timing or allocation measurements.
 
 ## Async enumeration
 
-`TypedAsyncReadBenchmarks` uses OfficeIMO.Core's automatic `RowsAsAsync<TypedRecord>`
+`TypedAsyncReadBenchmarks` uses OfficeIMO.Data's automatic `RowsAsAsync<TypedRecord>`
 projection, ExcelReader's async workbook creation and parser enumeration, and
 Sylvan's `CreateAsync` plus `GetRecordsAsync<TypedRecord>`. Each returns the same
 materialized model, and setup validates every field in every async result.
@@ -867,7 +867,7 @@ dotnet run -c Release --project ./Benchmarks/ExcelReaderTyped/ExcelReaderTyped.B
 
 `TypedStreamAsyncReadBenchmarks` adds public asynchronous stream opening to the
 existing typed XLSX async comparison. Both peers already open streams
-asynchronously. OfficeIMO now uses `OpenDataReaderAsync(Stream)` and the ordinary
+asynchronously. OfficeIMO now uses `OpenReaderAsync(Stream)` and the ordinary
 async typed projection. The original byte-open OfficeIMO enumeration lane stays
 in `TypedAsyncReadBenchmarks`. The stream-opening companion includes input
 buffering, discovery, mapping, and disposal, and qualifies every record field.

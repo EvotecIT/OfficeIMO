@@ -527,7 +527,7 @@ Worksheet rows and cells come from the worksheet's direct `sheetData` content.
 Inline and shared strings include visible text and rich runs. Extension payloads
 and phonetic guidance do not add cells, shift shared-string indexes or append text.
 
-`OpenDataReaderAsync` reads local files and the remaining bytes of a readable stream
+`OpenReaderAsync` reads local files and the remaining bytes of a readable stream
 using asynchronous I/O, bounded by `MaxInputBytes`. Workbook validation and worksheet
 discovery then run synchronously. Caller-owned streams stay open, and seekable streams
 return to their original position after input is read. The opening cancellation token
@@ -617,7 +617,7 @@ asynchronous input, then performs cancellable decryption, integrity verification
 and workbook discovery synchronously. Its opening cancellation token and the
 token in `ExcelReaderOptions` remain active for the returned reader.
 
-`ExcelDocument.OpenDataReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
+`ExcelDocument.OpenReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
 XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
 additional worksheets through `NextResult()`. Select one worksheet with
 `SheetName` or the zero-based `SheetIndex`, and select an explicit range with
@@ -628,7 +628,7 @@ workbook must be inspected, edited, or saved again. CSV provides the same typed
 and ordered-parallel row-mapping contracts through the separate
 `OfficeIMO.CSV` package.
 
-For indexed native XLSX reads, `OpenDataReader` qualifies the complete selected
+For indexed native XLSX reads, `OpenReader` qualifies the complete selected
 worksheet before returning. Its first shared-string cell, when present, causes
 the opening scan to load the complete workbook shared-string table, checking XML
 and item/count/character limits, including later unused items. This occurs before
@@ -765,8 +765,8 @@ SalesRow[] rows = document["Data"].RowsAsParallel<SalesRow>(
     }).ToArray();
 ```
 
-Both public surfaces preserve source order and bound in-flight work. The
-forward-only form applies to every format supported by `OpenDataReader`; the
+Reader, sheet and document projections preserve source order and bound in-flight work. The
+forward-only form applies to every format supported by `OpenReader`; the
 `ExcelSheet` form projects an already loaded editable workbook and enables the
 bounded schema inference required for safe snapshots. Set `InferSchema = true`
 on a directly opened reader as shown above. A degree of one, or a schema with
@@ -936,6 +936,39 @@ public sealed class RowModel {
 
 public sealed record ImmutableRow(string Name, string Status);
 ```
+
+The loaded `ExcelDocument` also exposes automatic, configured and factory
+mapping through the same `OfficeIMO.Data` reader contract. Select the sheet and
+range with `ExcelReaderOptions`:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+var readOptions = new ExcelReaderOptions {
+    SheetName = "Data",
+    A1Range = "A1:C100"
+};
+List<RowModel> automatic = document.RowsAs<RowModel>(
+    options: readOptions, cancellationToken: cancellationToken).ToList();
+List<RowModel> configured = document.RowsAs<RowModel>(map => map
+    .FromColumn<string>("Name", static (row, value) => { row.Name = value; return row; })
+    .FromColumn<string>("Status", static (row, value) => { row.Status = value; return row; }),
+    options: readOptions, cancellationToken: cancellationToken).ToList();
+List<ImmutableRow> constructed = document.RowsAs(factory: row => new ImmutableRow(
+    row.GetString(row.GetOrdinal("Name")),
+    row.GetString(row.GetOrdinal("Status"))),
+    options: readOptions, cancellationToken: cancellationToken).ToList();
+
+RowModel[] parallel = document.RowsAsParallel<RowModel>(
+    parallelOptions: new ParallelRowMappingOptions { MaxDegreeOfParallelism = 4 },
+    options: readOptions, cancellationToken: cancellationToken).ToArray();
+```
+
+All three mapping shapes have ordered parallel overloads. Their argument order
+is `parallelOptions`, format `options`, then `cancellationToken`, after the
+configure callback or factory when supplied. The same document-level shape is
+available on `CsvDocument` with `CsvReaderOptions`.
 
 ### Charts and dashboard recipes
 

@@ -40,7 +40,8 @@ public class CsvRecordTextBatchTests
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(text.ToString()), chunk);
         try
         {
-            using (var reader = (CsvDataReader)await CsvDocument.OpenDataReaderAsync(input, new CsvLoadOptions
+            using (var reader = (CsvDataReader)await CsvDocument.OpenReaderAsync(input,
+            options: new CsvReaderOptions
                 { NullValue = "NULL", Culture = CultureInfo.InvariantCulture, DateTimeFormats = new[] { "O" } }))
             {
                 bool reachedEnd = false;
@@ -96,7 +97,8 @@ public class CsvRecordTextBatchTests
                 .Append(",,").Append(id % 2 == 0 ? "NULL" : "").Append('\n');
 
         using var input = new AsyncInput(Encoding.UTF8.GetBytes(text.ToString()), 4096);
-        using var reader = (CsvDataReader)await CsvDocument.OpenDataReaderAsync(input, new CsvLoadOptions
+        using var reader = (CsvDataReader)await CsvDocument.OpenReaderAsync(input,
+            options: new CsvReaderOptions
         {
             NullValue = "NULL",
             ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields,

@@ -5,7 +5,7 @@ This project compares raw .NET CSV paths without PowerShell object overhead. Use
 ## Asynchronous input
 
 `CsvAsyncReadBenchmarks` compares a `LoadAsync(...).CreateDataReader()` snapshot
-with incremental `OpenDataReaderAsync` on 1,000 and 100,000 rows containing distinct
+with incremental `OpenReaderAsync` on 1,000 and 100,000 rows containing distinct
 labels and either plain notes or quoted Unicode multiline notes. `FirstRow`
 measures opening and returning one row; `AllRows` consumes every field.
 Snapshot initialization reads the complete file in both cases. Incremental
@@ -270,7 +270,7 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 ```
 
 For typed DTO reads, keep the materialized document path, the forward-only
-`OpenDataReader(...).RowsAs<T>()` path, and CsvHelper's typed reader in the same
+`OpenReader(...).RowsAs<T>()` path, and CsvHelper's typed reader in the same
 run. The document lane intentionally remains visible even when it is slower:
 
 ```powershell

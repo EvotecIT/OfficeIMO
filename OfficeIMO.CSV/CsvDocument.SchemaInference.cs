@@ -33,7 +33,7 @@ public sealed partial class CsvDocument
         ICollection<object?[]>? sampledRows,
         bool cloneSampledRows = false,
         CancellationToken cancellationToken = default,
-        CsvLoadOptions? operationCancellationOptions = null)
+        CsvParsingSettings? operationCancellationOptions = null)
     {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
@@ -76,7 +76,7 @@ public sealed partial class CsvDocument
 
     internal static bool MoveNextForSchemaInference(
         IEnumerator<object?[]> rows,
-        CsvLoadOptions? operationCancellationOptions,
+        CsvParsingSettings? operationCancellationOptions,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();

@@ -20,14 +20,14 @@ public sealed class CsvIncrementalCancellationTests {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n"));
         using var lifetime = new CancellationTokenSource();
         using var operation = new CancellationTokenSource();
-        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(input,
-            cancellationToken: lifetime.Token,
-            readerOptions: new CsvDataReaderOptions {
+        using DbDataReader reader = await CsvDocument.OpenReaderAsync(input,
+            options: new CsvReaderOptions {
                 Schema = CreateSchema(),
                 ParallelProcessing = parallel ? new CsvDataReaderParallelOptions {
                     BatchSize = 1, MaxDegreeOfParallelism = 2
                 } : null
-            });
+            },
+            cancellationToken: lifetime.Token);
         Assert.True(await reader.ReadAsync());
         Assert.Equal(1, reader.GetInt32(0));
         Assert.Equal("Alpha", reader.GetString(1));
@@ -44,14 +44,14 @@ public sealed class CsvIncrementalCancellationTests {
     public async Task SynchronousAdvanceAfterLifetimeCancellationEndsReader(bool parallel) {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n"));
         using var lifetime = new CancellationTokenSource();
-        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(input,
-            cancellationToken: lifetime.Token,
-            readerOptions: new CsvDataReaderOptions {
+        using DbDataReader reader = await CsvDocument.OpenReaderAsync(input,
+            options: new CsvReaderOptions {
                 Schema = CreateSchema(),
                 ParallelProcessing = parallel ? new CsvDataReaderParallelOptions {
                     BatchSize = 1, MaxDegreeOfParallelism = 2
                 } : null
-            });
+            },
+            cancellationToken: lifetime.Token);
         Assert.True(reader.Read());
         lifetime.Cancel();
         Assert.ThrowsAny<OperationCanceledException>(() => reader.Read());

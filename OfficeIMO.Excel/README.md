@@ -157,6 +157,29 @@ record Order(string Customer, string Region, decimal Total, double Margin);
 
 Columns map to properties or constructor parameters by header name. `RowsAs` also accepts a factory or an explicit column mapping. For files from outside your organization, load with `ExcelLoadOptions.UntrustedDefaults`.
 
+For a forward-only read, `OpenReader(pathOrStream, options)` returns an
+`ExcelWorkbookDataReader` derived from `DbDataReader`. The shared `OfficeIMO.Data`
+mappings also work on loaded documents:
+
+```csharp
+using OfficeIMO.Data;
+using OfficeIMO.Excel;
+
+using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader("Orders.xlsx",
+    new ExcelReaderOptions { SheetName = "Orders" });
+List<Order> streamed = reader.RowsAs<Order>().ToList();
+
+using var book = ExcelDocument.Load("Orders.xlsx");
+List<Order> loaded = book.RowsAs<Order>(
+    options: new ExcelReaderOptions { SheetName = "Orders" }).ToList();
+```
+
+Loaded-document `RowsAs` overloads support automatic, configured `RowMapper<T>`
+and factory mapping, with `ExcelReaderOptions` and cancellation. Their
+`RowsAsParallel` counterparts take `parallelOptions`, format `options`, then
+`cancellationToken` and preserve source order. `OpenReaderAsync` returns
+`Task<ExcelWorkbookDataReader>` on .NET 8 and later.
+
 XML Spreadsheet import also limits defined names (10,000 by default). Set `ExcelSpreadsheetXmlOptions.MaxNames` for a larger trusted workbook.
 
 ## Large exports

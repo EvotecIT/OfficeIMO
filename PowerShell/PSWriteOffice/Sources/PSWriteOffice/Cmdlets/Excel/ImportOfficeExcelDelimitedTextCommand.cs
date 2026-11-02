@@ -83,7 +83,8 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
 
         using var workbook = ResolveWorkbook(target);
         var culture = string.IsNullOrWhiteSpace(CultureName) ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(CultureName!);
-        var loadOptions = new CsvLoadOptions {
+        var loadOptions = new CsvReaderOptions {
+            InferSchema = !NoTypeConversion.IsPresent,
             DetectDelimiter = !Delimiter.HasValue,
             HasHeaderRow = !NoHeader.IsPresent,
             SkipInitialRecords = SkipRows,
@@ -97,10 +98,7 @@ public sealed class ImportOfficeExcelDelimitedTextCommand : PSCmdlet {
             SheetName = string.IsNullOrWhiteSpace(SheetName) ? "Import" : SheetName!,
             IncludeHeaders = !NoHeader.IsPresent,
             CreateTable = !NoTable.IsPresent,
-            LoadOptions = loadOptions,
-            ReaderOptions = new CsvDataReaderOptions {
-                InferSchema = !NoTypeConversion.IsPresent
-            }
+            ReaderOptions = loadOptions
         });
 
         workbook.SaveIfOwned();

@@ -327,15 +327,13 @@ public sealed partial class CsvDocument
     /// <typeparam name="T">Result row type.</typeparam>
     /// <param name="text">Decoded CSV text.</param>
     /// <param name="factoryBuilder">Builds the concurrent record factory from resolved headers.</param>
-    /// <param name="loadOptions">Optional CSV parsing settings.</param>
-    /// <param name="readerOptions">Optional reader projection settings.</param>
+    /// <param name="options">Optional CSV parsing settings.</param>
     /// <param name="parallelOptions">Optional worker and batch settings.</param>
     /// <param name="cancellationToken">Cancels parsing and pending projection work.</param>
     public static IEnumerable<T> ReadTextRowsAsParallel<T>(
         string text,
         CsvRecordFactoryBuilder<T> factoryBuilder,
-        CsvLoadOptions? loadOptions = null,
-        CsvDataReaderOptions? readerOptions = null,
+        CsvReaderOptions? options = null,
         ParallelRowMappingOptions? parallelOptions = null,
         CancellationToken cancellationToken = default)
     {
@@ -344,8 +342,7 @@ public sealed partial class CsvDocument
         return EnumerateTextRowsAsParallel(
             text,
             factoryBuilder,
-            loadOptions,
-            readerOptions,
+            options,
             parallelOptions,
             cancellationToken);
     }
@@ -353,24 +350,23 @@ public sealed partial class CsvDocument
     private static IEnumerable<T> EnumerateTextRowsAsParallel<T>(
         string text,
         CsvRecordFactoryBuilder<T> factoryBuilder,
-        CsvLoadOptions? loadOptions,
-        CsvDataReaderOptions? readerOptions,
+        CsvReaderOptions? options,
         ParallelRowMappingOptions? parallelOptions,
         CancellationToken cancellationToken)
     {
-        if (readerOptions?.ParallelProcessing is not null)
+        if (options?.ParallelProcessing is not null)
         {
             throw new ArgumentException(
-                "ReadTextRowsAsParallel uses parallelOptions; CsvDataReaderOptions.ParallelProcessing must be omitted.",
-                nameof(readerOptions));
+                "ReadTextRowsAsParallel uses parallelOptions; CsvReaderOptions.ParallelProcessing must be omitted.",
+                nameof(options));
         }
 
-        using var reader = (CsvDataReader)OpenTextDataReader(text, loadOptions, readerOptions);
+        using var reader = (CsvDataReader)CreateTextReader(text, options);
         CsvRecordFactory<T> factory = factoryBuilder(new CsvRecordHeader(reader))
             ?? throw new InvalidOperationException("The CSV record factory builder returned null.");
-        ParallelRowMappingOptions options = parallelOptions ?? new ParallelRowMappingOptions();
-        int degreeOfParallelism = options.GetDegreeOfParallelism();
-        int batchSize = options.GetBatchSize(CsvParser.GetPreferredTextParallelBatchSize());
+        ParallelRowMappingOptions parallel = parallelOptions ?? new ParallelRowMappingOptions();
+        int degreeOfParallelism = parallel.GetDegreeOfParallelism();
+        int batchSize = parallel.GetBatchSize(CsvParser.GetPreferredTextParallelBatchSize());
         if (degreeOfParallelism > 1 &&
             reader.TryPrepareTextPartitioning(
                 cancellationToken,

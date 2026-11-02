@@ -10,18 +10,18 @@ public sealed partial class CsvDocument
 {
     /// <summary>
     /// Opens a forward-only CSV reader whose ReadAsync calls perform incremental asynchronous I/O.
-    /// Initialization reads the header and, when requested, at most SchemaSampleSize data records.
+    /// Initialization reads the header and, when requested, at most SchemaSampleRows data records.
     /// Delimiter detection replays a bounded prefix. Dispose the reader to close its file.
     /// </summary>
-    public static Task<DbDataReader> OpenDataReaderAsync(string path,
-        CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
+    public static Task<CsvDataReader> OpenReaderAsync(string path,
+        CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         return CreateIncrementalReaderAsync(
-            options => CsvFile.OpenTextReaderForAsyncRead(path, options,
+            parsing => CsvFile.OpenTextReaderForAsyncRead(path, parsing,
                 CsvLineReader.DefaultBufferSize, largeFileBufferSize: 128 * 1024),
-            loadOptions, readerOptions, cancellationToken);
+            options, cancellationToken);
     }
 
     /// <summary>
@@ -31,24 +31,23 @@ public sealed partial class CsvDocument
     /// a parsing failure ends the reader. The opening token remains active for its lifetime.
     /// Delimiter detection samples at most 64 Ki characters and replays the prefix.
     /// </summary>
-    public static Task<DbDataReader> OpenDataReaderAsync(Stream stream,
-        CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
+    public static Task<CsvDataReader> OpenReaderAsync(Stream stream,
+        CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         if (stream is null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         return CreateIncrementalReaderAsync(
-            options => CsvFile.OpenTextReader(stream, options, leaveOpen: true, CsvLineReader.DefaultBufferSize),
-            loadOptions, readerOptions, cancellationToken);
+            parsing => CsvFile.OpenTextReader(stream, parsing, leaveOpen: true, CsvLineReader.DefaultBufferSize),
+            options, cancellationToken);
     }
 
-    private static async Task<DbDataReader> CreateIncrementalReaderAsync(Func<CsvLoadOptions, TextReader> readerFactory,
-        CsvLoadOptions? loadOptions, CsvDataReaderOptions? readerOptions, CancellationToken token)
+    private static async Task<CsvDataReader> CreateIncrementalReaderAsync(Func<CsvReaderOptions, TextReader> readerFactory,
+        CsvReaderOptions? readerOptions, CancellationToken token)
     {
-        readerOptions ??= new CsvDataReaderOptions();
-        ValidateAsyncReaderOptions(readerOptions);
-        readerOptions.ParallelProcessing?.GetDegreeOfParallelism();
-        var options = loadOptions?.Clone() ?? new CsvLoadOptions();
+        var options = readerOptions?.Clone() ?? new CsvReaderOptions();
+        ValidateAsyncReaderOptions(options);
+        options.ParallelProcessing?.GetDegreeOfParallelism();
         int skip = GetInitialRecordsToSkip(options);
         var explicitHeader = NormalizeExplicitHeader(options);
         CancellationToken loadToken = options.CancellationToken;
@@ -84,10 +83,10 @@ public sealed partial class CsvDocument
                 break;
             }
             header ??= Array.Empty<string>();
-            CsvSchema? schema = readerOptions.Schema;
-            if (schema is null && readerOptions.InferSchema)
+            CsvSchema? schema = options.Schema;
+            if (schema is null && options.InferSchema)
             {
-                while (buffered.Count < readerOptions.SchemaSampleSize &&
+                while (buffered.Count < options.SchemaSampleRows &&
                     await records.ReadAsync(true, lifetime.Token).ConfigureAwait(false))
                     buffered.Enqueue(new(records.Current.Values, records.StartLine, records.EndLine));
                 var columns = header.Select(name => new InferredColumn(name)).ToArray();
@@ -102,7 +101,7 @@ public sealed partial class CsvDocument
             var result = new CsvDataReader(CreateDataReaderColumns(header, schema), source, header.Count,
                 options, options.Culture, options.DateTimeFormats);
             lifetime.Token.ThrowIfCancellationRequested();
-            return CsvParallelDataReader.Apply(result, readerOptions);
+            return CsvParallelDataReader.Apply(result, options);
         }
         catch
         {

@@ -129,7 +129,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
     /// <summary>Maximum row count inspected when -AsDataReader infers the reader schema.</summary>
     [Parameter]
     [ValidateRange(1, int.MaxValue)]
-    public int SchemaSampleSize { get; set; } = 1024;
+    public int SchemaSampleRows { get; set; } = 1024;
 
     /// <summary>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</summary>
     [Parameter]
@@ -160,7 +160,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
             culture: ResolveCulture());
         options.CancellationToken = AsDataReader.IsPresent ? CancellationToken.None : CancelToken;
         options.InferSchema = AsDataReader.IsPresent || AsDataTable.IsPresent;
-        options.SchemaSampleRows = SchemaSampleSize;
+        options.SchemaSampleRows = SchemaSampleRows;
         options.MaxDataReaderChunkRows = ChunkRows;
 
         if (AllSheets.IsPresent)

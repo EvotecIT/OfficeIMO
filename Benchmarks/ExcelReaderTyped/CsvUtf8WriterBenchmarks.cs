@@ -153,11 +153,11 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         private static void ValidateFields(MemoryStream stream, int rows, Func<int, int, string> expected) {
             stream.Position = 0;
             using (StreamReader text = new StreamReader(stream, Encoding.UTF8, true, 1024, leaveOpen: true))
-            using (CsvDataReader reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
+            using (global::Sylvan.Data.Csv.CsvDataReader reader = global::Sylvan.Data.Csv.CsvDataReader.Create(text,
                        new global::Sylvan.Data.Csv.CsvDataReaderOptions { HasHeaders = false }))
                 ValidateFields(reader, rows, expected);
             stream.Position = 0;
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream, new CsvLoadOptions { HasHeaderRow = false }))
+            using (DbDataReader reader = CsvDocument.OpenReader(stream, options: new CsvReaderOptions { HasHeaderRow = false }))
                 ValidateFields(reader, rows, expected);
         }
 

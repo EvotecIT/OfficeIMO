@@ -13,7 +13,7 @@ internal static partial class CsvParser
     internal sealed partial class IncrementalRecords : IDisposable
     {
         private readonly TextReader _reader;
-        private readonly CsvLoadOptions _options;
+        private readonly CsvParsingSettings _options;
         private readonly char[] _buffer;
         private readonly Queue<CsvLine> _pending = new();
         private readonly Dictionary<string, string>? _cache;
@@ -28,7 +28,7 @@ internal static partial class CsvParser
         internal int StartLine { get; private set; }
         internal int EndLine { get; private set; }
 
-        internal IncrementalRecords(TextReader reader, CsvLoadOptions options)
+        internal IncrementalRecords(TextReader reader, CsvParsingSettings options)
         {
             _reader = reader;
             _options = options;

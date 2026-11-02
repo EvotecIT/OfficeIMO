@@ -6,7 +6,7 @@ internal static partial class CsvParser
 {
     internal static void ReadRecordsReusableWithMetadataUntilAccepted(
         TextReader reader,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         Func<CsvParsedRecord, bool> metadataRecordAction,
         Action<IReadOnlyList<string>> recordAction)
     {
@@ -36,7 +36,7 @@ internal static partial class CsvParser
 
     private static void ReadLineOrQuotedReusableWithMetadataUntilAccepted(
         TextReader reader,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         Func<CsvParsedRecord, bool> metadataRecordAction,
         Action<IReadOnlyList<string>> recordAction)
     {

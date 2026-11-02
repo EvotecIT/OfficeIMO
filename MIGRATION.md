@@ -71,7 +71,7 @@ Import-OfficeCsv -Path .\Data\Q3-Orders.csv |
 | --- | --- | --- |
 | `Get-OfficeExcelData` | `Import-OfficeExcel` | `-AsHashtable` &rarr; `-As` |
 | `Get-OfficeExcelRange` | `Import-OfficeExcel` | `-HeadersInFirstRow` &rarr; `-NoHeader`<br>`-AsHashtable`, `-AsDataTable` &rarr; `-As`<br>`-SheetIndex` &rarr; `-Sheet` |
-| `Import-OfficeExcel` | `Import-OfficeExcel` | `-WorksheetName`, `-SheetIndex`, `-AllSheets` &rarr; `-Sheet`<br>`-StartRow`, `-EndRow`, `-StartColumn`, `-EndColumn` &rarr; `-Range`<br>`-AsHashtable`, `-AsDataTable`, `-AsDataReader`, `-ByColumn` &rarr; `-As`<br>`-CultureName` &rarr; `-Culture` |
+| `Import-OfficeExcel` | `Import-OfficeExcel` | `-WorksheetName`, `-SheetIndex`, `-AllSheets` &rarr; `-Sheet`<br>`-StartRow`, `-EndRow`, `-StartColumn`, `-EndColumn` &rarr; `-Range`<br>`-AsHashtable`, `-AsDataTable`, `-AsDataReader`, `-ByColumn` &rarr; `-As`<br>`-CultureName` &rarr; `-Culture`<br>`-SchemaSampleSize` &rarr; `-SchemaSampleRows` |
 
 ```powershell
 Import-OfficeExcel -Path .\Book.xlsx -Range A1:D20
@@ -666,7 +666,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Get-OfficeExcelUsedRange` | `Import-OfficeExcel` (`Path` set) | Merged | `-HeadersInFirstRow` &rarr; `-NoHeader`<br>`-AsHashtable`, `-AsDataTable` &rarr; `-As`<br>`-SheetIndex` &rarr; `-Sheet` | `Import-OfficeExcel -Path .\Book.xlsx -Sheet Data` |
 | `Get-OfficeExcelWorksheetView` | `Get-OfficeExcelSheetView` | Renamed | `-SheetIndex` &rarr; `-Sheet` | `Get-OfficeExcelSheetView -Path .\Book.xlsx` |
 | `Get-OfficeExcelWriteReservation` | `Get-OfficeDocumentInfo` (`Path` set) | Cross-format |   | `(Get-OfficeDocumentInfo -Path .\Book.xlsx).Protection` |
-| `Import-OfficeExcel` | `Import-OfficeExcel` | Kept | `-WorksheetName`, `-SheetIndex`, `-AllSheets` &rarr; `-Sheet`<br>`-StartRow`, `-EndRow`, `-StartColumn`, `-EndColumn` &rarr; `-Range`<br>`-AsHashtable`, `-AsDataTable`, `-AsDataReader`, `-ByColumn` &rarr; `-As`<br>`-CultureName` &rarr; `-Culture` | `Import-OfficeExcel -Path .\Book.xlsx -Sheet Data -Range A1:D20` |
+| `Import-OfficeExcel` | `Import-OfficeExcel` | Kept | `-WorksheetName`, `-SheetIndex`, `-AllSheets` &rarr; `-Sheet`<br>`-StartRow`, `-EndRow`, `-StartColumn`, `-EndColumn` &rarr; `-Range`<br>`-AsHashtable`, `-AsDataTable`, `-AsDataReader`, `-ByColumn` &rarr; `-As`<br>`-CultureName` &rarr; `-Culture`<br>`-SchemaSampleSize` &rarr; `-SchemaSampleRows` | `Import-OfficeExcel -Path .\Book.xlsx -Sheet Data -Range A1:D20` |
 | `Import-OfficeExcelDelimitedText` | `Export-OfficeExcel` (`Append` set) | Merged | `-SheetName` &rarr; `-Sheet`<br>`-CultureName` &rarr; `-Culture`<br>`-Path` (same name, changed)<br>Removed: `-Document`, `-SourcePath`, `-Delimiter`, `-NoTypeConversion`, `-SkipRows` | `Import-OfficeCsv -Path .\data.csv \| Export-OfficeExcel -Path .\Book.xlsx -Sheet Data -Append` |
 | `Invoke-OfficeExcelAutoFit` | `Invoke-OfficeExcelAutoFit` | Kept | `-Columns` &rarr; `-Column`<br>`-Rows` &rarr; `-Row`<br>`-SheetIndex` &rarr; `-Sheet`<br>Removed: `-All` | `ExcelAutoFit -Column A, C` |
 | `Invoke-OfficeExcelSort` | `Invoke-OfficeExcelSort` | Kept | `-SheetIndex` &rarr; `-Sheet` | ExcelSort Revenue `-Descending` |
@@ -1221,7 +1221,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Add-OfficeOpenDocumentSlide` | `Add-OfficeOpenDocumentSlide` | Kept |   |   |
 | `Add-OfficeOpenDocumentTextBox` | `Add-OfficeOpenDocumentTextBox` | Kept | `-X`, `-Y`, `-Width`, `-Height` (same name, changed) | `OpenDocumentTextBox 'Agenda' -X 2cm -Y 2cm -Width 20cm -Height 3cm` |
 | `ConvertFrom-OfficeAsciiDocMarkdown` | `Convert-OfficeDocument` (`PathFile \| Document` set) | Cross-format | `-Options`, `-Document` (same name, changed) | `Convert-OfficeDocument -Path .\README.md -To AsciiDoc -OutputPath .\README.adoc` |
-| `ConvertFrom-OfficeCsv` | `Import-OfficeCsv` (`Text` set) | Merged | `-DelimiterText` &rarr; `-Delimiter`<br>`-SkipCommentRowsBeforeHeader` &rarr; `-NoSkipCommentRowsBeforeHeader`<br>`-RecognizeW3CFieldsHeader` &rarr; `-NoW3CFieldsHeader`<br>`-AsHashtable` &rarr; `-As`<br>`-TrimWhitespace` (same name, changed) | `Import-OfficeCsv -Text $csvText` |
+| `ConvertFrom-OfficeCsv` | `Import-OfficeCsv` (`Text` set) | Merged | `-DelimiterText` &rarr; `-Delimiter`<br>`-SkipCommentRowsBeforeHeader` &rarr; `-NoSkipCommentRowsBeforeHeader`<br>`-RecognizeW3CFieldsHeader` &rarr; `-NoW3CFieldsHeader`<br>`-AsHashtable` &rarr; `-As`<br>`-SchemaSampleSize` &rarr; `-SchemaSampleRows`<br>`-TrimWhitespace` (same name, changed) | `Import-OfficeCsv -Text $csvText` |
 | `ConvertFrom-OfficeIWork` | `Convert-OfficeDocument` (`PathFile` set) | Cross-format | `-FilePath` &rarr; `-Path`<br>`-OutPath` &rarr; `-OutputPath`<br>`-ReadOptions`, `-ConversionOptions` &rarr; `-Options`<br>Removed: `-Force`, `-PassThruReport` | `Convert-OfficeDocument -Path .\Plan.pages -To Word -OutputPath .\Plan.docx` |
 | `ConvertFrom-OfficeLatexMarkdown` | `Convert-OfficeDocument` (`PathFile \| Document` set) | Cross-format | `-Options`, `-Document` (same name, changed) | `Convert-OfficeDocument -Path .\notes.md -To Latex -OutputPath .\notes.tex` |
 | `ConvertFrom-OfficeMarkdownHtml` | `Convert-OfficeDocument` (`PathFile \| Text` set) | Cross-format | `-Html` &rarr; `-Text`<br>`-InputPath`, `-FilePath` &rarr; `-Path`<br>`-OutPath` &rarr; `-OutputPath`<br>`-Portable` &rarr; `New-OfficeHtmlMarkdownOptions -Portable`<br>`-BaseUri` &rarr; `New-OfficeHtmlMarkdownOptions -BaseUri`<br>`-IncludeDocumentChrome` &rarr; `New-OfficeHtmlMarkdownOptions -IncludeDocumentChrome`<br>`-PreserveScriptsAndStyles` &rarr; `New-OfficeHtmlMarkdownOptions -PreserveScriptsAndStyles`<br>`-DropUnsupportedBlocks` &rarr; `New-OfficeHtmlMarkdownOptions -DropUnsupportedBlocks`<br>`-DropUnsupportedInlineHtml` &rarr; `New-OfficeHtmlMarkdownOptions -DropUnsupportedInlineHtml`<br>`-MaxInputCharacters` &rarr; `New-OfficeHtmlMarkdownOptions -MaxInputCharacters`<br>`-Base64ImageHandling` &rarr; `New-OfficeHtmlMarkdownOptions -Base64ImageHandling`<br>`-Base64ImageOutputDirectory` &rarr; `New-OfficeHtmlMarkdownOptions -Base64ImageOutputDirectory`<br>`-ListingCardMetadataMode` &rarr; `New-OfficeHtmlMarkdownOptions -ListingCardMetadataMode`<br>`-MaxTableExpandedColumns` &rarr; `New-OfficeHtmlMarkdownOptions -MaxTableExpandedColumns`<br>`-WriteOptions` &rarr; `New-OfficeHtmlMarkdownOptions -WriteOptions`<br>`-WriteProfile` &rarr; `New-OfficeHtmlMarkdownOptions -WriteProfile`<br>`-ImageRenderingMode` &rarr; `New-OfficeHtmlMarkdownOptions -ImageRenderingMode`<br>`-LineEnding` &rarr; `New-OfficeHtmlMarkdownOptions -LineEnding`<br>`-UnorderedListMarker` &rarr; `New-OfficeHtmlMarkdownOptions -UnorderedListMarker`<br>`-Options` (same name, changed)<br>Removed: `-AsDocument`, `-PassThru` | `Convert-OfficeDocument -Path .\page.html -To Markdown -OutputPath .\page.md -Options (New-OfficeHtmlMarkdownOptions -Portable)` |
@@ -1238,7 +1238,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Export-OfficeCsv` | `Export-OfficeCsv` | Kept | `-DelimiterText` &rarr; `-Delimiter`<br>Removed: `-FilePath`, `-OutputPath`, `-OutPath`, `-NoOverwrite`, `-LP` | `$rows \| Export-OfficeCsv -Path .\out.csv -NoClobber` |
 | `Export-OfficeHtmlImage` | `Export-OfficeDocumentImage` (`PathFile \| TextFile \| DocumentFile` set) | Cross-format | `-Html` &rarr; `-Text`<br>`-DocumentOptions`, `-RenderOptions` &rarr; `-Options`<br>`-PageIndex` &rarr; `-Page`<br>`-Document` (same name, changed)<br>Removed: `-PassThru` | `Export-OfficeDocumentImage -Path .\page.html -OutputDirectory .\img -Options (New-OfficeHtmlRenderOptions -ViewportWidth 1280px)` |
 | `Get-OfficeAsciiDoc` | `Open-OfficeAsciiDoc` (`Path` set) | Renamed | `-FilePath` &rarr; `-Path`<br>`-FullName` &rarr; `-LiteralPath`<br>`-LiteralPath` (same name, changed) | `$doc = Open-OfficeAsciiDoc -Path .\guide.adoc` |
-| `Get-OfficeCsv` | `Import-OfficeCsv` (`Path` set) | Merged | `-FilePath`, `-InputPath` &rarr; `-Path`<br>`-DelimiterText` &rarr; `-Delimiter`<br>`-SkipCommentRowsBeforeHeader` &rarr; `-NoSkipCommentRowsBeforeHeader`<br>`-RecognizeW3CFieldsHeader` &rarr; `-NoW3CFieldsHeader`<br>`-TrimWhitespace` (same name, changed)<br>Removed: `-LP` | `$csv = Import-OfficeCsv -Path .\data.csv -As Document` |
+| `Get-OfficeCsv` | `Import-OfficeCsv` (`Path` set) | Merged | `-FilePath`, `-InputPath` &rarr; `-Path`<br>`-DelimiterText` &rarr; `-Delimiter`<br>`-SkipCommentRowsBeforeHeader` &rarr; `-NoSkipCommentRowsBeforeHeader`<br>`-RecognizeW3CFieldsHeader` &rarr; `-NoW3CFieldsHeader`<br>`-SchemaSampleSize` &rarr; `-SchemaSampleRows`<br>`-TrimWhitespace` (same name, changed)<br>Removed: `-LP` | `$csv = Import-OfficeCsv -Path .\data.csv -As Document` |
 | `Get-OfficeEpub` | `Open-OfficeEpub` (`Path` set) | Renamed | `-FullName` &rarr; `-LiteralPath`<br>`-FilePath` &rarr; `-Path`<br>`-LiteralPath` (same name, changed) | `$book = Open-OfficeEpub -Path .\Guide.epub` |
 | `Get-OfficeEpubChapter` | `Get-OfficeEpubChapter` | Kept | `-Publication` &rarr; `-Document` |   |
 | `Get-OfficeIWork` | `Open-OfficeIWork` (`Path` set) | Renamed | `-FilePath` &rarr; `-Path`<br>`-FullName` &rarr; `-LiteralPath`<br>`-LiteralPath` (same name, changed) | `$doc = Open-OfficeIWork -Path .\Plan.pages` |
@@ -1251,7 +1251,7 @@ Every PSWriteOffice 3.5 command and alias appears once, sorted by name. **Use in
 | `Get-OfficeOneNote` | `Open-OfficeOneNote` (`Path` set) | Renamed | `-FilePath` &rarr; `-Path`<br>`-FullName` &rarr; `-LiteralPath`<br>`-NotebookOptions` &rarr; `-Options`<br>`-LiteralPath` (same name, changed) | `$section = Open-OfficeOneNote -Path .\Notes.one` |
 | `Get-OfficeOpenDocument` | `Open-OfficeOpenDocument` (`Path` set) | Renamed | `-FullName` &rarr; `-LiteralPath`<br>`-LiteralPath`, `-Password` (same name, changed) | `$doc = Open-OfficeOpenDocument -Path .\Report.odt` |
 | `Get-OfficeRtf` | `Open-OfficeRtf` (`Path` set) | Renamed | `-FilePath` &rarr; `-Path`<br>`-FullName` &rarr; `-LiteralPath`<br>`-LiteralPath` (same name, changed) | `$rtf = Open-OfficeRtf -Path .\Note.rtf` |
-| `Import-OfficeCsv` | `Import-OfficeCsv` | Kept | `-FilePath`, `-InputPath` &rarr; `-Path`<br>`-DelimiterText` &rarr; `-Delimiter`<br>`-SkipCommentRowsBeforeHeader` &rarr; `-NoSkipCommentRowsBeforeHeader`<br>`-RecognizeW3CFieldsHeader` &rarr; `-NoW3CFieldsHeader`<br>`-AsHashtable`, `-AsDataTable`, `-AsDataReader` &rarr; `-As`<br>`-TrimWhitespace` (same name, changed)<br>Removed: `-LP` | `Import-OfficeCsv -Path .\data.csv -As DataTable -InferSchema` |
+| `Import-OfficeCsv` | `Import-OfficeCsv` | Kept | `-FilePath`, `-InputPath` &rarr; `-Path`<br>`-DelimiterText` &rarr; `-Delimiter`<br>`-SkipCommentRowsBeforeHeader` &rarr; `-NoSkipCommentRowsBeforeHeader`<br>`-RecognizeW3CFieldsHeader` &rarr; `-NoW3CFieldsHeader`<br>`-AsHashtable`, `-AsDataTable`, `-AsDataReader` &rarr; `-As`<br>`-SchemaSampleSize` &rarr; `-SchemaSampleRows`<br>`-TrimWhitespace` (same name, changed)<br>Removed: `-LP` | `Import-OfficeCsv -Path .\data.csv -As DataTable -InferSchema` |
 | `New-OfficeEpub` | `New-OfficeEpub` | Kept | `-Path` (same name, changed) | `New-OfficeEpub -Path .\Guide.epub -Title 'Guide' { EpubChapter 'Intro' -Markdown $intro }` |
 | `New-OfficeHtmlConversionOptions` | `New-OfficeHtmlConversionOptions` | Kept | `-UseBodyContentsOnly` &rarr; `-NoBodyContentsOnly`<br>`-IncludeNormalizedHtml` &rarr; `-NoNormalizedHtml` |   |
 | `New-OfficeHtmlPdfOptions` | `New-OfficeHtmlPdfOptions` | Kept | `-InteractiveFormControls` &rarr; `-NoInteractiveFormControls`<br>`-FontFamily` &rarr; `-Font`<br>`-Options` &rarr; `-BaseOptions`<br>`-Margin` (same name, changed) |   |
@@ -2042,17 +2042,17 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.LoadLegacyXls(string path, LegacyXlsImportOptions options = null)` | Merged | `OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options)` | One way to do each thing. |
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.LoadLegacyXlsWithReport(Stream stream, LegacyXlsImportOptions options = null)` | Merged | `OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.LoadLegacyXlsWithReport(string path, LegacyXlsImportOptions options = null)` | Merged | `OfficeIMO.Excel.ExcelDocument.Load(path or stream, ExcelLoadOptions options, out OfficeConversionReport report)` | OfficeConversionReport with OfficeDiagnostic is the single conversion report type. |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReader(byte[] bytes, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReader(Stream stream, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReader(string path, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(Stream stream, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(string path, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(Uri uri, ExcelReadOptions options = null, ExcelHttpLoadOptions httpOptions = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(byte[] encryptedBytes, string password, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(Stream stream, string password, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(string path, string password, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReaderAsync(Stream stream, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
-| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReaderAsync(string path, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(path or stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReader(byte[] bytes, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(Stream stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReader(Stream stream, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(Stream stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReader(string path, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(string path, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(Stream stream, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(Stream stream, ExcelReaderOptions options = null, CancellationToken cancellationToken = default) : Task<ExcelWorkbookDataReader>` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(string path, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(string path, ExcelReaderOptions options = null, CancellationToken cancellationToken = default) : Task<ExcelWorkbookDataReader>` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenDataReaderAsync(Uri uri, ExcelReadOptions options = null, ExcelHttpLoadOptions httpOptions = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(Uri uri, ExcelReaderOptions options = null, CancellationToken cancellationToken = default) : Task<ExcelWorkbookDataReader>` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(byte[] encryptedBytes, string password, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(Stream stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(Stream stream, string password, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(Stream stream, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReader(string path, string password, ExcelReadOptions options = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReader(string path, ExcelReaderOptions options = null) : ExcelWorkbookDataReader` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReaderAsync(Stream stream, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(Stream stream, ExcelReaderOptions options = null, CancellationToken cancellationToken = default) : Task<ExcelWorkbookDataReader>` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
+| Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenEncryptedDataReaderAsync(string path, string password, ExcelReadOptions options = null, CancellationToken cancellationToken = null)` | Renamed | `OfficeIMO.Excel.ExcelDocument.OpenReaderAsync(string path, ExcelReaderOptions options = null, CancellationToken cancellationToken = default) : Task<ExcelWorkbookDataReader>` | Very large workbooks use explicit streaming APIs (design: Large workbooks). |
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.OpenFileBacked(string filePath, ExcelLoadOptions options = null, CancellationToken cancellationToken = null)` | Merged | `OfficeIMO.Excel.ExcelDocument.Load(string filePath, ExcelLoadOptions { FileBacked = true })` | One way to do each thing. |
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions options = null)` | Changed | `OfficeIMO.Excel.ExcelDocument.Save(Stream destination, ExcelSaveOptions options = null)` | One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions. |
 | Lifecycle | `OfficeIMO.Excel.ExcelDocument.SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions options = null, CancellationToken cancellationToken = null)` | Changed | `OfficeIMO.Excel.ExcelDocument.SaveAsync(Stream destination, ExcelSaveOptions options = null, CancellationToken cancellationToken = default)` | One document lifecycle: Create, Load, LoadAsync, Save, SaveAsync with {Format}CreateOptions, {Format}LoadOptions and {Format}SaveOptions. |
@@ -3441,6 +3441,43 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Visibility | `OfficeIMO.Security.OfficeVbaSignatureService` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Security.OfficeXmlPackageSignatureService` | Internal | &mdash; | Use the documented document, options and result APIs. |
 | Visibility | `OfficeIMO.Security.XmlDigitalSignatureAlgorithms` | Internal | &mdash; | Use the documented document, options and result APIs. |
+
+</details>
+
+#### OfficeIMO.CSV
+
+<details>
+<summary>15 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Lifecycle | `OfficeIMO.CSV.CsvDocument.CreateDataReader(CsvDataReaderOptions options = null)` | Changed | `OfficeIMO.CSV.CsvDocument.CreateDataReader(CsvReaderOptions options = null) : CsvDataReader` | CreateDataReader stays on loaded documents. Supply projection settings through CsvReaderOptions; the returned CsvDataReader still supports DbDataReader consumers. |
+| Lifecycle | `OfficeIMO.CSV.CsvDocument.OpenDataReader(Stream stream, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null)` | Renamed | `OfficeIMO.CSV.CsvDocument.OpenReader(Stream stream, CsvReaderOptions options = null) : CsvDataReader` | Combine loadOptions and readerOptions into options. The return type is the concrete CsvDataReader, derived from DbDataReader. |
+| Lifecycle | `OfficeIMO.CSV.CsvDocument.OpenDataReader(string path, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null)` | Renamed | `OfficeIMO.CSV.CsvDocument.OpenReader(string path, CsvReaderOptions options = null) : CsvDataReader` | Combine loadOptions and readerOptions into options. The return type is the concrete CsvDataReader, derived from DbDataReader. |
+| Lifecycle | `OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(Stream stream, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null, CancellationToken cancellationToken = default)` | Renamed | `OfficeIMO.CSV.CsvDocument.OpenReaderAsync(Stream stream, CsvReaderOptions options = null, CancellationToken cancellationToken = default) : Task<CsvDataReader>` | On .NET 8 and later, await OpenReaderAsync with the combined options; dispose the returned incremental reader. |
+| Lifecycle | `OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(string path, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null, CancellationToken cancellationToken = default)` | Renamed | `OfficeIMO.CSV.CsvDocument.OpenReaderAsync(string path, CsvReaderOptions options = null, CancellationToken cancellationToken = default) : Task<CsvDataReader>` | On .NET 8 and later, await OpenReaderAsync with the combined options; dispose the returned incremental reader. |
+| Lifecycle | `OfficeIMO.CSV.CsvDocument.OpenTextDataReader(string text, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null)` | Merged | `OfficeIMO.CSV.CsvDocument.OpenReader(TextReader reader, CsvReaderOptions options = null) : CsvDataReader` | Replace OpenTextDataReader(text, loadOptions, readerOptions) with OpenReader(new StringReader(text), options), combining both old options objects. |
+| Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Existing calls remain valid; pass options for CSV projection settings and cancellationToken for cancellation. |
+| Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Action<RowMapper<T>> configure)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Action<RowMapper<T>> configure, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Existing calls remain valid; pass options for CSV projection settings and cancellationToken for cancellation. |
+| Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Func<IDataRecord, T> factory)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Func<IDataRecord, T> factory, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Existing calls remain valid; pass options for CSV projection settings and cancellationToken for cancellation. |
+| Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Action<RowMapper<T>> configure, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Action<RowMapper<T>> configure, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls. |
+| Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Func<IDataRecord, T> factory, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Func<IDataRecord, T> factory, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls. |
+| Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls. |
+| Options | `OfficeIMO.CSV.CsvDataReaderOptions` | Merged | `OfficeIMO.CSV.CsvReaderOptions` | Combine Schema, InferSchema and ParallelProcessing with parsing settings in CsvReaderOptions for OpenReader. Load and Parse keep CsvLoadOptions. Rename SchemaSampleSize to SchemaSampleRows. |
+| Options | `OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize` | Renamed | `OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows` | Keep the sample-row count; only the property and containing options type change. CSV decimal inference is unchanged; use an explicit Schema to select other column types. |
+| Options | `OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize` | Renamed | `OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows` | Keep the sample-row count. CsvDataTableOptions retains its separate TableName and table-schema projection contract. |
+
+</details>
+
+#### OfficeIMO.Excel.Csv
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Options | `OfficeIMO.Excel.Csv.ExcelCsvImportOptions.LoadOptions` | Merged | `OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions` | Move LoadOptions parsing settings into the CsvReaderOptions assigned to ReaderOptions, alongside Schema, InferSchema and ParallelProcessing. |
+| Options | `OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions : CsvDataReaderOptions` | Changed | `OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions : CsvReaderOptions` | Use one CsvReaderOptions object. The import defaults keep DetectDelimiter = true and InferSchema = true; when replacing the object, set the defaults your import needs. |
 
 </details>
 
@@ -5149,7 +5186,7 @@ keep their existing behavior.
 
 ## CSV asynchronous reads and stream saves
 
-On .NET 8 and later, `CsvDocument.OpenDataReaderAsync` reads incrementally.
+On .NET 8 and later, `CsvDocument.OpenReaderAsync` reads incrementally.
 Opening reads the header and any configured schema sample; later `ReadAsync`
 calls perform source I/O. Source limits and parsing errors can therefore occur
 during traversal. The opening cancellation token remains active until the
@@ -7217,31 +7254,31 @@ CSV and Excel retain separate document models and use the same entry-point gramm
 
 | Intent | CSV | Excel |
 | --- | --- | --- |
-| Stream from a path or stream | `CsvDocument.OpenDataReader(...)` | `ExcelDocument.OpenDataReader(...)` |
+| Stream from a path or stream | `CsvDocument.OpenReader(...)` | `ExcelDocument.OpenReader(...)` |
 | Read an already-open document | `csv.CreateDataReader(...)` | `workbook.CreateDataReader(...)` |
 | Load an editable model | `CsvDocument.Load(...)` | `ExcelDocument.Load(...)` |
 
 Replace the removed public reader roots as follows:
 
-| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| OfficeIMO 3.0 | OfficeIMO 3.6 |
 | --- | --- |
-| `CsvDocument.CreateDataReader(pathOrStream, ...)` | `CsvDocument.OpenDataReader(pathOrStream, ...)` |
-| Public `CsvDataReader` construction or return types | `DbDataReader` returned by `CsvDocument.OpenDataReader(...)` or `csv.CreateDataReader(...)` |
-| `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenDataReader(...)` for streaming, or `Load(...)` / `Parse(...)` for a materialized document |
-| `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenDataReader(...)` |
-| `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenDataReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
-| Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenDataReader(...)` or `workbook.CreateDataReader(...)` |
-| `ExcelSheet.Rows(...)` | `workbook.CreateDataReader(...)` to read the current open workbook (including unsaved edits), `ExcelDocument.OpenDataReader(...)` for an unopened file/stream, or deferred `ExcelSheet.RowsAs<T>(...)` projection |
+| `CsvDocument.CreateDataReader(pathOrStream, ...)` | `CsvDocument.OpenReader(pathOrStream, options)` |
+| Public `CsvDataReader` construction or return types | `CsvDataReader` returned by `CsvDocument.OpenReader(...)` or `csv.CreateDataReader(...)`; it derives from `DbDataReader` |
+| `CsvDocument.ReadFieldSpans*`, `CsvDocument.ReadRowFieldSpans*`, `CsvFieldSpanAction`, `ICsvFieldSpanVisitor`, `ICsvProjectedFieldSpanVisitor`, and `ICsvRowFieldSpanVisitor` | `CsvDocument.OpenReader(...)` for streaming, or `Load(...)` / `Parse(...)` for a materialized document |
+| `ExcelDocumentReader.Open(...)` | `ExcelDocument.OpenReader(...)` |
+| `ExcelRead.*`, `ExcelDocument.Read().Sheet().Range()`, or `ExcelSheetReader` | `ExcelDocument.OpenReader(...)` for streaming, or `ExcelDocument.Load(...)` for editing |
+| Concrete `ExcelDocumentReader` / `ExcelSheetReader` use | `ExcelWorkbookDataReader` returned by `ExcelDocument.OpenReader(...)` or `workbook.CreateDataReader(...)` |
+| `ExcelSheet.Rows(...)` | `workbook.CreateDataReader(...)` to read the current open workbook (including unsaved edits), `ExcelDocument.OpenReader(...)` for an unopened file/stream, or deferred `ExcelSheet.RowsAs<T>(...)` projection |
 | `ExcelSheet.RowsObjects(...)`, `RowEdit`, or `CellEdit` | Direct `ExcelSheet` cell APIs such as `CellValue(...)`, `CellFormula(...)`, and `FormatCell(...)` |
 | `ExcelSheet.GetUsedRangeA1()` | `ExcelSheet.UsedRangeA1` |
 
 `CsvLoadOptions.Mode`, `CsvLoadMode`, and `CsvDocument.Mode` are no longer
-public. Use `CsvDocument.OpenDataReader` for a forward-only read and
+public. Use `CsvDocument.OpenReader` for a forward-only read and
 `CsvDocument.Load` for a materialized model.
 
 `CsvDocument.Materialize()` is also no longer public because `Load` and `Parse`
 always return a materialized document. There is no public streaming-document
-state to convert; use `OpenDataReader` when rows should remain forward-only.
+state to convert; use `OpenReader` when rows should remain forward-only.
 
 ### CSV and Excel typed-row cleanup
 
@@ -7267,7 +7304,7 @@ On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets work through
 `RowsAs<T>`, `DbDataReader.GetFieldValue<T>`, and CSV schema columns. Default
 CSV and Excel schema inference remains `DateTime`; OfficeIMO does not remap
 inferred dates based on the target framework. Set
-`CsvLoadOptions.MappingErrorValuePolicy` or
+`CsvReaderOptions.MappingErrorValuePolicy` or
 `ExcelReaderOptions.MappingErrorValuePolicy` to `Redact` when typed mapping errors
 must omit source values and custom-converter details.
 
@@ -7278,13 +7315,13 @@ with the previous `DateTimeStyles.None` behavior. Consumers that intentionally
 discard zone-kind information should normalize the mapped value explicitly.
 
 The low-level `CsvFile` compression helper is no longer public. Use
-`CsvDocument.Load`, `OpenDataReader`, `Save`, `WriteDataReader`, or caller-owned
+`CsvDocument.Load`, `OpenReader`, `Save`, `WriteDataReader`, or caller-owned
 `TextReader` / `TextWriter` streams so file and compression behavior stays with
 the operation being performed.
 
 CSV `LoadAsync` materializes an editable document. `SaveAsync` writes records
-incrementally. Use `OpenDataReader` for synchronous forward-only reading or,
-on .NET 8 and later, `OpenDataReaderAsync` for incremental asynchronous I/O.
+incrementally. Use `OpenReader` for synchronous forward-only reading or,
+on .NET 8 and later, `OpenReaderAsync` for incremental asynchronous I/O.
 Both readers expose `ICsvDataReaderPositionMetadata` for logical record numbers
 and available physical start/end line numbers.
 
@@ -7307,9 +7344,9 @@ use `cancellationToken` instead of `ct`.
 
 Use `CsvDocument.Load(...).RowsAs<T>()` when a mutable/materialized CSV document
 is required. For a forward-only typed read, use
-`CsvDocument.OpenDataReader(...).RowsAs<T>()`; the same automatic and explicit
-mapping definitions and the constructor factory are supported without exposing
-another CSV reader type.
+`CsvDocument.OpenReader(...).RowsAs<T>()`; the same automatic and explicit
+mapping definitions and the constructor factory use the shared `OfficeIMO.Data`
+mapping implementation.
 
 `ExcelDocument.Sheets` now exposes `IReadOnlyList<ExcelSheet>` instead of
 `List<ExcelSheet>`. Enumerate or index the property as before, use the workbook's
@@ -7330,16 +7367,16 @@ Replace `ExcelDelimitedImportOptions` and `ExcelDelimitedImportResult` with
 `ExcelCsvImportOptions` and `ExcelCsvImportResult`. Use `SaveAsCsv` and
 `SaveAsExcel` for destination-shaped conversion entry points.
 
-Move the removed import-option properties into the CSV parsing and reader
-options owned by `ExcelCsvImportOptions`:
+Move the removed import-option properties into the unified
+`ExcelCsvImportOptions.ReaderOptions`:
 
-| OfficeIMO 3.0 | OfficeIMO 3.1 |
+| OfficeIMO 3.0 | OfficeIMO 3.6 |
 | --- | --- |
-| `Delimiter = value` | `LoadOptions.Delimiter = value` and `LoadOptions.DetectDelimiter = false` |
-| `Delimiter = null` | `LoadOptions.DetectDelimiter = true` |
-| `HeadersInFirstRow` | `LoadOptions.HasHeaderRow` |
-| `SkipInitialRecords` | `LoadOptions.SkipInitialRecords` |
-| `Culture` | `LoadOptions.Culture` |
+| `Delimiter = value` | `ReaderOptions.Delimiter = value` and `ReaderOptions.DetectDelimiter = false` |
+| `Delimiter = null` | `ReaderOptions.DetectDelimiter = true` |
+| `HeadersInFirstRow` | `ReaderOptions.HasHeaderRow` |
+| `SkipInitialRecords` | `ReaderOptions.SkipInitialRecords` |
+| `Culture` | `ReaderOptions.Culture` |
 | `ConvertNumbersAndDates` | `ReaderOptions.InferSchema` |
 
 For example, an explicit semicolon import now uses nested options:
@@ -7351,14 +7388,14 @@ using OfficeIMO.Excel.Csv;
 
 var options = new ExcelCsvImportOptions {
     SheetName = "Import",
-    LoadOptions = new CsvLoadOptions {
+    ReaderOptions = new CsvReaderOptions {
         Delimiter = ';',
         DetectDelimiter = false,
         HasHeaderRow = true,
         SkipInitialRecords = 1,
-        Culture = CultureInfo.GetCultureInfo("pl-PL")
-    },
-    ReaderOptions = new CsvDataReaderOptions { InferSchema = true }
+        Culture = CultureInfo.GetCultureInfo("pl-PL"),
+        InferSchema = true
+    }
 };
 ```
 
@@ -7385,12 +7422,12 @@ ExcelCsvImportResult imported = sheet.ImportCsvText(
         StartColumn = startColumn,
         IncludeHeaders = includeHeaders,
         CreateTable = false,
-        LoadOptions = new CsvLoadOptions {
+        ReaderOptions = new CsvReaderOptions {
             Delimiter = ',',
             DetectDelimiter = false,
-            HasHeaderRow = firstRowIsHeader
-        },
-        ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+            HasHeaderRow = firstRowIsHeader,
+            InferSchema = false
+        }
     },
     cancellationToken: ct);
 
@@ -7409,7 +7446,7 @@ old import-result properties
 inspect the resulting worksheet/table when row or column counts are needed. `Delimiter`
 reports the actual delimiter used, including one selected by detection.
 
-CSV reader configuration remains in `CsvDataReaderOptions`. Excel reader safety limits remain in `ExcelReaderOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
+CSV reader configuration remains in `CsvReaderOptions`. Excel reader safety limits remain in `ExcelReaderOptions`: `MaxXlsbCells` limits aggregate workbook cells and `MaxDataReaderBufferedCells` limits a reader operation's buffer. Raise either limit only for trusted, intentionally larger workbooks.
 
 XML streaming Excel data readers also enforce `MaxXmlDataReaderBufferedCharacters`
 (32 Mi characters by default) while completing a physical row, or across all

@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 if (count != RowCount) throw new InvalidDataException("Typed CSV row count differs.");
             }
             using (MemoryStream stream = new MemoryStream(_data, false))
-            using (DbDataReader reader = CsvDocument.OpenDataReader(stream)) CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
+            using (DbDataReader reader = CsvDocument.OpenReader(stream)) CsvBenchmarkFixture.Validate(reader, RowCount, headers: true);
             ExcelReaderTyped(); OfficeIMORowsAs(); SylvanTyped();
         }
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMORowsAs() {
             using MemoryStream stream = new MemoryStream(_data, false);
-            using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+            using DbDataReader reader = CsvDocument.OpenReader(stream);
             long sum = 0;
             int count = 0;
             foreach (TypedRecord record in reader.RowsAs<TypedRecord>()) {
@@ -79,7 +79,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
                 using CsvReader workbook = ExcelReaderApi.FromCsv(stream);
                 foreach (TypedRecord record in ExcelParser.FromAttributes<TypedRecord>().Parse(workbook.FirstSheet)) yield return record;
             } else if (engine == 1) {
-                using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+                using DbDataReader reader = CsvDocument.OpenReader(stream);
                 foreach (TypedRecord record in reader.RowsAs<TypedRecord>()) yield return record;
             } else {
                 using StreamReader text = new StreamReader(stream);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public async Task<long> OfficeIMORowsAsAsync() {
             await using MemoryStream stream = new MemoryStream(_data, false);
-            using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(stream);
+            using DbDataReader reader = await CsvDocument.OpenReaderAsync(stream);
             int count = 0;
             long sum = 0;
             await foreach (TypedRecord record in reader.RowsAsAsync<TypedRecord>()) {

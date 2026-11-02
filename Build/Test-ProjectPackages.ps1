@@ -319,7 +319,7 @@ internal static class Program
     }
 
     private static DbDataReader OpenCsv(string path) =>
-        CsvDocument.OpenDataReader(path);
+        CsvDocument.OpenReader(path);
 
     private static void VerifyHtmlConversionApi()
     {

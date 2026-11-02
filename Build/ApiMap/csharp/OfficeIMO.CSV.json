@@ -1,0 +1,125 @@
+{
+  "package": "OfficeIMO.CSV",
+  "changes": [
+    {
+      "old": "OfficeIMO.CSV.CsvDataReaderOptions",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.CSV.CsvReaderOptions",
+      "replacement": "Combine Schema, InferSchema and ParallelProcessing with parsing settings in CsvReaderOptions for OpenReader. Load and Parse keep CsvLoadOptions. Rename SchemaSampleSize to SchemaSampleRows.",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows",
+      "replacement": "Keep the sample-row count; only the property and containing options type change. CSV decimal inference is unchanged; use an explicit Schema to select other column types.",
+      "category": "options"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.OpenDataReader(string path, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.CSV.CsvDocument.OpenReader(string path, CsvReaderOptions options = null) : CsvDataReader",
+      "replacement": "Combine loadOptions and readerOptions into options. The return type is the concrete CsvDataReader, derived from DbDataReader.",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(string path, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.CSV.CsvDocument.OpenReaderAsync(string path, CsvReaderOptions options = null, CancellationToken cancellationToken = default) : Task<CsvDataReader>",
+      "replacement": "On .NET 8 and later, await OpenReaderAsync with the combined options; dispose the returned incremental reader.",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.OpenDataReader(Stream stream, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.CSV.CsvDocument.OpenReader(Stream stream, CsvReaderOptions options = null) : CsvDataReader",
+      "replacement": "Combine loadOptions and readerOptions into options. The return type is the concrete CsvDataReader, derived from DbDataReader.",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.OpenDataReaderAsync(Stream stream, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.CSV.CsvDocument.OpenReaderAsync(Stream stream, CsvReaderOptions options = null, CancellationToken cancellationToken = default) : Task<CsvDataReader>",
+      "replacement": "On .NET 8 and later, await OpenReaderAsync with the combined options; dispose the returned incremental reader.",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.OpenTextDataReader(string text, CsvLoadOptions loadOptions = null, CsvDataReaderOptions readerOptions = null)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.CSV.CsvDocument.OpenReader(TextReader reader, CsvReaderOptions options = null) : CsvDataReader",
+      "replacement": "Replace OpenTextDataReader(text, loadOptions, readerOptions) with OpenReader(new StringReader(text), options), combining both old options objects.",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDocument.CreateDataReader(CsvDataReaderOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvDocument.CreateDataReader(CsvReaderOptions options = null) : CsvDataReader",
+      "replacement": "CreateDataReader stays on loaded documents. Supply projection settings through CsvReaderOptions; the returned CsvDataReader still supports DbDataReader consumers.",
+      "category": "lifecycle"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, CsvReaderOptions options = null, CancellationToken cancellationToken = default)",
+      "replacement": "Mapping uses the shared OfficeIMO.Data reader contract. Existing calls remain valid; pass options for CSV projection settings and cancellationToken for cancellation.",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Action<RowMapper<T>> configure)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Action<RowMapper<T>> configure, CsvReaderOptions options = null, CancellationToken cancellationToken = default)",
+      "replacement": "Mapping uses the shared OfficeIMO.Data reader contract. Existing calls remain valid; pass options for CSV projection settings and cancellationToken for cancellation.",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Func<IDataRecord, T> factory)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvMappingExtensions.RowsAs<T>(this CsvDocument document, Func<IDataRecord, T> factory, CsvReaderOptions options = null, CancellationToken cancellationToken = default)",
+      "replacement": "Mapping uses the shared OfficeIMO.Data reader contract. Existing calls remain valid; pass options for CSV projection settings and cancellationToken for cancellation.",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)",
+      "replacement": "Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls.",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Action<RowMapper<T>> configure, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Action<RowMapper<T>> configure, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)",
+      "replacement": "Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls.",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Func<IDataRecord, T> factory, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Func<IDataRecord, T> factory, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)",
+      "replacement": "Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls.",
+      "category": "conversion"
+    },
+    {
+      "old": "OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows",
+      "replacement": "Keep the sample-row count. CsvDataTableOptions retains its separate TableName and table-schema projection contract.",
+      "category": "options"
+    }
+  ]
+}
