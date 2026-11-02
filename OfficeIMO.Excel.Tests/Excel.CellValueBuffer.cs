@@ -361,5 +361,84 @@ namespace OfficeIMO.Tests {
             CellFormat format = styles.CellFormats!.Elements<CellFormat>().ElementAt((int)date.StyleIndex!.Value);
             Assert.Equal(14U, format.NumberFormatId!.Value);
         }
+
+        private static void WriteMixedBufferedCells(ExcelSheet sheet) {
+            for (int row = 1; row <= 80; row++) {
+                sheet.CellValue(row, 1, "text " + row);
+                sheet.CellValue(row, 2, row * 1.25);
+                sheet.CellValue(row, 3, row);
+                sheet.CellValue(row, 4, 9_007_199_254_740_993L + row);
+                sheet.CellValue(row, 5, row % 2 == 0);
+                sheet.CellValue(row, 6, new DateTime(2024, 1, 1, 6, 30, 0).AddDays(row));
+            }
+
+            sheet.CellValue(81, 1, "  padded  ");
+            sheet.CellValue(81, 2, "   ");
+            sheet.CellValue(81, 3, "line\nbreak");
+            sheet.CellValue(81, 4, 1.5m);
+            sheet.CellValue(81, 5, TimeSpan.FromHours(30));
+            sheet.CellValue(81, 6, (object?)null);
+            sheet.CellFormula(81, 7, "SUM(B1:B80)");
+            sheet.CellValue(82, 1, 3d);
+            sheet.FormatCell(82, 1, "yyyy-mm-dd");
+        }
+
+        [Fact]
+        public void CellValueBuffer_ReadsMatchTheDomRouteAndLeaveTheCellsBuffered() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet buffered = document.AddSheet("Buffered");
+            WriteMixedBufferedCells(buffered);
+            using ExcelDocument domDocument = ExcelDocument.Create();
+            ExcelSheet dom = domDocument.AddSheet("Dom");
+            WriteMixedBufferedCells(dom);
+            dom.MaterializePendingDirectCellValues();
+
+            Assert.Equal(
+                dom.EnumerateCells().Select(cell => (cell.Row, cell.Column, cell.Value)).ToArray(),
+                buffered.EnumerateCells().Select(cell => (cell.Row, cell.Column, cell.Value)).ToArray());
+            Assert.Equal(
+                dom.ToDataTable(headersInFirstRow: false).Rows.Cast<System.Data.DataRow>().Select(row => row.ItemArray).ToArray(),
+                buffered.ToDataTable(headersInFirstRow: false).Rows.Cast<System.Data.DataRow>().Select(row => row.ItemArray).ToArray());
+            Assert.True(buffered.PendingCellValueCount > 0);
+        }
+
+        [Fact]
+        public void CellValueBuffer_OpenEnumeratorKeepsTheCellsOfItsRead() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            WriteBufferedRows(sheet, firstRow: 1, rows: 100);
+
+            using (var cells = sheet.EnumerateCells().GetEnumerator()) {
+                Assert.True(cells.MoveNext());
+                sheet.CellValue(100, 1, "changed");
+                sheet.CellValue(101, 1, "added");
+                int count = 1;
+                object? lastName = null;
+                while (cells.MoveNext()) {
+                    count++;
+                    if (cells.Current.Column == 1) lastName = cells.Current.Value;
+                }
+
+                Assert.Equal(300, count);
+                Assert.Equal("name 99", lastName);
+            }
+
+            Assert.Equal(301, sheet.EnumerateCells().Count());
+            Assert.Equal("changed", sheet.EnumerateCells().First(cell => cell.Row == 100).Value);
+        }
+
+        [Fact]
+        public void CellValueBuffer_ReadAfterEveryWriteMovesToTheDomAndKeepsEveryCell() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Data");
+            WriteBufferedRows(sheet, firstRow: 1, rows: 30_000);
+
+            for (int read = 1; read <= 20; read++) {
+                sheet.CellValue(30_000 + read, 1, read);
+                Assert.Equal(90_000 + read, sheet.EnumerateCells().Count());
+            }
+
+            Assert.Equal(0, sheet.PendingCellValueCount);
+        }
     }
 }

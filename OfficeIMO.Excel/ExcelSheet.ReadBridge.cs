@@ -280,7 +280,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateCellEnumerationReader(effectiveOptions.WithCancellationToken(token));
+            using var rdr = _excelDocument.CreateCellEnumerationReader(this, effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(Name);
             foreach (ExcelCellValueInfo cell in sh.EnumerateCells(token)) {
                 yield return cell;
@@ -296,7 +296,7 @@ namespace OfficeIMO.Excel {
                 ct,
                 effectiveOptions.CancellationToken);
             CancellationToken token = linkedCancellation.Token;
-            using var rdr = _excelDocument.CreateCellEnumerationReader(effectiveOptions.WithCancellationToken(token));
+            using var rdr = _excelDocument.CreateCellEnumerationReader(this, effectiveOptions.WithCancellationToken(token));
             var sh = rdr.GetSheet(Name);
             foreach (ExcelCellValueInfo cell in sh.EnumerateRange(a1Range, token)) {
                 yield return cell;

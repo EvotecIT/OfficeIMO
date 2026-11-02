@@ -359,7 +359,7 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<(ExcelSheet Sheet, ExcelCellValueBuffer Buffer)> buffers,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 ExcelDateSystem dateSystem,
-                DirectWorkbookCellStyles workbookStyles) {
+                DirectWorkbookCellStyles? workbookStyles) {
                 var sheets = new DirectDataSetSheetModel[buffers.Count];
                 var results = new ExcelDataSetImportResult[buffers.Count];
                 for (int i = 0; i < buffers.Count; i++) {

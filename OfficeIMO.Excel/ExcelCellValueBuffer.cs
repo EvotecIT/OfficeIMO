@@ -114,6 +114,8 @@ namespace OfficeIMO.Excel {
         private const byte MixedColumn = byte.MaxValue;
         private const int StyleChunkBits = 12;
         private const int StyleChunkMask = (1 << StyleChunkBits) - 1;
+        private const int ReadCopyRatioLimit = 8;
+        private const int MinimumReadCopyLimit = 1 << 16;
 
         private readonly struct RowEntry {
             internal RowEntry(int rowNumber, int firstCell) {
@@ -163,6 +165,10 @@ namespace OfficeIMO.Excel {
         private int _firstColumn = int.MaxValue;
         private int _lastColumn;
         private int _maximumColumn;
+        private long _readCopiedCells;
+
+        /// <summary>Gets a number that changes whenever the buffer's content does.</summary>
+        internal int Version { get; private set; }
 
         /// <summary>Gets the last written row; the tabular view of the buffer starts at row one.</summary>
         internal int RowCount { get; private set; }
@@ -191,6 +197,20 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Admits one more copy of the buffer for a reader. A loop that reads after every write would
+        /// otherwise cost quadratic time, so such a loop runs out and moves the cells to the DOM.
+        /// </summary>
+        internal bool TryReserveReadCopy() {
+            long copied = _readCopiedCells + CellCount;
+            if (copied > Math.Max(MinimumReadCopyLimit, (long)CellCount * ReadCopyRatioLimit)) {
+                return false;
+            }
+
+            _readCopiedCells = copied;
+            return true;
+        }
+
         internal bool CanAdd(int row, int column) {
             if (row <= 0 || row > ExcelA1.MaxRows || column <= 0 || column > ExcelA1.MaxColumns) {
                 return false;
@@ -200,6 +220,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void Add(int row, int column, in ExcelBufferedCell cell) {
+            Version++;
             if (row != RowCount) {
                 _rows.Add(new RowEntry(row, _headers.Count));
                 RowCount = row;
@@ -221,6 +242,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Replaces an existing cell, keeping its position.</summary>
         internal void Replace(int cellIndex, in ExcelBufferedCell cell) {
+            Version++;
             int column = GetColumn(cellIndex);
             _payloads[cellIndex] = StorePayload(cell);
             _headers[cellIndex] = CreateHeader(column, cell);
@@ -251,6 +273,7 @@ namespace OfficeIMO.Excel {
         // Styles sit beside the cells in chunks made on first use, so a large unstyled range
         // costs nothing and an index can reach every format a workbook may hold.
         internal void SetStyle(int cellIndex, uint styleIndex) {
+            Version++;
             int chunkIndex = cellIndex >> StyleChunkBits;
             if (chunkIndex >= _styleChunks.Length) {
                 Array.Resize(ref _styleChunks, Math.Max(chunkIndex + 1, _styleChunks.Length * 2));

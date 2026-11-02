@@ -26,14 +26,15 @@ namespace OfficeIMO.Excel {
             Package package,
             SpreadsheetDocument document,
             OpenXmlPackagePartBufferReader partBufferReader,
-            IDisposable? ownedFile) {
+            IDisposable? ownedFile,
+            StylesCache? styles) {
             Identity = identity;
             _stream = stream;
             _package = package;
             _ownedFile = ownedFile;
             Document = document;
             PartBufferReader = partBufferReader;
-            Styles = new StylesCacheProvider(document);
+            Styles = styles != null ? new StylesCacheProvider(styles) : new StylesCacheProvider(document);
         }
 
         /// <summary>The package version this view shows; a different value means it is out of date.</summary>
@@ -46,12 +47,13 @@ namespace OfficeIMO.Excel {
         internal StylesCacheProvider Styles { get; }
 
         /// <summary>Returns null when the bytes need the editable document's more tolerant route.</summary>
-        internal static ExcelPackageReadSnapshot? TryOpen(byte[] bytes) =>
+        internal static ExcelPackageReadSnapshot? TryOpen(byte[] bytes, StylesCache? styles = null) =>
             TryOpen(
                 bytes,
                 () => OpenXmlPackagePartBufferReader.TryOpen(bytes),
                 new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false),
-                ownedFile: null);
+                ownedFile: null,
+                styles);
 
         /// <summary>
         /// Copies a file-backed package to a private temporary file. That package file is rewritten in
@@ -74,7 +76,8 @@ namespace OfficeIMO.Excel {
                     identity,
                     () => OpenXmlPackagePartBufferReader.TryOpen(opened.CreateView(bufferSize: 1)),
                     opened.CreateView(),
-                    opened);
+                    opened,
+                    styles: null);
                 if (snapshot != null) file = null;
                 return snapshot;
             } catch (IOException) {
@@ -92,7 +95,8 @@ namespace OfficeIMO.Excel {
             object identity,
             Func<OpenXmlPackagePartBufferReader?> openParts,
             Stream stream,
-            IDisposable? ownedFile) {
+            IDisposable? ownedFile,
+            StylesCache? styles) {
             Package? package = null;
             SpreadsheetDocument? document = null;
             OpenXmlPackagePartBufferReader? parts = null;
@@ -101,7 +105,7 @@ namespace OfficeIMO.Excel {
                 if (parts != null) {
                     package = Package.Open(stream, FileMode.Open, FileAccess.Read);
                     document = SpreadsheetDocument.Open(package);
-                    return new ExcelPackageReadSnapshot(identity, stream, package, document, parts, ownedFile);
+                    return new ExcelPackageReadSnapshot(identity, stream, package, document, parts, ownedFile, styles);
                 }
             } catch (Exception exception) when (exception is IOException
                 or InvalidDataException

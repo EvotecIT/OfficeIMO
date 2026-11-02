@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel {
         /// Creates the reader behind cell enumeration. A converter also sees cells without content,
         /// which only the SDK route visits.
         /// </summary>
-        internal ExcelDocumentReader CreateCellEnumerationReader(ExcelReaderOptions options) {
+        internal ExcelDocumentReader CreateCellEnumerationReader(ExcelSheet sheet, ExcelReaderOptions options) {
+            if (AcquireUnsavedCellsSnapshot(sheet, options) is { } unsaved) return ExcelDocumentReader.Wrap(unsaved, options);
             MaterializeDeferredDataSetImport();
             SpreadsheetDocument document = _spreadSheetDocument;
             ExcelPackageReadSnapshot? snapshot = AcquireReadSnapshot();
@@ -31,14 +32,21 @@ namespace OfficeIMO.Excel {
         internal ExcelDocumentReader CreateUsedRangeReader(ExcelSheet sheet) =>
             sheet.DeferredMetadataWorksheetPart.IsRootElementLoaded
                 ? CreateReader()
-                : CreateTabularReader(new ExcelReaderOptions());
+                : CreateTabularReader(sheet, new ExcelReaderOptions());
 
         /// <summary>
         /// Creates the reader behind the data reader, table and typed routes. Their fast paths
         /// resolve malformed cells and oversized chunks differently from the SDK route, so each
         /// worksheet that does not qualify keeps that route.
         /// </summary>
-        internal ExcelDocumentReader CreateTabularReader(ExcelReaderOptions options) {
+        internal ExcelDocumentReader CreateTabularReader(ExcelSheet? sheet, ExcelReaderOptions options) {
+            if (sheet != null && AcquireUnsavedCellsSnapshot(sheet, options) is { } unsaved) {
+                return ExcelDocumentReader.WrapTabular(unsaved, options, () => {
+                    MaterializeDeferredDataSetImport();
+                    return ExcelDocumentReader.Wrap(_spreadSheetDocument, options);
+                });
+            }
+
             MaterializeDeferredDataSetImport();
             SpreadsheetDocument document = _spreadSheetDocument;
             if (options.CellValueConverter != null) return ExcelDocumentReader.Wrap(document, options);
@@ -120,6 +128,7 @@ namespace OfficeIMO.Excel {
         /// <summary>A reader still enumerating keeps its own reference and finishes on these bytes.</summary>
         private void ReleaseReadSnapshot() {
             lock (_readSnapshotGate) {
+                ReleaseUnsavedCellsSnapshot();
                 _readSnapshot?.Release();
                 _readSnapshot = null;
                 _readSnapshotDeclinedIdentity = null;
