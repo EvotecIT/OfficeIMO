@@ -17,7 +17,7 @@ public static partial class EmailEvidenceWorkflow {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), stream.Length, effective.ReaderOptions.MaxInputBytes);
         string fingerprint = HashSource(stream, cancellationToken);
         stream.Position = 0;
-        using var read = new EmailDocumentReader(effective.ReaderOptions).Read(stream, Path.GetFileName(sourcePath), cancellationToken);
+        using var read = new EmailDocumentReader(effective.ReaderOptions).ReadDocument(stream, Path.GetFileName(sourcePath), cancellationToken);
         if (read.Document.Format == EmailFileFormat.Unknown) throw new InvalidDataException("The source is not a supported email message.");
         if (HashSource(stream, cancellationToken) != fingerprint) throw new IOException("The email source changed during evidence projection.");
         return Build(fingerprint, "SourceFileSha256", read.Document.Format.ToString(), true,

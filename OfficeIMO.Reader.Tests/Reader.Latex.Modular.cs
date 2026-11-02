@@ -444,7 +444,7 @@ public sealed class ReaderLatexModularTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddLatexHandler().Build();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(Source), writable: false);
 
-        ReaderChunk[] chunks = reader.Read(stream, "guide.tex").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(stream, "guide.tex").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Equal(ReaderInputKind.Latex, reader.DetectKind("guide.tex"));

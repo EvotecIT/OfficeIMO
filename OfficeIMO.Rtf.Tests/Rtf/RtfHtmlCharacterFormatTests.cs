@@ -11,7 +11,7 @@ public class RtfHtmlCharacterFormatTests {
     public void Html_Ignores_Zero_Language_Id_From_External_Producer() {
         const string rtf = @"{\rtf1\ansi\deflang0 External producer text.}";
 
-        RtfDocument document = RtfDocument.Read(rtf).Document;
+        RtfDocument document = RtfDocument.ParseResult(rtf).Document;
         string html = document.ToHtml(RtfToHtmlOptions.CreateWebSafeProfile());
 
         Assert.Contains("External producer text.", html, StringComparison.Ordinal);
@@ -36,7 +36,7 @@ public class RtfHtmlCharacterFormatTests {
         string rtf = document.ToRtf();
         Assert.Contains(@"\chbrdr\brdrs\brdrw20\brdrcf1", rtf, StringComparison.Ordinal);
 
-        RtfRun roundTripFlagged = RtfDocument.Read(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Flag");
+        RtfRun roundTripFlagged = RtfDocument.ParseResult(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Flag");
         Assert.Equal(RtfParagraphBorderStyle.Single, roundTripFlagged.CharacterBorder.Style);
         Assert.Equal(20, roundTripFlagged.CharacterBorder.Width);
         Assert.Equal(1, roundTripFlagged.CharacterBorder.ColorIndex);
@@ -79,7 +79,7 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Contains(@"\ulwave", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ulc1", rtf, StringComparison.Ordinal);
 
-        RtfRun roundTripWave = RtfDocument.Read(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Wave");
+        RtfRun roundTripWave = RtfDocument.ParseResult(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Wave");
         Assert.Equal(RtfUnderlineStyle.Wave, roundTripWave.UnderlineStyle);
         Assert.Equal(1, roundTripWave.UnderlineColorIndex);
     }
@@ -119,7 +119,7 @@ public class RtfHtmlCharacterFormatTests {
         string rtf = document.ToRtf();
         Assert.Contains(@"\striked Double\striked0", rtf, StringComparison.Ordinal);
 
-        RtfRun roundTripDoubled = RtfDocument.Read(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Double");
+        RtfRun roundTripDoubled = RtfDocument.ParseResult(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Double");
         Assert.True(roundTripDoubled.DoubleStrike);
         Assert.False(roundTripDoubled.Strike);
     }
@@ -153,7 +153,7 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Contains(@"\caps Caps", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\scaps  Small", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        RtfParagraph roundTripParagraph = RtfDocument.ParseResult(rtf).Document.Paragraphs[0];
         Assert.Equal(RtfCapsStyle.Caps, roundTripParagraph.Runs.Single(run => run.Text == "Caps").CapsStyle);
         Assert.Equal(RtfCapsStyle.SmallCaps, roundTripParagraph.Runs.Single(run => run.Text == " Small").CapsStyle);
         Assert.Equal(RtfCapsStyle.None, roundTripParagraph.Runs.Single(run => run.Text == " Plain").CapsStyle);
@@ -201,7 +201,7 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Contains(@"\up6", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\expndtw-20", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        RtfParagraph roundTripParagraph = RtfDocument.ParseResult(rtf).Document.Paragraphs[0];
         Assert.Equal(40, roundTripParagraph.Runs.Single(run => run.Text == "Raised").CharacterSpacingTwips);
         Assert.Equal(80, roundTripParagraph.Runs.Single(run => run.Text == "Raised").CharacterScalePercent);
         Assert.Equal(6, roundTripParagraph.Runs.Single(run => run.Text == "Raised").CharacterOffsetHalfPoints);
@@ -252,7 +252,7 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Contains(@"\embo  Emboss\embo0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\impr  Imprint\impr0", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        RtfParagraph roundTripParagraph = RtfDocument.ParseResult(rtf).Document.Paragraphs[0];
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == "Hidden").Hidden);
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Outline").Outline);
         Assert.True(roundTripParagraph.Runs.Single(run => run.Text == " Shadow").Shadow);
@@ -306,7 +306,7 @@ public class RtfHtmlCharacterFormatTests {
         Assert.Contains(@"\rtlch \lang1025 RTL", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ltrch \lang1045  Polish", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        RtfParagraph roundTripParagraph = RtfDocument.ParseResult(rtf).Document.Paragraphs[0];
         Assert.Equal(RtfTextDirection.RightToLeft, roundTripParagraph.Runs.Single(run => run.Text == "RTL").Direction);
         Assert.Equal(1025, roundTripParagraph.Runs.Single(run => run.Text == "RTL").LanguageId);
         Assert.Equal(RtfTextDirection.LeftToRight, roundTripParagraph.Runs.Single(run => run.Text == " Polish").Direction);

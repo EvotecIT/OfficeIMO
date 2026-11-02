@@ -3,7 +3,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Email;
 
 /// <summary>Reads bounded email and Outlook artifacts into the shared <see cref="EmailDocument"/> model.</summary>
-public sealed class EmailDocumentReader {
+public sealed partial class EmailDocumentReader {
     private static readonly byte[] CompoundSignature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
     private static readonly byte[] TnefSignature = { 0x78, 0x9F, 0x3E, 0x22 };
     private readonly EmailReaderOptions _options;
@@ -20,13 +20,13 @@ public sealed class EmailDocumentReader {
     public EmailReaderOptions Options => _options;
 
     /// <summary>Reads an artifact from a file.</summary>
-    public EmailReadResult Read(string filePath, CancellationToken cancellationToken = default) {
+    public EmailReadResult ReadDocument(string filePath, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        using (FileStream stream = File.OpenRead(filePath)) return Read(stream, filePath, cancellationToken);
+        using (FileStream stream = File.OpenRead(filePath)) return ReadDocument(stream, filePath, cancellationToken);
     }
 
     /// <summary>Reads an artifact from memory.</summary>
-    public EmailReadResult Read(byte[] data, CancellationToken cancellationToken = default) {
+    public EmailReadResult ReadDocument(byte[] data, CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         cancellationToken.ThrowIfCancellationRequested();
         if (data.LongLength > _options.MaxInputBytes) {
@@ -39,7 +39,7 @@ public sealed class EmailDocumentReader {
     /// Reads an artifact from memory and uses the logical source name to distinguish extension-defined formats such
     /// as an Outlook template (<c>.oft</c>) from an Outlook message (<c>.msg</c>).
     /// </summary>
-    public EmailReadResult Read(byte[] data, string? sourceName,
+    public EmailReadResult ReadDocument(byte[] data, string? sourceName,
         CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         cancellationToken.ThrowIfCancellationRequested();
@@ -54,7 +54,7 @@ public sealed class EmailDocumentReader {
     /// Reads a complete artifact without closing the stream. Seekable streams are read from the beginning and
     /// restored to their original position; non-seekable streams are read forward from their current position.
     /// </summary>
-    public EmailReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
+    public EmailReadResult ReadDocument(Stream stream, CancellationToken cancellationToken = default) {
         return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken), cancellationToken);
     }
 
@@ -62,7 +62,7 @@ public sealed class EmailDocumentReader {
     /// Reads an artifact without closing the stream and uses the logical source name to distinguish
     /// extension-defined formats such as <c>.oft</c>.
     /// </summary>
-    public EmailReadResult Read(Stream stream, string? sourceName,
+    public EmailReadResult ReadDocument(Stream stream, string? sourceName,
         CancellationToken cancellationToken = default) {
         return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken), cancellationToken,
             sourceName);
@@ -72,7 +72,7 @@ public sealed class EmailDocumentReader {
     /// Reads an artifact with large payloads retained as reopenable temporary-file sources. Dispose the returned
     /// result when those sources are no longer needed.
     /// </summary>
-    public EmailReadResult ReadStreaming(Stream stream, string? sourceName = null,
+    private EmailReadResult ReadFileBacked(Stream stream, string? sourceName = null,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The stream must be readable.", nameof(stream));
@@ -101,20 +101,20 @@ public sealed class EmailDocumentReader {
     }
 
     /// <summary>Reads a file through the streaming payload path.</summary>
-    public EmailReadResult ReadStreaming(string filePath, CancellationToken cancellationToken = default) {
+    private EmailReadResult ReadFileBacked(string filePath, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
                    81920, FileOptions.SequentialScan)) {
-            return ReadStreaming(stream, filePath, cancellationToken);
+            return ReadFileBacked(stream, filePath, cancellationToken);
         }
     }
 
     /// <summary>Asynchronously reads an artifact from a file.</summary>
-    public async Task<EmailReadResult> ReadAsync(string filePath, CancellationToken cancellationToken = default) {
+    public async Task<EmailReadResult> ReadDocumentAsync(string filePath, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
             81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-            return await ReadAsync(stream, filePath, cancellationToken).ConfigureAwait(false);
+            return await ReadDocumentAsync(stream, filePath, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -122,7 +122,7 @@ public sealed class EmailDocumentReader {
     /// Asynchronously reads a complete artifact without closing the stream. Seekable streams are read from the
     /// beginning and restored to their original position; non-seekable streams are read forward.
     /// </summary>
-    public async Task<EmailReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
+    public async Task<EmailReadResult> ReadDocumentAsync(Stream stream, CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         return Parse(data, cancellationToken);
     }
@@ -130,7 +130,7 @@ public sealed class EmailDocumentReader {
     /// <summary>
     /// Asynchronously reads an artifact without closing the stream and applies extension-defined source semantics.
     /// </summary>
-    public async Task<EmailReadResult> ReadAsync(Stream stream, string? sourceName,
+    public async Task<EmailReadResult> ReadDocumentAsync(Stream stream, string? sourceName,
         CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken)
             .ConfigureAwait(false);
@@ -141,7 +141,7 @@ public sealed class EmailDocumentReader {
     /// Asynchronously stages source I/O and reads large payloads into reopenable temporary-file sources. Dispose the
     /// returned result when those sources are no longer needed.
     /// </summary>
-    public async Task<EmailReadResult> ReadStreamingAsync(Stream stream, string? sourceName = null,
+    private async Task<EmailReadResult> ReadFileBackedAsync(Stream stream, string? sourceName = null,
         CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The stream must be readable.", nameof(stream));
@@ -162,12 +162,12 @@ public sealed class EmailDocumentReader {
     }
 
     /// <summary>Asynchronously reads a file through the streaming payload path.</summary>
-    public async Task<EmailReadResult> ReadStreamingAsync(string filePath,
+    private async Task<EmailReadResult> ReadFileBackedAsync(string filePath,
         CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
                    81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-            return await ReadStreamingAsync(stream, filePath, cancellationToken).ConfigureAwait(false);
+            return await ReadFileBackedAsync(stream, filePath, cancellationToken).ConfigureAwait(false);
         }
     }
 

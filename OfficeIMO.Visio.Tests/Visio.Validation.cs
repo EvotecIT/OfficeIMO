@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             document.Save();
 
             var issues = VisioValidator.Validate(filePath);
@@ -31,10 +31,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page1 = document.AddPage("Page-1");
-            page1.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Rectangle"));
+            page1.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle"));
 
             VisioPage page2 = document.AddPage("Page-2");
-            page2.Shapes.Add(new VisioShape("2", 2, 2, 1.5, 1, "Ellipse"));
+            page2.Shapes.Add(new VisioShape("2", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "Ellipse"));
             document.Save();
 
             var issues = VisioValidator.Validate(filePath);
@@ -50,9 +50,9 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage first = document.AddPage("Page-1");
-            first.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            first.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             VisioPage second = document.AddPage("Page-2");
-            second.Shapes.Add(new VisioShape("2", 2, 2, 1, 1, "End"));
+            second.Shapes.Add(new VisioShape("2", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "End"));
             document.Save();
 
             using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page1 = document.AddPage("Page-1");
-            page1.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page1.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             VisioPage page2 = document.AddPage("Page-2");
-            page2.Shapes.Add(new VisioShape("2", 2, 2, 1, 1, "End"));
+            page2.Shapes.Add(new VisioShape("2", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "End"));
             document.Save();
 
             using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             document.Save();
 
             using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             document.Save();
 
             using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             document.Save();
 
             using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
             document.Save();
 
             using (FileStream stream = new(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))

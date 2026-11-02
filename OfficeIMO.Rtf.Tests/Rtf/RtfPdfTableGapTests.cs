@@ -99,7 +99,7 @@ public class RtfPdfTableGapTests {
         Assert.InRange(marker.StartBaseLine.X, 72D + expectedLeft - 0.01D, 72D + expectedLeft + 0.01D);
     }
 
-    private static RtfDocument ReadTable(string cellControls = "", int gapTwips = 0) => RtfDocument.Read(
+    private static RtfDocument ReadTable(string cellControls = "", int gapTwips = 0) => RtfDocument.ParseResult(
         @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil Helvetica;}}{\colortbl;\red255\green0\blue0;}" +
         @"\paperw12240\paperh15840\margl1440\margr1440\margt1440\margb1440" +
         @"\trowd\trgaph" + gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture) +

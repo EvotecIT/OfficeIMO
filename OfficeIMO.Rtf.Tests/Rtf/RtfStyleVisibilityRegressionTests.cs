@@ -47,10 +47,10 @@ public class RtfStyleVisibilityRegressionTests {
 
     [Fact]
     public void StylesheetHiddenTextResolvesWithoutConfusingStyleGalleryVisibility() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         AssertVisibility(document);
         AssertVisibility(document.Clone());
-        AssertVisibility(RtfDocument.Read(document.ToRtf()).Document);
+        AssertVisibility(RtfDocument.ParseResult(document.ToRtf()).Document);
 
         static void AssertVisibility(RtfDocument document) {
             RtfParagraph paragraph = document.Paragraphs[0];
@@ -63,7 +63,7 @@ public class RtfStyleVisibilityRegressionTests {
 
     [Fact]
     public void PdfOmitsInheritedHiddenTextAndRetainsExplicitVisibleOverrides() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         string text = OfficeIMO.Pdf.PdfReadDocument.Open((document.ToPdf(new RtfToPdfOptions {
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
         })).ToBytes()).ExtractText();
@@ -75,7 +75,7 @@ public class RtfStyleVisibilityRegressionTests {
 
     [Fact]
     public void HtmlMetadataRetainsVisibilityInheritanceForLaterStyleEdits() {
-        RtfDocument source = RtfDocument.Read(Input).Document;
+        RtfDocument source = RtfDocument.ParseResult(Input).Document;
         string html = source.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
         Assert.Contains("visibility:hidden", html, StringComparison.Ordinal);
         RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
@@ -90,7 +90,7 @@ public class RtfStyleVisibilityRegressionTests {
 
     [Fact]
     public void WordStylesAndExplicitVisibleOverridesSurviveSemanticReimport() {
-        RtfDocument document = RtfDocument.Read(Input).Document;
+        RtfDocument document = RtfDocument.ParseResult(Input).Document;
         using var word = document.ToWordDocument();
         RtfDocument reopened = word.ToRtfDocument();
         RtfParagraph paragraph = reopened.Paragraphs[0];

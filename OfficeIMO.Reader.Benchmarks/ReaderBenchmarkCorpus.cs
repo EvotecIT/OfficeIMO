@@ -180,12 +180,12 @@ internal static class ReaderBenchmarkCorpus {
     private static byte[] BuildVisio() {
         using var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        VisioPage page = document.AddPage("Process").Size(16, 10);
+        VisioPage page = document.AddPage("Process").Size(OfficeLength.Inches(16), OfficeLength.Inches(10));
         VisioShape? previous = null;
         for (int index = 0; index < 40; index++) {
             double x = 1 + (index % 8) * 1.8;
             double y = 1 + (index / 8) * 1.7;
-            VisioShape shape = page.AddRectangle(x, y, 1.3, 0.7, "Step " + (index + 1));
+            VisioShape shape = page.AddRectangle(OfficeLength.Inches(x), OfficeLength.Inches(y), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Step " + (index + 1));
             if (previous != null) page.AddConnector(previous, shape, ConnectorKind.RightAngle);
             previous = shape;
         }

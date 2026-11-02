@@ -39,7 +39,7 @@ public sealed class XpsJpegXrTests {
                 markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource", "{ColorConvertedBitmap " + uri + " " + icc + "}");
                 page.ReplaceMarkup(markup);
             }
-            page = XpsDocument.Load(document.Save()).Pages[0];
+            page = XpsDocument.Load(document.ToBytes()).Pages[0];
             var svg = XDocument.Parse(page.ToSvg().Svg);
             string data = (string)svg.Descendants().Single(e => e.Name.LocalName == "image").Attribute("href")!;
             Assert.True(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(data.Substring(data.IndexOf(',') + 1)), out var normalized));
@@ -83,7 +83,7 @@ public sealed class XpsJpegXrTests {
             Assert.True(OfficeImageReader.TryIdentifyByContent(encoded, null, out var metadata));
             int width = metadata.Width, height = metadata.Height;
             document.AddPage(width * 3, height * 3).AddImage(uri, 0, 0, width * 3, height * 3);
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             var svg = page.ToSvg(); Assert.Empty(svg.Diagnostics); Assert.Contains("data:image/png;base64,", svg.Svg);
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));

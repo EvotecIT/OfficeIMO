@@ -71,7 +71,7 @@ public sealed class XpsBrushTests {
         var brushProperty = path.Element(ns + "Path.Fill")!; brushProperty.Name = ns + "Path.Stroke";
         var brush = brushProperty.Elements().Single(); brush.SetAttributeValue("Viewport", "10,10,40,40");
         page.ReplaceMarkup(xml);
-        var raster = Raster(XpsDocument.Load(doc.Save()).Pages[0]);
+        var raster = Raster(XpsDocument.Load(doc.ToBytes()).Pages[0]);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(20, 15));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 15));
         Assert.Equal(OfficeColor.Green, raster.GetPixel(20, 45));
@@ -103,7 +103,7 @@ public sealed class XpsBrushTests {
     [InlineData(XpsFormat.Xps)]
     [InlineData(XpsFormat.OpenXps)]
     public void GradientTransformSurvivesPackageAndPdfConversion(XpsFormat format) {
-        var doc = XpsDocument.Load(XpsBrushFixtures.Create("gradient", format).Save());
+        var doc = XpsDocument.Load(XpsBrushFixtures.Create("gradient", format).ToBytes());
         var raster = Raster(doc.Pages[0]);
         Assert.True(raster.GetPixel(21, 40).R > raster.GetPixel(59, 40).R);
         Assert.True(raster.GetPixel(59, 40).B > raster.GetPixel(21, 40).B);

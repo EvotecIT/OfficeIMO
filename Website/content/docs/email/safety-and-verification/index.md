@@ -16,7 +16,7 @@ var options = new EmailReaderOptions(
     includeAttachmentContent: false);
 
 EmailReadResult result =
-    await new EmailDocumentReader(options).ReadAsync("message.msg");
+    await new EmailDocumentReader(options).ReadDocumentAsync("message.msg");
 
 foreach (EmailDiagnostic diagnostic in result.Diagnostics) {
     Console.WriteLine(

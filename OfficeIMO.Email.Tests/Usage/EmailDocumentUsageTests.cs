@@ -131,7 +131,7 @@ public sealed class EmailDocumentUsageTests {
         byte[] invalid = Encoding.UTF8.GetBytes("This is not an email artifact.");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => EmailDocument.Load(invalid));
-        EmailReadResult result = new EmailDocumentReader().Read(invalid);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(invalid);
 
         Assert.Contains("EMAIL_FORMAT_UNKNOWN", exception.Message, StringComparison.Ordinal);
         Assert.True(result.HasErrors);

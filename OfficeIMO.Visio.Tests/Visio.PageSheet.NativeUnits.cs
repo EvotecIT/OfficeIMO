@@ -27,14 +27,14 @@ public sealed class VisioPageSheetNativeUnitsTests {
         Assert.Equal(document.Pages.Count, drawings.Count);
         for (int index = 0; index < document.Pages.Count; index++) {
             VisioPage page = document.Pages[index];
-            Assert.Equal(11.69291338582677, page.Width, 12);
-            Assert.Equal(8.26771653543307, page.Height, 12);
+            Assert.Equal(11.69291338582677, page.Width.ToInches(), 12);
+            Assert.Equal(8.26771653543307, page.Height.ToInches(), 12);
             Assert.Equal(VisioMeasurementUnit.Millimeters, page.DefaultUnit);
             Assert.Equal(1, page.PageScale.Value, 12);
             Assert.Equal(1, page.DrawingScale.Value, 12);
             Assert.Equal(VisioMeasurementUnit.Millimeters, page.PageScale.Unit);
             Assert.Equal(VisioMeasurementUnit.Millimeters, page.DrawingScale.Unit);
-            Assert.Equal(0.25, page.LeftMargin, 12);
+            Assert.Equal(0.25, page.LeftMargin.ToInches(), 12);
             Assert.Equal(841.8897637795274, drawings[index].Width, 9);
             Assert.Equal(595.275590551181, drawings[index].Height, 9);
         }
@@ -56,12 +56,12 @@ public sealed class VisioPageSheetNativeUnitsTests {
         VisioDocument document = LoadNativeLengths(ns);
         foreach (VisioDocument candidate in new[] { document, Reopen(document), ReloadLegacy(document) }) {
             VisioPage page = Assert.Single(candidate.Pages);
-            Assert.Equal(11.69291338582677, page.Width, 12);
-            Assert.Equal(8.26771653543307, page.Height, 12);
-            Assert.Equal(0.25, page.LeftMargin, 12);
-            Assert.Equal(0.375, page.RightMargin, 12);
-            Assert.Equal(0.5, page.TopMargin, 12);
-            Assert.Equal(0.625, page.BottomMargin, 12);
+            Assert.Equal(11.69291338582677, page.Width.ToInches(), 12);
+            Assert.Equal(8.26771653543307, page.Height.ToInches(), 12);
+            Assert.Equal(0.25, page.LeftMargin.ToInches(), 12);
+            Assert.Equal(0.375, page.RightMargin.ToInches(), 12);
+            Assert.Equal(0.5, page.TopMargin.ToInches(), 12);
+            Assert.Equal(0.625, page.BottomMargin.ToInches(), 12);
             Assert.Equal(0.5, page.LayoutBlockSizeX.GetValueOrDefault(), 12);
             Assert.Equal(0.75, page.LayoutBlockSizeY.GetValueOrDefault(), 12);
             Assert.Equal(0.125, page.LayoutAvenueSizeX.GetValueOrDefault(), 12);
@@ -104,9 +104,9 @@ public sealed class VisioPageSheetNativeUnitsTests {
         LegacyCell(sourceCells, "PageWidth").SetAttributeValue("F", "GUARD(Sheet." + copiedId + "!Width)");
         Assert.Equal(LegacyDistances(sourceCells), LegacyDistances(copiedSheet));
 
-        original.WidthCentimeters = 12.7;
+        original.Width = OfficeLength.Centimeters(12.7);
         original.DefaultUnit = VisioMeasurementUnit.Centimeters;
-        original.SetMargins(1.27, VisioMeasurementUnit.Centimeters);
+        original.SetMargins(OfficeLength.Centimeters(1.27));
         original.SetLayoutGridSizing(25.4, 50.8, 12.7, 6.35, VisioMeasurementUnit.Millimeters);
         original.SetConnectorSpacing(2.54, 5.08, 1.27, 0.635, VisioMeasurementUnit.Centimeters);
         original.PageScale = new VisioScaleSetting(2.54, VisioMeasurementUnit.Centimeters);
@@ -129,10 +129,10 @@ public sealed class VisioPageSheetNativeUnitsTests {
             AssertCache(sheet, "LineToNodeX", 0.5, "CM");
             AssertCache(sheet, "LineToNodeY", 0.25, "CM");
             Assert.Null(LegacyCell(LegacySheet(candidate, "Native"), "PageLeftMargin").Attribute("Err"));
-            Assert.Equal(11.69291338582677, candidate.Pages.Single(page => page.Name == "Copy").Width, 12);
+            Assert.Equal(11.69291338582677, candidate.Pages.Single(page => page.Name == "Copy").Width.ToInches(), 12);
             Assert.Equal(LegacyDistances(copiedSheet), LegacyDistances(LegacySheet(candidate, "Copy")));
         }
-        Assert.Equal(11.69291338582677, copy.Width, 12);
+        Assert.Equal(11.69291338582677, copy.Width.ToInches(), 12);
     }
 
     private static VisioDocument LoadNativeLengths(string ns) {

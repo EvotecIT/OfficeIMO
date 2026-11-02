@@ -41,7 +41,7 @@ public class RtfWordParagraphSpacingTests {
         }
 
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocument parsed = RtfDocument.Read(rtf).Document;
+        RtfDocument parsed = RtfDocument.ParseResult(rtf).Document;
         RtfParagraph mapped = Assert.Single(parsed.Paragraphs);
 
         Assert.Equal(expectedLine, mapped.LineSpacingTwips);
@@ -74,7 +74,7 @@ public class RtfWordParagraphSpacingTests {
         Assert.Equal("RtfP7", mappedChild.BasedOn?.Val?.Value);
         AssertSpacing(Assert.Single(reopened._document.Body!.Elements<Paragraph>()), Math.Abs(line), rule);
 
-        RtfDocument returned = RtfDocument.Read(reopened.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
         RtfStyle returnedParent = Assert.Single(returned.Styles, style => style.Name == "RtfP7");
         RtfStyle returnedChild = Assert.Single(returned.Styles, style => style.Name == "RtfP8");
         Assert.Equal(line, returnedParent.LineSpacingTwips);
@@ -141,7 +141,7 @@ public class RtfWordParagraphSpacingTests {
 
         // The default writer materializes effective style formatting in body
         // controls; it must retain the inherited exact value and twip units.
-        RtfDocument mapped = RtfDocument.Read(authored.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument mapped = RtfDocument.ParseResult(authored.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
         RtfStyle mappedChild = Assert.Single(mapped.Styles, item => item.Name == "RuleOnlyChild");
         Assert.Null(mappedChild.LineSpacingTwips);
         Assert.Null(mappedChild.LineSpacingMultiple);
@@ -190,7 +190,7 @@ public class RtfWordParagraphSpacingTests {
         AssertSpacing(Assert.Single(main.FootnotesPart!.Footnotes!.Descendants<Paragraph>(), item => item.InnerText == "Footnote"), 360, WordLineSpacingRule.AtLeast);
         AssertSpacing(Assert.Single(main.EndnotesPart!.Endnotes!.Descendants<Paragraph>(), item => item.InnerText == "Endnote"), 360, WordLineSpacingRule.Exact);
 
-        RtfDocument returned = RtfDocument.Read(reopened.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
+        RtfDocument returned = RtfDocument.ParseResult(reopened.ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
         RtfTable returnedTable = Assert.Single(returned.Blocks.OfType<RtfTable>());
         AssertRawSpacing(Assert.Single(returned.Paragraphs, item => item.ToPlainText() == "Body"), 360, false);
         AssertRawSpacing(Assert.Single(returnedTable.Rows[0].Cells[0].Paragraphs, item => item.ToPlainText() == "Cell"), -360, false);

@@ -25,7 +25,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains(@"\brdrt\brdrs\brdrw20\brdrcf1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\brdrl\brdrdb\brdrw40\brdrcf2", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripBoxed = RtfDocument.Read(rtf).Document.Paragraphs[0];
+        RtfParagraph roundTripBoxed = RtfDocument.ParseResult(rtf).Document.Paragraphs[0];
         Assert.Equal(RtfParagraphBorderStyle.Single, roundTripBoxed.TopBorder.Style);
         Assert.Equal(RtfParagraphBorderStyle.Double, roundTripBoxed.LeftBorder.Style);
         Assert.Equal(40, roundTripBoxed.LeftBorder.Width);
@@ -75,7 +75,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains(@"\rtldoc", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pard\ltrpar", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         Assert.Equal(1025, roundTrip.Settings.DefaultLanguageId);
         Assert.Equal(RtfTextDirection.RightToLeft, roundTrip.Settings.Direction);
         Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
@@ -131,7 +131,7 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Contains(@"\softline", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\softpage", rtf, StringComparison.Ordinal);
 
-        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.Read(rtf).Document.Paragraphs);
+        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.ParseResult(rtf).Document.Paragraphs);
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Column });
         Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.SoftLine });

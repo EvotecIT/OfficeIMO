@@ -25,7 +25,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_resolvedTitleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, TitleWidth, _resolvedTitleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, TitleWidth, _resolvedTitleHeight, _titleText, _unit);
             title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
             MarkDiagramAdornment(title);
         }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double columnWidth = availableWidth / columns;
             double legendTop = _pageHeight - _topMargin - TitleHeaderHeight;
             double titleY = legendTop - (LegendTitleHeight / 2D);
-            VisioShape title = page.AddTextBox(CreateGeneratedId("legend-title"), _leftMargin + (availableWidth / 2D), titleY, availableWidth, LegendTitleHeight, _legendTitle, _unit);
+            VisioShape title = page.AddTextBoxInches(CreateGeneratedId("legend-title"), _leftMargin + (availableWidth / 2D), titleY, availableWidth, LegendTitleHeight, _legendTitle, _unit);
             title.TextStyle = CreateLegendTextStyle();
             MarkDiagramAdornment(title);
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double labelLeft = left + 0.72D;
             double labelWidth = Math.Max(0.8D, width - 0.82D);
-            VisioShape label = page.AddTextBox(CreateGeneratedId("legend-" + item.IdSuffix + "-text"), labelLeft + (labelWidth / 2D), y, labelWidth, 0.22D, item.Label, _unit);
+            VisioShape label = page.AddTextBoxInches(CreateGeneratedId("legend-" + item.IdSuffix + "-text"), labelLeft + (labelWidth / 2D), y, labelWidth, 0.22D, item.Label, _unit);
             label.TextStyle = CreateLegendTextStyle();
             MarkDiagramAdornment(label);
         }

@@ -128,7 +128,7 @@ public class RtfPdfBarTabTests {
     private static RtfDocument Source(string text, bool bar, bool positionTab, bool parsed) {
         if (parsed) {
             string stops = (bar ? @"\tb720" : string.Empty) + (positionTab ? @"\tx2160" : string.Empty);
-            return RtfDocument.Read(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Courier;}}\pard\f0\fs24\sl-400\slmult0" +
+            return RtfDocument.ParseResult(@"{\rtf1\ansi\deff0{\fonttbl{\f0 Courier;}}\pard\f0\fs24\sl-400\slmult0" +
                 stops + " " + text.Replace("\t", @"\tab ") + @"\par}").Document;
         }
 

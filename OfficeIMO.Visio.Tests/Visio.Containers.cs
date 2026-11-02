@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests {
             string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Containers", 11, 8.5);
-            VisioShape api = page.AddRectangle(3, 5.5, 1.7, 0.8, "API");
-            VisioShape worker = page.AddRectangle(6, 5.5, 1.7, 0.8, "Worker");
+            VisioPage page = document.AddPage("Containers", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "API");
+            VisioShape worker = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "Worker");
 
             VisioShape container = page.AddContainer("app-tier", "Application tier", new[] { api, worker }, new VisioContainerOptions {
                 Margin = 0.3,
@@ -59,9 +59,9 @@ namespace OfficeIMO.Tests {
         public void ContainersConvertPageUnitOptionsToInches() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Metric Containers", 20, 15, VisioMeasurementUnit.Centimeters);
-            VisioShape api = page.AddRectangle(5, 5, 2.54, 2.54, "API");
-            VisioShape worker = page.AddRectangle(10, 5, 2.54, 2.54, "Worker");
+            VisioPage page = document.AddPage("Metric Containers", OfficeLength.Centimeters(20), OfficeLength.Centimeters(15), scaleUnit: VisioMeasurementUnit.Centimeters);
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "API");
+            VisioShape worker = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "Worker");
             OfficeIMO.Visio.VisioShapeBounds memberBounds = new[] { api, worker }.GetShapeBounds();
 
             VisioShape container = page.AddContainer("metric-tier", "Metric tier", new[] { api, worker }, new VisioContainerOptions {
@@ -70,8 +70,8 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Equal("0.5", container.GetUserCellValue("msvSDContainerMargin"));
-            Assert.Equal(memberBounds.Width + 1.0, container.Width, 6);
-            Assert.Equal(memberBounds.Height + 2.0, container.Height, 6);
+            Assert.Equal(memberBounds.Width.ToInches() + 1.0, container.Width.ToInches(), 6);
+            Assert.Equal(memberBounds.Height.ToInches() + 2.0, container.Height.ToInches(), 6);
 
             document.Save();
 
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Loaded container editing", 11, 8.5);
+            VisioPage page = document.AddPage("Loaded container editing", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioShape api = AddRect(page, "api", 2, 5, 1.4, 0.7, "API");
             VisioShape worker = AddRect(page, "worker", 4.5, 5, 1.4, 0.7, "Worker");
             AddRect(page, "db", 7, 4.2, 1.4, 0.7, "Database");
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "db", "worker" }, updatedPage.GetContainerMembers(updatedContainer).Select(shape => shape.Id).OrderBy(id => id, StringComparer.Ordinal).ToArray());
             Assert.DoesNotContain("tier", updatedPage.FindShapeById("api")!.ContainerOwnerIds);
             Assert.Contains("tier", updatedPage.FindShapeById("db")!.ContainerOwnerIds);
-            Assert.True(updatedContainer.Width > 4D);
+            Assert.True(updatedContainer.Width.ToInches() > 4D);
         }
 
         [Fact]
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Container metadata", 11, 8.5);
+            VisioPage page = document.AddPage("Container metadata", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioShape api = AddRect(page, "api", 2, 5, 1.4, 0.7, "API");
             VisioShape worker = AddRect(page, "worker", 4.5, 5, 1.4, 0.7, "Worker");
             page.AddContainer("tier", "Runtime tier", new[] { api, worker }, new VisioContainerOptions {
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Container scalar style", 11, 8.5);
+            VisioPage page = document.AddPage("Container scalar style", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioShape api = AddRect(page, "api", 2, 5, 1.4, 0.7, "API");
             VisioShape worker = AddRect(page, "worker", 4.5, 5, 1.4, 0.7, "Worker");
             page.AddContainer("tier", "Runtime tier", new[] { api, worker });
@@ -221,9 +221,9 @@ namespace OfficeIMO.Tests {
         public void LoadedMetricContainerRefitKeepsStoredMarginAndHeadingInInches() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Metric refit", 20, 15, VisioMeasurementUnit.Centimeters);
-            VisioShape api = page.AddRectangle(5, 5, 2.54, 2.54, "API");
-            VisioShape worker = page.AddRectangle(10, 5, 2.54, 2.54, "Worker");
+            VisioPage page = document.AddPage("Metric refit", OfficeLength.Centimeters(20), OfficeLength.Centimeters(15), scaleUnit: VisioMeasurementUnit.Centimeters);
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "API");
+            VisioShape worker = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "Worker");
             page.AddContainer("metric-tier", "Metric tier", new[] { api, worker }, new VisioContainerOptions {
                 Margin = 1.27,
                 HeadingHeight = 2.54
@@ -237,8 +237,8 @@ namespace OfficeIMO.Tests {
 
             loadedPage.RefitContainer(loadedContainer);
 
-            Assert.Equal(memberBounds.Width + 1.0, loadedContainer.Width, 6);
-            Assert.Equal(memberBounds.Height + 2.0, loadedContainer.Height, 6);
+            Assert.Equal(memberBounds.Width.ToInches() + 1.0, loadedContainer.Width.ToInches(), 6);
+            Assert.Equal(memberBounds.Height.ToInches() + 2.0, loadedContainer.Height.ToInches(), 6);
             Assert.Equal(1.27, loadedPage.GetContainerInfo(loadedContainer).Margin, 6);
             Assert.Equal(2.54, loadedPage.GetContainerInfo(loadedContainer).HeadingHeight, 6);
         }
@@ -250,10 +250,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Fluent containers", page => page
-                    .Rect("api", 2, 4, 1.3, 0.7, "API")
-                    .Rect("db", 4, 4, 1.3, 0.7, "Database")
-                    .Container("tier", "Runtime tier", new[] { "api", "db" }, options => {
+                .AddPage("Fluent containers", page => page
+                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "API")
+                    .AddRectangle("db", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Database")
+                    .AddContainer("tier", "Runtime tier", new[] { "api", "db" }, options => {
                         options.Margin = 0.25;
                         options.HeadingHeight = 0.35;
                     }))
@@ -262,8 +262,8 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Load(filePath)
                 .AsFluent()
-                .ExistingPage("Fluent containers", page => page
-                    .Rect("cache", 6, 4, 1.3, 0.7, "Cache")
+                .GetPage("Fluent containers", page => page
+                    .AddRectangle("cache", OfficeLength.Inches(6), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Cache")
                     .AddToContainer("tier", new[] { "cache" }, options => {
                         options.Margin = 0.35;
                         options.HeadingHeight = 0.3;
@@ -293,16 +293,16 @@ namespace OfficeIMO.Tests {
 
             VisioDocument.Create(filePath)
                 .AsFluent()
-                .Page("Fluent metadata", page => page
-                    .Rect("api", 2, 4, 1.3, 0.7, "API")
-                    .Rect("db", 4, 4, 1.3, 0.7, "Database")
-                    .Container("tier", "Runtime tier", new[] { "api", "db" }))
+                .AddPage("Fluent metadata", page => page
+                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "API")
+                    .AddRectangle("db", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Database")
+                    .AddContainer("tier", "Runtime tier", new[] { "api", "db" }))
                 .End()
                 .Save();
 
             VisioDocument.Load(filePath)
                 .AsFluent()
-                .ExistingPage("Fluent metadata", page => {
+                .GetPage("Fluent metadata", page => {
                     seenMemberCount = page.ContainerInfo("tier").MemberCount;
                     page.ConfigureContainer("tier", options => {
                         options.Margin = 0.4;
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddRect(VisioPage page, string id, double x, double y, double width, double height, string text) {
-            VisioShape shape = new(id, x, y, width, height, text) {
+            VisioShape shape = new(id, OfficeLength.Inches(x), OfficeLength.Inches(y), OfficeLength.Inches(width), OfficeLength.Inches(height), text) {
                 NameU = "Rectangle"
             };
             page.Shapes.Add(shape);

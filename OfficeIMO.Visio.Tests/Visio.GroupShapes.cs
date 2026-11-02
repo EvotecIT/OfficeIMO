@@ -60,15 +60,15 @@ namespace OfficeIMO.Tests {
         public void DirectGroupedShapeAuthoringAssignsParentLinksAutomatically() {
             VisioShape group = new("1") {
                 Type = "Group",
-                PinX = 2,
-                PinY = 2,
-                Width = 4,
-                Height = 3,
-                LocPinX = 2,
-                LocPinY = 1.5
-            };
-            VisioShape child = new("2", 1, 1, 1, 1, "Child");
-            VisioShape grandChild = new("3", 0.5, 0.5, 0.5, 0.5, "Grandchild");
+                PinX = OfficeLength.Inches(2),
+                PinY = OfficeLength.Inches(2),
+                Width = OfficeLength.Inches(4),
+                Height = OfficeLength.Inches(3),
+                LocPinX = OfficeLength.Inches(2),
+                LocPinY = OfficeLength.Inches(1.5
+            )};
+            VisioShape child = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
+            VisioShape grandChild = new("3", OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "Grandchild");
 
             child.Children.Add(grandChild);
             group.Children.Add(child);
@@ -83,15 +83,15 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Page-1");
             VisioShape group = new("1") {
                 Type = "Group",
-                PinX = 2,
-                PinY = 2,
-                Width = 4,
-                Height = 3,
-                LocPinX = 2,
-                LocPinY = 1.5
-            };
-            VisioShape child = new("2", 1, 1, 1, 1, "Child");
-            VisioShape grandChild = new("3", 0.5, 0.5, 0.5, 0.5, "Grandchild");
+                PinX = OfficeLength.Inches(2),
+                PinY = OfficeLength.Inches(2),
+                Width = OfficeLength.Inches(4),
+                Height = OfficeLength.Inches(3),
+                LocPinX = OfficeLength.Inches(2),
+                LocPinY = OfficeLength.Inches(1.5
+            )};
+            VisioShape child = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
+            VisioShape grandChild = new("3", OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "Grandchild");
             child.Children.Add(grandChild);
             group.Children.Add(child);
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddingAncestorAsChildThrowsHelpfulError() {
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            VisioShape child = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             group.Children.Add(child);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => child.Children.Add(group));
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
         public void AddingShapeToAnotherParentThrowsHelpfulError() {
             VisioShape firstGroup = new("1") { Type = "Group" };
             VisioShape secondGroup = new("2") { Type = "Group" };
-            VisioShape child = new("3", 1, 1, 1, 1, "Child");
+            VisioShape child = new("3", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             firstGroup.Children.Add(child);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => secondGroup.Children.Add(child));
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            VisioShape child = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             group.Children.Add(child);
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => page.Shapes.Add(child));
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            VisioShape child = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             page.Shapes.Add(group);
             page.Shapes.Add(child);
 
@@ -160,8 +160,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Page-1");
             VisioShape firstGroup = new("1") { Type = "Group" };
             VisioShape secondGroup = new("2") { Type = "Group" };
-            VisioShape existingChild = new("3", 1, 1, 1, 1, "Existing");
-            VisioShape movedChild = new("4", 2, 1, 1, 1, "Moved");
+            VisioShape existingChild = new("3", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Existing");
+            VisioShape movedChild = new("4", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Moved");
             page.Shapes.Add(firstGroup);
             page.Shapes.Add(secondGroup);
             firstGroup.Children.Add(movedChild);
@@ -179,9 +179,9 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape first = new("2", 1, 1, 1, 1, "First");
-            VisioShape middle = new("3", 2, 1, 1, 1, "Middle");
-            VisioShape last = new("4", 3, 1, 1, 1, "Last");
+            VisioShape first = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "First");
+            VisioShape middle = new("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Middle");
+            VisioShape last = new("4", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Last");
             page.Shapes.Add(group);
             group.Children.Add(first);
             group.Children.Add(middle);
@@ -198,9 +198,9 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape first = new("2", 1, 1, 1, 1, "First");
-            VisioShape middle = new("3", 2, 1, 1, 1, "Middle");
-            VisioShape last = new("4", 3, 1, 1, 1, "Last");
+            VisioShape first = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "First");
+            VisioShape middle = new("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Middle");
+            VisioShape last = new("4", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Last");
             page.Shapes.Add(group);
             group.Children.Add(first);
             group.Children.Add(middle);
@@ -215,8 +215,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ReplacingChildWithDuplicateLeavesExistingParentLinkIntact() {
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape first = new("2", 1, 1, 1, 1, "First");
-            VisioShape second = new("3", 2, 1, 1, 1, "Second");
+            VisioShape first = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "First");
+            VisioShape second = new("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Second");
             group.Children.Add(first);
             group.Children.Add(second);
 
@@ -232,11 +232,11 @@ namespace OfficeIMO.Tests {
         public void UngroupShapePromotesChildrenIntoFormerParentSlot() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            VisioShape before = new("1", 1, 1, 1, 1, "Before");
+            VisioShape before = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Before");
             VisioShape group = new("2") { Type = "Group" };
-            VisioShape childOne = new("3", 2, 1, 1, 1, "Child-1");
-            VisioShape childTwo = new("4", 3, 1, 1, 1, "Child-2");
-            VisioShape after = new("5", 4, 1, 1, 1, "After");
+            VisioShape childOne = new("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child-1");
+            VisioShape childTwo = new("4", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child-2");
+            VisioShape after = new("5", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "After");
             group.Children.Add(childOne);
             group.Children.Add(childTwo);
             page.Shapes.Add(before);
@@ -258,7 +258,7 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Page-1");
             VisioShape outerGroup = new("1") { Type = "Group" };
             VisioShape innerGroup = new("2") { Type = "Group" };
-            VisioShape child = new("3", 1, 1, 1, 1, "Child");
+            VisioShape child = new("3", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             innerGroup.Children.Add(child);
             outerGroup.Children.Add(innerGroup);
             page.Shapes.Add(outerGroup);
@@ -275,9 +275,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            VisioShape group = new("1") { Type = "Group", Width = 2, Height = 2, LocPinX = 1, LocPinY = 1 };
-            VisioShape promotedChild = new("2", 2, 2, 2, 2, "Promoted");
-            VisioShape target = new("3", 6, 2, 2, 2, "Target");
+            VisioShape group = new("1") { Type = "Group", Width = OfficeLength.Inches(2), Height = OfficeLength.Inches(2), LocPinX = OfficeLength.Inches(1), LocPinY = OfficeLength.Inches(1 )};
+            VisioShape promotedChild = new("2", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "Promoted");
+            VisioShape target = new("3", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "Target");
             group.Children.Add(promotedChild);
             page.Shapes.Add(group);
             page.Shapes.Add(target);
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
             page.ReconnectConnectorStart(connector, promotedChild, VisioSide.Right);
 
             Assert.Same(promotedChild, connector.From);
-            Assert.Equal(promotedChild.Width, connector.FromConnectionPoint!.X, 5);
+            Assert.Equal(promotedChild.Width.ToInches(), connector.FromConnectionPoint!.X, 5);
             Assert.Empty(document.Validate());
 
             document.Save();
@@ -305,9 +305,9 @@ namespace OfficeIMO.Tests {
         public void ReconnectConnectorCanUpdateBothEndpointsAndSideGlue() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            VisioShape left = new("1", 1, 1, 2, 2, "Left");
-            VisioShape middle = new("2", 4, 1, 2, 2, "Middle");
-            VisioShape right = new("3", 7, 1, 2, 2, "Right");
+            VisioShape left = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Left");
+            VisioShape middle = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Middle");
+            VisioShape right = new("3", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Right");
             page.Shapes.Add(left);
             page.Shapes.Add(middle);
             page.Shapes.Add(right);
@@ -317,7 +317,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Same(middle, connector.From);
             Assert.Same(right, connector.To);
-            Assert.Equal(middle.Width, connector.FromConnectionPoint!.X, 5);
+            Assert.Equal(middle.Width.ToInches(), connector.FromConnectionPoint!.X, 5);
             Assert.Equal(0, connector.ToConnectionPoint!.X, 5);
         }
 
@@ -325,9 +325,9 @@ namespace OfficeIMO.Tests {
         public void ReconnectConnectorRejectsShapesOutsideThePage() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            VisioShape start = new("1", 1, 1, 2, 2, "Start");
-            VisioShape end = new("2", 4, 1, 2, 2, "End");
-            VisioShape external = new("3", 7, 1, 2, 2, "External");
+            VisioShape start = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Start");
+            VisioShape end = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "End");
+            VisioShape external = new("3", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "External");
             page.Shapes.Add(start);
             page.Shapes.Add(end);
             VisioConnector connector = page.AddConnector(start, end, ConnectorKind.Straight);
@@ -342,10 +342,10 @@ namespace OfficeIMO.Tests {
         public void RetargetConnectorsCanMigrateGroupEdgesToPromotedChild() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            VisioShape source = new("1", 1, 1, 2, 2, "Source");
-            VisioShape group = new("2") { Type = "Group", Width = 2, Height = 2, LocPinX = 1, LocPinY = 1 };
-            VisioShape promotedChild = new("3", 4, 1, 2, 2, "Promoted");
-            VisioShape target = new("4", 7, 1, 2, 2, "Target");
+            VisioShape source = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Source");
+            VisioShape group = new("2") { Type = "Group", Width = OfficeLength.Inches(2), Height = OfficeLength.Inches(2), LocPinX = OfficeLength.Inches(1), LocPinY = OfficeLength.Inches(1 )};
+            VisioShape promotedChild = new("3", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Promoted");
+            VisioShape target = new("4", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Target");
             group.Children.Add(promotedChild);
             page.Shapes.Add(source);
             page.Shapes.Add(group);
@@ -361,7 +361,7 @@ namespace OfficeIMO.Tests {
             Assert.Same(promotedChild, incoming.To);
             Assert.Same(promotedChild, outgoing.From);
             Assert.Equal(0, incoming.ToConnectionPoint!.X, 5);
-            Assert.Equal(promotedChild.Width, outgoing.FromConnectionPoint!.X, 5);
+            Assert.Equal(promotedChild.Width.ToInches(), outgoing.FromConnectionPoint!.X, 5);
             Assert.Same(source, unaffected.From);
             Assert.Same(target, unaffected.To);
             Assert.Empty(document.Validate());
@@ -371,9 +371,9 @@ namespace OfficeIMO.Tests {
         public void RetargetConnectorsCanLimitUpdatesToStartEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            VisioShape oldShape = new("1", 1, 1, 2, 2, "Old");
-            VisioShape replacement = new("2", 4, 1, 2, 2, "Replacement");
-            VisioShape target = new("3", 7, 1, 2, 2, "Target");
+            VisioShape oldShape = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Old");
+            VisioShape replacement = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Replacement");
+            VisioShape target = new("3", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Target");
             page.Shapes.Add(oldShape);
             page.Shapes.Add(replacement);
             page.Shapes.Add(target);
@@ -393,10 +393,10 @@ namespace OfficeIMO.Tests {
         public void RetargetConnectorsReturnsEmptyWhenNoConnectorsReferenceShape() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            VisioShape original = new("1", 1, 1, 2, 2, "Original");
-            VisioShape replacement = new("2", 4, 1, 2, 2, "Replacement");
-            VisioShape source = new("3", 7, 1, 2, 2, "Source");
-            VisioShape target = new("4", 10, 1, 2, 2, "Target");
+            VisioShape original = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Original");
+            VisioShape replacement = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Replacement");
+            VisioShape source = new("3", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Source");
+            VisioShape target = new("4", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Target");
             page.Shapes.Add(original);
             page.Shapes.Add(replacement);
             page.Shapes.Add(source);
@@ -452,13 +452,13 @@ namespace OfficeIMO.Tests {
 
             VisioShape masterRoot = new("10") {
                 Type = "Group",
-                Width = 9,
-                Height = 9,
-                LocPinX = 4.5,
-                LocPinY = 4.5
-            };
-            masterRoot.Children.Add(new VisioShape("11") { Width = 2, Height = 1, LocPinX = 1, LocPinY = 0.5 });
-            masterRoot.Children.Add(new VisioShape("12") { Width = 4, Height = 3, LocPinX = 2, LocPinY = 1.5 });
+                Width = OfficeLength.Inches(9),
+                Height = OfficeLength.Inches(9),
+                LocPinX = OfficeLength.Inches(4.5),
+                LocPinY = OfficeLength.Inches(4.5
+            )};
+            masterRoot.Children.Add(new VisioShape("11") { Width = OfficeLength.Inches(2), Height = OfficeLength.Inches(1), LocPinX = OfficeLength.Inches(1), LocPinY = OfficeLength.Inches(0.5 )});
+            masterRoot.Children.Add(new VisioShape("12") { Width = OfficeLength.Inches(4), Height = OfficeLength.Inches(3), LocPinX = OfficeLength.Inches(2), LocPinY = OfficeLength.Inches(1.5 )});
 
             Dictionary<string, VisioMaster> masters = new() {
                 ["100"] = new VisioMaster("100", "GroupedMaster", masterRoot)
@@ -466,15 +466,15 @@ namespace OfficeIMO.Tests {
 
             InvokeApplyMasterReferences(shape, shapeElement, masters);
 
-            Assert.Equal(2, shape.Children[0].Width);
-            Assert.Equal(1, shape.Children[0].Height);
-            Assert.Equal(1, shape.Children[0].LocPinX);
-            Assert.Equal(0.5, shape.Children[0].LocPinY);
+            Assert.Equal(2, shape.Children[0].Width.ToInches());
+            Assert.Equal(1, shape.Children[0].Height.ToInches());
+            Assert.Equal(1, shape.Children[0].LocPinX.ToInches());
+            Assert.Equal(0.5, shape.Children[0].LocPinY.ToInches());
 
-            Assert.Equal(4, shape.Children[1].Width);
-            Assert.Equal(3, shape.Children[1].Height);
-            Assert.Equal(2, shape.Children[1].LocPinX);
-            Assert.Equal(1.5, shape.Children[1].LocPinY);
+            Assert.Equal(4, shape.Children[1].Width.ToInches());
+            Assert.Equal(3, shape.Children[1].Height.ToInches());
+            Assert.Equal(2, shape.Children[1].LocPinX.ToInches());
+            Assert.Equal(1.5, shape.Children[1].LocPinY.ToInches());
         }
 
         [Fact]

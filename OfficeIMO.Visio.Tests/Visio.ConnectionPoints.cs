@@ -15,11 +15,11 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
             from.ConnectionPoints.Add(new VisioConnectionPoint(2, 1, 1, 0));
             page.Shapes.Add(from);
 
-            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            VisioShape to = new("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             to.ConnectionPoints.Add(new VisioConnectionPoint(0, 1, -1, 0));
             page.Shapes.Add(to);
 
@@ -57,11 +57,11 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
             from.ConnectionPoints.Add(new VisioConnectionPoint(2, 1, 1, 0));
             page.Shapes.Add(from);
 
-            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            VisioShape to = new("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             to.ConnectionPoints.Add(new VisioConnectionPoint(0, 1, -1, 0));
             page.Shapes.Add(to);
 
@@ -87,11 +87,11 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
             from.ConnectionPoints.Add(new VisioConnectionPoint(2, 1, 1, 0));
             page.Shapes.Add(from);
 
-            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            VisioShape to = new("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             to.ConnectionPoints.Add(new VisioConnectionPoint(0, 1, -1, 0));
             page.Shapes.Add(to);
 
@@ -153,11 +153,11 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
             from.ConnectionPoints.Add(new VisioConnectionPoint(2, 1, 1, 0));
             page.Shapes.Add(from);
 
-            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            VisioShape to = new("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             to.ConnectionPoints.Add(new VisioConnectionPoint(0, 1, -1, 0));
             page.Shapes.Add(to);
 
@@ -203,10 +203,10 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
             page.Shapes.Add(from);
 
-            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            VisioShape to = new("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             page.Shapes.Add(to);
 
             page.Connectors.Add(new VisioConnector(from, to));
@@ -244,8 +244,8 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
-            VisioShape to = new("2", 6, 2, 2, 2, "To");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
+            VisioShape to = new("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             page.Shapes.Add(from);
             page.Shapes.Add(to);
             page.Connectors.Add(new VisioConnector(from, to));
@@ -283,9 +283,9 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape from = new("1", 2, 2, 2, 2, "From");
-            VisioShape replacement = new("2", 4, 2, 2, 2, "Replacement");
-            VisioShape to = new("3", 7, 2, 2, 2, "To");
+            VisioShape from = new("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "From");
+            VisioShape replacement = new("2", OfficeLength.Inches(4), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "Replacement");
+            VisioShape to = new("3", OfficeLength.Inches(7), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "To");
             page.Shapes.Add(from);
             page.Shapes.Add(replacement);
             page.Shapes.Add(to);

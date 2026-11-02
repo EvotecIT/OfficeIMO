@@ -126,14 +126,14 @@ namespace OfficeIMO.Visio {
             double tolerance = Math.Max(0D, options.PageBoundsTolerance);
             foreach (KeyValuePair<VisioShape, VisioShapeBounds> entry in boundsByShape) {
                 VisioShapeBounds bounds = entry.Value;
-                if (bounds.Left < -tolerance ||
-                    bounds.Bottom < -tolerance ||
-                    bounds.Right > page.Width + tolerance ||
-                    bounds.Top > page.Height + tolerance) {
+                if (bounds.LeftInches < -tolerance ||
+                    bounds.BottomInches < -tolerance ||
+                    bounds.RightInches > page.WidthInches + tolerance ||
+                    bounds.TopInches > page.HeightInches + tolerance) {
                     issues.Add(new VisioDiagramQualityIssue(
                         VisioDiagramQualityIssueSeverity.Error,
                         ShapeOutsidePageKind,
-                        $"Shape '{entry.Key.Id}' is outside the page bounds ({FormatBounds(bounds)} on {FormatSize(page.Width, page.Height)} page).",
+                        $"Shape '{entry.Key.Id}' is outside the page bounds ({FormatBounds(bounds)} on {FormatSize(page.WidthInches, page.HeightInches)} page).",
                         page.Name,
                         entry.Key.Id));
                 }
@@ -150,14 +150,14 @@ namespace OfficeIMO.Visio {
             for (int i = 0; i < shapes.Count; i++) {
                 VisioShape first = shapes[i];
                 VisioShapeBounds firstBounds = boundsByShape[first];
-                if (firstBounds.IsEmpty || firstBounds.Width <= 0 || firstBounds.Height <= 0) {
+                if (firstBounds.IsEmpty || firstBounds.WidthInches <= 0 || firstBounds.HeightInches <= 0) {
                     continue;
                 }
 
                 for (int j = i + 1; j < shapes.Count; j++) {
                     VisioShape second = shapes[j];
                     VisioShapeBounds secondBounds = boundsByShape[second];
-                    if (secondBounds.IsEmpty || secondBounds.Width <= 0 || secondBounds.Height <= 0) {
+                    if (secondBounds.IsEmpty || secondBounds.WidthInches <= 0 || secondBounds.HeightInches <= 0) {
                         continue;
                     }
 
@@ -175,7 +175,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    double smallerArea = Math.Min(firstBounds.Width * firstBounds.Height, secondBounds.Width * secondBounds.Height);
+                    double smallerArea = Math.Min(firstBounds.WidthInches * firstBounds.HeightInches, secondBounds.WidthInches * secondBounds.HeightInches);
                     double overlapRatio = smallerArea <= 0D ? 0D : overlapArea / smallerArea;
                     if (overlapRatio >= minimumRatio) {
                         issues.Add(new VisioDiagramQualityIssue(
@@ -461,36 +461,36 @@ namespace OfficeIMO.Visio {
             return OfficeGeometry.SegmentIntersectsRectangle(
                 (a.X, a.Y),
                 (b.X, b.Y),
-                bounds.Left,
-                bounds.Bottom,
-                bounds.Right,
-                bounds.Top);
+                bounds.LeftInches,
+                bounds.BottomInches,
+                bounds.RightInches,
+                bounds.TopInches);
         }
 
         private static bool IsOutsidePage(VisioShapeBounds bounds, VisioPage page, double tolerance) {
             double resolvedTolerance = Math.Max(0D, tolerance);
-            return bounds.Left < -resolvedTolerance ||
-                   bounds.Bottom < -resolvedTolerance ||
-                   bounds.Right > page.Width + resolvedTolerance ||
-                   bounds.Top > page.Height + resolvedTolerance;
+            return bounds.LeftInches < -resolvedTolerance ||
+                   bounds.BottomInches < -resolvedTolerance ||
+                   bounds.RightInches > page.WidthInches + resolvedTolerance ||
+                   bounds.TopInches > page.HeightInches + resolvedTolerance;
         }
 
         private static bool Contains(VisioShapeBounds outer, VisioShapeBounds inner) {
             const double tolerance = 1e-6;
-            return outer.Left <= inner.Left + tolerance &&
-                   outer.Bottom <= inner.Bottom + tolerance &&
-                   outer.Right + tolerance >= inner.Right &&
-                   outer.Top + tolerance >= inner.Top;
+            return outer.LeftInches <= inner.LeftInches + tolerance &&
+                   outer.BottomInches <= inner.BottomInches + tolerance &&
+                   outer.RightInches + tolerance >= inner.RightInches &&
+                   outer.TopInches + tolerance >= inner.TopInches;
         }
 
         private static double OverlapArea(VisioShapeBounds first, VisioShapeBounds second) {
-            double width = Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left));
-            double height = Math.Max(0D, Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom));
+            double width = Math.Max(0D, Math.Min(first.RightInches, second.RightInches) - Math.Max(first.LeftInches, second.LeftInches));
+            double height = Math.Max(0D, Math.Min(first.TopInches, second.TopInches) - Math.Max(first.BottomInches, second.BottomInches));
             return width * height;
         }
 
         private static double BoundsArea(VisioShapeBounds bounds) {
-            return bounds.IsEmpty ? 0D : Math.Max(0D, bounds.Width) * Math.Max(0D, bounds.Height);
+            return bounds.IsEmpty ? 0D : Math.Max(0D, bounds.WidthInches) * Math.Max(0D, bounds.HeightInches);
         }
 
         private static bool IsZero(double value) {
@@ -498,7 +498,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static string FormatBounds(VisioShapeBounds bounds) {
-            return string.Format(CultureInfo.InvariantCulture, "{0:0.###},{1:0.###},{2:0.###},{3:0.###}", bounds.Left, bounds.Bottom, bounds.Right, bounds.Top);
+            return string.Format(CultureInfo.InvariantCulture, "{0:0.###},{1:0.###},{2:0.###},{3:0.###}", bounds.LeftInches, bounds.BottomInches, bounds.RightInches, bounds.TopInches);
         }
 
         private static string FormatSize(double width, double height) {

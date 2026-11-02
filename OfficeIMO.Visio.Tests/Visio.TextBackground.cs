@@ -152,7 +152,7 @@ public class VisioTextBackgroundTests {
             VisioDocument destination = Load("3", paletteColor: "#654321");
             var imported = Assert.Single(destination.ImportStencilMastersAndGet(path));
             Assert.Equal(OfficeColor.FromRgb(18, 52, 86), imported.Shape.TextStyle!.BackgroundColor);
-            destination.Pages[0].AddShape("imported-background", imported, 5, 5, 2, 1);
+            destination.Pages[0].AddShape("imported-background", imported, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, destination.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, destination.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, destination.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, destination.Pages[0].DefaultUnit)));
             foreach (VisioDocument candidate in ReopenedCandidates(destination)) {
                 VisioMaster master = candidate.Masters.Single(master => master.NameU == "Background");
                 Assert.Equal(OfficeColor.FromRgb(18, 52, 86), master.Shape.TextStyle!.BackgroundColor);
@@ -167,8 +167,8 @@ public class VisioTextBackgroundTests {
     public void NewStylesWriteNoFillAndNormalizedTransparencyCaches() {
         VisioDocument document = VisioDocument.Create();
         VisioPage page = document.AddPage("Backgrounds");
-        VisioShape first = page.AddRectangle(1, 1, 1, 1, "Shape");
-        VisioShape second = page.AddRectangle(3, 1, 1, 1, "Target");
+        VisioShape first = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Shape");
+        VisioShape second = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
         first.ApplyTextStyle(new VisioTextStyle { BackgroundColor = OfficeColor.Transparent, BackgroundTransparency = 75 });
         page.AddConnector(first, second).ApplyTextStyle(new VisioTextStyle { BackgroundColor = OfficeColor.White, BackgroundTransparency = 25 });
         using var archive = new ZipArchive(new MemoryStream(document.ToBytes()), ZipArchiveMode.Read);

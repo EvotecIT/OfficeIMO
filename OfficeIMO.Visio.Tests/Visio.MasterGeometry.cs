@@ -22,8 +22,8 @@ namespace OfficeIMO.Tests {
             var doc = VisioDocument.Create(filePath);
             doc.UseMastersByDefault = true;
             var page = doc.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("C1", 2, 2, 1, 1, "Circle") { NameU = "Circle" });
-            page.Shapes.Add(new VisioShape("T1", 4, 2, 1.5, 1, "Triangle") { NameU = "Triangle" });
+            page.Shapes.Add(new VisioShape("C1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Circle") { NameU = "Circle" });
+            page.Shapes.Add(new VisioShape("T1", OfficeLength.Inches(4), OfficeLength.Inches(2), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "Triangle") { NameU = "Triangle" });
             doc.Save();
 
             using var zip = ZipFile.OpenRead(filePath);

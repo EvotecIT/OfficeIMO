@@ -631,8 +631,8 @@ WordSignatureValidationReport validation = signed.ValidateSignatures(
 OPC package signing does not sign VBA code. `WordSigningCapabilities.Package` and
 `WordSigningCapabilities.MacroProject` report the two surfaces independently. `InspectSignatures()` remains available
 without `OfficeIMO.Security`; it projects the shared bounded OPC inspector and does not claim digest, signature, or
-certificate trust. The cross-host `OfficeDocument.Inspect(path, options).PackageSignatures`, `ValidatePackageSignatures(...)`,
-`SignPackageSignature(...)`, and `TrySignPackageSignature(...)` APIs expose the same result types used by Excel,
+certificate trust. The cross-host `OfficeDocument.Inspect(path, options).PackageSignatures`, `ValidateSignatures(...)`,
+`SignPackage(...)`, and `TrySignPackage(...)` APIs expose the same result types used by Excel,
 PowerPoint, and Visio. The established `ValidateSignatures(...)` API additionally retains Word-specific timestamp and
 diagnostic evidence.
 

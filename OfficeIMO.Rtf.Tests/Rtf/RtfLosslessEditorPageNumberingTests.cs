@@ -8,7 +8,7 @@ public class RtfLosslessEditorPageNumberingTests {
     public void SetPageNumbering_Replaces_Duplicates_And_Preserves_Metadata_And_Body() {
         const string rtf = @"{\rtf1\ansi\pgnstarts1\pgnstarts2\pgnrestart\pgncont\pgnx100\pgny200\pgndec\pgnucrm{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetPageNumbering(
             start: 5,
             restart: true,
@@ -34,7 +34,7 @@ public class RtfLosslessEditorPageNumberingTests {
     public void SetPageNumbering_Creates_Continuous_Numbering_And_Removes_All_Page_Numbering_Controls() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetPageNumbering(
             start: 3,
             restart: false,

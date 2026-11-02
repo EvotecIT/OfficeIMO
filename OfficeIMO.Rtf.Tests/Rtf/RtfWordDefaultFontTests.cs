@@ -18,7 +18,7 @@ public sealed class RtfWordDefaultFontTests {
         string family, string paintedFont, int expectedFontId) {
         RtfDocument authored = CreateSource(out int selectedFont, family);
         authored.AddParagraph().AddText("DEFAULTFONT").SetFontSize(12);
-        RtfDocument source = parsed ? RtfDocument.Read(authored.ToRtf()).Document : authored;
+        RtfDocument source = parsed ? RtfDocument.ParseResult(authored.ToRtf()).Document : authored;
         Assert.Equal(expectedFontId, selectedFont);
         Assert.Equal(selectedFont, source.Settings.DefaultFontId);
         Assert.All(source.Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.Null(run.FontId));

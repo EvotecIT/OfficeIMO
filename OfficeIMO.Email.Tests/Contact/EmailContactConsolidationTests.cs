@@ -71,8 +71,8 @@ public sealed class EmailContactConsolidationTests {
     [Fact]
     public void CollectionExportsPreserveSeparateCalendarsAndCardsWithAggregateLimits() {
         string Calendar(string uid) => "MIME-Version: 1.0\r\nContent-Type: text/calendar\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:test\r\nBEGIN:VTIMEZONE\r\nTZID:Local\r\nX-SOURCE:" + uid + "\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:" + uid + "\r\nDTSTART:20261001T090000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
-        using var a = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(Calendar("a")));
-        using var b = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(Calendar("b")));
+        using var a = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(Calendar("a")));
+        using var b = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(Calendar("b")));
         var collection = EmailPortableContentCollection.ToCalendars(new[] { a.Document, b.Document });
         Assert.True(collection.RetainedSemanticSource);
         Assert.Equal(2, IcsDocument.Load(collection.ToBytes()).Calendars.Count);
@@ -97,7 +97,7 @@ public sealed class EmailContactConsolidationTests {
     [Fact]
     public void MatchesDecodedEmailSemanticsRatherThanQuotedPrintableAddressSyntax() {
         string eml = "MIME-Version: 1.0\r\nContent-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:2.1\r\nFN:Ada\r\nEMAIL;ENCODING=QUOTED-PRINTABLE:ada=2Bwork@example.com\r\nEND:VCARD\r\n";
-        using var read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        using var read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
         var review = EmailContactConsolidation.Review(new[] {
             new EmailContactSource("encoded", read.Document),
             new EmailContactSource("same", EmailPortableContentExportTests.Contact("Ada", "ada+work@example.com")),
@@ -110,7 +110,7 @@ public sealed class EmailContactConsolidationTests {
     [Fact]
     public void ResolvesDirectoryAliasesInRetainedEmailSlotsBeyondTheOutlookProjection() {
         string eml = "MIME-Version: 1.0\r\nContent-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada\r\nEMAIL:a@elsewhere.test\r\nEMAIL:b@elsewhere.test\r\nEMAIL:c@elsewhere.test\r\nEMAIL:alias-ada@example.test\r\nEND:VCARD\r\n";
-        using var read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        using var read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
         using var stream = new MemoryStream(new OabV4Fixture().Build());
         using var directory = OfflineAddressBookSession.Open(stream, "identity.oab");
         var review = EmailContactConsolidation.Review(new[] {
@@ -127,7 +127,7 @@ public sealed class EmailContactConsolidationTests {
     [InlineData("SMTP:")]
     public void RetainsEmptyOrInvalidEmailFieldsWithoutResolvingThem(string invalid) {
         string eml = "MIME-Version: 1.0\r\nContent-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada\r\nEMAIL:" + invalid + "\r\nEMAIL:ada@example.test\r\nEND:VCARD\r\n";
-        using var read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        using var read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
         using var stream = new MemoryStream(new OabV4Fixture().Build());
         using var directory = OfflineAddressBookSession.Open(stream, "identity.oab");
         var review = EmailContactConsolidation.Review(new[] { new EmailContactSource("retained", read.Document) }, directory: directory.BuildIdentityIndex());
@@ -138,7 +138,7 @@ public sealed class EmailContactConsolidationTests {
     [Fact]
     public void RecoveredMalformedQuotedPrintableAddressesDoNotCreateIdentityMatches() {
         string eml = "MIME-Version: 1.0\r\nContent-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:2.1\r\nFN:Ada\r\nEMAIL;ENCODING=QUOTED-PRINTABLE:ada=ZZ@example.test\r\nEND:VCARD\r\n";
-        using var read = new EmailDocumentReader().Read(Encoding.UTF8.GetBytes(eml));
+        using var read = new EmailDocumentReader().ReadDocument(Encoding.UTF8.GetBytes(eml));
         var review = EmailContactConsolidation.Review(new[] {
             new EmailContactSource("recovered", read.Document),
             new EmailContactSource("literal", EmailPortableContentExportTests.Contact("Other", "ada=ZZ@example.test"))

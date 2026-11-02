@@ -28,14 +28,14 @@ public sealed class VisioArcMasterScalingTests {
         foreach (var scale in new[] { (X: 2D, Y: .5D), (X: .5D, Y: 2D) }) {
             VisioDocument document = LoadMaster(type, startX, startY, endX, endY, a, b, angle, ratio);
             VisioMaster master = document.GetMaster("Arc");
-            var originalPage = document.AddPage("Original", 12, 12);
-            originalPage.AddShape("original", master, OriginX, OriginY, 4, 4);
+            var originalPage = document.AddPage("Original", OfficeLength.Inches(12), OfficeLength.Inches(12));
+            originalPage.AddShape("original", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, originalPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, originalPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, originalPage.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, originalPage.DefaultUnit)));
             XElement originalMaster = SavedMaster(document);
             List<(double X, double Y)> originalPoints = Points(originalPage);
-            var page = document.AddPage("Scaled", 12, 12);
+            var page = document.AddPage("Scaled", OfficeLength.Inches(12), OfficeLength.Inches(12));
             // Both overloads must use the same geometry owner.
-            if (scale.X > scale.Y) page.AddShape("scaled", master, OriginX, OriginY, 4 * scale.X, 4 * scale.Y);
-            else page.AddShape("scaled", "Arc", OriginX, OriginY, 4 * scale.X, 4 * scale.Y);
+            if (scale.X > scale.Y) page.AddShape("scaled", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4 * scale.X, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4 * scale.Y, page.DefaultUnit)));
+            else page.AddShape("scaled", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4 * scale.X, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4 * scale.Y, page.DefaultUnit)));
             document.DuplicatePage(page, "Copy");
 
             IEnumerable<VisioDocument> reopenedDocuments = new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) };
@@ -74,7 +74,7 @@ public sealed class VisioArcMasterScalingTests {
     public void UniformArcsAndZeroBowRetainTheirNativeRowsAndApplicableFormulas() {
         foreach (double bow in new[] { 0D, .8D }) {
             VisioDocument document = LoadMaster("ArcTo", 0, 0, 3, 0, bow, 0, 0, 1);
-            document.AddPage("Scaled").AddShape("scaled", "Arc", OriginX, OriginY, 8, bow == 0 ? 2 : 8);
+            document.AddPage("Scaled").AddShape("scaled", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(bow == 0 ? 2 : 8, VisioMeasurementUnit.Inches)));
             XElement arc = SavedGeometry(document, "Scaled").Element(Legacy + "ArcTo")!;
             Assert.NotNull(arc);
             Assert.Equal(bow * 2, (double)arc.Element(Legacy + "A")!, 8);
@@ -85,7 +85,7 @@ public sealed class VisioArcMasterScalingTests {
     [Fact]
     public void ArcScalingReadsFormulaOnlyCoordinatesAndIgnoresDeletedRows() {
         VisioDocument document = LoadMaster("ArcTo", 0, 0, 3, 0, .8, 0, 0, 1);
-        document.AddPage("Original").AddShape("original", "Arc", OriginX, OriginY, 4, 4);
+        document.AddPage("Original").AddShape("original", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         XElement xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value)).Root!;
         XElement geometry = xml.Descendants(Legacy + "Master").Descendants(Legacy + "Geom").Single();
         XElement move = geometry.Element(Legacy + "MoveTo")!;
@@ -93,7 +93,7 @@ public sealed class VisioArcMasterScalingTests {
         move.AddAfterSelf(new XElement(Legacy + "LineTo", new XAttribute("IX", "6"), new XAttribute("Del", "1"), Cell("X", 99), Cell("Y", 99)),
             new XElement(Legacy + "ArcTo", new XAttribute("IX", "7"), new XAttribute("Del", "1"), Cell("X", 88), Cell("Y", 88), Cell("A", 20)));
         document = LoadXml(Encoding.UTF8.GetBytes(xml.ToString()));
-        document.AddPage("Scaled", 12, 12).AddShape("scaled", "Arc", OriginX, OriginY, 8, 2);
+        document.AddPage("Scaled", OfficeLength.Inches(12), OfficeLength.Inches(12)).AddShape("scaled", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)));
         XElement scaled = SavedGeometry(document, "Scaled");
         Assert.Equal(2, (double)scaled.Element(Legacy + "MoveTo")!.Element(Legacy + "X")!);
         XElement arc = scaled.Elements().Single(row => (string?)row.Attribute("IX") == "9");
@@ -108,10 +108,10 @@ public sealed class VisioArcMasterScalingTests {
     [InlineData(1001)]
     public void InvalidEllipticalProfilesFailBeforeInsertionAndLeaveMasterUnchanged(double ratio) {
         VisioDocument document = LoadMaster("EllipticalArcTo", 0, 0, 3, 0, 1.5, -.8, .3, ratio);
-        document.AddPage("Original").AddShape("original", "Arc", OriginX, OriginY, 4, 4);
+        document.AddPage("Original").AddShape("original", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         VisioPage page = document.AddPage("Scaled");
         XElement before = SavedMaster(document);
-        Assert.Throws<NotSupportedException>(() => page.AddShape("failed", "Arc", OriginX, OriginY, 8, 2));
+        Assert.Throws<NotSupportedException>(() => page.AddShape("failed", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit))));
         Assert.Empty(page.Shapes);
         Assert.True(XNode.DeepEquals(before, SavedMaster(document)));
     }
@@ -119,10 +119,10 @@ public sealed class VisioArcMasterScalingTests {
     [Fact]
     public void ExcessiveAspectRatioFailsBeforeInsertionWithoutChangingTheSource() {
         VisioDocument document = LoadMaster("ArcTo", 0, 0, 3, 0, .8, 0, 0, 1);
-        document.AddPage("Original").AddShape("original", "Arc", OriginX, OriginY, 4, 4);
+        document.AddPage("Original").AddShape("original", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         VisioPage page = document.AddPage("Scaled");
         XElement before = SavedMaster(document);
-        Assert.Throws<NotSupportedException>(() => page.AddShape("failed", "Arc", OriginX, OriginY, 4004, 4));
+        Assert.Throws<NotSupportedException>(() => page.AddShape("failed", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4004, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit))));
         Assert.Empty(page.Shapes);
         Assert.True(XNode.DeepEquals(before, SavedMaster(document)));
     }
@@ -130,13 +130,13 @@ public sealed class VisioArcMasterScalingTests {
     [Fact]
     public void RepurposedBowCellDoesNotRetainProducerErrorWhenItsCacheCoincides() {
         VisioDocument document = LoadMaster("ArcTo", 0, 0, 1.6, 0, .8, 0, 0, 1);
-        document.AddPage("Original").AddShape("original", "Arc", OriginX, OriginY, 4, 4);
+        document.AddPage("Original").AddShape("original", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         XElement xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value)).Root!;
         XElement bow = xml.Descendants(Legacy + "Master").Descendants(Legacy + "A").Single();
         bow.Attribute("F")!.Remove();
         bow.SetAttributeValue("Err", "producer-error");
         document = LoadXml(Encoding.UTF8.GetBytes(xml.ToString()));
-        document.AddPage("Scaled").AddShape("scaled", "Arc", OriginX, OriginY, 4, 8);
+        document.AddPage("Scaled").AddShape("scaled", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginX, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(OriginY, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, VisioMeasurementUnit.Inches)));
         foreach (VisioDocument reopened in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             XElement control = SavedGeometry(reopened, "Scaled").Element(Legacy + "EllipticalArcTo")!.Element(Legacy + "A")!;
             Assert.Equal(.8, (double)control, 8);
@@ -151,13 +151,13 @@ public sealed class VisioArcMasterScalingTests {
     [InlineData(4, 8)]
     public void GeometryFormulasAreComparedAgainstFinalInstancePlacement(double width, double height) {
         VisioDocument document = LoadMaster("ArcTo", 2, 0, 3, 0, .8, 0, 0, 1);
-        document.AddPage("Original").AddShape("original", "Arc", 1, 6, 4, 4);
+        document.AddPage("Original").AddShape("original", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         XElement xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value)).Root!;
         XElement masterShape = xml.Descendants(Legacy + "Master").Descendants(Legacy + "Shape").Single();
         masterShape.Element(Legacy + "XForm")!.Element(Legacy + "PinX")!.Value = "1";
         masterShape.Descendants(Legacy + "MoveTo").Single().Element(Legacy + "X")!.SetAttributeValue("F", "PinX*2");
         document = LoadXml(Encoding.UTF8.GetBytes(xml.ToString()));
-        document.AddPage("Scaled").AddShape("scaled", "Arc", 7, 6, width, height);
+        document.AddPage("Scaled").AddShape("scaled", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(width, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(height, VisioMeasurementUnit.Inches)));
         XElement coordinate = SavedGeometry(document, "Scaled").Element(Legacy + "MoveTo")!.Element(Legacy + "X")!;
         Assert.Equal(width / 2, (double)coordinate, 8);
         Assert.Null(coordinate.Attribute("F"));
@@ -185,9 +185,9 @@ public sealed class VisioArcMasterScalingTests {
                 if (name == "Y") cell.SetAttributeValue("F", "Height*0");
             }
         });
-        document.AddPage("Original").AddShape("original", "Arc", 1, 6, 4, 4);
+        document.AddPage("Original").AddShape("original", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         XElement originalMaster = SavedMaster(document);
-        document.AddPage("Scaled").AddShape("scaled", "Arc", 7, 6, width, height);
+        document.AddPage("Scaled").AddShape("scaled", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(width, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(height, VisioMeasurementUnit.Inches)));
         foreach (VisioDocument reopened in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())) }) {
             Assert.True(XNode.DeepEquals(originalMaster, SavedMaster(reopened)));
             XElement geometry = ReadPart(reopened, "visio/pages/page3.xml").Descendants(Modern + "Section").Single(s => (string?)s.Attribute("N") == "Geometry");
@@ -250,7 +250,7 @@ public sealed class VisioArcMasterScalingTests {
         if (!relative) return document;
         // Construct a native Open XML fixture, rather than inventing relative
         // elements in the older schema or adding a product hook for tests.
-        document.AddPage("Seed").AddShape("seed", "Arc", 2, 6, 4, 4);
+        document.AddPage("Seed").AddShape("seed", "Arc", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, VisioMeasurementUnit.Inches)));
         return RewriteMaster(document, native => {
             foreach (XElement row in native.Descendants(Modern + "Row")) {
                 row.SetAttributeValue("T", "Rel" + (string)row.Attribute("T")!);

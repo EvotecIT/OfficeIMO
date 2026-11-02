@@ -59,7 +59,7 @@ public class RtfMergeSectionRegressionTests {
         Assert.Equal(11000, destination.Sections[2].PageSetup.PaperWidthTwips);
         Assert.Equal(2, destination.Sections[2].ColumnCount);
         Assert.Equal("Source header", destination.GetEffectiveHeaderFooters(imported).Single(item => item.Kind == RtfHeaderFooterKind.Header).ToPlainText());
-        foreach (RtfDocument value in new[] { destination, RtfDocument.Read(destination.ToRtf()).Document }) {
+        foreach (RtfDocument value in new[] { destination, RtfDocument.ParseResult(destination.ToRtf()).Document }) {
             Assert.Equal(new[] { "Destination body", "Source first", "Source second" }, value.Paragraphs.Select(item => item.ToPlainText()));
             Assert.False(value.GetEffectivePageSetup(value.Sections[1]).Landscape);
             Assert.Equal(1800, value.Sections[1].PageSetup.MarginLeftTwips);
@@ -87,7 +87,7 @@ public class RtfMergeSectionRegressionTests {
         explicitReset.PageSetup.DifferentFirstPageHeaderFooter = false;
         explicitReset.PageSetup.RtlGutter = false;
         explicitReset.AddParagraph("Reset");
-        foreach (RtfDocument value in new[] { document, RtfDocument.Read(document.ToRtf()).Document,
+        foreach (RtfDocument value in new[] { document, RtfDocument.ParseResult(document.ToRtf()).Document,
             HtmlConversionDocument.Parse(document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile())).ToRtfDocument() }) {
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).Landscape, value.ToRtf());
             Assert.True(value.GetEffectivePageSetup(value.Sections[0]).DifferentFirstPageHeaderFooter);

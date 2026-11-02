@@ -1,6 +1,87 @@
 {
   "package": "OfficeIMO.Visio",
-  "changes": [],
+  "changes": [
+    {
+      "old": "VisioDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature",
+      "kind": "method",
+      "action": "rename",
+      "new": "VisioDocument.ValidateSignatures / SignPackage / TrySignPackage",
+      "replacement": "Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations.",
+      "category": "naming",
+      "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
+      "applied": true
+    },
+    {
+      "old": "VisioPage.Width / Height / WidthCentimeters / HeightCentimeters / PageWidth / PageHeight",
+      "kind": "property",
+      "action": "rename",
+      "new": "VisioPage.Width / Height : OfficeLength",
+      "category": "units",
+      "replacement": "Use OfficeLength.Inches, Centimeters, Millimeters or Points when setting dimensions, and ToInches/ToCentimeters when a numeric value is needed. OfficeLength rounds physical values to whole EMUs; native imported geometry and formulas retain their original numeric precision internally.",
+      "reason": "Physical dimensions have explicit units; the unit-specific and obsolete aliases are removed.",
+      "applied": true
+    },
+    {
+      "old": "VisioShape.PinX / PinY / Width / Height / LocPinX / LocPinY / GetBounds()",
+      "kind": "property",
+      "action": "rename",
+      "new": "VisioShape physical geometry : OfficeLength",
+      "category": "units",
+      "replacement": "VisioShape physical geometry : OfficeLength",
+      "reason": "Shape bounds share the page dimension contract while native drawing scale and formulas remain Visio-specific.",
+      "applied": true
+    },
+    {
+      "old": "VisioDocument.AddPage(name, double width, double height, unit) / VisioPage.AddRectangle(double...) / SetMargins(double..., unit)",
+      "kind": "method",
+      "action": "rename",
+      "new": "AddPage(name, OfficeLength? width, OfficeLength? height, scaleUnit) / AddRectangle(OfficeLength...) / SetMargins(OfficeLength...)",
+      "category": "units",
+      "replacement": "Wrap physical values in OfficeLength. Shape creation, constructors, page Size and margins use the same length contract; native formulas and source rendering remain numeric inches internally.",
+      "reason": "Public geometry uses OfficeLength. scaleUnit explicitly controls native drawing-scale metadata, never the interpretation of a physical length.",
+      "applied": true
+    },
+    {
+      "old": "VisioFluentDocument.Page / ExistingPage / FirstPage / PageOrAdd / BackgroundPage",
+      "kind": "method",
+      "action": "rename",
+      "new": "AddPage / GetPage / GetPage(0) / GetOrAddPage / AddBackgroundPage",
+      "category": "authoring",
+      "replacement": "Use the same physical arguments and defaults as VisioDocument, with an optional configure callback.",
+      "reason": "Adding a page, selecting an existing page and creating a missing page have separate names.",
+      "applied": true
+    },
+    {
+      "old": "VisioFluentPage.Rect / Square / Circle / Ellipse / Diamond / Process / Decision / Data / TextBox / Margins / Master / Title; VisioFluentShape.Style",
+      "kind": "method",
+      "action": "rename",
+      "new": "AddRectangle / AddSquare / AddCircle / AddEllipse / AddDiamond / AddProcess / AddDecision / AddData / AddTextBox / SetMargins / AddShape / AddTitle; ApplyStyle",
+      "category": "authoring",
+      "replacement": "Use Add-prefixed primitive names and OfficeLength arguments. Native page and shape models own preparation and return the created shape; fluent wrappers return their scope. Fluent operations now use the model ID validation and exception contract, including InvalidOperationException for duplicate page-object IDs.",
+      "reason": "Fluent creation forwards to the same object-model methods, including explicit-ID overloads.",
+      "applied": true
+    },
+    {
+      "old": "VisioShapeBounds(double...) / numeric bounds properties; ResizeShape(..., width, height, unit); VisioShapeSelection.Size(double, double)",
+      "new": "VisioShapeBounds(OfficeLength...) / OfficeLength bounds; ResizeShape(..., OfficeLength, OfficeLength); Size(OfficeLength, OfficeLength)",
+      "kind": "method",
+      "action": "change",
+      "category": "units",
+      "reason": "Public physical bounds and size edits use explicit lengths. Native matrices, drawing scale and formulas retain numeric coordinates.",
+      "replacement": "Wrap each physical value in OfficeLength and convert explicitly when numeric native coordinates are needed.",
+      "applied": true
+    },
+    {
+      "old": "VisioFluentPage.Stencil / Connect / Shape / Container / Layer; VisioFluentConnector.Style",
+      "new": "AddStencilShape / AddConnector / GetShape / AddContainer / AddLayer; ApplyStyle",
+      "kind": "method",
+      "action": "rename",
+      "category": "authoring",
+      "reason": "Fluent authoring forwards preparation and defaults to the corresponding model operation.",
+      "replacement": "Use the model argument order for stencils and connectors; configure callbacks remain optional fluent composition.",
+      "applied": true
+    }
+  ],
   "extraChanges": [
     {
       "old": "VisioPageImageExportBuilder; VisioDocumentImageExportBuilder; VisioDocumentImageBatchExportBuilder; VisioImageExportFluentExtensions",

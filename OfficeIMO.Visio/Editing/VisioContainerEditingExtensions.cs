@@ -210,12 +210,12 @@ namespace OfficeIMO.Visio {
             GetContainerBounds(container, members, effectiveOptions,
                 page.DefaultUnit, out double pinX, out double pinY,
                 out double width, out double height);
-            container.PinX = pinX;
-            container.PinY = pinY;
-            container.Width = width;
-            container.Height = height;
-            container.LocPinX = width / 2D;
-            container.LocPinY = height / 2D;
+            container.PinXInches = pinX;
+            container.PinYInches = pinY;
+            container.WidthInches = width;
+            container.HeightInches = height;
+            container.LocPinXInches = width / 2D;
+            container.LocPinYInches = height / 2D;
             VisioContainerSemantics.Apply(container, effectiveOptions, page.DefaultUnit);
             return container;
         }
@@ -362,10 +362,10 @@ namespace OfficeIMO.Visio {
                 points.Max(point => point.Y));
             double margin = options.Margin.ToInches(unit);
             double headingHeight = options.HeadingHeight.ToInches(unit);
-            double left = bounds.Left - margin;
-            double right = bounds.Right + margin;
-            double bottom = bounds.Bottom - margin;
-            double top = bounds.Top + margin + headingHeight;
+            double left = bounds.LeftInches - margin;
+            double right = bounds.RightInches + margin;
+            double bottom = bounds.BottomInches - margin;
+            double top = bounds.TopInches + margin + headingHeight;
             width = Math.Max(0.1D, right - left);
             height = Math.Max(0.1D, top - bottom);
             pinX = left + width / 2D;
@@ -375,9 +375,9 @@ namespace OfficeIMO.Visio {
         private static IEnumerable<(double X, double Y)> GetPageCorners(
             VisioShape shape) {
             yield return GetPagePoint(shape, 0D, 0D);
-            yield return GetPagePoint(shape, shape.Width, 0D);
-            yield return GetPagePoint(shape, 0D, shape.Height);
-            yield return GetPagePoint(shape, shape.Width, shape.Height);
+            yield return GetPagePoint(shape, shape.WidthInches, 0D);
+            yield return GetPagePoint(shape, 0D, shape.HeightInches);
+            yield return GetPagePoint(shape, shape.WidthInches, shape.HeightInches);
         }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape,

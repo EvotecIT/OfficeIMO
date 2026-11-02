@@ -68,7 +68,7 @@ var options = new EmailReaderOptions(
     includeAttachmentContent: true);
 
 using EmailReadResult result = await new EmailDocumentReader(options)
-    .ReadStreamingAsync("large-message.msg", cancellationToken);
+    .ReadDocumentAsync("large-message.msg", EmailReadContentStorage.TemporaryFiles, cancellationToken);
 
 foreach (EmailAttachment attachment in result.Document.Attachments) {
     using Stream content =

@@ -97,7 +97,7 @@ public class RtfHtmlListTableTests {
         string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         Assert.Contains(@"\listtemplateid77", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\levelnfc0\levelnfcn2\leveljc2\leveljcn1\levelfollow1\levelstartat7\levelspace120\levelindent240\levellegal1\levelnorestart1\levelpicture3\levelpicturenosize", rtf, StringComparison.Ordinal);
-        Assert.Equal(9, RtfDocument.Read(rtf).Document.ListOverrides.Single().LevelOverrides.Count);
+        Assert.Equal(9, RtfDocument.ParseResult(rtf).Document.ListOverrides.Single().LevelOverrides.Count);
         Assert.Equal(9, roundTrip.ResolveListFormatting(paragraph)!.Level.StartAt);
     }
 }

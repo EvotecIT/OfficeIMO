@@ -5,8 +5,7 @@ using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Visio.Fluent {
     /// <summary>
-    /// Fluent builder for a single Visio page. Provides direct verbs like
-    /// Rect/Ellipse/Diamond/Triangle/Connect, consistent with other OfficeIMO fluent APIs.
+    /// Fluent wrapper for a single Visio page. Authoring operations forward to the object model.
     /// </summary>
     public partial class VisioFluentPage {
         private readonly VisioFluentDocument _fluent;
@@ -33,36 +32,18 @@ namespace OfficeIMO.Visio.Fluent {
             }
         }
 
-        /// <summary>Sets page size.</summary>
-        /// <param name="width">Width value in the specified unit.</param>
-        /// <param name="height">Height value in the specified unit.</param>
-        /// <param name="unit">Measurement unit (defaults to inches).</param>
-        public VisioFluentPage Size(double width, double height, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            _page.Size(width, height, unit);
-            return this;
-        }
+        /// <summary>Sets the physical page size.</summary>
+        public VisioFluentPage Size(OfficeLength w, OfficeLength h) { _page.Size(w, h); return this; }
 
         /// <summary>Sets all print margins.</summary>
-        /// <param name="margin">Margin value.</param>
-        /// <param name="unit">Measurement unit.</param>
-        public VisioFluentPage Margins(double margin, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            _page.SetMargins(margin, unit);
-            return this;
-        }
+        public VisioFluentPage SetMargins(OfficeLength margin) { _page.SetMargins(margin); return this; }
 
         /// <summary>Sets horizontal and vertical print margins.</summary>
-        /// <param name="horizontal">Left and right margin value.</param>
-        /// <param name="vertical">Top and bottom margin value.</param>
-        /// <param name="unit">Measurement unit.</param>
-        public VisioFluentPage Margins(double horizontal, double vertical, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            _page.SetMargins(horizontal, vertical, unit);
-            return this;
-        }
+        public VisioFluentPage SetMargins(OfficeLength horizontal, OfficeLength vertical) { _page.SetMargins(horizontal, vertical); return this; }
 
         /// <summary>Sets individual print margins.</summary>
-        public VisioFluentPage Margins(double left, double right, double top, double bottom, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            _page.SetMargins(left, right, top, bottom, unit);
-            return this;
+        public VisioFluentPage SetMargins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom) {
+            _page.SetMargins(left, right, top, bottom); return this;
         }
 
         /// <summary>Sets print orientation.</summary>
@@ -260,125 +241,205 @@ namespace OfficeIMO.Visio.Fluent {
         /// <summary>Adds a page layer.</summary>
         /// <param name="name">Layer display name.</param>
         /// <param name="nameU">Optional universal name.</param>
-        public VisioFluentPage Layer(string name, string? nameU = null) {
+        public VisioFluentPage AddLayer(string name, string? nameU = null) {
             _page.AddLayer(name, nameU);
             return this;
         }
 
-        /// <summary>Adds a rectangle shape with inline geometry.</summary>
-        public VisioFluentPage Rect(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Rectangle", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a rectangle through the page model.</summary>
+        public VisioFluentPage AddRectangle(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddRectangle(x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a square shape (width = height = size).</summary>
-        public VisioFluentPage Square(string id, double x, double y, double size, string? text = null) {
-            var shape = CreateShape(id, "Square", x, y, size, size, text);
-            RegisterShape(shape);
+        /// <summary>Adds a rectangle through the page model.</summary>
+        public VisioFluentPage AddRectangle(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddRectangle(id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds an ellipse shape with explicit width/height.</summary>
-        public VisioFluentPage Ellipse(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Ellipse", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a process through the page model.</summary>
+        public VisioFluentPage AddProcess(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddProcess(x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a diamond (rhombus) shape.</summary>
-        public VisioFluentPage Diamond(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Diamond", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a process through the page model.</summary>
+        public VisioFluentPage AddProcess(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddProcess(id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a flowchart process shape.</summary>
-        public VisioFluentPage Process(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Process", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a square through the page model.</summary>
+        public VisioFluentPage AddSquare(OfficeLength x, OfficeLength y, OfficeLength size, string? text = null) {
+            RegisterShape(_page.AddSquare(x, y, size, text));
             return this;
         }
 
-        /// <summary>Adds a flowchart decision shape.</summary>
-        public VisioFluentPage Decision(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Decision", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a square through the page model.</summary>
+        public VisioFluentPage AddSquare(string id, OfficeLength x, OfficeLength y, OfficeLength size, string? text = null) {
+            RegisterShape(_page.AddSquare(id, x, y, size, text));
             return this;
         }
 
-        /// <summary>Adds a flowchart data shape.</summary>
-        public VisioFluentPage Data(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Data", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a circle through the page model.</summary>
+        public VisioFluentPage AddCircle(OfficeLength x, OfficeLength y, OfficeLength diameter, string? text = null) {
+            RegisterShape(_page.AddCircle(x, y, diameter, text));
             return this;
         }
 
-        /// <summary>Adds a parallelogram shape.</summary>
-        public VisioFluentPage Parallelogram(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Parallelogram", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a circle through the page model.</summary>
+        public VisioFluentPage AddCircle(string id, OfficeLength x, OfficeLength y, OfficeLength diameter, string? text = null) {
+            RegisterShape(_page.AddCircle(id, x, y, diameter, text));
             return this;
         }
 
-        /// <summary>Adds a flowchart preparation shape.</summary>
-        public VisioFluentPage Preparation(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Preparation", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a ellipse through the page model.</summary>
+        public VisioFluentPage AddEllipse(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddEllipse(x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a hexagon shape.</summary>
-        public VisioFluentPage Hexagon(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Hexagon", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a ellipse through the page model.</summary>
+        public VisioFluentPage AddEllipse(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddEllipse(id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a flowchart manual operation shape.</summary>
-        public VisioFluentPage ManualOperation(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Manual operation", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a diamond through the page model.</summary>
+        public VisioFluentPage AddDiamond(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddDiamond(x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a trapezoid shape.</summary>
-        public VisioFluentPage Trapezoid(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Trapezoid", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a diamond through the page model.</summary>
+        public VisioFluentPage AddDiamond(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddDiamond(id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a flowchart off-page reference shape.</summary>
-        public VisioFluentPage OffPageReference(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Off-page reference", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a decision through the page model.</summary>
+        public VisioFluentPage AddDecision(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddDecision(x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a pentagon shape.</summary>
-        public VisioFluentPage Pentagon(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Pentagon", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a decision through the page model.</summary>
+        public VisioFluentPage AddDecision(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddDecision(id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a circle by diameter.</summary>
-        public VisioFluentPage Circle(string id, double x, double y, double diameter, string? text = null) {
-            var shape = CreateShape(id, "Circle", x, y, diameter, diameter, text);
-            RegisterShape(shape);
+        /// <summary>Adds a data through the page model.</summary>
+        public VisioFluentPage AddData(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddData(x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds an isosceles triangle with explicit width and height.</summary>
-        public VisioFluentPage Triangle(string id, double x, double y, double width, double height, string? text = null) {
-            var shape = CreateShape(id, "Triangle", x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a data through the page model.</summary>
+        public VisioFluentPage AddData(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddData(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a preparation through the page model.</summary>
+        public VisioFluentPage AddPreparation(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddPreparation(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a preparation through the page model.</summary>
+        public VisioFluentPage AddPreparation(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddPreparation(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a parallelogram through the page model.</summary>
+        public VisioFluentPage AddParallelogram(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddParallelogram(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a parallelogram through the page model.</summary>
+        public VisioFluentPage AddParallelogram(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddParallelogram(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a hexagon through the page model.</summary>
+        public VisioFluentPage AddHexagon(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddHexagon(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a hexagon through the page model.</summary>
+        public VisioFluentPage AddHexagon(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddHexagon(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a trapezoid through the page model.</summary>
+        public VisioFluentPage AddTrapezoid(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddTrapezoid(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a trapezoid through the page model.</summary>
+        public VisioFluentPage AddTrapezoid(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddTrapezoid(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a pentagon through the page model.</summary>
+        public VisioFluentPage AddPentagon(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddPentagon(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a pentagon through the page model.</summary>
+        public VisioFluentPage AddPentagon(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddPentagon(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a manualoperation through the page model.</summary>
+        public VisioFluentPage AddManualOperation(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddManualOperation(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a manualoperation through the page model.</summary>
+        public VisioFluentPage AddManualOperation(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddManualOperation(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a offpagereference through the page model.</summary>
+        public VisioFluentPage AddOffPageReference(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddOffPageReference(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a offpagereference through the page model.</summary>
+        public VisioFluentPage AddOffPageReference(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddOffPageReference(id, x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a triangle through the page model.</summary>
+        public VisioFluentPage AddTriangle(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddTriangle(x, y, width, height, text));
+            return this;
+        }
+
+        /// <summary>Adds a triangle through the page model.</summary>
+        public VisioFluentPage AddTriangle(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddTriangle(id, x, y, width, height, text));
             return this;
         }
 
         /// <summary>Adds an editable text box without a visible border or fill.</summary>
-        public VisioFluentPage TextBox(string id, double x, double y, double width, double height, string? text = null, Action<VisioFluentShape>? configure = null) {
+        public VisioFluentPage AddTextBox(string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null, Action<VisioFluentShape>? configure = null) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
             }
@@ -387,48 +448,39 @@ namespace OfficeIMO.Visio.Fluent {
                 throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
             }
 
-            VisioShape shape = _page.AddTextBox(id, x, y, width, height, text, _page.DefaultUnit);
+            VisioShape shape = _page.AddTextBox(id, x, y, width, height, text);
             RegisterShape(shape);
             configure?.Invoke(new VisioFluentShape(shape));
             return this;
         }
 
-        /// <summary>Adds a centered page title near the top of the page.</summary>
-        public VisioFluentPage Title(string text, string id = "title", double height = 0.5D, double topMargin = 0.35D, Action<VisioFluentShape>? configure = null) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
-            }
+        /// <summary>Adds an automatically identified text box through the page model.</summary>
+        public VisioFluentPage AddTextBox(OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height,
+            string? text = null, Action<VisioFluentShape>? configure = null) {
+            VisioShape shape = _page.AddTextBox(x, y, width, height, text);
+            RegisterShape(shape);
+            configure?.Invoke(new VisioFluentShape(shape));
+            return this;
+        }
 
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
+        /// <summary>Adds an instance of an explicitly supplied master.</summary>
+        public VisioFluentPage AddShape(string id, VisioMaster master, OfficeLength x, OfficeLength y,
+            OfficeLength w, OfficeLength h, string? text = null) {
+            RegisterShape(_page.AddShape(id, master, x, y, w, h, text));
+            return this;
+        }
 
-            if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D) {
-                throw new ArgumentOutOfRangeException(nameof(height), "Height must be a finite positive number.");
-            }
-
-            if (double.IsNaN(topMargin) || double.IsInfinity(topMargin) || topMargin < 0D) {
-                throw new ArgumentOutOfRangeException(nameof(topMargin), "Top margin must be a finite non-negative number.");
-            }
-
-            double y = _page.Height - topMargin - (height / 2D);
-            double width = Math.Max(1D, _page.Width - (topMargin * 2D));
-            VisioShape shape = _page.AddTextBox(id, _page.Width / 2D, y, width, height, text, VisioMeasurementUnit.Inches);
-            shape.TextStyle = new VisioTextStyle {
-                FontFamily = "Aptos Display",
-                Color = Color.FromRgb(0, 73, 108),
-                Size = 22,
-                Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
-                VerticalAlignment = VisioTextVerticalAlignment.Middle
-            };
+        /// <summary>Adds a centered title through the page model.</summary>
+        public VisioFluentPage AddTitle(string text, string id = "title", OfficeLength? height = null,
+            OfficeLength? topMargin = null, Action<VisioFluentShape>? configure = null) {
+            VisioShape shape = _page.AddTitle(text, id, height, topMargin);
             RegisterShape(shape);
             configure?.Invoke(new VisioFluentShape(shape));
             return this;
         }
 
         /// <summary>Adds a shape using a document-registered master.</summary>
-        public VisioFluentPage Master(string id, string masterNameU, double x, double y, double width, double height, string? text = null) {
+        public VisioFluentPage AddShape(string id, string masterNameU, OfficeLength x, OfficeLength y, OfficeLength w, OfficeLength h, string? text = null) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
             }
@@ -437,123 +489,68 @@ namespace OfficeIMO.Visio.Fluent {
                 throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
             }
 
-            var shape = _page.AddShape(id, masterNameU, x, y, width, height, text, _page.DefaultUnit);
+            var shape = _page.AddShape(id, masterNameU, x, y, w, h, text);
             RegisterShape(shape);
             return this;
         }
 
-        /// <summary>Adds a shape from an OfficeIMO-native stencil definition using its default size.</summary>
-        public VisioFluentPage Stencil(string id, VisioStencilShape stencil, double x, double y, string? text = null) {
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            VisioShape shape = _page.AddStencilShape(stencil, id, x, y, text);
-            RegisterShape(shape);
+        /// <summary>Adds a stencil through the public page model.</summary>
+        public VisioFluentPage AddStencilShape(VisioStencilShape stencil, string id, OfficeLength x, OfficeLength y, string? text = null) {
+            RegisterShape(_page.AddStencilShape(stencil, id, x, y, text));
             return this;
         }
 
-        /// <summary>Adds a shape from an OfficeIMO-native stencil definition using an explicit size.</summary>
-        public VisioFluentPage Stencil(string id, VisioStencilShape stencil, double x, double y, double width, double height, string? text = null) {
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            VisioShape shape = _page.AddStencilShape(stencil, id, x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a stencil through the public page model.</summary>
+        public VisioFluentPage AddStencilShape(VisioStencilShape stencil, string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddStencilShape(stencil, id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a shape from an OfficeIMO-native stencil catalog using its default size.</summary>
-        public VisioFluentPage Stencil(string id, VisioStencilCatalog catalog, string stencilIdOrName, double x, double y, string? text = null) {
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            VisioShape shape = _page.AddStencilShape(catalog, stencilIdOrName, id, x, y, text);
-            RegisterShape(shape);
+        /// <summary>Adds a stencil through the public page model.</summary>
+        public VisioFluentPage AddStencilShape(VisioStencilCatalog catalog, string stencilIdOrName, string id, OfficeLength x, OfficeLength y, string? text = null) {
+            RegisterShape(_page.AddStencilShape(catalog, stencilIdOrName, id, x, y, text));
             return this;
         }
 
-        /// <summary>Adds a shape from the combined built-in stencil catalog using its default size.</summary>
-        public VisioFluentPage Stencil(string id, string stencilIdOrName, double x, double y, string? text = null) {
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            VisioShape shape = _page.AddStencilShape(stencilIdOrName, id, x, y, text);
-            RegisterShape(shape);
+        /// <summary>Adds a stencil through the public page model.</summary>
+        public VisioFluentPage AddStencilShape(VisioStencilCatalog catalog, string stencilIdOrName, string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddStencilShape(catalog, stencilIdOrName, id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a shape from the combined built-in stencil catalog using an explicit size.</summary>
-        public VisioFluentPage Stencil(string id, string stencilIdOrName, double x, double y, double width, double height, string? text = null) {
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            VisioShape shape = _page.AddStencilShape(stencilIdOrName, id, x, y, width, height, text);
-            RegisterShape(shape);
+        /// <summary>Adds a stencil through the public page model.</summary>
+        public VisioFluentPage AddStencilShape(string stencilIdOrName, string id, OfficeLength x, OfficeLength y, string? text = null) {
+            RegisterShape(_page.AddStencilShape(stencilIdOrName, id, x, y, text));
             return this;
         }
 
-        /// <summary>Configures an existing shape (text, stroke, fill, etc.).</summary>
-        public VisioFluentPage Shape(string id, Action<VisioFluentShape> configure) {
-            if (!_byId.TryGetValue(id, out var shape)) throw new ArgumentException($"Unknown shape id '{id}'", nameof(id));
-            configure?.Invoke(new VisioFluentShape(shape));
+        /// <summary>Adds a stencil through the public page model.</summary>
+        public VisioFluentPage AddStencilShape(string stencilIdOrName, string id, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, string? text = null) {
+            RegisterShape(_page.AddStencilShape(stencilIdOrName, id, x, y, width, height, text));
             return this;
         }
 
-        /// <summary>Adds a Visio-native container around existing shapes.</summary>
-        /// <param name="id">Container shape id.</param>
-        /// <param name="text">Container heading text.</param>
-        /// <param name="memberIds">Existing shape ids to include in the container.</param>
-        /// <param name="options">Optional container layout and style settings.</param>
-        public VisioFluentPage Container(string id, string text, IEnumerable<string> memberIds, VisioContainerOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Container id cannot be null or whitespace.", nameof(id));
-            }
-
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            if (memberIds == null) {
-                throw new ArgumentNullException(nameof(memberIds));
-            }
-
-            List<VisioShape> members = new();
-            foreach (string memberId in memberIds) {
-                if (!_byId.TryGetValue(memberId, out VisioShape? member)) {
-                    throw new ArgumentException($"Unknown shape id '{memberId}'.", nameof(memberIds));
-                }
-
-                members.Add(member);
-            }
-
-            VisioShape container = _page.AddContainer(id, text, members, options);
-            RegisterShape(container);
+        /// <summary>Configures an existing shape selected by identifier.</summary>
+        public VisioFluentPage GetShape(string id, Action<VisioFluentShape> configure) {
+            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            configure(new VisioFluentShape(_page.GetShape(id)));
             return this;
         }
 
-        /// <summary>Connects two shapes by id and optionally configures the connector.</summary>
-        public VisioFluentPage Connect(string fromId, string toId, Action<VisioFluentConnector>? configure = null) {
-            if (!_byId.TryGetValue(fromId, out var from)) throw new ArgumentException($"Unknown shape id '{fromId}'", nameof(fromId));
-            if (!_byId.TryGetValue(toId, out var to)) throw new ArgumentException($"Unknown shape id '{toId}'", nameof(toId));
-            var conn = _page.AddConnector(from, to);
-            configure?.Invoke(new VisioFluentConnector(conn));
+        /// <summary>Adds a container around existing shapes selected by identifier.</summary>
+        public VisioFluentPage AddContainer(string id, string text, IEnumerable<string> memberIds, VisioContainerOptions? options = null) {
+            RegisterShape(_page.AddContainer(id, text, memberIds, options));
             return this;
         }
 
-        /// <summary>Connects two shapes by id and preselects connector sides.</summary>
-        public VisioFluentPage Connect(string fromId, string toId, VisioSide fromSide, VisioSide toSide, Action<VisioFluentConnector>? configure = null) {
-            if (!_byId.TryGetValue(fromId, out var from)) throw new ArgumentException($"Unknown shape id '{fromId}'", nameof(fromId));
-            if (!_byId.TryGetValue(toId, out var to)) throw new ArgumentException($"Unknown shape id '{toId}'", nameof(toId));
-            var conn = _page.AddConnector(from, to, ConnectorKind.Dynamic, fromSide, toSide);
-            var builder = new VisioFluentConnector(conn);
-            configure?.Invoke(builder);
+        /// <summary>Connects existing shapes selected by identifier, with the model's routing defaults.</summary>
+        public VisioFluentPage AddConnector(string fromId, string toId, ConnectorKind kind = ConnectorKind.Dynamic,
+            VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto, Action<VisioFluentConnector>? configure = null) {
+            VisioConnector connector = _page.AddConnector(fromId, toId, kind, fromSide, toSide);
+            configure?.Invoke(new VisioFluentConnector(connector));
             return this;
         }
+
 
         /// <summary>Applies high-level deterministic cleanup to this page.</summary>
         public VisioFluentPage Polish(VisioDiagramPolishOptions? options = null) {
@@ -569,26 +566,6 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Returns to the document-level fluent builder for chaining.</summary>
         public VisioFluentDocument EndPage() => _fluent;
-
-        private VisioShape CreateShape(string id, string nameU, double x, double y, double width, double height, string? text) {
-            if (string.IsNullOrWhiteSpace(id)) {
-                throw new ArgumentException("Shape id cannot be null or whitespace.", nameof(id));
-            }
-
-            if (_byId.ContainsKey(id)) {
-                throw new ArgumentException($"A shape with id '{id}' already exists on page '{_page.Name}'.", nameof(id));
-            }
-
-            VisioMeasurementUnit unit = _page.DefaultUnit;
-            x = x.ToInches(unit);
-            y = y.ToInches(unit);
-            width = width.ToInches(unit);
-            height = height.ToInches(unit);
-
-            var shape = new VisioShape(id, x, y, width, height, text ?? string.Empty) { NameU = nameU };
-            _page.Shapes.Add(shape);
-            return shape;
-        }
 
         private void RegisterShape(VisioShape shape) {
             if (string.IsNullOrWhiteSpace(shape.Id)) {

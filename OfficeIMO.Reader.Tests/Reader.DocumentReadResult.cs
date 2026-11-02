@@ -124,7 +124,7 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("# Diagram\n\n```mermaid\ngraph TD\nA-->B\n```\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderVisual> visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadVisuals(stream, "diagram.md");
+        IReadOnlyList<ReaderVisual> visuals = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "diagram.md").ExtractVisuals();
 
         ReaderVisual visual = Assert.Single(visuals);
         Assert.Equal("mermaid", visual.Kind);
@@ -165,7 +165,7 @@ public sealed class ReaderDocumentReadResultTests {
             }
         };
 
-        ReaderVisual visual = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(chunks));
+        ReaderVisual visual = Assert.Single(chunks.ExtractVisuals());
 
         Assert.Equal("chart", visual.Kind);
         Assert.Equal("ix-chart", visual.Language);
@@ -265,7 +265,7 @@ public sealed class ReaderDocumentReadResultTests {
                 workbook.Save();
             }
 
-            IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B4", chunkRows: 1).ReadTableExports(path);
+            IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.Excel("Data", "A1:B4", chunkRows: 1).ReadDocument(path).ExportTables();
 
             Assert.True(exports.Count > 1);
             int[] indexes = Enumerable.Range(0, exports.Count).ToArray();
@@ -327,7 +327,7 @@ public sealed class ReaderDocumentReadResultTests {
         using var stream = new NonSeekableReadStream(package.ToArray());
 
         IOException ex = Assert.Throws<IOException>(() => {
-            foreach (ReaderChunk _ in OfficeIMO.Reader.Tests.ReaderTestReaders.All.Read(
+            foreach (ReaderChunk _ in OfficeIMO.Reader.Tests.ReaderTestReaders.All.Enumerate(
                 stream,
                 "large.docx",
                 new ReaderOptions { MaxInputBytes = 16 })) {
@@ -477,10 +477,10 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n| Beta | 14 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderTable> tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTables(
+        IReadOnlyList<ReaderTable> tables = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
             stream,
             "inventory.md",
-            new ReaderOptions { MaxTableRows = 1 });
+            new ReaderOptions { MaxTableRows = 1 }).ExtractTables();
 
         ReaderTable table = Assert.Single(tables);
         Assert.Equal("inventory.md", table.Location?.Path);
@@ -501,10 +501,9 @@ public sealed class ReaderDocumentReadResultTests {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTableExports(
+        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
             stream,
-            "inventory.md",
-            indentedJson: true);
+            "inventory.md").ExportTables(indentedJson: true);
 
         ReaderTableExportBundle export = Assert.Single(exports);
         Assert.Equal("inventory-table-0000", export.Id);
@@ -522,7 +521,7 @@ public sealed class ReaderDocumentReadResultTests {
     public void ReaderTableExportMaterializer_WriteTableExportsToDirectory_WritesCsvMarkdownAndJsonSidecars() {
         byte[] bytes = Encoding.UTF8.GetBytes("| Name | Qty |\n| --- | ---: |\n| Alpha | 2 |\n");
         using var stream = new MemoryStream(bytes, writable: false);
-        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadTableExports(stream, "inventory.md");
+        IReadOnlyList<ReaderTableExportBundle> exports = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(stream, "inventory.md").ExportTables();
         var directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-tables-" + Guid.NewGuid().ToString("N"));
 
         try {

@@ -13,12 +13,12 @@ namespace OfficeIMO.Tests {
         public void PageHelpersCreateSemanticFlowchartNames() {
             VisioPage page = new("Flow");
 
-            VisioShape process = page.AddProcess(1, 1, 2, 1, "Process");
-            VisioShape decision = page.AddDecision(4, 1, 2, 2, "Decision");
-            VisioShape data = page.AddData(7, 1, 2, 1, "Data");
-            VisioShape preparation = page.AddPreparation(10, 1, 2, 1, "Preparation");
-            VisioShape manualOperation = page.AddManualOperation(13, 1, 2, 1, "Manual");
-            VisioShape offPageReference = page.AddOffPageReference(16, 1, 2, 2, "Off-page");
+            VisioShape process = page.AddProcess(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Process");
+            VisioShape decision = page.AddDecision(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Decision");
+            VisioShape data = page.AddData(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Data");
+            VisioShape preparation = page.AddPreparation(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Preparation");
+            VisioShape manualOperation = page.AddManualOperation(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(13, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Manual");
+            VisioShape offPageReference = page.AddOffPageReference(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(16, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Off-page");
 
             Assert.Equal("Process", process.NameU);
             Assert.Equal("Decision", decision.NameU);
@@ -35,12 +35,12 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Flow");
-            page.AddProcess(1, 1, 2, 1, "Step");
-            page.AddDecision(4, 1, 2, 2, "Branch");
-            page.AddData(7, 1, 2, 1, "Input");
-            page.AddPreparation(10, 1, 2, 1, "Prepare");
-            page.AddManualOperation(13, 1, 2, 1, "Manual");
-            page.AddOffPageReference(16, 1, 2, 2, "Jump");
+            page.AddProcess(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Step");
+            page.AddDecision(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Branch");
+            page.AddData(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Input");
+            page.AddPreparation(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Prepare");
+            page.AddManualOperation(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(13, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Manual");
+            page.AddOffPageReference(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(16, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Jump");
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -92,17 +92,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
-            document.RegisterMaster("CustomAudit", new VisioShape("1", 0, 0, 2, 1, string.Empty) { NameU = "CustomAudit" });
+            document.RegisterMaster("CustomAudit", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "CustomAudit" });
 
             document.AsFluent()
-                .Page("Flow", p => p
-                    .Process("p1", 1, 1, 2, 1, "Process")
-                    .Decision("d1", 4, 1, 2, 2, "Decision")
-                    .Data("data1", 7, 1, 2, 1, "Data")
-                    .Preparation("prep1", 10, 1, 2, 1, "Prepare")
-                    .ManualOperation("manual1", 13, 1, 2, 1, "Manual")
-                    .OffPageReference("jump1", 16, 1, 2, 2, "Jump")
-                    .Master("audit1", "CustomAudit", 19, 1, 2, 1, "Audit"))
+                .AddPage("Flow", p => p
+                    .AddProcess("p1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Process")
+                    .AddDecision("d1", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Decision")
+                    .AddData("data1", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Data")
+                    .AddPreparation("prep1", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Prepare")
+                    .AddManualOperation("manual1", OfficeLength.Inches(13), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Manual")
+                    .AddOffPageReference("jump1", OfficeLength.Inches(16), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Jump")
+                    .AddShape("audit1", "CustomAudit", OfficeLength.Inches(19), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Audit"))
                 .End()
                 .Save();
 
@@ -117,10 +117,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Flow");
-            page.AddData(1, 1, 2, 1, "Input");
-            page.AddPreparation(4, 1, 2, 1, "Prepare");
-            page.AddManualOperation(7, 1, 2, 1, "Manual");
-            page.AddOffPageReference(10, 1, 2, 2, "Jump");
+            page.AddData(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Input");
+            page.AddPreparation(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Prepare");
+            page.AddManualOperation(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Manual");
+            page.AddOffPageReference(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Jump");
             document.Save();
 
             using ZipArchive zip = ZipFile.OpenRead(filePath);

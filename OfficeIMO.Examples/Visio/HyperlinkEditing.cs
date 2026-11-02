@@ -10,11 +10,11 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Hyperlink Editing.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Linked Architecture", 11, 8.5);
+            VisioPage page = document.AddPage("Linked Architecture", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape portal = page.AddRectangle(2, 5.5, 2.2, 1, "Portal");
-            VisioShape api = page.AddRectangle(5.5, 5.5, 2.2, 1, "API");
-            VisioShape runbook = page.AddRectangle(9, 5.5, 2.2, 1, "Runbook");
+            VisioShape portal = page.AddRectangle(OfficeLength.Inches(2), OfficeLength.Inches(5.5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Portal");
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(5.5), OfficeLength.Inches(5.5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "API");
+            VisioShape runbook = page.AddRectangle(OfficeLength.Inches(9), OfficeLength.Inches(5.5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Runbook");
 
             portal.FillColor = Color.LightYellow;
             portal.AddHyperlink("https://github.com/EvotecIT/OfficeIMO", "OfficeIMO repository");

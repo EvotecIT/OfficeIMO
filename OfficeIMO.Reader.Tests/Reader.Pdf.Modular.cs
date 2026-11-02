@@ -1591,7 +1591,7 @@ public sealed class ReaderPdfModularTests {
         Assert.False(string.IsNullOrWhiteSpace(visual.PayloadHash));
         Assert.Contains("Reader PDF visual marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
 
-        ReaderVisual extracted = Assert.Single(OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractVisuals(new[] { chunk }));
+        ReaderVisual extracted = Assert.Single((new[] { chunk }).ExtractVisuals());
         Assert.Equal("image-visual.pdf", extracted.Location?.Path);
         Assert.Equal("image/png", extracted.MimeType);
         Assert.Equal(48D, extracted.PlacedWidth!.Value, 3);
@@ -2150,7 +2150,7 @@ public sealed class ReaderPdfModularTests {
 
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
-        var chunks = reader.Read(stream, "registry.pdf").ToList();
+        var chunks = reader.Enumerate(stream, "registry.pdf").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks, c =>

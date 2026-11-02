@@ -30,7 +30,7 @@ public sealed class EmailHtmlCompositionTests {
         using var bytes = new MemoryStream();
         Assert.False(new EmailDocumentWriter().Write(draft, bytes).HasErrors);
         bytes.Position = 0;
-        using var read = new EmailDocumentReader().Read(bytes);
+        using var read = new EmailDocumentReader().ReadDocument(bytes);
         Assert.DoesNotContain("example.test/pixel", read.Document.Body.Html);
         Assert.Contains("Original", read.Document.Body.Html);
     }
@@ -127,7 +127,7 @@ public sealed class EmailHtmlCompositionTests {
         var write = new EmailDocumentWriter().Write(result.Document, bytes);
         Assert.False(write.HasErrors);
         bytes.Position = 0;
-        using var read = new EmailDocumentReader().Read(bytes);
+        using var read = new EmailDocumentReader().ReadDocument(bytes);
         Assert.Contains("<b>rich</b>", read.Document.Body.Html);
         Assert.Contains("> Original rich body", read.Document.Body.Text);
         Assert.Contains("<img", original.Body.Html);

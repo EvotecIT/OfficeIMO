@@ -120,7 +120,7 @@ public sealed class OutlookTimeZoneTests {
         };
 
         byte[] msg = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument result = new EmailDocumentReader().Read(msg).Document;
+        EmailDocument result = new EmailDocumentReader().ReadDocument(msg).Document;
 
         Assert.True(result.Appointment!.LegacyTimeZone!.StateDecoded,
             result.Appointment.LegacyTimeZone.DecodeError);

@@ -14,13 +14,13 @@ public sealed class EmailDecodedBodyBudgetTests {
         var reader = new EmailDocumentReader(new EmailReaderOptions(maxDecodedPropertyBytes: 7));
         using var input = new MemoryStream(Encoding.ASCII.GetBytes(mime));
         EmailLimitExceededException exceeded = streaming
-            ? await Assert.ThrowsAsync<EmailLimitExceededException>(() => reader.ReadStreamingAsync(input, "budget.eml"))
-            : Assert.Throws<EmailLimitExceededException>(() => reader.Read(input));
+            ? await Assert.ThrowsAsync<EmailLimitExceededException>(() => reader.ReadDocumentAsync(input, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "budget.eml"))
+            : Assert.Throws<EmailLimitExceededException>(() => reader.ReadDocument(input));
         Assert.Equal(nameof(EmailReaderOptions.MaxDecodedPropertyBytes), exceeded.LimitName);
         Assert.Equal(8, exceeded.ActualValue);
         input.Position = 0;
         var exact = new EmailDocumentReader(new EmailReaderOptions(maxDecodedPropertyBytes: 8));
-        using var result = streaming ? await exact.ReadStreamingAsync(input, "budget.eml") : exact.Read(input);
+        using var result = streaming ? await exact.ReadDocumentAsync(input, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "budget.eml") : exact.ReadDocument(input);
         Assert.Equal("abcd", result.Document.Body.Text);
         Assert.Equal("efgh", result.Document.Body.Html);
         Assert.Equal(8, result.ProcessingBudget.DecodedPropertyBytes);

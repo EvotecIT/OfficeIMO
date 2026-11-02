@@ -12,12 +12,12 @@ namespace OfficeIMO.Examples.Visio {
             var doc = VisioDocument.Create(filePath);
             doc.AsFluent()
                .Info(i => i.Title("Fluent Visio").Author("OfficeIMO"))
-               .Page("Page-1", p => p
-                   .Rect("S1", 1, 1, 2, 1, "Start")
-                   .Diamond("D1", 4, 1.5, 2, 2, "Decision")
-                   .Ellipse("E1", 7, 1.5, 2, 1, "End")
-                   .Connect("S1", "D1", c => c.RightAngle().ArrowEnd(EndArrow.Triangle))
-                   .Connect("D1", "E1", c => c.RightAngle().ArrowEnd(EndArrow.Triangle).Label("Yes"))
+               .AddPage("Page-1", p => p
+                   .AddRectangle("S1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start")
+                   .AddDiamond("D1", OfficeLength.Inches(4), OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(2), "Decision")
+                   .AddEllipse("E1", OfficeLength.Inches(7), OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "End")
+                   .AddConnector("S1", "D1", configure: c => c.RightAngle().ArrowEnd(EndArrow.Triangle))
+                   .AddConnector("D1", "E1", configure: c => c.RightAngle().ArrowEnd(EndArrow.Triangle).Label("Yes"))
                )
                .End();
             doc.Save();

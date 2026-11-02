@@ -13,7 +13,7 @@ namespace OfficeIMO.Visio.Diagrams {
             foreach (NoteItem note in _notes) {
                 NotePlacement placement = ResolveNotePlacement(page, note, firstMessageY, reservedBounds);
 
-                VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, "seq.note", note.Id, placement.X, placement.Y, NoteWidth, NoteHeight, note.Text);
+                VisioShape shape = page.AddStencilShapeInches(VisioStencils.Sequence, "seq.note", note.Id, placement.X, placement.Y, NoteWidth, NoteHeight, note.Text);
                 _theme.Container.ApplyTo(shape);
                 shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceNote", "STR", prompt: "OfficeIMO semantic kind");
                 shape.SetUserCell("OfficeIMO.SequenceParticipantId", note.ParticipantId, "STR", prompt: "OfficeIMO sequence note target participant");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ParticipantItem participant = _participantsById[note.ParticipantId];
             double baseY = firstMessageY - (note.RowIndex * _messageSpacing) - (_messageSpacing / 2D);
             double minY = _bottomMargin + (NoteHeight / 2D);
-            double pageHeight = page.Height.FromInches(_unit);
+            double pageHeight = page.HeightInches.FromInches(_unit);
             double maxY = pageHeight - _topMargin - _participantHeight - NoteGap - (NoteHeight / 2D);
             VisioSide[] sides = note.Placement == VisioSide.Right
                 ? new[] { VisioSide.Right, VisioSide.Left }
@@ -89,7 +89,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private double GetNoteX(VisioPage page, ParticipantItem participant, VisioSide placement) {
             double direction = placement == VisioSide.Right ? 1D : -1D;
             double x = participant.PinX + (direction * ((_participantWidth / 2D) + NoteGap + (NoteWidth / 2D)));
-            double pageWidth = page.Width.FromInches(_unit);
+            double pageWidth = page.WidthInches.FromInches(_unit);
             return Math.Max(_leftMargin + (NoteWidth / 2D), Math.Min(pageWidth - _rightMargin - (NoteWidth / 2D), x));
         }
 
@@ -115,7 +115,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     continue;
                 }
 
-                reservedBounds.Add(LayoutBounds.FromCenter(shape.PinX, shape.PinY, shape.Width, shape.Height).Inflate(NoteCollisionPadding));
+                reservedBounds.Add(LayoutBounds.FromCenter(shape.PinXInches, shape.PinYInches, shape.WidthInches, shape.HeightInches).Inflate(NoteCollisionPadding));
             }
 
             foreach (VisioConnector connector in page.Connectors) {
@@ -130,8 +130,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void AddConnectorSegmentReservedBounds(VisioConnector connector, IList<LayoutBounds> reservedBounds) {
-            (double X, double Y) start = connector.From != null ? (connector.From.PinX, connector.From.PinY) : (connector.StartPoint.X, connector.StartPoint.Y);
-            (double X, double Y) end = connector.To != null ? (connector.To.PinX, connector.To.PinY) : (connector.EndPoint.X, connector.EndPoint.Y);
+            (double X, double Y) start = connector.From != null ? (connector.From.PinXInches, connector.From.PinYInches) : (connector.StartPoint.X, connector.StartPoint.Y);
+            (double X, double Y) end = connector.To != null ? (connector.To.PinXInches, connector.To.PinYInches) : (connector.EndPoint.X, connector.EndPoint.Y);
             List<(double X, double Y)> points = new() { start };
             foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
                 points.Add((waypoint.X, waypoint.Y));
@@ -153,7 +153,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static bool IsIgnoredNoteObstacle(VisioShape shape) {
-            if (shape.Width <= 0.06D && shape.Height <= 0.06D) {
+            if (shape.WidthInches <= 0.06D && shape.HeightInches <= 0.06D) {
                 return true;
             }
 

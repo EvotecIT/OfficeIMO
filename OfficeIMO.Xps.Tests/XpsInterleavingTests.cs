@@ -14,11 +14,11 @@ public sealed class XpsInterleavingTests {
     public void InterleavedMetadataPagesAndResourcesLoadAndSaveAsLogicalParts(XpsFormat format) {
         var doc = XpsDocument.Create(format); doc.AddPage(100, 80).AddPath("M0,0H20V20Z");
         doc.AddResource("Metadata/data.bin", new byte[] { 1, 2, 3, 4, 5 }, "application/octet-stream");
-        byte[] interleaved = Interleave(doc.Save());
+        byte[] interleaved = Interleave(doc.ToBytes());
         var loaded = XpsDocument.Load(interleaved);
         Assert.Equal(doc.Pages[0].ToSvg().Svg, loaded.Pages[0].ToSvg().Svg);
         Assert.Equal(new byte[] { 1, 2, 3, 4, 5 }, loaded.GetPartBytes("Metadata/data.bin"));
-        loaded.AddPage(120, 60); Assert.Equal(2, XpsDocument.Load(loaded.Save()).Pages.Count);
+        loaded.AddPage(120, 60); Assert.Equal(2, XpsDocument.Load(loaded.ToBytes()).Pages.Count);
         Assert.DoesNotContain(loaded.PartNames, p => p.EndsWith(".piece", StringComparison.Ordinal));
     }
 
@@ -43,13 +43,13 @@ public sealed class XpsInterleavingTests {
             case "mixed": entries["payload.bin"] = new byte[] { 3 }; break;
             case "invalid-index": entries["payload.bin/[-1].piece"] = new byte[] { 3 }; break;
         }
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(WithEntries(doc.Save(), entries)));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(WithEntries(doc.ToBytes(), entries)));
     }
 
     [Fact]
     public void AggregatePartLimitAppliesBeforePieceMaterializationAndPhysicalEntriesAreBounded() {
         var doc = XpsDocument.Create(); doc.AddPage(); doc.AddResource("payload.bin", new byte[4000], "application/octet-stream");
-        byte[] interleaved = Interleave(doc.Save());
+        byte[] interleaved = Interleave(doc.ToBytes());
         Assert.Throws<InvalidDataException>(() => XpsDocument.Load(interleaved, new XpsReadOptions { MaximumPartBytes = 3000 }));
         Assert.Throws<InvalidDataException>(() => XpsDocument.Load(interleaved, new XpsReadOptions { MaximumParts = 5 }));
     }

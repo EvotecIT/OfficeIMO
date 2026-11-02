@@ -176,7 +176,7 @@ public sealed class ReaderRtfModularTests {
         string rtf = CreateSampleRtf("Registry RTF");
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(rtf), writable: false);
 
-        var chunks = reader.Read(stream, "registry.rtf").ToList();
+        var chunks = reader.Enumerate(stream, "registry.rtf").ToList();
 
         Assert.NotEmpty(chunks);
         Assert.Equal(ReaderInputKind.Rtf, reader.DetectKind("registry.rtf"));

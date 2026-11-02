@@ -12,7 +12,7 @@ public class RtfHtmlDefaultTableWidthTests {
     public void OrdinaryHtmlDefaultColumnsFitThePageAfterSaveAndReopen(int columns, int expectedRightEdge) {
         string cells = string.Concat(Enumerable.Range(1, columns).Select(i => "<td>Column " + i + "</td>"));
         RtfDocument document = HtmlConversionDocument.Parse("<table><tr>" + cells + "</tr></table>").ToRtfDocument();
-        RtfDocument reopened = RtfDocument.Read(document.ToRtf()).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(document.ToRtf()).Document;
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(reopened.Blocks));
         Assert.Equal(expectedRightEdge, table.Rows[0].Cells.Last().RightBoundaryTwips);
         Assert.Equal(columns, table.Rows[0].Cells.Count);
@@ -57,7 +57,7 @@ public class RtfHtmlDefaultTableWidthTests {
         string image = "<img " + attributes + " src='data:image/png;base64," + Convert.ToBase64String(png) + "'>";
         string html = "<table><tr><td>A</td><td>B</td><td>C</td><td>D</td><td>" + image + "</td></tr></table>";
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
-        RtfDocument reopened = RtfDocument.Read(result.RequireValue().ToRtf()).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(result.RequireValue().ToRtf()).Document;
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(reopened.Blocks));
         RtfImage photo = Assert.Single(table.Rows[0].Cells[4].Paragraphs.SelectMany(p => p.Inlines).OfType<RtfImage>());
         Assert.Equal(png, photo.Data);

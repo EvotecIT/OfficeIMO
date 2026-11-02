@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Notes");
-            VisioShape textBox = page.AddTextBox("title", 4, 7, 5, 0.6, "Generated diagram title");
+            VisioShape textBox = page.AddTextBox("title", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Generated diagram title");
             textBox.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 18,

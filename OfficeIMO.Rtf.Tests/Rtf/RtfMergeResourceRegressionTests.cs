@@ -34,7 +34,7 @@ public class RtfMergeResourceRegressionTests {
         Assert.Equal("Destination", Assert.Single(destination.DocumentVariables).Value);
         Assert.Equal(new[] { "DocumentVariables/Shared", "Info/Title" }, result.Report.Diagnostics.Where(item => item.Code == "RtfMergeMetadataConflict").Select(item => item.SourcePath));
         Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
-        RtfDocument reopened = RtfDocument.Read(destination.ToRtf(), new RtfReadOptions { ReadFileReferences = true }).Document;
+        RtfDocument reopened = RtfDocument.ParseResult(destination.ToRtf(), new RtfReadOptions { ReadFileReferences = true }).Document;
         Assert.Equal("file:///source.docx", reopened.FileReferences[1].Path);
         Assert.Equal("urn:source", reopened.XmlNamespaces[1].Uri);
         Assert.Equal(0, source.FileReferences[0].Id);
@@ -89,7 +89,7 @@ public class RtfMergeResourceRegressionTests {
         Assert.Equal((byte)255, destination.GetColor(effective.ForegroundColorIndex!.Value)!.Red);
         Assert.True(destination.ResolveRunFormatting(destination.Paragraphs[2], destination.Paragraphs[2].Runs[0]).Italic);
         Assert.False(destination.ResolveRunFormatting(destination.Paragraphs[2], destination.Paragraphs[2].Runs[0]).Bold);
-        foreach (RtfDocument value in new[] { destination, RtfDocument.Read(destination.ToRtf()).Document }) {
+        foreach (RtfDocument value in new[] { destination, RtfDocument.ParseResult(destination.ToRtf()).Document }) {
             var numbering = new RtfListNumbering(value);
             Assert.Equal("90.", numbering.Next(value.Paragraphs[0])!.Text);
             Assert.Equal("IV.", numbering.Next(value.Paragraphs[1])!.Text);

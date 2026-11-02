@@ -154,7 +154,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
         string rtf = result.Value.ToRtf();
 
-        RtfReadResult reopened = RtfDocument.Read(rtf);
+        RtfReadResult reopened = RtfDocument.ParseResult(rtf);
         RtfParagraph positioned = Assert.Single(reopened.Document.Paragraphs, paragraph =>
             paragraph.ToPlainText().Contains("Editable positioned", StringComparison.Ordinal));
         RtfParagraph floating = Assert.Single(reopened.Document.Paragraphs, paragraph =>

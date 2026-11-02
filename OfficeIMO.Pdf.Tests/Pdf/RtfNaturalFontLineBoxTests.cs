@@ -41,8 +41,8 @@ public sealed class RtfNaturalFontLineBoxTests {
     [Fact]
     public void PlainLineBreakOnlyParagraphKeepsItsSourceDefaultFontBoxes() {
         const string prefix = @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\plain A\par";
-        RtfDocument actualSource = RtfDocument.Read(prefix + @"\line\par B\par}").Document;
-        RtfDocument emptyBoxes = RtfDocument.Read(prefix + @"\par\par B\par}").Document;
+        RtfDocument actualSource = RtfDocument.ParseResult(prefix + @"\line\par B\par}").Document;
+        RtfDocument emptyBoxes = RtfDocument.ParseResult(prefix + @"\par\par B\par}").Document;
         RtfToPdfOptions options = Options();
         Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
@@ -60,8 +60,8 @@ public sealed class RtfNaturalFontLineBoxTests {
     [Fact]
     public void PlainTabOnlyParagraphOccupiesTheSameFontBoxAsAnEmptyParagraph() {
         const string prefix = @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\plain A\par";
-        RtfDocument actualSource = RtfDocument.Read(prefix + @"\tab\par B\par}").Document;
-        RtfDocument emptyBox = RtfDocument.Read(prefix + @"\par B\par}").Document;
+        RtfDocument actualSource = RtfDocument.ParseResult(prefix + @"\tab\par B\par}").Document;
+        RtfDocument emptyBox = RtfDocument.ParseResult(prefix + @"\par B\par}").Document;
         RtfToPdfOptions options = Options();
         Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);
 
@@ -243,7 +243,7 @@ public sealed class RtfNaturalFontLineBoxTests {
 
     [Fact]
     public void AbsentAfterSpacingDoesNotAddThePdfBuildersConvenienceGap() {
-        RtfDocument source = RtfDocument.Read(
+        RtfDocument source = RtfDocument.ParseResult(
             @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\f0\fs24 A\par B\par C\par}").Document;
 
         using PdfPigDocument pdf = PdfPigDocument.Open((source.ToPdf(Options())).ToBytes());
@@ -256,7 +256,7 @@ public sealed class RtfNaturalFontLineBoxTests {
 
     [Fact]
     public void PlainResetResolvesTheSourceCharacterSizeWithoutRequiringAStyleTable() {
-        RtfDocument source = RtfDocument.Read(
+        RtfDocument source = RtfDocument.ParseResult(
             @"{\rtf1\ansi\deff0{\fonttbl{\f0 Arial;}}\plain A\par B\par}").Document;
         RtfToPdfOptions options = Options();
         Assert.IsType<PdfCreateOptions>(options.PdfOptions).DefaultFontSize = global::OfficeIMO.OfficeLength.Points(64D);

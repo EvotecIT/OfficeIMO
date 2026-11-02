@@ -79,7 +79,7 @@ public class WordRtfWorkflowTests {
     [Fact]
     public void Read_Result_Workflow_Retains_Core_Diagnostics() {
         const string rtf = @"{\rtf1\ansi{\*\vendorprivate hidden}\pard Hello\par}";
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         RtfWordWorkflowResult<int> result = read.FindAndReplaceResult("Hello", "Hi");
 

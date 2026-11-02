@@ -16,11 +16,11 @@ internal static partial class VisioShapeResizing {
     internal static void Resize(VisioPage page, VisioShape shape, double width, double height) {
         if (!Finite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width), "Width must be finite and positive.");
         if (!Finite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height), "Height must be finite and positive.");
-        if (!Finite(shape.Width) || !Finite(shape.Height) || shape.Width <= 0 || shape.Height <= 0)
+        if (!Finite(shape.WidthInches) || !Finite(shape.HeightInches) || shape.WidthInches <= 0 || shape.HeightInches <= 0)
             throw new NotSupportedException("Resizing requires finite positive original shape dimensions.");
-        if (width == shape.Width && height == shape.Height) return;
+        if (width == shape.WidthInches && height == shape.HeightInches) return;
         var nodes = new Dictionary<VisioShape, Node>();
-        VisioShape candidate = Prepare(shape, width / shape.Width, height / shape.Height, shape.PinX, shape.PinY, nodes);
+        VisioShape candidate = Prepare(shape, width / shape.WidthInches, height / shape.HeightInches, shape.PinXInches, shape.PinYInches, nodes);
         candidate.Parent = shape.Parent;
         ValidateConnectors(page, nodes);
         foreach (Node node in nodes.Values) Apply(node);
@@ -30,14 +30,14 @@ internal static partial class VisioShapeResizing {
         IDictionary<VisioShape, Node> nodes, IReadOnlyDictionary<VisioShape, VisioShape>? artwork = null,
         IReadOnlyDictionary<string, string>? geometryReferences = null) {
         var target = new VisioShape(source.Id) {
-            Width = source.Width * x, Height = source.Height * y,
-            PinX = pinX, PinY = pinY, LocPinX = source.LocPinX * x, LocPinY = source.LocPinY * y,
+            WidthInches = source.WidthInches * x, HeightInches = source.HeightInches * y,
+            PinXInches = pinX, PinYInches = pinY, LocPinXInches = source.LocPinXInches * x, LocPinYInches = source.LocPinYInches * y,
             Angle = source.Angle, Master = source.Master, MasterShape = source.MasterShape,
             TextStyle = source.TextStyle?.Clone(), NativeCellMetadata = source.NativeCellMetadata?.Clone()
         };
-        foreach (double value in new[] { x, y, target.Width, target.Height, pinX, pinY, target.LocPinX, target.LocPinY, target.Angle })
+        foreach (double value in new[] { x, y, target.WidthInches, target.HeightInches, pinX, pinY, target.LocPinXInches, target.LocPinYInches, target.Angle })
             if (!Finite(value)) throw new NotSupportedException("Resizing requires finite shape frames and scale factors.");
-        if (x <= 0 || y <= 0 || target.Width < 0 || target.Height < 0)
+        if (x <= 0 || y <= 0 || target.WidthInches < 0 || target.HeightInches < 0)
             throw new NotSupportedException("Resizing does not support negative shape dimensions.");
         nodes.Add(source, new Node { Source = source, Candidate = target, X = x, Y = y });
         foreach (XElement cell in source.PreservedCellElements) target.PreservedCellElements.Add(new XElement(cell));
@@ -51,15 +51,15 @@ internal static partial class VisioShapeResizing {
         if (artwork != null) {
             geometrySource = artwork[source];
             if (geometrySource.PreservedGeometrySections.Count > 0 || VisioForeignImage.IsForeign(geometrySource)) {
-                if (!Finite(geometrySource.Width) || !Finite(geometrySource.Height) || geometrySource.Width <= 0 || geometrySource.Height <= 0)
+                if (!Finite(geometrySource.WidthInches) || !Finite(geometrySource.HeightInches) || geometrySource.WidthInches <= 0 || geometrySource.HeightInches <= 0)
                     throw new NotSupportedException("Replacement artwork requires finite positive master dimensions.");
-                geometryX = target.Width / geometrySource.Width; geometryY = target.Height / geometrySource.Height;
+                geometryX = target.WidthInches / geometrySource.WidthInches; geometryY = target.HeightInches / geometrySource.HeightInches;
             }
             target.NativeCellMetadata ??= VisioNativeCellMetadata.Empty();
             target.NativeCellMetadata.ReplaceArtworkState(geometrySource.NativeCellMetadata, geometryReferences);
         } else if (source.PreservedGeometrySections.Count == 0 && (source.MasterShape ?? source.Master?.Shape) is VisioShape master && master.PreservedGeometrySections.Count > 0) {
-            if (master.Width <= 0 || master.Height <= 0) throw new NotSupportedException("Inherited geometry requires positive master dimensions.");
-            geometrySource = master; geometryX = target.Width / master.Width; geometryY = target.Height / master.Height;
+            if (master.WidthInches <= 0 || master.HeightInches <= 0) throw new NotSupportedException("Inherited geometry requires positive master dimensions.");
+            geometrySource = master; geometryX = target.WidthInches / master.WidthInches; geometryY = target.HeightInches / master.HeightInches;
         }
         foreach (XElement section in geometrySource.PreservedGeometrySections) target.PreservedGeometrySections.Add(new XElement(section));
         VisioGeometryScaling.Scale(target, geometryX, geometryY, geometrySource);
@@ -76,16 +76,16 @@ internal static partial class VisioShapeResizing {
         } else VisioForeignImage.ScalePlacement(source, target, x, y);
         foreach (VisioShape child in source.Children) {
             (double childX, double childY) = FrameScale(child.Angle, x, y);
-            target.Children.Add(Prepare(child, childX, childY, child.PinX * x, child.PinY * y, nodes, artwork, geometryReferences));
+            target.Children.Add(Prepare(child, childX, childY, child.PinXInches * x, child.PinYInches * y, nodes, artwork, geometryReferences));
         }
         return target;
     }
 
     private static void Apply(Node node) {
         VisioShape shape = node.Source, target = node.Candidate;
-        shape.PinX = target.PinX; shape.PinY = target.PinY;
-        shape.Width = target.Width; shape.Height = target.Height;
-        shape.LocPinX = target.LocPinX; shape.LocPinY = target.LocPinY;
+        shape.PinXInches = target.PinXInches; shape.PinYInches = target.PinYInches;
+        shape.WidthInches = target.WidthInches; shape.HeightInches = target.HeightInches;
+        shape.LocPinXInches = target.LocPinXInches; shape.LocPinYInches = target.LocPinYInches;
         shape.HasExplicitWidth = true; shape.HasExplicitHeight = true;
         for (int i = 0; i < shape.ConnectionPoints.Count; i++) {
             shape.ConnectionPoints[i].X = target.ConnectionPoints[i].X;

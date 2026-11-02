@@ -603,7 +603,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
     public void Mhtml_CleanupPreservesProtectedNestedMessagePayload() {
         byte[] input = BuildMhtmlWithProtectedNestedMessage();
         EmailAttachment originalNested = Assert.Single(
-            new EmailDocumentReader().Read(input).Document.Attachments,
+            new EmailDocumentReader().ReadDocument(input).Document.Attachments,
             attachment => attachment.EmbeddedDocument != null);
         byte[] originalPayload = Assert.IsType<byte[]>(originalNested.Content);
         OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings,
@@ -614,7 +614,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
             new OfficeContentCleanupSelection(new[] { finding.Id }));
 
         EmailAttachment reopenedNested = Assert.Single(
-            new EmailDocumentReader().Read(cleaned.Output).Document.Attachments,
+            new EmailDocumentReader().ReadDocument(cleaned.Output).Document.Attachments,
             attachment => attachment.EmbeddedDocument != null);
         Assert.Equal(originalPayload, Assert.IsType<byte[]>(reopenedNested.Content));
         Assert.Contains("DKIM-Signature:", Encoding.ASCII.GetString(reopenedNested.Content!),
@@ -625,7 +625,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
     public void Mhtml_CleanupPreservesUnsupportedTransferEncodedUnrelatedAttachment() {
         byte[] input = BuildMhtmlWithUnsupportedUnrelatedAttachment();
         EmailAttachment originalAttachment = Assert.Single(
-            new EmailDocumentReader().Read(input).Document.Attachments,
+            new EmailDocumentReader().ReadDocument(input).Document.Attachments,
             attachment => attachment.FileName == "payload.bin");
         byte[] originalPayload = Assert.IsType<byte[]>(originalAttachment.Content);
         OfficeContentSafetyFinding finding = Assert.Single(MhtmlDocument.InspectContentSafety(input).Findings,
@@ -638,7 +638,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
         string serialized = Encoding.ASCII.GetString(cleaned.Output);
         Assert.Contains("Content-Transfer-Encoding: x-uuencode", serialized, StringComparison.OrdinalIgnoreCase);
         EmailAttachment reopenedAttachment = Assert.Single(
-            new EmailDocumentReader().Read(cleaned.Output).Document.Attachments,
+            new EmailDocumentReader().ReadDocument(cleaned.Output).Document.Attachments,
             attachment => attachment.FileName == "payload.bin");
         Assert.Equal(originalPayload, Assert.IsType<byte[]>(reopenedAttachment.Content));
     }
@@ -777,7 +777,7 @@ public sealed partial class HtmlPackageContentSafetyContractTests {
         OfficeContentCleanupResult cleaned = MhtmlDocument.RemoveSelectedContent(
             input,
             new OfficeContentCleanupSelection(new[] { finding.Id }));
-        EmailDocument reopened = new EmailDocumentReader().Read(cleaned.Output).Document;
+        EmailDocument reopened = new EmailDocumentReader().ReadDocument(cleaned.Output).Document;
 
         Assert.Equal("archive-123@example.test", reopened.MessageId);
         Assert.Equal("sender@example.test", reopened.From?.Address);
