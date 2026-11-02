@@ -88,5 +88,5 @@ public sealed class HtmlWordToHtmlLinkSafetyTests {
     }
 
     private static int CountOccurrences(string text, string value) =>
-        (text.Length - text.Replace(value, string.Empty, StringComparison.Ordinal).Length) / value.Length;
+        (text.Length - text.Replace(value, string.Empty).Length) / value.Length;
 }
