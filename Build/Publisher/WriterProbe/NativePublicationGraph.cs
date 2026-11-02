@@ -6,7 +6,7 @@ namespace OfficeIMO.Publisher.WriterProbe;
 
 /// <summary>
 /// Synthesizes the document, explicit page roles and small Quill document graph.
-/// The role boundaries follow recovered native rules; native opening remains unqualified.
+/// Native acceptance is limited to the independently qualified specimens.
 /// </summary>
 internal static class NativePublicationGraph {
     internal const ushort SpecialPageBoundary = 5;
@@ -58,6 +58,7 @@ internal static class NativePublicationGraph {
         ObjectBinding[] tables = objects.Where(item => item.Source.Table != null).ToArray();
         var tableCells = tables.Select((item, index) => (item.Id, CellsId: colorSchemeId + 1 + (uint)namedPictures.Length + (uint)index))
             .ToDictionary(pair => pair.Id, pair => pair.CellsId);
+        uint colorSeparationId = colorSchemeId + 1 + (uint)namedPictures.Length + (uint)tables.Length;
         byte[] references = Variable(2, 0xA0, Enumerable.Range(0, orderedPageCount)
             .Select(index => Scalar(0, 0x70, firstPageId + (uint)index)).ToArray());
         byte[] document = Chunk(Scalar(1, 0x20, orderedPageCount), references, Scalar(3, 0x70, printBlockId),
@@ -128,7 +129,7 @@ internal static class NativePublicationGraph {
         // Normal opening accesses row zero of Rgdnb. One empty typed OplDnb
         // supplies that row; its fields use the native decoder's defaults.
         chunks.Add(new NativeRecord(0x4B, documentId, Chunk(Scalar(1, 0x20, 1),
-            Variable(2, 0x90, Variable(0, 0x88)))));
+            Variable(2, 0x90, Variable(0, 0x88)), Scalar(3, 0x70, colorSeparationId))));
         for (int index = 0; index < masterCount; index++)
             chunks.Add(new NativeRecord(0x4C, firstPageId + (uint)index, CandidateMasterGeometry.Create(width, height)));
         chunks.Add(new NativeRecord(0x5C, documentId, CandidateColorScheme.CreateDefault()));
@@ -137,6 +138,14 @@ internal static class NativePublicationGraph {
                 Encoding.Unicode.GetBytes(picture.Source.ImageName + "\0")))));
         foreach (ObjectBinding table in tables)
             chunks.Add(new NativeRecord(0x63, table.Id, CandidateTableRecords.Cells(table.Source.Table!)));
+        // Print preview dereferences OhColorSepBlock even for composite output.
+        // One automatic-color plate uses native defaults without printer data.
+        // DzlTrap/DzlIndTrap must be explicit: absent values decode to zero in
+        // validation, below 127. The native constructor initializes both to 3175.
+        chunks.Add(new NativeRecord(0x4F, printBlockId, Chunk(
+            Variable(2, 0xA0, Variable(0, 0x88,
+                Variable(2, 0x98, Scalar(1, 0x20, uint.MaxValue)))),
+            Scalar(0x0C, 0x20, 3175), Scalar(0x0D, 0x20, 3175))));
         return new Graph(specification, chunks, objects, stories);
     }
 

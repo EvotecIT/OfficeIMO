@@ -391,10 +391,18 @@ encoders for all objects. Master tables, multiple tables, linked columns/insets,
 wrap references and broader table grids remain outside this composition profile.
 The newsletter and a later edited four-page variant have normal file-association
 opening evidence in Microsoft Publisher before any native resave, without recovery
-consent. All three initial pages were inspected; the edited variant has opening
-evidence and partial page inspection. Native editing/resaving and quantitative
-appearance parity remain unqualified. OfficeIMO PDF renderings of both variants
-were inspected separately and do not replace native interoperability evidence.
+consent. All three initial pages and all four edited pages were inspected.
+The `nativePrintState` qualification records the shared writer's generated
+color-separation record and its required PrintBlock reference. Both corrected
+variants open normally, export native PDFs and reach Print preview with Microsoft
+Print to PDF Ready. Their seven native PDF pages render identically before and
+after the print-state correction; their OfficeIMO PDF/SVG bytes are unchanged.
+A subsequent OfficeIMO source-text save changes only Quill, preserves the print
+records and exports the updated recurring heading on all three native PDF pages.
+Actual Print dispatch reports the same operation error for the corrected specimen
+and a native-authored control, so printing remains unqualified. Native
+editing/resaving, recovery-path acceptance and general appearance parity also
+remain unqualified.
 
 The page graph has `physical page count + 5` ordered references: one master,
 the physical pages and four utility pages. `DpgMaster=1` and `DpgSpecial=5`
@@ -407,6 +415,12 @@ guides and zero gutters. Physical pages use the master relation for geometry.
 Each object's page index selects both its native parent and its page's ordered
 object-reference list. Ordinary objects from all physical pages share one
 OfficeArt drawing; page ownership does not allocate separate drawing IDs.
+
+PrintBlock (`0x4B`) field 3 references a generated ColorSepBlock (`0x4F`) child.
+Native Print preview requires this relation even when the initial document loader
+accepts its absence. The child contains one automatic-color plate and explicit
+native trap-width defaults, without stored printer names, drivers or device-mode
+data. It is appended after existing resources to preserve their identifiers.
 
 Document field `0x20` references the Quill document (`0x5B`). Its frame catalog
 (`0x61`) binds each story key to its object; its story catalog (`0x65`) binds the

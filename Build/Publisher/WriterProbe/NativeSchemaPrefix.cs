@@ -21,6 +21,7 @@ internal static class NativeSchemaPrefix {
             new(0x44, Marker6: true, Marker7: true, Trait9: 1, Trait12: 5),
             new(0x4B, Marker6: false, Marker7: false, Trait9: 3, Trait12: 5),
             new(0x4C, Marker6: false, Marker7: false, Trait9: 1, Trait12: 5),
+            new(0x4F, Marker6: false, Marker7: false, Trait9: 2, Trait12: 5),
             new(0x5B, Marker6: false, Marker7: false, Trait9: null, Trait12: 5),
             new(0x5C, Marker6: false, Marker7: false, Trait9: 1, Trait12: 5),
             new(0x61, Marker6: true, Marker7: false, Trait9: 2, Trait12: 5),

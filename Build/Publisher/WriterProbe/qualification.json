@@ -30742,7 +30742,11 @@
       "edited": {
         "opened": true,
         "physicalPages": 4,
-        "inspection": "Updated lead and four-page navigation observed. Full page inspection incomplete after licensing notices and desktop input.",
+        "pagesInspected": [1, 2, 3, 4],
+        "observations": [
+          "Updated lead, table paragraphs and layout, changed columns, replacement JPEG and linked continuation are visible.",
+          "The fourth page contains only the recurring master heading, image and rule."
+        ],
         "repairOrRecoveryConsentAccepted": false,
         "repairOrRecoveryPromptObserved": false
       },
@@ -30760,6 +30764,173 @@
       "Linked frames require ordinary unwrapped single-column Top-aligned layout. Unlinked physical frames admit the existing one-to-three-column layout profile.",
       "Existing shared formatting and ordinary object limits remain unchanged; unsupported combinations refuse.",
       "Native reading/opening evidence does not qualify native editing/resaving, general appearance parity or public native creation."
+    ],
+    "canClosePUB00": false
+  },
+  "nativePrintState": {
+    "scope": "Template-free modern-generation PrintBlock/ColorSepBlock graph used by every opt-in creation specimen; native preview qualification for original and edited newsletters.",
+    "nativeBinary": {
+      "version": "16.0.20527.20088",
+      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+    },
+    "sourceFiles": [
+      "NativePublicationGraph.cs",
+      "NativeSchemaPrefix.cs"
+    ],
+    "before": {
+      "printPreview": "Original and edited newsletters fail-fast after entering Print backstage. A native-authored Text control reaches Ready.",
+      "exception": "0xC0000409",
+      "faultModule": "mso20win32client.dll",
+      "faultModuleSha256": "5661441ad7459226f00ac8be79330ae23d5486397f36085b3bd2e299e5a575ea",
+      "faultRva": "0x489F62",
+      "capturedCallerRvas": [
+        "MSPUB+0xA0149",
+        "MSPUB+0x2CF9D1",
+        "MSPUB+0x3C276A"
+      ],
+      "originalPrintBlockId": 278,
+      "runtimePrintBlockHandle": "0x02000116",
+      "observedRelationAtPayload10": "0x0"
+    },
+    "recoveredInvariant": {
+      "reader": "Normal PrintBlock reader 0x5C330 maps field 3 OhColorSepBlock to payload +0x10. Missing references decode as zero; the immediate type check permits zero.",
+      "consumer": "Print consumer 0x3C2723 reads that relation. Its call at 0x3C2765 reaches 0x2CF9B8 and then 0x9FF40, whose zero-handle branch at 0x9FF5D reaches fail-fast at 0xA0143. The hardware trace observes the zero relation and this same failure chain.",
+      "colorSepSchema": "OplCsb at 0xB5F6C0; field 1 CPlates, field 2 Plates, field 0x0C DzlTrap and field 0x0D DzlIndTrap. Plates use OplCsp at 0xB653C0 with field 2 EcpPlate.",
+      "trapDefaults": "Validator 0x57490 reads omitted trap widths as zero and requires 127..254000. Normal reader 0x81320 initializes both native trap widths to 3175 at 0x82199/0x821A0.",
+      "rejectedMinimum": "An empty plate list and a single empty typed plate without explicit trap widths both refuse native read-only Open with HRESULT 0x80FF000D; neither establishes a Print verdict."
+    },
+    "encoding": {
+      "printBlock": "Field 3 references one generated kind 0x4F child parented to the PrintBlock.",
+      "colorSepBlock": "One automatic-color OplCsp plate and explicit native trap widths 3175; remaining settings use native defaults.",
+      "classDescriptor": {
+        "kind": "0x4F",
+        "marker6": false,
+        "marker7": false,
+        "marker8": true,
+        "trait9": 2,
+        "trait12": 5
+      },
+      "existingRecordIdentifiersPreserved": true,
+      "printerNamesDriversOrDevmodeCopied": false
+    },
+    "candidates": [
+      {
+        "kind": "newsletter",
+        "beforeSha256": "1f2e381ec31f6078bf7fbbb6a03dd1d28c68c9b3a52b4572c75f22fc4cb7b44d",
+        "bytes": 14848,
+        "sha256": "13eac7444db9b2d7ccca2c7a9170572a5300836691bd7b636a3ec53698b9d74c",
+        "physicalPages": 3,
+        "normalOpeningBeforeNativeResave": true,
+        "repairOrRecoveryPromptObserved": false,
+        "nativeReadOnlyOpen": true,
+        "nativePdfExport": {
+          "bytes": 70931,
+          "sha256": "155b71ae0b1b990defdc9b7141ec02a6f2d8df3c3fbd42ade5aa1396d45322c8"
+        },
+        "nativePdfPagesInspected": [
+          1,
+          2,
+          3
+        ],
+        "nativePrintPreview": {
+          "printer": "Microsoft Print to PDF",
+          "state": "Ready",
+          "pageRange": "1-3",
+          "firstPageObserved": true,
+          "resolvedColorSepHandle": "0x200011c",
+          "fastFailCaptured": false
+        },
+        "nativePdfPreservation": {
+          "comparison": "Poppler PNG rendering with maximum dimension 900 pixels; same native Publisher binary before and after print-state correction",
+          "allPagesByteIdentical": true,
+          "pageSha256": [
+            "faa357dd8f2b17ad90d14813d197ec95b42b23ec2561815eba05d54b6b152d65",
+            "417df426770a79357d35f54cacc715d2c2aabb4cbfd2237451e4ee54c6c1d8b0",
+            "2ecf6d3ffdedc36360e9962133a9838b509215128d957ce10e1e4c785ab34c57"
+          ]
+        },
+        "managedPdfAndSvgBytesUnchanged": true
+      },
+      {
+        "kind": "newsletter-edited",
+        "beforeSha256": "07f49984a7e15478a41fda18bc6d8ba69afa45bab555a9b64e29569c69d0998d",
+        "bytes": 16384,
+        "sha256": "2858fb05ae714eace13ac55b81415ac99b9af4c11f6aa300a7fcfe842e1b27c0",
+        "physicalPages": 4,
+        "normalOpeningBeforeNativeResave": true,
+        "repairOrRecoveryPromptObserved": false,
+        "nativeReadOnlyOpen": true,
+        "nativePdfExport": {
+          "bytes": 74479,
+          "sha256": "f2ac18aaff72921f70ae071ca9ac78d08878b070388ee4186f13d07010da9bd1"
+        },
+        "nativePdfPagesInspected": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "nativePrintPreview": {
+          "printer": "Microsoft Print to PDF",
+          "state": "Ready",
+          "pageRange": "1-4",
+          "firstPageObserved": true,
+          "resolvedColorSepHandle": "0x200011e",
+          "fastFailCaptured": false
+        },
+        "nativePdfPreservation": {
+          "comparison": "Poppler PNG rendering with maximum dimension 900 pixels; same native Publisher binary before and after print-state correction",
+          "allPagesByteIdentical": true,
+          "pageSha256": [
+            "e1e00b6c048c0367a6cad2fb5703c4dfc2bd05e8344d3e785795e37d70504f5d",
+            "3a02f8c5c14ac8fb50541d74868268b8954b9f47c14c4440ae64069ba5250ef1",
+            "13ab9796482e765071f95903e517f8d841bcce175e5ad378e5f29e5b26e58ec6",
+            "02f61f025f9a425b7ac78aec1c69232e3d0899fcaeae2cf61af6c82580826094"
+          ]
+        },
+        "managedPdfAndSvgBytesUnchanged": true
+      }
+    ],
+    "artifactValidation": {
+      "checksPassed": 35,
+      "checksFailed": 0,
+      "probeAndHarnessBuildWarnings": 0,
+      "preservation": "Every pre-existing native record keeps its identifier, kind, parent and byte content, except the six-byte PrintBlock relation addition. Every non-Contents stream remains byte-identical across the existing master, mixed-page, multiple/paired-master, object/image, nine linked/layout/table and 2/3/16 text-page baselines. All existing model mutation, no-op source-copy and refusal checks pass.",
+      "scope": "Whole-file hashes intentionally change; native acceptance is asserted only for the independently exercised candidates."
+    },
+    "sourceSavePreservation": {
+      "operation": "Load the generated newsletter, replace the existing master heading through PublisherDocument and write native source bytes; no Microsoft Publisher edit or resave.",
+      "sha256": "49256d42b0578a4aef1195efe258bc0f49b22f4a699e3835f0a2d48b839c8077",
+      "bytes": 14848,
+      "nativeReadOnlyOpen": true,
+      "nativePdfExport": {
+        "sha256": "ba9a61d536e4bac506553bc22738c734ac10261b63eb1e2117ce0acb63bd6553",
+        "bytes": 69715,
+        "pages": 3
+      },
+      "changedStreams": [
+        "Quill/QuillSub/CONTENTS"
+      ],
+      "contentsRecordOrFieldChanges": 0,
+      "nativePdfText": "Saved newsletter appears on all three pages; replacing that heading with the original gives exactly the previous extracted native PDF text.",
+      "appearance": "First native PDF page inspected with updated heading and retained master artwork, body/sidebar and table.",
+      "limits": "This proves one OfficeIMO source-text edit and native read/export. It does not qualify native editing, native resave, repair-free COM opening or Print dispatch."
+    },
+    "printDispatch": {
+      "qualified": false,
+      "correctedNewsletter": "Clicking Print reports Publisher cannot complete the operation before any PDF filename dialog. No output is produced and no fail-fast is captured.",
+      "nativeAuthoredControl": {
+        "fixture": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+        "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d",
+        "result": "Same Print action and Microsoft Print to PDF selection report the same operation error."
+      },
+      "interpretation": "The dispatch failure also occurs with the native-authored control. Its cause is unresolved; it does not establish a candidate-specific defect or successful printing."
+    },
+    "limits": [
+      "Native PDF export is separate from virtual-printer dispatch.",
+      "The installed Publisher is in read-and-print-only mode; native editing/resaving remains unqualified.",
+      "COM Open and successful PDF export do not prove that no repair occurred. Normal-opening observations do not replace the remaining repair-positive/recovery-path qualification.",
+      "No public native creation API or broader printer, producer or color-separation profile is qualified by this record."
     ],
     "canClosePUB00": false
   }
