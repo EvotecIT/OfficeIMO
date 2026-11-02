@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
                 spool.Position = 0;
                 var entry = archive.CreateEntry("xl/worksheets/sheet" + InvariantNumberText.Get(sheet.Index) + ".xml", CompressionLevel.Fastest);
                 using var stream = entry.Open();
-                using (var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize)) {
+                using (var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true)) {
                     writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                     writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
                     WriteDeclaredColumns(writer, widths, declaredStyles);
