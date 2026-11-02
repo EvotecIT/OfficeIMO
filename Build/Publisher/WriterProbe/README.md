@@ -310,7 +310,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `named-image-pages` | Uses the same public model as `image-pages`, with owned native filename resources and complete OfficeArt basename properties for subsequent image replacement. Two image paths required. |
 | `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
 | `mixed-object-pages` | Authors overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
-| `master-content` | One master owns a rectangle, picture and text frame and is applied to three physical pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. One PNG path required. |
+| `master-content` | Projects the final public authoring model: one centered master owns a rectangle, picture and single-paragraph text frame and is applied to three Letter pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. Current object order, geometry, paint, stories and referenced asset identity supply the codec inputs. One PNG path required. |
 | `linked-story`, `linked-story-overflow` | One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
 | `frame-layout`, `frame-layout-edited` | Six public-model text frames on two pages: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
 | `table`, `table-edited` | Borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label. The edited specimen adds a first-cell paragraph and refills the last cell. |
@@ -338,6 +338,16 @@ an empty root `Objects` storage and a typed 12-byte `\u0003Internal` version
 header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
+
+`CandidateModelProjection` derives the single-master specimen's codec inputs from
+the final `PublisherDocument`; it does not maintain a second editable object list.
+The projection accepts the existing source-free Letter/single-master profile.
+Imported publications, tables, linked or multicolumn text, insets, non-Top
+alignment, wrap references, multiple paragraphs and non-rectangle artwork require
+their separate writer profiles and are rejected here. Native paragraph terminators
+retain the existing encoding convention. Other specimens keep their profile-specific
+construction. This projection does not admit public native creation or broaden
+the probe's native acceptance evidence.
 
 The page graph has `physical page count + 5` ordered references: one master,
 the physical pages and four utility pages. `DpgMaster=1` and `DpgSpecial=5`
