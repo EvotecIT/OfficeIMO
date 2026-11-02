@@ -99,6 +99,7 @@ namespace OfficeIMO.Excel {
             }
 
             CoerceValueHelper.ValidateSharedStringLength(value!, nameof(value));
+            if (TryStoreText(row, column, value!)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             string text = value!;
@@ -188,6 +189,7 @@ namespace OfficeIMO.Excel {
 
         private void CellDoubleValueCore(int row, int column, double value) {
             string text = InvariantNumberText.Get(value);
+            if (TryStoreNumberText(row, column, text)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             ExcelWorksheetScan.SetValueText(cell, text);
@@ -197,6 +199,7 @@ namespace OfficeIMO.Excel {
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
             string text = value.ToString(CultureInfo.InvariantCulture);
+            if (TryStoreNumberText(row, column, text)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             ExcelWorksheetScan.SetValueText(cell, text);
@@ -205,6 +208,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellNumberTextValueCore(int row, int column, string text) {
+            if (TryStoreNumberText(row, column, text)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             ExcelWorksheetScan.SetValueText(cell, text);
@@ -213,6 +217,7 @@ namespace OfficeIMO.Excel {
         }
 
         private void CellBooleanValueCore(int row, int column, bool value) {
+            if (TryStoreBoolean(row, column, value)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             ExcelWorksheetScan.SetValueText(cell, value ? "1" : "0");
@@ -223,6 +228,7 @@ namespace OfficeIMO.Excel {
         private void CellDateTimeValueCore(int row, int column, DateTime value) {
             double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
             string text = InvariantNumberText.Get(serial);
+            if (TryStoreTemporal(row, column, text, duration: false)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
@@ -325,6 +331,7 @@ namespace OfficeIMO.Excel {
         private void CellTimeSpanValueCore(int row, int column, TimeSpan value) {
             double serial = value.TotalDays;
             string text = InvariantNumberText.Get(serial);
+            if (TryStoreTemporal(row, column, text, duration: true)) return;
             var cell = GetWritableValueCell(row, column);
             ClearCellValueMetadata(cell);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;

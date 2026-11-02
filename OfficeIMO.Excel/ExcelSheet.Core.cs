@@ -188,70 +188,7 @@ namespace OfficeIMO.Excel {
             }
 
             SheetData sheetData = GetOrCreateSheetData();
-
-            Row? rowElement = null;
-            Row? insertAfterRow = null;
-            bool createdRowElement = false;
-            if (_lastAccessedRow != null && ReferenceEquals(_lastAccessedRow.Parent, sheetData)) {
-                if (_lastAccessedRowIndex == row) {
-                    rowElement = _lastAccessedRow;
-                } else if (_lastAccessedRowIndex < row) {
-                    insertAfterRow = _lastAccessedRow;
-                    for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
-                        if (next.RowIndex == null) {
-                            continue;
-                        }
-
-                        int nextRowIndex = (int)next.RowIndex.Value;
-                        if (nextRowIndex == row) {
-                            rowElement = next;
-                            break;
-                        }
-
-                        if (nextRowIndex > row) {
-                            break;
-                        }
-
-                        insertAfterRow = next;
-                    }
-                }
-            }
-
-            if (rowElement == null && insertAfterRow == null) {
-                foreach (Row r in sheetData.Elements<Row>()) {
-                    if (r.RowIndex != null) {
-                        if (r.RowIndex.Value == (uint)row) {
-                            rowElement = r;
-                            break;
-                        }
-                        if (r.RowIndex.Value < (uint)row) {
-                            insertAfterRow = r;
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (rowElement == null) {
-                rowElement = new Row { RowIndex = (uint)row };
-                createdRowElement = true;
-                if (insertAfterRow != null) {
-                    if (insertAfterRow.NextSibling<Row>() == null) {
-                        sheetData.Append(rowElement);
-                    } else {
-                        sheetData.InsertAfter(rowElement, insertAfterRow);
-                    }
-                } else {
-                    // Insert at beginning
-                    var firstRow = sheetData.Elements<Row>().FirstOrDefault();
-                    if (firstRow != null) {
-                        sheetData.InsertBefore(rowElement, firstRow);
-                    } else {
-                        sheetData.Append(rowElement);
-                    }
-                }
-            }
+            Row rowElement = GetOrCreateRowForCell(sheetData, row, out bool createdRowElement);
 
             if (createdRowElement) {
                 Cell createdCell = new Cell { CellReference = BuildCellReference(row, column) };
@@ -261,6 +198,24 @@ namespace OfficeIMO.Excel {
                 return createdCell;
             }
 
+            if (rowElement is ExcelStoredRow storedRow && storedRow.IsStoreAvailable) {
+                int storedIndex = storedRow.Find(column);
+                if (storedIndex >= 0) {
+                    Cell promoted = storedRow.Promote(storedIndex);
+                    CacheLastAccessedCell(rowElement, row, column, promoted);
+                    return promoted;
+                }
+
+                // The new cell joins the row's DOM cells in column order; stored cells merge with them when written.
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+                }
+            }
+
+            return GetOrCreateCellInRow(sheetData, rowElement, row, column);
+        }
+
+        private Cell GetOrCreateCellInRow(SheetData sheetData, Row rowElement, int row, int column) {
             // Find or create cell with proper ordering (by numeric column index)
             Cell? cell = null;
             Cell? insertAfterCell = null;
@@ -345,6 +300,75 @@ namespace OfficeIMO.Excel {
             return cell;
         }
 
+        /// <summary>Finds the row element for a cell, or inserts one in row order; a worksheet using the cell store gets a stored row.</summary>
+        private Row GetOrCreateRowForCell(SheetData sheetData, int row, out bool createdRowElement) {
+            createdRowElement = false;
+            Row? rowElement = null;
+            Row? insertAfterRow = null;
+            if (_lastAccessedRow != null && ReferenceEquals(_lastAccessedRow.Parent, sheetData)) {
+                if (_lastAccessedRowIndex == row) {
+                    rowElement = _lastAccessedRow;
+                } else if (_lastAccessedRowIndex < row) {
+                    insertAfterRow = _lastAccessedRow;
+                    for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
+                        if (next.RowIndex == null) {
+                            continue;
+                        }
+
+                        int nextRowIndex = (int)next.RowIndex.Value;
+                        if (nextRowIndex == row) {
+                            rowElement = next;
+                            break;
+                        }
+
+                        if (nextRowIndex > row) {
+                            break;
+                        }
+
+                        insertAfterRow = next;
+                    }
+                }
+            }
+
+            if (rowElement == null && insertAfterRow == null) {
+                foreach (Row r in sheetData.Elements<Row>()) {
+                    if (r.RowIndex != null) {
+                        if (r.RowIndex.Value == (uint)row) {
+                            rowElement = r;
+                            break;
+                        }
+                        if (r.RowIndex.Value < (uint)row) {
+                            insertAfterRow = r;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (rowElement == null) {
+                rowElement = UsesCellStore ? new ExcelStoredRow(Environment.CurrentManagedThreadId) { RowIndex = (uint)row } : new Row { RowIndex = (uint)row };
+                createdRowElement = true;
+                if (insertAfterRow != null) {
+                    if (insertAfterRow.NextSibling<Row>() == null) {
+                        sheetData.Append(rowElement);
+                    } else {
+                        sheetData.InsertAfter(rowElement, insertAfterRow);
+                    }
+                } else {
+                    // Insert at beginning
+                    var firstRow = sheetData.Elements<Row>().FirstOrDefault();
+                    if (firstRow != null) {
+                        sheetData.InsertBefore(rowElement, firstRow);
+                    } else {
+                        sheetData.Append(rowElement);
+                    }
+                }
+            }
+
+            return rowElement;
+        }
+
         /// <summary>
         /// A cell Excel creates in a formatted row or column starts with that row's style, else the column's, so
         /// values written into a template keep its number formats and fonts.
@@ -370,7 +394,65 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Finds an existing cell. A stored cell is moved into the DOM first, since the caller holds on to the
+        /// element; reads that need only the value use <see cref="TryGetStoredCell"/> or <see cref="TryGetDomCell"/>.
+        /// </summary>
         private Cell? TryGetCell(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            if (rowElement == null) {
+                return null;
+            }
+
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                int index = stored.Find(column);
+                if (index >= 0) {
+                    Cell promoted = stored.Promote(index);
+                    CacheLastAccessedCell(rowElement, row, column, promoted);
+                    return promoted;
+                }
+
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
+        /// <summary>Finds an existing DOM cell without moving a stored cell, which never holds a formula, into the DOM.</summary>
+        private Cell? TryGetDomCell(int row, int column) {
+            Row? rowElement = TryGetRowElement(row, column);
+            if (rowElement == null) {
+                return null;
+            }
+
+            if (rowElement is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    return TryGetCellInRow(rowElement, row, column);
+                }
+            }
+
+            return TryGetCellInRow(rowElement, row, column);
+        }
+
+        /// <summary>Finds a stored cell of the worksheet's grid.</summary>
+        private bool TryGetStoredCell(int row, int column, out ExcelStoredRow storedRow, out int index) {
+            if (TryGetRowElement(row, column) is ExcelStoredRow stored && stored.IsStoreAvailable) {
+                int found = stored.Find(column);
+                if (found >= 0) {
+                    storedRow = stored;
+                    index = found;
+                    return true;
+                }
+            }
+
+            storedRow = null!;
+            index = -1;
+            return false;
+        }
+
+        private Row? TryGetRowElement(int row, int column) {
             if (row <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(row));
             }
@@ -416,7 +498,10 @@ namespace OfficeIMO.Excel {
             }
 
             CacheLastAccessedRow(rowElement, row);
+            return rowElement;
+        }
 
+        private Cell? TryGetCellInRow(Row rowElement, int row, int column) {
             int targetColumnIndex = column;
             if (_lastAccessedCell != null
                 && _lastAccessedCellRowIndex == row

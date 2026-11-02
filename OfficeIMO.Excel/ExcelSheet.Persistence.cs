@@ -24,6 +24,8 @@ namespace OfficeIMO.Excel {
             internal bool RequiresSavePreparation;
             /// <summary>Print settings on this sheet were chosen by the table defaults, not by the caller.</summary>
             internal bool OwnsTablePrintDefaults;
+            /// <summary>The grid was loaded into stored rows, so rows this sheet adds keep their plain cells stored too.</summary>
+            internal bool UsesCellStore;
         }
 
         /// <summary>

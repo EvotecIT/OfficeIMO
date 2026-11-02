@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                 if (!TryResolveFormulaReferenceArgument(tokens[0], out ExcelSheet referenceSheet, out int referenceRow, out int referenceColumn))
                     return _formulaReferenceError.IsError;
 
-                bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
+                bool isFormula = referenceSheet.TryGetDomCell(referenceRow, referenceColumn)?.CellFormula != null;
                 result = FormulaArgumentValue.Boolean(isFormula);
                 return true;
             }
@@ -272,7 +272,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            Cell? cell = referenceSheet.TryGetExistingCell(row, column);
+            Cell? cell = referenceSheet.TryGetDomCell(row, column);
             formulaText = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) == null
                 ? string.Empty
                 : referenceSheet.ResolveCellFormulaText(

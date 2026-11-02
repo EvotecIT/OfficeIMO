@@ -22,8 +22,11 @@ namespace OfficeIMO.Excel {
         private static readonly string[] FormulaTypes = { "normal", "array", "shared", "dataTable" };
         private static readonly string?[] SmallNumbers = new string?[10000];
 
-        /// <summary>Loads <paramref name="part"/> and returns true, or leaves it unloaded and returns false.</summary>
-        internal static bool TryLoad(WorksheetPart part) {
+        /// <summary>
+        /// Loads <paramref name="part"/> and returns true, or leaves it unloaded and returns false. With
+        /// <paramref name="storeCells"/>, plain cells stay outside the DOM in <see cref="ExcelStoredRow"/> rows.
+        /// </summary>
+        internal static bool TryLoad(WorksheetPart part, bool storeCells = false) {
             var buffer = new ExcelPartBuffer();
             try {
                 using (Stream stream = part.GetStream(FileMode.Open, FileAccess.Read)) buffer.ReadFrom(stream);
@@ -31,7 +34,7 @@ namespace OfficeIMO.Excel {
                 if (!TryFindGrid(xml, out int rootStart, out int gridStart, out Tags tags, out bool dyDescentDeclared)) return false;
 
                 var rows = new List<Row>(256);
-                var reader = new GridReader(xml, gridStart + tags.GridStart.Length, tags, dyDescentDeclared);
+                var reader = new GridReader(xml, gridStart + tags.GridStart.Length, tags, dyDescentDeclared, storeCells);
                 if (!reader.TryReadRows(rows)) return false;
 
                 string shell = StrictUtf8.GetString(buffer.Buffer, rootStart, gridStart - rootStart) + tags.EmptyGrid
@@ -126,14 +129,26 @@ namespace OfficeIMO.Excel {
             private readonly ReadOnlySpan<byte> _xml;
             private readonly Tags _tags;
             private readonly bool _dyDescentDeclared;
+            private readonly bool _storeCells;
+            private readonly int _ownerThreadId;
             private int _position;
             private string? _spans;
+            private ExcelStoredCell[]? _rowCells;
+            private int _rowCellCount;
+            private int _rowNumber;
+            private int _lastStoredColumn;
 
-            internal GridReader(ReadOnlySpan<byte> xml, int position, Tags tags, bool dyDescentDeclared) {
+            internal GridReader(ReadOnlySpan<byte> xml, int position, Tags tags, bool dyDescentDeclared, bool storeCells) {
                 _xml = xml;
                 _position = position;
                 _tags = tags;
                 _dyDescentDeclared = dyDescentDeclared;
+                _storeCells = storeCells;
+                _ownerThreadId = Environment.CurrentManagedThreadId;
+                _rowCells = storeCells ? new ExcelStoredCell[64] : null;
+                _rowCellCount = 0;
+                _rowNumber = 0;
+                _lastStoredColumn = 0;
             }
 
             internal int Position => _position;
@@ -142,12 +157,20 @@ namespace OfficeIMO.Excel {
                 while (true) {
                     if (Skip(_tags.GridEnd)) return true;
                     if (!Skip(_tags.Row)) return false;
-                    var row = new Row();
+                    Row row = _storeCells ? new ExcelStoredRow(_ownerThreadId) : new Row();
+                    _rowCellCount = 0;
+                    _rowNumber = 0;
+                    _lastStoredColumn = 0;
                     if (!TryReadRowAttributes(row, out bool hasCells)) return false;
                     if (hasCells) {
                         while (!Skip(_tags.RowEnd)) {
                             if (!Skip(_tags.Cell) || !TryReadCell(row)) return false;
                         }
+                    }
+                    if (_rowCellCount > 0) {
+                        var cells = new ExcelStoredCell[_rowCellCount];
+                        Array.Copy(_rowCells!, cells, _rowCellCount);
+                        ((ExcelStoredRow)row).SetStoredCells(cells, _rowCellCount);
                     }
                     rows.Add(row);
                 }
@@ -156,7 +179,12 @@ namespace OfficeIMO.Excel {
             private bool TryReadRowAttributes(Row row, out bool hasContent) {
                 while (TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) {
                     if (done) return true;
-                    if (Is(name, "r"u8)) { if (row.RowIndex != null) return false; row.RowIndex = new UInt32Value { InnerText = Number(value) }; }
+                    if (Is(name, "r"u8)) {
+                        if (row.RowIndex != null) return false;
+                        row.RowIndex = new UInt32Value { InnerText = Number(value) };
+                        // Stored cells take their row from the row element, so the row needs an index the SDK reads back.
+                        _rowNumber = TryReadCanonicalIndex(value, out uint rowNumber) && rowNumber > 0 && rowNumber <= ExcelA1.MaxRows ? (int)rowNumber : 0;
+                    }
                     else if (Is(name, "spans"u8)) { if (row.Spans != null) return false; row.Spans = new ListValue<StringValue> { InnerText = Spans(value) }; }
                     else if (Is(name, "s"u8)) { if (row.StyleIndex != null) return false; row.StyleIndex = new UInt32Value { InnerText = Number(value) }; }
                     else if (Is(name, "customFormat"u8)) { if (row.CustomFormat != null) return false; row.CustomFormat = new BooleanValue { InnerText = Text(value) }; }
@@ -171,10 +199,11 @@ namespace OfficeIMO.Excel {
             }
 
             private bool TryReadCell(Row row) {
-                var cell = new Cell();
                 bool hasContent;
                 // Duplicates are tracked locally: each SDK attribute getter walks the element's attribute list.
                 bool reference = false, style = false, type = false;
+                ReadOnlySpan<byte> referenceText = default, styleText = default;
+                string? cellType = null;
                 while (true) {
                     if (!TryReadAttribute(out ReadOnlySpan<byte> name, out ReadOnlySpan<byte> value, out hasContent, out bool done)) return false;
                     if (done) break;
@@ -182,22 +211,49 @@ namespace OfficeIMO.Excel {
                     if (name[0] == (byte)'r') {
                         if (reference) return false;
                         reference = true;
-                        cell.CellReference = Text(value);
+                        referenceText = value;
                     } else if (name[0] == (byte)'s') {
                         if (style) return false;
                         style = true;
-                        cell.StyleIndex = new UInt32Value { InnerText = Number(value) };
+                        styleText = value;
                     } else if (name[0] == (byte)'t') {
-                        if (type || Known(value, CellTypes) is not string cellType) return false;
+                        if (type || Known(value, CellTypes) is not string known) return false;
                         type = true;
-                        cell.DataType = new EnumValue<CellValues> { InnerText = cellType };
+                        cellType = known;
                     } else {
                         return false;
                     }
                 }
 
+                bool hasFormula = hasContent && Skip(_tags.Formula);
+                int column = 0;
+                uint styleIndex = 0;
+                if (!hasFormula && _storeCells
+                    && TryReadStoredColumn(referenceText, _rowNumber, out column)
+                    && column > _lastStoredColumn
+                    && (!style || TryReadCanonicalIndex(styleText, out styleIndex))) {
+                    string? text = null;
+                    bool hasValue = false;
+                    if (hasContent) {
+                        if (Skip(_tags.Value)) {
+                            if (!TryReadText(_tags.ValueEnd, out text)) return false;
+                            hasValue = true;
+                        }
+                        if (!Skip(_tags.CellEnd)) return false;
+                    }
+                    ExcelStoredRow.TryGetType(cellType, out ExcelStoredCellType storedType);
+                    if (_rowCellCount == _rowCells!.Length) Array.Resize(ref _rowCells, _rowCells.Length * 2);
+                    _rowCells[_rowCellCount++] = new ExcelStoredCell(column, styleIndex, style, storedType, hasValue ? text : null);
+                    _lastStoredColumn = column;
+                    return true;
+                }
+
+                var cell = new Cell();
+                if (reference) cell.CellReference = Text(referenceText);
+                if (style) cell.StyleIndex = new UInt32Value { InnerText = Number(styleText) };
+                if (type) cell.DataType = new EnumValue<CellValues> { InnerText = cellType };
                 if (hasContent) {
-                    if (Skip(_tags.Formula) && !TryReadFormula(cell)) return false;
+                    if (hasFormula && !TryReadFormula(cell)) return false;
                     if (Skip(_tags.Value)) {
                         if (!TryReadText(_tags.ValueEnd, out string? text)) return false;
                         cell.AppendChild(new CellValue(text!));
@@ -205,6 +261,48 @@ namespace OfficeIMO.Excel {
                     if (!Skip(_tags.CellEnd)) return false;
                 }
                 row.AppendChild(cell);
+                // Writers merge a row's stored and DOM cells by column. A DOM cell whose column is not canonical, or
+                // cells out of column order, keep the rest of the row in the DOM so that order is kept as read.
+                if (_storeCells && TryReadStoredColumn(referenceText, _rowNumber, out int domColumn) && domColumn > _lastStoredColumn) {
+                    _lastStoredColumn = domColumn;
+                } else {
+                    _lastStoredColumn = int.MaxValue;
+                    if (row is ExcelStoredRow storedRow) storedRow.MarkUnorderedDomCells();
+                }
+                return true;
+            }
+
+            /// <summary>
+            /// Reads a canonical reference (upper-case column letters, then the row number without leading zeros) on
+            /// the current row, which a stored cell rebuilds exactly from its column and row.
+            /// </summary>
+            private static bool TryReadStoredColumn(ReadOnlySpan<byte> reference, int rowNumber, out int column) {
+                column = 0;
+                if (rowNumber <= 0 || reference.IsEmpty) return false;
+                int index = 0;
+                while (index < reference.Length && reference[index] >= (byte)'A' && reference[index] <= (byte)'Z') {
+                    column = column * 26 + reference[index] - 'A' + 1;
+                    if (++index > 3) return false;
+                }
+                if (index == 0 || column > ExcelA1.MaxColumns || index == reference.Length || reference[index] == (byte)'0') return false;
+                long row = 0;
+                for (; index < reference.Length; index++) {
+                    byte digit = reference[index];
+                    if (digit < (byte)'0' || digit > (byte)'9') return false;
+                    row = row * 10 + digit - '0';
+                    if (row > ExcelA1.MaxRows) return false;
+                }
+                return row == rowNumber;
+            }
+
+            /// <summary>Reads a non-negative integer written without leading zeros, as the SDK writes it back.</summary>
+            private static bool TryReadCanonicalIndex(ReadOnlySpan<byte> text, out uint value) {
+                value = 0;
+                if (text.IsEmpty || text.Length > 9 || (text[0] == (byte)'0' && text.Length > 1)) return false;
+                foreach (byte digit in text) {
+                    if (digit < (byte)'0' || digit > (byte)'9') return false;
+                    value = value * 10 + (uint)(digit - '0');
+                }
                 return true;
             }
 

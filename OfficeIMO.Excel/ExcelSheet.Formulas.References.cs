@@ -737,7 +737,8 @@ namespace OfficeIMO.Excel {
         }
 
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
-            var cell = TryGetExistingCell(row, column);
+            // Only a formula cell needs its element here, and a stored cell is never one.
+            var cell = TryGetDomCell(row, column);
             bool unresolvedFormula = false;
             if ((cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) != null && _formulaEvaluationCache != null) {
                 if (TryEvaluateFormulaCellValue(cell!, out FormulaArgumentValue formulaResult)) {
@@ -777,7 +778,7 @@ namespace OfficeIMO.Excel {
                 _formulaEvaluationDepthFrames.Peek().IncludeChild(1);
             }
 
-            var cachedType = value.HasFormula ? TryGetExistingCell(row, column)?.DataType?.Value : null;
+            var cachedType = value.HasFormula ? TryGetDomCell(row, column)?.DataType?.Value : null;
             if (value.Kind == ExcelCellDataKind.Error
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
@@ -820,7 +821,8 @@ namespace OfficeIMO.Excel {
         // The dominant operands: numeric and shared-text cells need no typed snapshot, boxed value or error-literal check.
         private bool TryResolvePlainNumberCell(int row, int column, out FormulaArgumentValue value) {
             value = default;
-            Cell? cell = TryGetExistingCell(row, column);
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            if (storedRow != null) return TryResolveStoredPlainNumberCell(storedRow.CellAt(storedIndex), out value);
             if (cell == null) return false;
             string? text = ExcelWorksheetScan.FindValue(cell)?.Text;
             if (cell.DataType == null || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {

@@ -160,6 +160,7 @@ namespace OfficeIMO.Excel {
                     cancellationToken.ThrowIfCancellationRequested();
                     int rowIndex = checked((int)row.RowIndex!.Value);
                     if (rowIndex >= firstRow && rowIndex <= lastRemovedRow) {
+                        if (row is ExcelStoredRow stored && stored.IsStoreAvailable) stored.ClearStoredCells();
                         foreach (Cell cell in row.Elements<Cell>().ToList()) {
                             cancellationToken.ThrowIfCancellationRequested();
                             RemoveCellWithValueMetadataCleanup(cell);
@@ -186,7 +187,8 @@ namespace OfficeIMO.Excel {
         /// <summary>Renumbers a row and its cells, updating the existing attribute values rather than replacing them.</summary>
         private void MoveRow(Row row, int newRowIndex) {
             row.RowIndex!.Value = (uint)newRowIndex;
-            for (OpenXmlElement? item = row.FirstChild; item != null; item = item.NextSibling()) {
+            // Stored cells take their reference from the row index, so only DOM cells are rewritten.
+            for (OpenXmlElement? item = ExcelWorksheetScan.FirstDomChild(row); item != null; item = ExcelWorksheetScan.NextDomSibling(item)) {
                 if (item is not Cell cell
                     || cell.CellReference is not { Value: { Length: > 0 } reference } cellReference) continue;
                 int column = GetColumnIndex(reference);

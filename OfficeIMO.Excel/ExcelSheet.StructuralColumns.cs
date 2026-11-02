@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
                 MaterializeDeferredDataSetImportIfNeeded();
                 int maximumCellColumn = 0, gridCells = 0;
                 if (!deleting) {
-                    foreach (var item in EnumerateCellsWithEffectiveCoordinates()) {
+                    foreach (var item in EnumerateCellCoordinates()) {
                         gridCells++;
                         if (item.Column > maximumCellColumn) maximumCellColumn = item.Column;
                     }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Excel {
                 int last = firstColumn + count - 1;
                 // One walk of the grid serves both checks; each still charges the budget for every cell it inspects.
                 int maximumCellColumn = 0, cells = 0, gridCells = 0;
-                foreach (var item in EnumerateCellsWithEffectiveCoordinates()) {
+                foreach (var item in EnumerateCellCoordinates()) {
                     gridCells++;
                     if (item.Column > maximumCellColumn) maximumCellColumn = item.Column;
                     if (item.Column >= firstColumn) cells++;
@@ -242,8 +242,19 @@ namespace OfficeIMO.Excel {
             if (sheetData != null) {
                 foreach (Row row in sheetData.Elements<Row>().ToList()) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    List<Cell> cells = row.Elements<Cell>().ToList();
                     bool rowChanged = false;
+                    List<Cell> cells;
+                    bool storedCells = row is ExcelStoredRow stored && stored.IsStoreAvailable;
+                    if (storedCells) {
+                        // Stored cells shift by column number; their references are rebuilt when written.
+                        rowChanged = ((ExcelStoredRow)row).ShiftStoredColumns(firstColumn, count, deleting);
+                        cells = GetDomCells(row);
+                    } else {
+                        cells = row.Elements<Cell>().ToList();
+                    }
+                    // Removing a DOM cell of a stored row must not merge its already shifted stored cells with DOM
+                    // cells that still carry their old references.
+                    using (ExcelStoredRow.BeginRawAccessIf(storedCells))
                     if (deleting) {
                         foreach (Cell cell in cells) {
                             string? reference = cell.CellReference?.Value;
@@ -268,7 +279,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
                     if (rowChanged) row.Spans = null;
-                    if (!row.Elements<Cell>().Any()) row.Remove();
+                    if (!RowHasCells(row)) row.Remove();
                 }
             }
             foreach ((int row, int column, string name) in pendingHeaders) CellValueCoreNoMaterialize(row, column, name);

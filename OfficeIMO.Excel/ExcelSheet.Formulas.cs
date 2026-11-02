@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
 
                 try {
                     if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
-                    foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c) != null).ToList()) {
+                    foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList()) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;
@@ -361,7 +361,7 @@ namespace OfficeIMO.Excel {
                 FormulaDependencyAliasCatalog dependencyAliases = GetFormulaDependencyAliases();
                 FormulaDependencyTableCatalog dependencyTables = GetFormulaDependencyTables();
                 IReadOnlyDictionary<uint, SharedFormulaDefinition> sharedFormulaDefinitions = BuildSharedFormulaDefinitions();
-                List<Cell> formulaCells = ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c) != null).ToList();
+                List<Cell> formulaCells = ExcelWorksheetScan.FormulaCells(WorksheetRoot).ToList();
                 var dependencyInspectionContext = new FormulaDependencyInspectionContext(
                     this,
                     formulaCells,
@@ -531,7 +531,7 @@ namespace OfficeIMO.Excel {
         /// Returns the formula text from a cell, if present.
         /// </summary>
         public string? GetFormulaText(int row, int column) {
-            Cell? cell = TryGetExistingCell(row, column);
+            Cell? cell = TryGetDomCell(row, column);
             return (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveCellFormulaText(cell!);
         }
 
@@ -539,7 +539,8 @@ namespace OfficeIMO.Excel {
         /// Tries to return a formula cell's cached value.
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
-            var cell = TryGetExistingCell(row, column);
+            // A formula cell is always a DOM cell, so a stored cell stays stored.
+            var cell = TryGetDomCell(row, column);
             value = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell!)) == null ? null : ResolveRichValueError(cell!, ExcelWorksheetScan.FindValue(cell!)?.Text);
             return value != null;
         }
@@ -565,7 +566,7 @@ namespace OfficeIMO.Excel {
             string safeFormula = Utilities.ExcelSanitizer.SanitizeFormula(formula, qualifyArrayFunctions: true);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
-                foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
@@ -651,7 +652,7 @@ namespace OfficeIMO.Excel {
                 : CellAsRange(a1RangeOrCell);
 
             WriteLock(() => {
-                foreach (var cell in ExcelWorksheetScan.Cells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
+                foreach (var cell in ExcelWorksheetScan.FormulaCells(WorksheetRoot).Where(c => ExcelWorksheetScan.FindFormula(c)?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = ExcelWorksheetScan.FindFormula(cell)?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
                         && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)

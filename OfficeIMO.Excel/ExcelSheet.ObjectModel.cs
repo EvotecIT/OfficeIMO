@@ -46,8 +46,8 @@ namespace OfficeIMO.Excel {
 
         internal ExcelCellData GetCellValueSnapshot(int row, int column) {
             MaterializeDeferredDataSetImportIfNeeded();
-            var cell = TryGetExistingCell(row, column);
-            return GetCellValueSnapshot(cell);
+            Cell? cell = ProbeCell(row, column, out ExcelStoredRow? storedRow, out int storedIndex);
+            return storedRow != null ? GetStoredCellValueSnapshot(storedRow.CellAt(storedIndex)) : GetCellValueSnapshot(cell);
         }
 
         private ExcelCellData GetCellValueSnapshot(Cell? cell) {

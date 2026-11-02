@@ -64,11 +64,40 @@ namespace OfficeIMO.Excel {
             _formulaScope?.Formulas(worksheet) ?? ScanCellFormulas(worksheet);
 
         private static IEnumerable<CellFormula> ScanCellFormulas(Worksheet worksheet) {
+            foreach (Cell cell in FormulaCells(worksheet)) yield return FindFormula(cell)!;
+        }
+
+        /// <summary>
+        /// Returns the cells that hold a formula. A stored cell never does, so the walk reads only the DOM cells of each
+        /// row and leaves stored cells where they are.
+        /// </summary>
+        internal static IEnumerable<Cell> FormulaCells(Worksheet worksheet) {
             foreach (Row row in Rows(worksheet)) {
-                for (OpenXmlElement? cell = row.FirstChild; cell != null; cell = cell.NextSibling()) {
-                    if (cell is Cell typed && FindFormula(typed) is { } formula) yield return formula;
+                for (OpenXmlElement? cell = FirstDomChild(row); cell != null; cell = NextDomSibling(cell)) {
+                    if (cell is Cell typed && FindFormula(typed) != null) yield return typed;
                 }
             }
+        }
+
+        /// <summary>Gets a row's DOM cells; a stored row's stored cells stay where they are.</summary>
+        internal static List<Cell> DomCells(Row row) {
+            var cells = new List<Cell>();
+            for (OpenXmlElement? child = FirstDomChild(row); child != null; child = NextDomSibling(child)) {
+                if (child is Cell cell) cells.Add(cell);
+            }
+            return cells;
+        }
+
+        /// <summary>Gets the first DOM child of a row without moving its stored cells into the DOM.</summary>
+        internal static OpenXmlElement? FirstDomChild(Row row) {
+            if (row is not ExcelStoredRow) return row.FirstChild;
+            using (ExcelStoredRow.BeginRawAccess()) return row.FirstChild;
+        }
+
+        /// <summary>Gets the next DOM sibling of a row's child without moving the row's stored cells into the DOM.</summary>
+        internal static OpenXmlElement? NextDomSibling(OpenXmlElement child) {
+            if (child.Parent is not ExcelStoredRow) return child.NextSibling();
+            using (ExcelStoredRow.BeginRawAccess()) return child.NextSibling();
         }
 
         /// <summary>
@@ -117,8 +146,16 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Reports whether any text below <paramref name="root"/> holds a carriage return, which SDK serialization does not keep.</summary>
         internal static bool HasCarriageReturnText(OpenXmlElement root) {
-            for (OpenXmlElement? element = root; element != null; element = NextInDocumentOrder(element, root)) {
-                if (element is OpenXmlLeafTextElement text && text.Text?.IndexOf('\r') >= 0) return true;
+            // Stored cells are checked in place, so the walk reads rows without moving their cells into the DOM.
+            using (ExcelStoredRow.BeginRawAccess()) {
+                for (OpenXmlElement? element = root; element != null; element = NextInDocumentOrder(element, root)) {
+                    if (element is OpenXmlLeafTextElement text && text.Text?.IndexOf('\r') >= 0) return true;
+                    if (element is ExcelStoredRow stored && stored.Cells is { } cells) {
+                        for (int index = 0; index < stored.StoredCount; index++) {
+                            if (cells[index].Value?.IndexOf('\r') >= 0) return true;
+                        }
+                    }
+                }
             }
             return false;
         }

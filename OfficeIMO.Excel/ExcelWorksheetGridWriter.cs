@@ -147,6 +147,8 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                if (row is ExcelStoredRow stored && stored.IsStoreAvailable) return TryWriteStoredRow(stored);
+
                 OpenXmlElement? child = row.FirstChild;
                 if (child == null) {
                     _text.Append(" />");
@@ -158,6 +160,59 @@ namespace OfficeIMO.Excel {
                 }
                 _text.Append("</").Append(_row).Append('>');
                 return true;
+            }
+
+            /// <summary>Writes a row's stored cells merged by column with its DOM cells, as the materialized row would be written.</summary>
+            private bool TryWriteStoredRow(ExcelStoredRow row) {
+                using (ExcelStoredRow.BeginRawAccess()) {
+                    ExcelStoredCell[] cells = row.Cells!;
+                    int count = row.StoredCount;
+                    string rowText = InvariantNumberText.Get(checked((int)row.RowIndex!.Value));
+                    _text.Append('>');
+                    int index = 0;
+                    for (OpenXmlElement? child = row.FirstChild; child != null; child = child.NextSibling()) {
+                        if (child is not Cell cell) return false;
+                        int column = ExcelA1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                        if (column <= 0) return false;
+                        while (index < count && cells[index].Column < column) {
+                            if (!TryWriteStoredCell(cells[index++], rowText)) return false;
+                        }
+                        if (!TryWriteCell(cell)) return false;
+                    }
+                    while (index < count) {
+                        if (!TryWriteStoredCell(cells[index++], rowText)) return false;
+                    }
+                    _text.Append("</").Append(_row).Append('>');
+                    return true;
+                }
+            }
+
+            /// <summary>Writes the markup <see cref="TryWriteCell"/> writes for the DOM form of a stored cell, or declines as it would.</summary>
+            private bool TryWriteStoredCell(in ExcelStoredCell cell, string rowText) {
+                _text.Append('<').Append(_cell).Append(" r=\"");
+                AppendColumnLetters(cell.Column);
+                _text.Append(rowText).Append('"');
+                if (cell.HasStyle) _text.Append(" s=\"").Append(InvariantNumberText.Get(cell.Style)).Append('"');
+                if (cell.Type != ExcelStoredCellType.Absent) _text.Append(" t=\"").Append(ExcelStoredRow.TypeName(cell.Type)).Append('"');
+                if (!cell.HasValue) {
+                    _text.Append(" />");
+                    return true;
+                }
+                _text.Append('>');
+                if (!TryWriteText(_value, cell.Value)) return false;
+                _text.Append("</").Append(_cell).Append('>');
+                return true;
+            }
+
+            private void AppendColumnLetters(int column) {
+                Span<char> letters = stackalloc char[3];
+                int length = 0;
+                while (column > 0) {
+                    int remainder = (column - 1) % 26;
+                    letters[length++] = (char)('A' + remainder);
+                    column = (column - 1) / 26;
+                }
+                while (length > 0) _text.Append(letters[--length]);
             }
 
             private bool TryWriteCell(Cell cell) {
