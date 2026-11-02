@@ -177,6 +177,7 @@ public sealed partial class PublisherNativeComparisonTests {
         Assert.Equal(caseId == "TwoPageMaster" ? 2 : 0, contract.NativeMasterPages.Count(master => master.IsTwoPageMaster));
         foreach (NativeMaster nativeMaster in contract.NativeMasterPages) {
             PublisherPage master = Assert.Single(publication.MasterPages, item => item.Id == NativeId(nativeMaster.PageId));
+            Assert.Equal(nativeMaster.Name, master.Name);
             AssertTextFrames(master, nativeMaster.Shapes);
         }
 
@@ -461,6 +462,7 @@ public sealed partial class PublisherNativeComparisonTests {
     [DataContract]
     private sealed class NativeMaster {
         [DataMember(Name = "pageId")] public long PageId { get; set; }
+        [DataMember(Name = "name")] public string Name { get; set; } = null!;
         [DataMember(Name = "isTwoPageMaster")] public bool IsTwoPageMaster { get; set; }
         [DataMember(Name = "shapes")] public NativeShape[] Shapes { get; set; } = null!;
     }

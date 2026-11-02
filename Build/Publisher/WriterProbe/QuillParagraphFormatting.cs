@@ -9,6 +9,8 @@ internal static class QuillParagraphFormatting {
     internal static byte[] Create(OfficeRichTextParagraph? paragraph) {
         byte[] empty = Chunk();
         if (paragraph == null) return empty;
+        if (paragraph.Label != null)
+            throw new NotSupportedException("Paragraph labels require a separately qualified native creation profile.");
         var defaults = new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>());
         var tabs = new OfficeTextTabStops(Array.Empty<OfficeTextTabStop>());
         defaults = defaults.WithTabStops(tabs);

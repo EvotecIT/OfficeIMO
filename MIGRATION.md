@@ -7,7 +7,14 @@ detached scene. Use `PublisherDocument.ReplaceStoryParagraphs` and
 `SetTextFrameBounds` for supported publication edits that must reach document
 SVG, PDF and in-memory Reader output. Fetch current page, story and frame
 snapshots after each successful edit; previously returned objects keep their
-previous values. Native PUB saving remains unavailable.
+previous values. Source-free native PUB saving remains unavailable; the package
+guide describes the bounded imported-source save contract.
+
+`PublisherPage.Name` reads the stored display name when present, including native
+master names such as `Comparison Master B`. Earlier reads returned the short
+native code, such as `B`. Use `PublisherPage.Id` for identity and master
+assignments. A publication without a display-name field retains the short code;
+application-generated placeholder labels are not synthesized.
 
 For render-only annotations, export the drawing copy directly. Previously:
 

@@ -14,6 +14,11 @@ internal static class QuillCharacterFormatting {
         var ranges = new List<PublisherQuillFormattingRange>();
         for (int index = 0; index < paragraph.Runs.Count; index++) {
             OfficeRichTextRun run = paragraph.Runs[index];
+            if (run.Italic || run.Color != OfficeColor.Black || run.Underline || run.Strikethrough
+                || run.Baseline != OfficeTextBaseline.Normal || run.BackgroundColor.HasValue
+                || run.AutomaticPairKerningThreshold.HasValue || run.ParagraphIndent.HasValue
+                || run.LinkUri != null || run.LinkDestinationName != null)
+                throw new NotSupportedException("The native character specimen supports black Arial text with size, bold and optional language only.");
             if (!string.Equals(run.FontFamily, "Arial", StringComparison.OrdinalIgnoreCase))
                 throw new ArgumentException("The current direct-formatting profile uses the generated Arial font at index zero.", nameof(paragraph));
             characters = checked(characters + run.Text.Length);

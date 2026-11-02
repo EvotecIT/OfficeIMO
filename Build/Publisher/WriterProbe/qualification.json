@@ -30322,6 +30322,7 @@
       "sha256": "8ec6b477871d0744671b9dd0bdaec0fc0c69fa03448ffc24d34102f32f95c915",
       "mutation": "Same single frame-field type mutation as observations.validationConsentControl.",
       "fileProblemAndTrustedSourceWarningObserved": true,
+      "manualContinuation": "Cancelled; no successful recovery observed.",
       "successfulRecovery": "unqualified",
       "nativeSavePerformed": false
     },
@@ -30332,5 +30333,73 @@
       "The direct opening observation applies only to the exact combined candidate and native Text control hashes."
     ],
     "canClosePUB00": false
+  },
+  "canonicalMasterTopologyProjection": {
+    "scope": "Opt-in final-model projection for two centered masters or one centered master followed by a named left/right pair; no public native creation admission.",
+    "multipleMastersSha256": "e16603920a7139dde646d551e9cc86bed409bf658528afb98113b0243c734bb4",
+    "pairedMastersSha256": "84180ed143e18eed63689ed29133982acfab849c6dbb2d5353905cde9c2f4134",
+    "unchangedNativeBytes": true,
+    "publisherSha256": "1c99b9067bd6b97713ff6bb6f29c9e0a68e62bc3385bd20370bdf22664754ec2",
+    "proof": [
+      "PreservesMultipleMastersNativeBytes",
+      "ProjectsLateMultipleMastersEditsOrderAndAssignments",
+      "PreservesPairedMastersNativeBytes",
+      "ProjectsLatePairedMastersEditsOrderAndAssignments",
+      "RefusesUnencodedMultipleMasterColumnGap",
+      "RefusesUnqualifiedMultipleMasterTopology",
+      "RefusesMissingMultipleMasterAssignment"
+    ],
+    "comparison": "Both existing CLI specimens remain byte-exact. Actual encoded late-edit artifacts retain master side registrations, stored names, explicit physical-page assignments, new/reordered master frames, geometry, complete styled stories and neighboring page content.",
+    "limits": [
+      "Source-free Letter pages, one to sixteen physical pages, every physical page assigned a defined master.",
+      "Text-only unlinked Top single-paragraph frames with zero insets, no wrapping and the default zero model column gap.",
+      "Native default column-gap omission remains unchanged; nonzero model gaps are refused.",
+      "New edited variants have artifact reload proof only; existing exact specimens retain their previous independent native qualification limits."
+    ],
+    "canClosePUB00": false
+  },
+  "nativePageDisplayNames": {
+    "scope": "Recover stored display names from native page field 0x0F; fall back to the short 0x0E code only when the display-name field is absent.",
+    "nativeControls": [
+      "MultipleMasters",
+      "TwoPageMaster"
+    ],
+    "independentEvidence": "Frozen nativeMasterPages[].name values in each NativeComparison JSON, bound to its hashed native PUB and reference PDF.",
+    "tests": [
+      "Distinct_native_masters_keep_definitions_assignments_and_projected_markers",
+      "Page_names_do_not_change_native_physical_or_master_roles"
+    ],
+    "preFix": "Both native master-control cases fail on the missing display-name assertion; corrected focused suite passes.",
+    "limits": [
+      "Application-generated physical-page placeholders such as Page Title are not synthesized when no display name is stored.",
+      "No public name mutation or source-free native save API is added."
+    ]
+  },
+  "nativeCreationStyleAdmission": {
+    "scope": "Shared opt-in Quill creation encoders refuse unsupported run attributes and paragraph labels for all styled story locations.",
+    "supported": "Black Arial runs with font size, bold and optional language; separately qualified paragraph alignment/spacing/tab overrides retain their existing codec.",
+    "refusedRunAttributes": [
+      "italic",
+      "color",
+      "underline",
+      "strikethrough",
+      "baseline",
+      "background",
+      "kerning-enabled",
+      "kerning-disabled",
+      "run-indent",
+      "external-link",
+      "destination-link"
+    ],
+    "refusedParagraphLabels": true,
+    "proof": [
+      "RefusesUnsupportedRunStylesInSharedEncoder",
+      "RefusesUnsupportedModelStylesWithoutMutation",
+      "RefusesUnsupportedParagraphLabelsInSharedEncoder"
+    ],
+    "preFixArtifactObservation": "Single-master and multiple-master model edits with red italic runs produced native black non-italic text on reload.",
+    "modelIntegrity": "Both model projections now refuse that edit without changing the current model run.",
+    "existingNativeSpecimenBytesUnchanged": true,
+    "publicNativeCreationAdmitted": false
   }
 }

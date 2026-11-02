@@ -71,7 +71,10 @@ internal sealed partial class PublisherContentsReader {
             if (pageChunk.Kind != 0x43) throw new InvalidDataException("Publisher page reference has an invalid descriptor kind.");
             if (!isMaster && !isPhysical) continue;
             var fields = _blocks.Chunk(pageChunk.Offset, pageChunk.End);
-            PublisherBlock? nameField = Field(fields, 0x0E);
+            // Field 0x0F stores the display name. Field 0x0E is the short code
+            // (for example A/B/P on masters); preserve its duplicate-field guard.
+            PublisherBlock? shortCode = Field(fields, 0x0E);
+            PublisherBlock? nameField = Field(fields, 0x0F) ?? shortCode;
             string name = nameField.HasValue && nameField.Value.Type == 0xC0
                 ? _data.Utf16(nameField.Value.Offset + 4, nameField.Value.Length - 4).TrimEnd('\0') : string.Empty;
             if (result.Pages.Count >= _context.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");

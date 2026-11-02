@@ -134,10 +134,10 @@ internal static class PublisherTableFixture {
         Block[] fields = Chunk(contents, ChunkOffset(contents, pageId));
         using var output = new MemoryStream(); using var writer = new BinaryWriter(output);
         writer.Write(0);
-        foreach (Block field in fields.Where(field => field.Id != 0x0E))
+        foreach (Block field in fields.Where(field => field.Id != 0x0F))
             writer.Write(contents, field.Offset - 2, field.Length + 2);
         byte[] text = Encoding.Unicode.GetBytes(name + '\0');
-        writer.Write((byte)0x0E); writer.Write((byte)0xC0); writer.Write(4 + text.Length); writer.Write(text);
+        writer.Write((byte)0x0F); writer.Write((byte)0xC0); writer.Write(4 + text.Length); writer.Write(text);
         byte[] page = output.ToArray(); Write(page, 0, checked((uint)page.Length));
         streams["Contents"] = RebuildContents(contents, new Dictionary<uint, byte[]> { [pageId] = page });
     });

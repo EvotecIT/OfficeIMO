@@ -22,7 +22,7 @@ public sealed class PublisherPage {
     public uint Id { get; }
     /// <summary>Whether this page definition was recovered from the native source. Adding content or changing its applied master retains this provenance.</summary>
     public bool HasNativeOrigin { get; }
-    /// <summary>Page or master name; empty when unnamed.</summary>
+    /// <summary>Stored page or master display name; empty when unnamed. Native records without a display-name field retain their short page code. Application-generated placeholder labels are not synthesized.</summary>
     public string Name { get; }
     /// <summary>Current applied master page identifier, or null when none applies, including native pages that suppress master formatting. A suppressed source can retain a latent native reference separately.</summary>
     public uint? MasterPageId { get; }

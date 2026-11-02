@@ -328,6 +328,13 @@ index zero, its size and its bold state. A native CR follows the final run.
 In the combined case, the rectangle owns a second CR-only story. Its formatting
 positions follow the styled story in the global text stream.
 
+The shared character encoder accepts black Arial runs with size, bold and an
+optional language identifier. It refuses other text colors, italic, decorations,
+baseline shifts, backgrounds, explicit pair kerning, per-run indentation and
+link annotations. The shared paragraph encoder also refuses labels. These
+checks apply to every styled story, including table cells and model-projected
+master content, so unsupported formatting cannot be silently dropped.
+
 ## Native codec structure
 
 `create` never reads a PUB or invokes Publisher. The Contents stream has a typed
@@ -339,16 +346,21 @@ header provide the native recognition metadata. The Internal header contains
 version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offset
 6 and a zero following-byte count at offset 10.
 
-`CandidateModelProjection` derives the `master-content` and `mixed-object-pages`
-codec inputs from the final `PublisherDocument`; neither maintains a second
-editable object list.
+`CandidateModelProjection` derives the `master-content`, `mixed-object-pages`,
+`multiple-masters` and `paired-masters` codec inputs from the final
+`PublisherDocument`; none maintains a second editable object list.
 The projection accepts the existing source-free Letter/single-master profile.
 Imported publications, tables, linked or multicolumn text, insets, non-Top
 alignment, wrap references, multiple paragraphs and non-rectangle artwork require
 their separate writer profiles and are rejected here. Native paragraph terminators
 retain the existing encoding convention. Other specimens keep their profile-specific
 construction. This projection does not admit public native creation or broaden
-the probe's native acceptance evidence.
+the probe's native acceptance evidence. The text-only multiple-master projection
+accepts either two centered definitions or one centered definition followed by
+the named left/right pair. It derives current names, assignments, frame order,
+bounds and complete single-paragraph stories, retaining the existing omission
+of the default column-gap property. Unassigned physical pages, nonzero gaps,
+other frame layouts and non-text content require separate qualification.
 
 The page graph has `physical page count + 5` ordered references: one master,
 the physical pages and four utility pages. `DpgMaster=1` and `DpgSpecial=5`
@@ -661,8 +673,9 @@ opens. Both source hashes remain unchanged after closing their windows.
 The modified Text control used by `observations.validationConsentControl`
 produces a visible file-problem and trusted-source warning on that same route.
 This is a positive warning-path observation; successful recovery remains
-unqualified. The installation reports read-and-print-only mode, so this UI
-observation establishes opening behavior only. It does not establish native
+unqualified after the warning was cancelled manually. The installation reports
+read-and-print-only mode, so this UI observation establishes opening behavior
+only. It does not establish native
 editing, saving, silent repair coverage or acceptance of other specimens.
 PUB00 and public source-free native creation remain gated by the recovery
 qualification in the roadmap.
