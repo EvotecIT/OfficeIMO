@@ -62,7 +62,8 @@ internal static class QuillCandidate {
                 }
                 storyStart = storyEnd;
             }
-            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges));
+            int formattingCapacity = PublisherQuillSourceLayout.DescriptorsPerDirectory - records.Count - 2;
+            records.AddRange(QuillTextFormatting.CreateRecords(textEnd, firstPageOffset, characterRanges, paragraphRanges, formattingCapacity));
         }
         var positionedRecords = new List<(QuillRecord Record, int Offset)>();
         int payloadEnd = FirstPayloadOffset;

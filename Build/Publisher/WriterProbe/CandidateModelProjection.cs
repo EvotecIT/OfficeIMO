@@ -48,7 +48,7 @@ internal static class CandidateModelProjection {
         return SingleMasterSpecification(document, master, objects);
     }
 
-    /// <summary>Projects the current borderless 2x2 table and ordinary caption profile in final drawing order.</summary>
+    /// <summary>Projects one complete unmerged borderless table and ordinary captions in final drawing order.</summary>
     internal static CandidatePublicationSpec Tables(PublisherDocument document) {
         PublisherPage master = EmptySingleMaster(document);
         if (document.Pages.Count != 1 || document.Pages[0].Tables.Count != 1
@@ -194,9 +194,10 @@ internal static class CandidateModelProjection {
     }
 
     private static void CompleteTable(PublisherTable table) {
-        if (table.RowCount != 2 || table.ColumnCount != 2 || table.Cells.Count != 4 || !table.HasTextMapping
+        if (table.RowCount < 1 || table.ColumnCount < 1 || table.Cells.Count > ushort.MaxValue
+            || table.Cells.Count != (long)table.RowCount * table.ColumnCount || !table.HasTextMapping
             || !table.HasPlacement || !table.StoryId.HasValue || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))
-            throw new NotSupportedException("The table specimen requires the qualified complete unmerged 2x2 grid.");
+            throw new NotSupportedException("The table specimen requires a complete unmerged grid within the native 16-bit cell count.");
     }
 
     private static IReadOnlyList<PublisherTextFrame> FramePage(PublisherPage page) {

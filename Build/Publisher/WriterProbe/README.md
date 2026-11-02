@@ -320,6 +320,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `linked-story`, `linked-story-overflow` | Projects the final public model with an empty applied master. One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
 | `frame-layout`, `frame-layout-edited` | Projects six final public-model text frames on two pages with an empty applied master: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
 | `table`, `table-edited` | Projects the final public model of a borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label, with an empty applied master. The edited specimen adds a first-cell paragraph and refills the last cell. |
+| `table-grid`, `table-grid-empty`, `table-grid-edited` | Requires a `<rows>x<columns>` argument within the legible specimen range of 1–12 rows and 1–8 columns. Authors an unmerged borderless grid with a caption, fixed tracks and cell paragraphs. The empty variant retains every empty cell; the edited variant changes bounds and the final cell, then places the table before its caption in drawing/story order. |
 | `cropped-image-pages` | Uses the named-image model and public `SetPictureCrop` on the first picture, with distinct left/top/right/bottom fractions `0.25/0.125/0.0625/0.1875`. The shared OfficeArt encoder owns the native values. Two PNG paths required for this qualified specimen. |
 | `text` | Text box at `(72,72)`, size `288×108` points; optional plain text argument. |
 | `styled-text` | Text box at the same position, containing the three styled runs below. |
@@ -379,7 +380,8 @@ no master by default. Linked frames retain complete story identity and chain
 ordinals independently of physical page and drawing order. They require the
 ordinary unwrapped single-column Top-aligned layout. The separate frame-layout
 profile accepts unlinked, unwrapped one-to-three-column frames. The table profile
-accepts a complete unmerged borderless 2×2 grid and ordinary captions; current
+accepts a complete unmerged borderless grid within the native 16-bit cell-count
+field and ordinary captions; current
 tracks, cell paragraphs and table/caption order supply the codec inputs. Explicit
 story automatic-hyphenation settings use the same native flag encoder as source
 saving, preserving false separately from the omitted default. These edited variants
@@ -390,7 +392,7 @@ remain separate qualification requirements.
 linked and unlinked layout frames and at most one qualified table. It caches
 linked stories by model identity and uses the existing graph, Quill and OfficeArt
 encoders for all objects. Master tables, multiple tables, linked columns/insets,
-wrap references and broader table grids remain outside this composition profile.
+wrap references and broader table-grid composition remain unqualified.
 The newsletter and a later edited four-page variant have normal file-association
 opening evidence in Microsoft Publisher before any native resave, without recovery
 consent. All three initial pages and all four edited pages were inspected.
@@ -617,8 +619,20 @@ Both creation variants and public source edits on generated, native-normalized
 and independently authored files match native controls across ten stage/page
 comparisons. The compact source profile admits validated table descriptors;
 the existing table writer remaps cell boundaries while preserving opaque layout
-data. Larger grids, merged cells, table fills/borders, dynamic row sizing,
-generic public native creation and repair-free opening remain unqualified.
+data. Merged cells, table fills/borders, dynamic row sizing, generic public native
+creation and repair-free opening remain unqualified.
+
+The `rectangularTableCreation` record extends the separate table profile to
+1×1, empty 1×2, 1×4, 4×1, 3×4 and 12×8 grids. Microsoft Publisher opens and exports
+all six, an edited table-first 3×4 specimen, and a public source edit adding a
+third paragraph to the final 12×8 cell. Native object inspection confirms all
+cell texts, bounds and row/column tracks. All eight PDF pages were inspected for
+visible text and clipping. The 96-cell specimen uses two character-formatting
+and two paragraph-formatting pages; creation reuses the source writer's allocator,
+page links and indexes. The two original 2×2 outputs and four newsletter source
+saves remain byte-identical. Creation still requires one Quill descriptor
+directory and refuses formatting that exceeds it. These read-only native
+operations do not qualify native editing, resave/reopen or repair-free opening.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

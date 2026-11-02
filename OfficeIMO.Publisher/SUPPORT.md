@@ -938,9 +938,19 @@ Public cell edits save on generated, native-normalized and independent native
 sources. Repeated growth/clearing retains neighboring cells, tracks, complete
 stories and opaque layout data. Five files complete 35 native operations and
 match independent controls across ten initial/resaved page pairs at 144 dpi;
-native row/column getters confirm the intended tracks. Larger, merged and styled
-table authoring, generic public native creation and repair-free opening remain
-unqualified.
+native row/column getters confirm the intended tracks.
+
+The `rectangularTableCreation` record extends the opt-in native writer specimen
+to 1×1, empty 1×2, 1×4, 4×1, 3×4 and 12×8 grids, plus a table-first edited 3×4
+variant. Native read-only opening, cell/track/bounds inspection and PDF export
+confirm all seven. A public source edit on the generated 96-cell file adds a
+third paragraph in the final cell while retaining the other cells and geometry;
+native inspection and PDF export confirm the result. The 12×8 creation and edit
+use multiple character and paragraph formatting pages. The specimen range is
+not a format maximum; creation retains a single Quill descriptor-directory
+limit. These operations do not qualify native editing or resave/reopen. Merged
+and styled table authoring, dynamic row sizing, generic public native creation
+and repair-free opening remain unqualified.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the

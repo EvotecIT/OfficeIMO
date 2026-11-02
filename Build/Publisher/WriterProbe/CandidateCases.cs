@@ -26,6 +26,10 @@ internal static class CandidateCases {
             if (value != null || secondValue != null) throw new ArgumentException("The linked story specimens use fixed text.");
             return CandidateLinkedStory.Create(kind == "linked-story-overflow");
         }
+        if (kind is "table-grid" or "table-grid-empty" or "table-grid-edited") {
+            if (secondValue != null) throw new ArgumentException("The grid specimen accepts one rows-by-columns value.");
+            return kind == "table-grid-edited" ? CandidateTableGrid.CreateEdited(value) : CandidateTableGrid.Create(value, kind == "table-grid-empty");
+        }
         if (kind == "master-content") {
             if (secondValue != null) throw new ArgumentException("The master content specimen accepts one image path.");
             return CandidateMasterContent.Create(ReadImage(value));

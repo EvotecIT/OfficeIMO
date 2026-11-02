@@ -78,16 +78,14 @@ internal static class PublisherQuillStorageWriter {
             foreach (PublisherQuillChunk page in original) Array.Clear(output, page.Offset + shift, page.Length);
             for (int i = 0; i < pages.Count; i++) {
                 token.ThrowIfCancellationRequested(); Buffer.BlockCopy(pages[i], 0, output, offsets[i], 512);
-                if (i != 0) Put(offsets[i] + 4, LastEnd(pages[i - 1]));
+                if (i != 0) PublisherQuillFormattingPage.SetPreviousEnd(output, offsets[i], PublisherQuillFormattingPage.LastEnd(pages[i - 1]));
             }
         }
         void WriteIndex(PublisherQuillChunk original, IReadOnlyList<byte[]> pages, int[] offsets, int target) {
             Array.Clear(output, original.Offset + shift, original.Length);
-            Put(target, (uint)pages.Count); Put(target + 4, 4); Put(target + 8, 0); Put(target + 12, 0);
-            for (int i = 0; i < pages.Count; i++) { Put(target + 16 + i * 4, LastEnd(pages[i])); Put(target + 16 + pages.Count * 4 + i * 4, (uint)offsets[i]); }
+            PublisherQuillFormattingPage.WriteIndex(output, target, pages, offsets);
         }
         void Put(int offset, uint value) { for (int i = 0; i < 4; i++) output[offset + i] = (byte)(value >> (i * 8)); }
     }
 
-    private static uint LastEnd(byte[] page) => BitConverter.ToUInt32(page, 8 + (BitConverter.ToUInt16(page, 0) - 1) * 4);
 }

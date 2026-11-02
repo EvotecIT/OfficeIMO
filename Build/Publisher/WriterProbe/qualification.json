@@ -31142,5 +31142,463 @@
     ],
     "canClosePUB00": false,
     "canClosePUB04": false
+  },
+  "rectangularTableCreation": {
+    "scope": "Template-free unmerged borderless rectangular table specimens projected from the final canonical public model; multiple formatting pages share the source writer allocator and index encoding.",
+    "evidenceDate": "2026-11-02",
+    "sourceFiles": {
+      "Build/Publisher/WriterProbe/CandidateCases.cs": "7d15f0b435a347054f857d2d2b74253e3e6fce4e4fce344fa36484536764b068",
+      "Build/Publisher/WriterProbe/CandidateModelProjection.cs": "fc5b831fc8dc4a8a7d064042f040d1b394b6406c161c38bab8a3000441e2cf9f",
+      "Build/Publisher/WriterProbe/CandidateTableGrid.cs": "2085e463d93ba2b50528794a6da04e25e239f57dd6999764109d8ca3abb2fdee",
+      "Build/Publisher/WriterProbe/Program.cs": "ff4dd41e5a5b0ec8844274451c4946a11a4c28776f182a278729ab2af351da51",
+      "Build/Publisher/WriterProbe/QuillCandidate.cs": "fd929e443d2c5657110d3e42034f313f38b9b1a1fe9bad141a0f4a22aa02b222",
+      "Build/Publisher/WriterProbe/QuillTextFormatting.cs": "b2596450d621e0ca9effb449048902631a66f42919840fe366a634d6069c9b8c",
+      "OfficeIMO.Publisher/Internal/PublisherQuillFormattingPage.cs": "a71e3f589b1dbc9ef2b318d1231eb14174ddcbfc755e63164302b92246b7e6c7",
+      "OfficeIMO.Publisher/Internal/PublisherQuillStorageWriter.cs": "e19dab72f29f7f1718f88960f6aa2b96958cc1757930fa7283ffe05af3bff59c"
+    },
+    "nativeBinary": {
+      "version": "16.0.20527.20088",
+      "sha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed"
+    },
+    "specimenRange": {
+      "rows": [
+        1,
+        12
+      ],
+      "columns": [
+        1,
+        8
+      ],
+      "meaning": "Legible opt-in fixture range, not the native format maximum."
+    },
+    "cases": [
+      {
+        "kind": "grid-1x1",
+        "sha256": "dc3c57baf695074b8ddf3bd56011a641ab8aaa6c80a3d4d19ea2d9e999917d05",
+        "nativeCellsAndTracks": true,
+        "exactCopy": true,
+        "formatting": {
+          "characterPages": 1,
+          "paragraphPages": 1,
+          "descriptors": 13
+        },
+        "bytes": 8704,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 1,
+          "columns": 1,
+          "cellsChecked": 1,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            42
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42
+            ],
+            "columnWidthsPoints": [
+              480
+            ]
+          },
+          "pdfSha256": "6ffb4340d1e78411db0afa23719f934523bc05881ef9a6ebff58828ca746bcb8",
+          "pdfBytes": 28725,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-empty-1x2",
+        "sha256": "8e64941b0352884f4156deaad2787e5a88b487d51da5af825b2e8f978f0d0d3e",
+        "nativeCellsAndTracks": true,
+        "exactCopy": true,
+        "formatting": {
+          "characterPages": 1,
+          "paragraphPages": 1,
+          "descriptors": 13
+        },
+        "bytes": 8704,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 1,
+          "columns": 2,
+          "cellsChecked": 2,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            42
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42
+            ],
+            "columnWidthsPoints": [
+              240,
+              240
+            ]
+          },
+          "pdfSha256": "d7a5de1327685c2133b01f7061cf04ce98e185e76ee79e68ba1b531a0a829917",
+          "pdfBytes": 28605,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-1x4",
+        "sha256": "9c663a7060593488d24477d840b916eb722a25a22291f90634dbe196347c283a",
+        "nativeCellsAndTracks": true,
+        "exactCopy": true,
+        "formatting": {
+          "characterPages": 1,
+          "paragraphPages": 1,
+          "descriptors": 13
+        },
+        "bytes": 8704,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 1,
+          "columns": 4,
+          "cellsChecked": 4,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            42
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42
+            ],
+            "columnWidthsPoints": [
+              120,
+              120,
+              120,
+              120
+            ]
+          },
+          "pdfSha256": "c59db7fdbaf7b77f688576179afcc502fb32de54635b4624086ba6bf0a42192d",
+          "pdfBytes": 30630,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-4x1",
+        "sha256": "a07908c6ea24e39ad92fcb7f3a3afd66a2e4683b33b9befd6baf31d9cd71d158",
+        "nativeCellsAndTracks": true,
+        "exactCopy": true,
+        "formatting": {
+          "characterPages": 1,
+          "paragraphPages": 1,
+          "descriptors": 13
+        },
+        "bytes": 8704,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 4,
+          "columns": 1,
+          "cellsChecked": 4,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            186
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42,
+              48,
+              54,
+              42
+            ],
+            "columnWidthsPoints": [
+              480
+            ]
+          },
+          "pdfSha256": "e1b35d1d319d000908170240e0e9b661abb6f7b033741d178101adf383129452",
+          "pdfBytes": 48912,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-3x4",
+        "sha256": "57aab174591a5b8c31961c229fed5373c8ec4e62db89815ab15bd48397b89bf5",
+        "nativeCellsAndTracks": true,
+        "exactCopy": true,
+        "formatting": {
+          "characterPages": 1,
+          "paragraphPages": 1,
+          "descriptors": 13
+        },
+        "bytes": 9216,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 3,
+          "columns": 4,
+          "cellsChecked": 12,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            144
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42,
+              48,
+              54
+            ],
+            "columnWidthsPoints": [
+              120,
+              120,
+              120,
+              120
+            ]
+          },
+          "pdfSha256": "ea34dda5c428c3ae52caa937bfd13961cec378dfe2fe1028ccfc05929d4b6ed7",
+          "pdfBytes": 51103,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-12x8",
+        "sha256": "1e4be10e4c2e552ad34c4933aef2b00c36d84b64eb5a66dd83f8cb0791afb19f",
+        "nativeCellsAndTracks": true,
+        "exactCopy": true,
+        "formatting": {
+          "characterPages": 2,
+          "paragraphPages": 2,
+          "descriptors": 15
+        },
+        "bytes": 17920,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 12,
+          "columns": 8,
+          "cellsChecked": 96,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            576
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42,
+              48,
+              54,
+              42,
+              48,
+              54,
+              42,
+              48,
+              54,
+              42,
+              48,
+              54
+            ],
+            "columnWidthsPoints": [
+              60,
+              60,
+              60,
+              60,
+              60,
+              60,
+              60,
+              60
+            ]
+          },
+          "pdfSha256": "bd713793f58eea6c33bbec145805b566abf9fc74d8a3e5d5e9ac4a84a8eb5276",
+          "pdfBytes": 64956,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-edited-3x4",
+        "sha256": "4cb0f99189a7af87be2ac872f72b4b092cf688e35f8c12232c5b62d1559eeffe",
+        "tableFirst": true,
+        "lastCell": "Final\nCell",
+        "bytes": 9216,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 3,
+          "columns": 4,
+          "cellsChecked": 12,
+          "boundsPoints": [
+            72,
+            132,
+            432,
+            129.59991455078125
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              37.79999923706055,
+              43.20000076293945,
+              48.59992218017578
+            ],
+            "columnWidthsPoints": [
+              108,
+              108,
+              108,
+              108
+            ]
+          },
+          "pdfSha256": "b32973352b1b71397f3fa9ce70035dec84108cd4b023b89358c847438a8d8320",
+          "pdfBytes": 54215,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      },
+      {
+        "kind": "grid-source-edited-12x8",
+        "sha256": "8014518ffb9f42c81ba17c620bbbad1ff4b708437c973fef7dc3673a67927795",
+        "publicSave": true,
+        "strictRefused": true,
+        "formatting": {
+          "characterPages": 2,
+          "paragraphPages": 2,
+          "descriptors": 15
+        },
+        "bytes": 18432,
+        "native": {
+          "operation": "Read-only COM Open, table inspection, PDF ExportAsFixedFormat",
+          "inputUnchanged": true,
+          "rows": 12,
+          "columns": 8,
+          "cellsChecked": 96,
+          "boundsPoints": [
+            66,
+            120,
+            480,
+            576
+          ],
+          "tracksPoints": {
+            "rowHeightsPoints": [
+              42,
+              48,
+              54,
+              42,
+              48,
+              54,
+              42,
+              48,
+              54,
+              42,
+              48,
+              54
+            ],
+            "columnWidthsPoints": [
+              60,
+              60,
+              60,
+              60,
+              60,
+              60,
+              60,
+              60
+            ]
+          },
+          "pdfSha256": "8d81aa188e285d0451390fa978455abb9faf497cbb8ac5d5426459e0befda439",
+          "pdfBytes": 72350,
+          "pageCount": 1,
+          "allCellTextsAndTracksMatched": true,
+          "visualInspection": "All cell text is legible and unclipped; the empty table is confirmed through the native object model."
+        }
+      }
+    ],
+    "sourceEditing": {
+      "api": [
+        "PublisherDocument.Load",
+        "ReplaceTableCellParagraphs",
+        "Save",
+        "ToPubBytes"
+      ],
+      "requestedFinalCellParagraphs": [
+        "Changed",
+        "Next",
+        "Last"
+      ],
+      "importedLanguageAndKerningMetadataPreserved": true,
+      "defaultStrictRefused": true,
+      "allowRequired": true,
+      "other95CellsAndCaptionUnchanged": true,
+      "pixelComparison": {
+        "renderSize": [
+          850,
+          1100
+        ],
+        "changedPixelBounds": [
+          675,
+          897,
+          731,
+          948
+        ],
+        "allChangedPixelsInsideFinalCell": true,
+        "allOtherPixelsIdentical": true
+      }
+    },
+    "regression": {
+      "originalTwoByTwoOutputsByteIdentical": true,
+      "fourPublicNewsletterSourceSavesByteIdentical": true,
+      "sourceFormattingTests": {
+        "net10.0": {
+          "passed": 33,
+          "failed": 0,
+          "skipped": 0
+        },
+        "net8.0": {
+          "passed": 33,
+          "failed": 0,
+          "skipped": 0
+        },
+        "net472": {
+          "passed": 33,
+          "failed": 0,
+          "skipped": 0
+        }
+      }
+    },
+    "reproduction": {
+      "commands": [
+        "create table-grid <output.pub> 1x1",
+        "create table-grid-empty <output.pub> 1x2",
+        "create table-grid <output.pub> 1x4",
+        "create table-grid <output.pub> 4x1",
+        "create table-grid <output.pub> 3x4",
+        "create table-grid <output.pub> 12x8",
+        "create table-grid-edited <output.pub> 3x4"
+      ],
+      "sourceEdit": "Load the generated 12x8 file; clone the final cell paragraph/run including imported language and kerning metadata into Changed, Next and Last paragraphs; ReplaceTableCellParagraphs at (11,7); Save with explicit Allow.",
+      "nativeOracle": "Open read-only, inspect Table.Rows/Columns/Cells and row/column geometry, then export one PDF page. No native resave is part of this record."
+    },
+    "limits": [
+      "Feasibility tooling only; public source-free native saving remains refused.",
+      "One complete physical-page table with one centered empty applied master and ordinary captions; larger-grid composed artwork remains unqualified.",
+      "Creation has one Quill descriptor directory and explicitly refuses excess formatting-page capacity; native cell count is a 16-bit field.",
+      "No merged cells, cell fills/borders, dynamic row sizing or broader layout/overflow qualification.",
+      "Read-only native opening, inspection and PDF export do not prove native editing, resave/reopen, repair-free opening or Print dispatch.",
+      "Unassessed source-save diagnostics and explicit Allow requirement remain unchanged."
+    ],
+    "canClosePUB00": false,
+    "canClosePUB04": false
   }
 }
