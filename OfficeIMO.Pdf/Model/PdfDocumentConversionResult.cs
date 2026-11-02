@@ -305,9 +305,11 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
     public byte[] ToBytes() => ToBytes(default);
 
     /// <summary>Renders the converted PDF while observing cancellation.</summary>
-    public byte[] ToBytes(System.Threading.CancellationToken cancellationToken) {
+    public byte[] ToBytes(System.Threading.CancellationToken cancellationToken) => ToBytes(cancellationToken, out _);
+
+    internal byte[] ToBytes(System.Threading.CancellationToken cancellationToken, out int? pageCount) {
         try {
-            return Value.SerializeBytes(cancellationToken);
+            return Value.SerializeBytes(cancellationToken, out pageCount);
         } finally {
             RefreshConversionReport();
         }
