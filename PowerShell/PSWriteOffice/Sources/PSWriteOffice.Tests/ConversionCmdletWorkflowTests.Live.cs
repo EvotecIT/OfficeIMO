@@ -190,7 +190,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 return epub;
             case "Visio":
                 var diagram = OfficeIMO.Visio.VisioDocument.Create();
-                diagram.AddPage("Evidence").AddRectangle(4, 4, 4, 1, text, OfficeIMO.Visio.VisioMeasurementUnit.Inches);
+                diagram.AddPage("Evidence").AddRectangle(OfficeIMO.OfficeLength.Inches(4), OfficeIMO.OfficeLength.Inches(4), OfficeIMO.OfficeLength.Inches(4), OfficeIMO.OfficeLength.Inches(1), text);
                 return diagram;
             default: throw new ArgumentException("Unknown fixture kind.", nameof(kind));
         }

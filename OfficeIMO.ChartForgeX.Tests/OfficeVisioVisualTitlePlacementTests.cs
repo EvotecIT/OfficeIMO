@@ -17,19 +17,19 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             var title = page.Shapes.Single(shape => shape.Id == "cfx-title");
             Assert.Equal("Service delivery\nThree editable services · prepared routes", title.Text?.Replace("\r\n", "\n"));
             Assert.Equal(22D, title.TextStyle!.Size!.Value, 6);
-            Assert.True(title.Height > 2D * 22D / 72D);
+            Assert.True(title.Height.ToInches() > 2D * 22D / 72D);
             var bounds = title.GetShapeBounds();
-            Assert.True(bounds.Top <= page.Height);
-            Assert.True(bounds.Bottom >= 0);
+            Assert.True(bounds.Top.ToInches() <= page.Height.ToInches());
+            Assert.True(bounds.Bottom.ToInches() >= 0);
             Assert.All(page.Shapes.Where(shape => shape.Id == "api" || shape.Id == "database"),
-                shape => Assert.True(bounds.Bottom >= shape.GetShapeBounds().Top + 0.08D - 0.000001D));
+                shape => Assert.True(bounds.Bottom.ToInches() >= shape.GetShapeBounds().Top.ToInches() + 0.08D - 0.000001D));
             var api = page.Shapes.Single(shape => shape.Id == "api");
-            Assert.Equal(106D / 96D, api.PinX, 6);
-            Assert.Equal(110D / 96D, api.PinY, 6);
-            Assert.Equal(148D / 96D, api.Width, 6);
-            Assert.Equal(72D / 96D, api.Height, 6);
+            Assert.Equal(106D / 96D, api.PinX.ToInches(), 6);
+            Assert.Equal(110D / 96D, api.PinY.ToInches(), 6);
+            Assert.Equal(148D / 96D, api.Width.ToInches(), 6);
+            Assert.Equal(72D / 96D, api.Height.ToInches(), 6);
             var connector = Assert.Single(page.Connectors);
-            Assert.True(bounds.Bottom >= connector.GetConnectorContentBounds().Top + 0.08D - 0.000001D);
+            Assert.True(bounds.Bottom.ToInches() >= connector.GetConnectorContentBounds().Top.ToInches() + 0.08D - 0.000001D);
             Assert.Collection(connector.Waypoints,
                 point => { Assert.Equal(300D / 96D, point.X, 6); Assert.Equal(128D / 96D, point.Y, 6); },
                 point => { Assert.Equal(300D / 96D, point.X, 6); Assert.Equal(110D / 96D, point.Y, 6); });
@@ -52,7 +52,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 96 });
         Assert.DoesNotContain(result.Page.Shapes, shape => shape.Id == "cfx-title");
         Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);
-        Assert.Equal(254D / 96D, result.Page.Shapes.Single(shape => shape.Id == "api").PinY, 6);
+        Assert.Equal(254D / 96D, result.Page.Shapes.Single(shape => shape.Id == "api").PinY.ToInches(), 6);
         var rejected = Assert.Throws<OfficeVisioVisualFidelityException>(() => envelope.ToOfficeVisio(
             new OfficeVisioVisualOptions { PixelsPerInch = 96, RequireLossless = true }));
         Assert.Contains(rejected.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected);

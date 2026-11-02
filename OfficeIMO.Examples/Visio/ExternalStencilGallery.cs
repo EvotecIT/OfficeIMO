@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Visio {
             VisioStencilCatalog selectedCatalog = new(catalog.Name, selected);
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Stencil Gallery", 11, 8.5);
+            VisioPage page = document.AddPage("Stencil Gallery", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.Grid(visible: false, snap: true);
             IReadOnlyList<VisioShape> placed = page.AddStencilGallery(selectedCatalog, new VisioStencilGalleryOptions {
                 Title = "External stencil catalog gallery",
@@ -39,14 +39,7 @@ namespace OfficeIMO.Examples.Visio {
                 IconMaxHeight = 0.66D
             });
 
-            VisioShape note = page.AddTextBox(
-                "source-packages",
-                page.Width / 2D,
-                0.36D,
-                page.Width - 1.2D,
-                0.28D,
-                "Source packages: " + string.Join(", ", packagePaths.Select(Path.GetFileName)),
-                VisioMeasurementUnit.Inches);
+            VisioShape note = page.AddTextBox("source-packages", OfficeLength.Inches(page.Width.ToInches() / 2D), OfficeLength.Inches(0.36D), OfficeLength.Inches(page.Width.ToInches() - 1.2D), OfficeLength.Inches(0.28D), "Source packages: " + string.Join(", ", packagePaths.Select(Path.GetFileName)));
             note.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 8.2D,

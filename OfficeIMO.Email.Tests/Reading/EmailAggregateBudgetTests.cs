@@ -15,7 +15,7 @@ public sealed class EmailAggregateBudgetTests {
         });
         byte[] bytes = new EmailDocumentWriter().ToBytes(document, format);
 
-        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes);
 
         Assert.Equal(bytes.LongLength, result.ProcessingBudget.InputBytes);
         Assert.Equal(1, result.ProcessingBudget.AttachmentCount);
@@ -33,7 +33,7 @@ public sealed class EmailAggregateBudgetTests {
             maxAttachmentBytes: 8, maxTotalAttachmentBytes: 8));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            reader.Read(Encoding.ASCII.GetBytes(eml)));
+            reader.ReadDocument(Encoding.ASCII.GetBytes(eml)));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
         EmailDiagnostic diagnostic = exception.Diagnostic;

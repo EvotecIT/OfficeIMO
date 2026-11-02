@@ -83,7 +83,7 @@ internal static class EmailStoreSearchText {
         try {
             RtfReadOptions options = RtfReadOptions.UntrustedDefaults;
             options.Limits.MaxInputCharacters = rtf!.Length;
-            RtfDocument document = RtfDocument.Read(rtf, options, cancellationToken).Document;
+            RtfDocument document = RtfDocument.ParseResult(rtf, options, cancellationToken).Document;
             var builder = new StringBuilder(Math.Min(rtf.Length, maximumCharacters));
             AppendRtfBlocks(document.Blocks, builder, maximumCharacters);
             return Normalize(builder.ToString(), maximumCharacters);

@@ -71,8 +71,8 @@ public sealed class OfficeXmlPackageSignatureIntegrationTests {
     private static OfficeXmlPackageSignatureValidationReport Validate(
         string path, OfficeXmlPackageSignatureFormat format, OfficeXmlPackageSignatureOptions options) =>
         format == OfficeXmlPackageSignatureFormat.OpenDocument
-            ? OdfDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options)
-            : EpubDocument.ValidatePackageSignatures(path, OfficeSecurityProvider.Default, options);
+            ? OdfDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options)
+            : EpubDocument.ValidateSignatures(path, OfficeSecurityProvider.Default, options);
 
     private static OfficeXmlPackageSignatureOptions TrustlessOptions() => new() { ValidateCertificateTrust = false };
 

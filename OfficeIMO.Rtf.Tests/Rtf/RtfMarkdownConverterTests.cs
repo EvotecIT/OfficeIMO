@@ -251,7 +251,7 @@ public class RtfMarkdownConverterTests {
             ```
             """;
 
-        RtfDocument serialized = RtfDocument.Read(MarkdownDocument.Parse(markdown).ToRtf()).Document;
+        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf()).Document;
         string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
         CodeBlock code = Assert.IsType<CodeBlock>(Assert.Single(MarkdownDocument.Parse(roundTripMarkdown).Blocks));
 
@@ -268,7 +268,7 @@ public class RtfMarkdownConverterTests {
             ```
             """;
 
-        RtfDocument serialized = RtfDocument.Read(MarkdownDocument.Parse(markdown).ToRtf()).Document;
+        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf()).Document;
         string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
         CodeBlock code = Assert.IsType<CodeBlock>(Assert.Single(MarkdownDocument.Parse(roundTripMarkdown).Blocks));
 
@@ -601,7 +601,7 @@ public class RtfMarkdownConverterTests {
                1. second
             """;
 
-        RtfDocument serialized = RtfDocument.Read(MarkdownDocument.Parse(markdown).ToRtf()).Document;
+        RtfDocument serialized = RtfDocument.ParseResult(MarkdownDocument.Parse(markdown).ToRtf()).Document;
         string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
 
         Assert.Contains("5. first", roundTripMarkdown, StringComparison.Ordinal);
@@ -734,7 +734,7 @@ public class RtfMarkdownConverterTests {
             """;
 
         RtfDocument document = MarkdownDocument.Parse(markdown).ToRtfDocument();
-        RtfDocument serialized = RtfDocument.Read(document.ToRtf()).Document;
+        RtfDocument serialized = RtfDocument.ParseResult(document.ToRtf()).Document;
         string roundTripMarkdown = serialized.ToMarkdown().Replace("\r\n", "\n");
         MarkdownDocument parsed = MarkdownDocument.Parse(roundTripMarkdown);
         UnorderedListBlock list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));

@@ -46,7 +46,7 @@ public sealed class XpsTiffLosslessAlphaPrecisionTests {
                     "{ColorConvertedBitmap " + resource + " " + profile + "}");
                 document.Pages[0].ReplaceMarkup(markup);
             }
-            var loaded = XpsDocument.Load(document.Save());
+            var loaded = XpsDocument.Load(document.ToBytes());
             var page = loaded.Pages[0];
             var nativeDrawing = page.ToDrawing();
             var transparent = OfficeDrawingRasterRenderer.Render(nativeDrawing);

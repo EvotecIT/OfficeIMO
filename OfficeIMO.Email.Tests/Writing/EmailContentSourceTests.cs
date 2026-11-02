@@ -49,7 +49,7 @@ public sealed class EmailContentSourceTests {
                     "__attach_version1.0_#00000000/__substg1.0_37010102"),
                 string.Join(" | ", compound.Streams.Keys));
         }
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(artifact).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(artifact).Document.Attachments);
 
         Assert.Equal(payload, attachment.Content);
         Assert.Equal(1, source.OpenCount);
@@ -89,7 +89,7 @@ public sealed class EmailContentSourceTests {
         });
 
         byte[] artifact = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(artifact).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(artifact).Document.Attachments);
 
         Assert.Equal(bytes, attachment.Content);
         Assert.Equal(1, source.OpenCount);
@@ -118,7 +118,7 @@ public sealed class EmailContentSourceTests {
             regeneratedStart,
             serialized.IndexOf('"', regeneratedStart) - regeneratedStart);
         EmailAttachment attachment = Assert.Single(
-            new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(serialized)).Document.Attachments);
+            new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(serialized)).Document.Attachments);
 
         Assert.Equal(boundary, regeneratedBoundary);
         Assert.Contains("--=3D_OfficeIMO_", serialized, StringComparison.Ordinal);
@@ -149,7 +149,7 @@ public sealed class EmailContentSourceTests {
         using var output = new GuardedWriteStream(maximumWriteSize: 128 * 1024);
 
         EmailWriteResult result = new EmailDocumentWriter().Write(document, output, format);
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(output.ToArray()).Document.Attachments);
 
         Assert.False(result.HasErrors);
         Assert.Equal(EmailArtifactSourceSelection.Regenerated, result.SourceSelection);
@@ -174,7 +174,7 @@ public sealed class EmailContentSourceTests {
 
         EmailWriteResult result = await new EmailDocumentWriter().WriteAsync(
             document, output, format);
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(output.ToArray()).Document.Attachments);
 
         Assert.False(result.HasErrors);
         Assert.Equal(payloadLength, attachment.Content!.Length);
@@ -196,7 +196,7 @@ public sealed class EmailContentSourceTests {
         using var output = new GuardedWriteStream(maximumWriteSize: 128 * 1024);
 
         EmailWriteResult result = document.Save(output, format);
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(output.ToArray()).Document.Attachments);
 
         Assert.False(result.HasErrors);
         Assert.Equal(result.BytesWritten, output.Length);
@@ -218,7 +218,7 @@ public sealed class EmailContentSourceTests {
         using var output = new AsyncOnlyWriteStream();
 
         EmailWriteResult result = await document.SaveAsync(output, format);
-        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(output.ToArray()).Document.Attachments);
+        EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(output.ToArray()).Document.Attachments);
 
         Assert.False(result.HasErrors);
         Assert.Equal(payloadLength, attachment.Content!.Length);
@@ -242,7 +242,7 @@ public sealed class EmailContentSourceTests {
             var document = CreateStreamingDocument(source, payloadLength, format);
 
             EmailWriteResult result = await document.SaveAsync(path, format);
-            EmailAttachment attachment = Assert.Single(new EmailDocumentReader().Read(path).Document.Attachments);
+            EmailAttachment attachment = Assert.Single(new EmailDocumentReader().ReadDocument(path).Document.Attachments);
 
             Assert.False(result.HasErrors);
             Assert.Equal(result.BytesWritten, new FileInfo(path).Length);
@@ -268,7 +268,7 @@ public sealed class EmailContentSourceTests {
             new GeneratedContentSource(payloadLength, allowSynchronous: true), payloadLength, format);
         byte[] artifact = new EmailDocumentWriter().ToBytes(document, format);
         using var input = new MemoryStream(artifact);
-        EmailReadResult result = new EmailDocumentReader().ReadStreaming(input, sourceName);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(input, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, sourceName);
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
 
         Assert.True(result.UsesFileBackedContent);
@@ -296,7 +296,7 @@ public sealed class EmailContentSourceTests {
             format);
         byte[] artifact = new EmailDocumentWriter().ToBytes(document, format);
         using var input = new AsyncOnlyReadStream(artifact);
-        using EmailReadResult result = await new EmailDocumentReader().ReadStreamingAsync(input, sourceName);
+        using EmailReadResult result = await new EmailDocumentReader().ReadDocumentAsync(input, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, sourceName);
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
 
         Assert.True(input.AsynchronousReadCount > 1);
@@ -331,7 +331,7 @@ public sealed class EmailContentSourceTests {
             using EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
                 maxInputBytes: 32L * 1024 * 1024,
                 maxAttachmentBytes: 24L * 1024 * 1024,
-                maxTotalAttachmentBytes: 24L * 1024 * 1024)).ReadStreaming(path);
+                maxTotalAttachmentBytes: 24L * 1024 * 1024)).ReadDocument(path, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles);
 #if EMAIL_PERFORMANCE_EVIDENCE
             ForceCollection();
             long retainedGrowth = Math.Max(0, GC.GetTotalMemory(forceFullCollection: false) - before);
@@ -404,7 +404,7 @@ public sealed class EmailContentSourceTests {
             "Content-Disposition: attachment; filename=payload.bin\r\n" +
             "Content-Transfer-Encoding: quoted-printable\r\n\r\n" +
             encodedPayload + "\r\n--outer--\r\n";
-        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(message)).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(message)).Document;
         Assert.Single(document.Attachments).PreserveMimeHeadersOnWrite = true;
         return document;
     }

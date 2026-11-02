@@ -28,17 +28,17 @@ using OfficeIMO.Excel;
 using OfficeIMO.Security;
 
 IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
-ExcelDocument.SignPackageSignature("report.xlsx", security, signingCertificate);
+ExcelDocument.SignPackage("report.xlsx", security, signingCertificate);
 
 var options = new OfficePackageSignatureValidationOptions {
     ValidateCertificateTrust = true
 };
 OfficePackageSignatureValidationReport report =
-    ExcelDocument.ValidatePackageSignatures("report.xlsx", security, options);
+    ExcelDocument.ValidateSignatures("report.xlsx", security, options);
 ```
 
-`InspectPackageSignatures(...)`, `ValidatePackageSignatures(...)`, `SignPackageSignature(...)`, and
-`TrySignPackageSignature(...)` are the cross-host contract. Word's established `InspectSignatures()` API projects the
+`InspectSignatures(...)`, `ValidateSignatures(...)`, `SignPackage(...)`, and
+`TrySignPackage(...)` are the cross-host contract. Word's established `InspectSignatures()` API projects the
 same shared structural result into its compatibility model; its established `ValidateSignatures(...)` API remains an
 additional Word-specific timestamp and diagnostic surface over the shared archive, transform, and writer primitives.
 

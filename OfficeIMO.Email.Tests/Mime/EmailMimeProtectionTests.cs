@@ -10,7 +10,7 @@ public sealed class EmailMimeProtectionTests {
     public void DetectsAndPassesThroughUnchangedSignedMime(string protocol, EmailProtectionKind expectedKind) {
         byte[] source = CreateSignedMessage(protocol);
 
-        EmailReadResult read = new EmailDocumentReader().Read(source);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(source);
         byte[] rewritten = new EmailDocumentWriter().ToBytes(
             read.Document, EmailFileFormat.Eml, out EmailWriteResult write);
 
@@ -25,7 +25,7 @@ public sealed class EmailMimeProtectionTests {
 
     [Fact]
     public void BlocksSignedMimeAfterTheModelChanges() {
-        EmailDocument document = new EmailDocumentReader().Read(
+        EmailDocument document = new EmailDocumentReader().ReadDocument(
             CreateSignedMessage("application/pkcs7-signature")).Document;
         document.Subject = "Changed";
         var writer = new EmailDocumentWriter();
@@ -48,7 +48,7 @@ public sealed class EmailMimeProtectionTests {
 
     [Fact]
     public void ExplicitWarnPolicyAllowsProtectedConversionAndReportsIt() {
-        EmailDocument document = new EmailDocumentReader().Read(
+        EmailDocument document = new EmailDocumentReader().ReadDocument(
             CreateSignedMessage("application/pkcs7-signature")).Document;
         document.Subject = "Changed";
         var writer = new EmailDocumentWriter(new EmailWriterOptions(

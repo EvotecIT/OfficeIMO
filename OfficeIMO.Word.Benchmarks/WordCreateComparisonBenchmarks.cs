@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Benchmarks;
 [MemoryDiagnoser]
 [BenchmarkCategory("Word", "Comparison", "Create")]
 public class WordCreateParagraphComparisonBenchmarks {
-    [Params(100, 1000)]
+    [Params(100, 1000, 10000)]
     public int ItemCount { get; set; }
 
     [GlobalSetup]

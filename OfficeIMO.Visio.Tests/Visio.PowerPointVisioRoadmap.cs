@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
             string pdf = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
             try {
                 VisioDocument authored = VisioDocument.Create(source, type);
-                authored.AddPage("Representative", 8.5, 6)
-                    .AddRectangle(3, 3, 2, 1, type.ToString());
+                authored.AddPage("Representative", OfficeLength.Inches(8.5), OfficeLength.Inches(6))
+                    .AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), type.ToString());
                 authored.Save();
                 VisioDocument loaded = VisioDocument.Load(source);
                 Assert.Equal(type, loaded.PackageType);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
             try {
                 VisioDocument document = VisioDocument.Create(source,
                     VisioPackageType.MacroEnabledDrawing);
-                document.AddPage("Macro", 8.5, 6).AddRectangle(2, 2, 1, 1, "Opaque VBA");
+                document.AddPage("Macro", OfficeLength.Inches(8.5), OfficeLength.Inches(6)).AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Opaque VBA");
                 document.Save();
                 InjectVbaProject(source, payload);
                 VisioDocument loaded = VisioDocument.Load(source);
@@ -105,9 +105,8 @@ namespace OfficeIMO.Tests {
             string source = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             try {
                 VisioDocument authored = VisioDocument.Create(source, VisioPackageType.Stencil);
-                authored.RegisterMaster("Stencil Node", new VisioShape("1", 1, 1, 1, 1,
-                    "Reusable"));
-                authored.AddPage("Temporary", 8.5, 6).AddRectangle(2, 2, 1, 1, "Master seed");
+                authored.RegisterMaster("Stencil Node", new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Reusable"));
+                authored.AddPage("Temporary", OfficeLength.Inches(8.5), OfficeLength.Inches(6)).AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Master seed");
                 authored.Save();
                 RemovePagesFromStencil(source);
 
@@ -129,8 +128,8 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             try {
                 VisioDocument document = VisioDocument.Create(path);
-                VisioPage page = document.AddPage("Typed", 11, 8.5);
-                VisioShape target = page.AddRectangle(3, 5, 1.5, 0.8, "API");
+                VisioPage page = document.AddPage("Typed", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+                VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), "API");
                 target.SetShapeData("Status", "Healthy");
                 target.SetShapeData("Slo", "91");
                 var section = new VisioShapeSheetSection("Actions");
@@ -184,7 +183,7 @@ namespace OfficeIMO.Tests {
             VisioShape work = page.FindShapeById("work")!;
             work.SetUserCell(VisioSemanticUserCells.SwimlaneLaneId, null);
             work.SetUserCell(VisioSemanticUserCells.SwimlanePhaseId, null);
-            VisioShape outside = new("outside", -20, -20, 1, 1, "Outside");
+            VisioShape outside = new("outside", OfficeLength.Inches(-20), OfficeLength.Inches(-20), OfficeLength.Inches(1), OfficeLength.Inches(1), "Outside");
             outside.SetUserCell(VisioSemanticUserCells.Kind,
                 VisioSemanticUserCells.SwimlaneActivityKind, "STR");
             page.Shapes.Add(outside);
@@ -199,11 +198,10 @@ namespace OfficeIMO.Tests {
         [Trait("Category", "Performance")]
         public void WholeDiagramRelayoutHandlesDenseTopologyWithinLinearBudget() {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Dense", 11, 8.5);
+            VisioPage page = document.AddPage("Dense", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             VisioShape? previous = null;
             for (int index = 0; index < 1000; index++) {
-                VisioShape shape = new("n" + index, index % 13, index % 17,
-                    1.2, 0.5, "Node " + index);
+                VisioShape shape = new("n" + index, OfficeLength.Inches(index % 13), OfficeLength.Inches(index % 17), OfficeLength.Inches(1.2), OfficeLength.Inches(0.5), "Node " + index);
                 page.Shapes.Add(shape);
                 if (previous != null) page.AddConnector(previous, shape, ConnectorKind.Dynamic);
                 previous = shape;
@@ -216,8 +214,8 @@ namespace OfficeIMO.Tests {
             timer.Stop();
             Assert.True(timer.Elapsed < TimeSpan.FromSeconds(5),
                 $"Dense relayout took {timer.Elapsed}.");
-            Assert.True(page.Shapes.Last().PinX > page.Shapes.First().PinX);
-            Assert.Equal(1000, page.Shapes.Select(shape => shape.PinX).Distinct().Count());
+            Assert.True(page.Shapes.Last().PinX.ToInches() > page.Shapes.First().PinX.ToInches());
+            Assert.Equal(1000, page.Shapes.Select(shape => shape.PinX.ToInches()).Distinct().Count());
         }
 
         [Fact]
@@ -226,8 +224,7 @@ namespace OfficeIMO.Tests {
             var nodes = new List<VisioShape>(nodeCount);
             var outgoing = new Dictionary<VisioShape, HashSet<VisioShape>>(nodeCount);
             for (int index = 0; index < nodeCount; index++) {
-                var node = new VisioShape("n" + index, 0, 0, 1, 1,
-                    string.Empty);
+                var node = new VisioShape("n" + index, OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty);
                 nodes.Add(node);
                 outgoing[node] = new HashSet<VisioShape>();
                 if (index > 0) outgoing[nodes[index - 1]].Add(node);
@@ -245,37 +242,37 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WholeDiagramRelayoutKeepsCycleTogetherAndPlacesTailLater() {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Cycle", 11, 8.5);
-            VisioShape a = page.AddRectangle(1, 5, 1, 0.5, "A");
-            VisioShape b = page.AddRectangle(2, 4, 1, 0.5, "B");
-            VisioShape c = page.AddRectangle(3, 3, 1, 0.5, "C");
+            VisioPage page = document.AddPage("Cycle", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
+            VisioShape a = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "A");
+            VisioShape b = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "B");
+            VisioShape c = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "C");
             page.AddConnector(a, b);
             page.AddConnector(b, a);
             page.AddConnector(b, c);
             page.RelayoutDiagram(new VisioWholeDiagramRelayoutOptions {
                 RouteConnectors = false, PolishAfterLayout = false
             });
-            Assert.Equal(a.PinX, b.PinX, 5);
-            Assert.True(c.PinX > a.PinX);
+            Assert.Equal(a.PinX.ToInches(), b.PinX.ToInches(), 5);
+            Assert.True(c.PinX.ToInches() > a.PinX.ToInches());
         }
 
         [Fact]
         public void FitToContentUsesNestedGroupTransformsInPageCoordinates() {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Nested", 20, 20);
-            var group = new VisioShape("group", 10, 10, 4, 4, string.Empty) {
-                Type = "Group", LocPinX = 2, LocPinY = 2
+            VisioPage page = document.AddPage("Nested", OfficeLength.Inches(20), OfficeLength.Inches(20));
+            var group = new VisioShape("group", OfficeLength.Inches(10), OfficeLength.Inches(10), OfficeLength.Inches(4), OfficeLength.Inches(4), string.Empty) {
+                Type = "Group", LocPinX = OfficeLength.Inches(2), LocPinY = OfficeLength.Inches(2)
             };
-            var child = new VisioShape("child", 8, 2, 2, 2, "Far child") {
-                LocPinX = 1, LocPinY = 1
+            var child = new VisioShape("child", OfficeLength.Inches(8), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "Far child") {
+                LocPinX = OfficeLength.Inches(1), LocPinY = OfficeLength.Inches(1)
             };
             group.Children.Add(child);
             page.Shapes.Add(group);
 
             OfficeIMO.Visio.VisioShapeBounds childPageBounds =
                 child.GetPageShapeBounds();
-            Assert.Equal(15D, childPageBounds.Left, 5);
-            Assert.Equal(17D, childPageBounds.Right, 5);
+            Assert.Equal(15D, childPageBounds.Left.ToInches(), 5);
+            Assert.Equal(17D, childPageBounds.Right.ToInches(), 5);
             page.FitToContent(new VisioFitToContentOptions {
                 HorizontalMargin = 0.5D,
                 VerticalMargin = 0.5D,
@@ -283,22 +280,20 @@ namespace OfficeIMO.Tests {
                 IncludeConnectors = false,
                 MoveContent = false
             });
-            Assert.Equal(17.5D, page.Width, 5);
+            Assert.Equal(17.5D, page.Width.ToInches(), 5);
         }
 
         [Fact]
         public void NestedContainerRefitUsesParentCoordinates() {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Nested containers", 20, 20);
-            var group = new VisioShape("group", 10, 10, 8, 6, string.Empty) {
-                Type = "Group", LocPinX = 4, LocPinY = 3,
+            VisioPage page = document.AddPage("Nested containers", OfficeLength.Inches(20), OfficeLength.Inches(20));
+            var group = new VisioShape("group", OfficeLength.Inches(10), OfficeLength.Inches(10), OfficeLength.Inches(8), OfficeLength.Inches(6), string.Empty) {
+                Type = "Group", LocPinX = OfficeLength.Inches(4), LocPinY = OfficeLength.Inches(3),
                 Angle = Math.PI / 6D
             };
-            var container = new VisioShape("container", 2, 2, 1, 1,
-                "Container");
+            var container = new VisioShape("container", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Container");
             container.SetUserCell("msvStructureType", "Container", "STR");
-            var member = new VisioShape("member", 5, 4, 1.4, 0.8,
-                "Nested member");
+            var member = new VisioShape("member", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Nested member");
             group.Children.Add(container);
             group.Children.Add(member);
             page.Shapes.Add(group);
@@ -311,18 +306,18 @@ namespace OfficeIMO.Tests {
                 container.GetPageShapeBounds();
             OfficeIMO.Visio.VisioShapeBounds inner =
                 member.GetPageShapeBounds();
-            Assert.True(outer.Left <= inner.Left + 1e-6);
-            Assert.True(outer.Right >= inner.Right - 1e-6);
-            Assert.True(outer.Bottom <= inner.Bottom + 1e-6);
-            Assert.True(outer.Top >= inner.Top - 1e-6);
-            Assert.Equal(1.8D, container.Width, 5);
-            Assert.Equal(1.2D, container.Height, 5);
+            Assert.True(outer.Left.ToInches() <= inner.Left.ToInches() + 1e-6);
+            Assert.True(outer.Right.ToInches() >= inner.Right.ToInches() - 1e-6);
+            Assert.True(outer.Bottom.ToInches() <= inner.Bottom.ToInches() + 1e-6);
+            Assert.True(outer.Top.ToInches() >= inner.Top.ToInches() - 1e-6);
+            Assert.Equal(1.8D, container.Width.ToInches(), 5);
+            Assert.Equal(1.2D, container.Height.ToInches(), 5);
         }
 
         [Fact]
         public void CommentThreadInspectionIsReadOnlyAndRootRemovalCascades() {
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Comments", 8.5, 6);
+            VisioPage page = document.AddPage("Comments", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
             VisioComment unthreaded = page.AddComment("Read only", "A", "AA");
             Assert.Null(unthreaded.ThreadId);
             Assert.Single(page.GetCommentThreads());
@@ -336,7 +331,7 @@ namespace OfficeIMO.Tests {
                 comment => comment.Id == root.Id ||
                            comment.ParentCommentId == root.Id);
 
-            VisioShape target = page.AddRectangle(2, 2, 1, 1, "Target");
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
             VisioComment targeted = page.AddComment(target, "Target root",
                 "A", "AA");
             VisioComment detachedReply = page.ReplyToComment(targeted.Id,
@@ -372,8 +367,8 @@ namespace OfficeIMO.Tests {
                 serialized.Elements().Select(element => element.Name.LocalName));
 
             VisioDocument document = VisioDocument.Create();
-            VisioPage page = document.AddPage("Graphics", 8.5, 6);
-            VisioShape target = page.AddRectangle(3, 3, 1, 1, "Target");
+            VisioPage page = document.AddPage("Graphics", OfficeLength.Inches(8.5), OfficeLength.Inches(6));
+            VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Target");
             target.SetShapeData("Status", "Healthy");
             VisioDataGraphic valid = VisioDataGraphic.Create().Badge("Status");
             VisioShape original = Assert.Single(page.AddDataGraphics(target, valid));

@@ -8,9 +8,9 @@ public static class LegacyXml {
     public static void Example_LegacyXml(string folderPath) {
         Directory.CreateDirectory(folderPath);
         VisioDocument document = VisioDocument.Create();
-        VisioPage page = document.AddPage("Workflow", 10, 7);
-        var start = new VisioShape("1", 2, 2, 2, 1, "Start");
-        var end = new VisioShape("2", 6, 2, 2, 1, "Finish");
+        VisioPage page = document.AddPage("Workflow", OfficeLength.Inches(10), OfficeLength.Inches(7));
+        var start = new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start");
+        var end = new VisioShape("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Finish");
         page.Shapes.Add(start);
         page.Shapes.Add(end);
         page.Connectors.Add(new VisioConnector(start, end));

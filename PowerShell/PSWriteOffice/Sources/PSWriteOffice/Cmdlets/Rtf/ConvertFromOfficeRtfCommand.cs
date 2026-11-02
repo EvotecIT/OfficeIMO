@@ -275,7 +275,7 @@ public sealed class ConvertFromOfficeRtfCommand : PSCmdlet
     {
         return ParameterSetName == ParameterSetPath
             ? RtfDocument.Load(PdfCommandUtilities.ResolvePath(this, Path), encoding: new UTF8Encoding(encoderShouldEmitUTF8Identifier: false))
-            : RtfDocument.Read(Text).Document;
+            : RtfDocument.ParseResult(Text).Document;
     }
 
     private WordDocument LoadWordDocument()

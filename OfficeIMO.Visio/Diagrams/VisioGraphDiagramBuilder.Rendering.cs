@@ -36,9 +36,9 @@ namespace OfficeIMO.Visio.Diagrams {
                     _theme,
                     VisioMeasurementUnit.Inches);
                 if (_preserveLayout && caption != null) {
-                    caption.Width = Math.Min(caption.Width, shape.Width);
-                    caption.Height = Math.Min(caption.Height, shape.Height);
-                    caption.PinY = shape.PinY + shape.Height / 2 - caption.Height / 2;
+                    caption.WidthInches = Math.Min(caption.WidthInches, shape.WidthInches);
+                    caption.HeightInches = Math.Min(caption.HeightInches, shape.HeightInches);
+                    caption.PinYInches = shape.PinYInches + shape.HeightInches / 2 - caption.HeightInches / 2;
                 }
             }
         }
@@ -48,7 +48,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetNodeShape(node, out string masterNameU, out double width, out double height);
                 VisioShape shape;
                 if (node.Stencil != null) {
-                    shape = page.AddStencilShape(node.Stencil, node.Id, node.PinX, node.PinY, width, height, string.Empty, node.StencilCatalogName);
+                    shape = page.AddStencilShapeInches(node.Stencil, node.Id, node.PinX, node.PinY, width, height, string.Empty, node.StencilCatalogName);
                     VisioShapeStyle? stencilStyle = node.StyleOverride ?? GetBuiltInStencilNodeStyle(node);
                     stencilStyle?.ApplyTo(shape);
                 } else {
@@ -92,7 +92,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void AddStencilNodeCaption(VisioPage page, NodeItem node, double width, double height) {
-            VisioShape label = page.AddTextBox(
+            VisioShape label = page.AddTextBoxInches(
                 CreateGeneratedId(node.Id + "-label"),
                 node.PinX,
                 node.PinY - (height / 2D) - 0.26D,

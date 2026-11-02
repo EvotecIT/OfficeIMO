@@ -2,6 +2,26 @@
   "package": "OfficeIMO.Email",
   "changes": [
     {
+      "old": "EmailDocumentReader.Read / ReadAsync",
+      "kind": "method",
+      "action": "rename",
+      "new": "EmailDocumentReader.ReadDocument / ReadDocumentAsync",
+      "category": "naming",
+      "replacement": "EmailDocumentReader.ReadDocument / ReadDocumentAsync",
+      "reason": "Email inspection returns a complete document and evidence, not a forward-only cursor.",
+      "applied": true
+    },
+    {
+      "old": "EmailDocumentReader.ReadStreaming / ReadStreamingAsync",
+      "kind": "method",
+      "action": "rename",
+      "new": "ReadDocument / ReadDocumentAsync(input, EmailReadContentStorage.TemporaryFiles, ...)",
+      "category": "naming",
+      "replacement": "Dispose EmailReadResult after using temporary-file payloads. Memory remains the default for the ordinary ReadDocument overloads.",
+      "reason": "File-backed attachment storage still materializes the message and has an explicit disposable-result lifetime.",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.Email PST store options FailOnDataLoss",
       "kind": "property",
       "action": "rename",

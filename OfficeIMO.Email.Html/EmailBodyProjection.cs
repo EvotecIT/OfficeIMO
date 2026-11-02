@@ -250,7 +250,7 @@ public static class EmailBodyProjection {
         string rtf = CheckBodySource(source.Body.Rtf!, maximumCharacters);
         try {
             sourceKind = EmailBodySourceKind.Rtf;
-            string html = RtfDocument.Read(rtf).Document.ToHtml();
+            string html = RtfDocument.ParseResult(rtf).Document.ToHtml();
             diagnostics.Add(new EmailDiagnostic("EMAIL_BODY_RTF_PROJECTED",
                 "The RTF body was projected through OfficeIMO.Html.Rtf.",
                 EmailDiagnosticSeverity.Information, "message/body"));

@@ -55,11 +55,18 @@ public sealed partial class XpsDocument {
     /// <summary>Returns a copy of a retained package resource.</summary>
     public byte[] GetPartBytes(string partName) => (byte[])Part(XpsPackage.PartName(partName)).Clone();
     /// <summary>Serializes the same dialect. Unknown native parts are retained; signed packages cannot be rewritten.</summary>
-    public byte[] Save(CancellationToken cancellationToken = default) {
+    public byte[] ToBytes(CancellationToken cancellationToken = default) {
         using var stream = new MemoryStream(); Save(stream, cancellationToken); return stream.ToArray();
     }
     /// <summary>Atomically replaces a file only after successful serialization.</summary>
-    public void Save(string path, CancellationToken cancellationToken = default) => OfficeFileCommit.WriteAtomically(path, s => Save(s, cancellationToken), cancellationToken);
+    public void Save(string path, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAtomically(fullPath, s => Save(s, cancellationToken), cancellationToken);
+        _filePath = fullPath;
+    }
+    /// <summary>Saves to the associated path, failing when no destination is associated.</summary>
+    public void Save(CancellationToken cancellationToken = default) =>
+        Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), cancellationToken);
     /// <summary>Writes a ZIP package to a writable stream, leaving it open. Use a fresh/empty stream.</summary>
     public void Save(Stream stream, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));

@@ -4846,7 +4846,7 @@
       "kind": "method",
       "action": "rename",
       "new": "WordDocument.ToPdf(WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : PdfDocument",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -4869,7 +4869,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter.",
@@ -4893,7 +4893,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdf(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "notes": "Returns PdfSaveResult today; becomes OfficeConversionReport and throws on failure. Moves to the OfficeIMO.Word.Pdf adapter.",
@@ -4929,7 +4929,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(string path, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -4951,7 +4951,7 @@
       "kind": "method",
       "action": "change",
       "new": "WordDocument.SaveAsPdfAsync(Stream stream, WordPdfExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
       "file": "OfficeIMO.Word/Layout/WordPdfConverterExtensions.cs",
       "category": "conversion",
       "phase": "A",
@@ -6644,6 +6644,26 @@
       "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
     },
     {
+      "old": "WordDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.ValidateSignatures / SignPackage / TrySignPackage",
+      "replacement": "Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations.",
+      "category": "naming",
+      "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
+      "applied": true
+    },
+    {
+      "old": "WordDocument.SignPackageSignature(path, provider, certificate[, options])",
+      "kind": "method",
+      "action": "rename",
+      "new": "WordDocument.SignPackage(path, provider, certificate, options)",
+      "category": "naming",
+      "replacement": "Pass OfficePackageSigningOptions explicitly for shared signing; WordPackageSigningOptions selects the richer Word-specific result. The same requirement applies to TrySignPackage. Static ValidateSignatures retains optional validation settings.",
+      "reason": "The shared options argument is required to distinguish the shared result from existing Word-specific signing evidence.",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.Word.WordDocument.BuiltinDocumentProperties",
       "kind": "property",
       "action": "rename",
@@ -8334,12 +8354,12 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 364,
+    "changes": 366,
     "byAction": {
       "merge": 127,
       "change": 139,
       "remove": 26,
-      "rename": 15,
+      "rename": 17,
       "internalize": 27,
       "keep": 29,
       "move": 1
@@ -8351,7 +8371,7 @@
       "options": 4,
       "conversion": 42,
       "package": 1,
-      "naming": 11,
+      "naming": 13,
       "visibility": 48
     },
     "packageMoves": 3

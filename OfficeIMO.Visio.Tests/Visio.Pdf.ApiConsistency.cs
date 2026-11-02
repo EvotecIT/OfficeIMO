@@ -130,7 +130,7 @@ public sealed class VisioPdfApiConsistencyTests {
 
     private static VisioDocument CreateDiagram() {
         VisioDocument diagram = VisioDocument.Create();
-        VisioPage page = diagram.AddPage("Topology", 8, 5);
+        VisioPage page = diagram.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));
         page.Shapes.Add(new VisioShape("gateway") { Text = "Gateway service" });
         return diagram;
     }

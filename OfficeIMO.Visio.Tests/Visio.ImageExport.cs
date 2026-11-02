@@ -14,8 +14,8 @@ public class VisioImageExport {
     public void RetainedPngApisHonorEncodedByteLimitForDocumentsAndPages() {
         using var package = new MemoryStream();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("RetainedBounded").Size(2, 1);
-        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded retained PNG export");
+        VisioPage page = document.AddPage("RetainedBounded").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bounded retained PNG export");
         var options = new VisioPngSaveOptions {
             MaximumTotalEncodedBytes = 8L,
             Supersampling = 1
@@ -39,8 +39,8 @@ public class VisioImageExport {
     public void VisioPage_PublicRasterExportHonorsEncodedByteLimitAndCancellation() {
         using var package = new MemoryStream();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Bounded").Size(2, 1);
-        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded Visio raster export");
+        VisioPage page = document.AddPage("Bounded").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bounded Visio raster export");
         var options = new VisioImageExportOptions {
             MaximumTotalEncodedBytes = 8L,
             Supersampling = 1
@@ -60,8 +60,8 @@ public class VisioImageExport {
     public void DirectSvgExportHonorsEncodedByteLimitForPagesAndDocuments() {
         using var package = new MemoryStream();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("BoundedSvg").Size(2, 1);
-        page.AddRectangle(1, 0.5, 1.2, 0.5, "Bounded Visio SVG export");
+        VisioPage page = document.AddPage("BoundedSvg").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bounded Visio SVG export");
         var options = new VisioImageExportOptions { MaximumTotalEncodedBytes = 8L };
 
         OfficeImageExportBatchLimitException pageException = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
@@ -632,8 +632,8 @@ public class VisioImageExport {
     public void RetainedSvgApiUsesCanonicalDimensionValidation() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Bounds").Size(2, 1);
-        page.AddRectangle(1, 0.5, 1, 0.5, "Bounds");
+        VisioPage page = document.AddPage("Bounds").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bounds");
 
         string highResolutionSvg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 65536D });
         Assert.Contains("<svg", highResolutionSvg, StringComparison.Ordinal);
@@ -646,8 +646,8 @@ public class VisioImageExport {
     public async System.Threading.Tasks.Task SaveAsSvgAsync_CancellationDoesNotMutateCallerOptions() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Reusable options").Size(2, 1);
-        page.AddRectangle(1, 0.5, 1.5, 0.6, "Reusable");
+        VisioPage page = document.AddPage("Reusable options").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Reusable");
         var options = new VisioSvgSaveOptions();
         using var cancellation = new System.Threading.CancellationTokenSource();
         cancellation.Cancel();
@@ -664,7 +664,7 @@ public class VisioImageExport {
     public void DirectImageExportEnforcesRenderTimeout() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Deadline").Size(2, 1);
+        VisioPage page = document.AddPage("Deadline").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
         var options = new VisioImageExportOptions { RenderTimeout = TimeSpan.FromTicks(1) };
 
         Assert.Throws<OfficeImageExportTimeoutException>(() =>
@@ -680,8 +680,8 @@ public class VisioImageExport {
     public void PageExport_EncodesEverySharedImageFormat(OfficeImageExportFormat format) {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Formats").Size(2, 1);
-        page.AddRectangle(1, 0.5, 1.2, 0.5, "Format marker");
+        VisioPage page = document.AddPage("Formats").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Format marker");
         var options = new VisioImageExportOptions { Scale = 0.5D, Supersampling = 1 };
 
         OfficeImageExportResult result = page.ExportImage(format, options);
@@ -700,8 +700,8 @@ public class VisioImageExport {
     public void PageFitWithinAndConnectorOptionsApplyToRasterAndSvg() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Bounded").Size(4, 2);
-        page.AddRectangle(2, 1, 2, 1, "Bounded");
+        VisioPage page = document.AddPage("Bounded").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Bounded");
 
         var imageOptions2 = new VisioImageExportOptions();
         imageOptions2.Scale = 2D;
@@ -728,8 +728,8 @@ public class VisioImageExport {
     public void DocumentBatchExport_SelectsPagesAndSavesPortableResults() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        document.AddPage("First").Size(2, 1).AddRectangle(1, 0.5, 1, 0.5, "One");
-        document.AddPage("Second").Size(2, 1).AddEllipse(1, 0.5, 1, 0.5, "Two");
+        document.AddPage("First").Size(OfficeLength.Inches(2), OfficeLength.Inches(1)).AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), "One");
+        document.AddPage("Second").Size(OfficeLength.Inches(2), OfficeLength.Inches(1)).AddEllipse(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), "Two");
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
         try {
             var imageOptions4 = new VisioImageExportOptions();
@@ -752,8 +752,8 @@ public class VisioImageExport {
     public void DocumentAndPageConvenienceMethods_ProduceRequestedRasterFormats() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Convenience").Size(2, 1);
-        page.AddDiamond(1, 0.5, 1, 0.6, "Choice");
+        VisioPage page = document.AddPage("Convenience").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        page.AddDiamond(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Choice");
         var options = new VisioImageExportOptions { Scale = 0.5D, Supersampling = 1 };
 
         Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToJpeg(options)).MimeType);
@@ -769,8 +769,8 @@ public class VisioImageExport {
     public void RasterExport_ReducesScaleWithAVisibleDiagnosticInsteadOfOverAllocating() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Large").Size(100, 100);
-        page.AddRectangle(50, 50, 80, 80, "Large");
+        VisioPage page = document.AddPage("Large").Size(OfficeLength.Inches(100), OfficeLength.Inches(100));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(50, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(80, page.DefaultUnit)), "Large");
         var options = new VisioImageExportOptions {
             Scale = 1D,
             Supersampling = 1,
@@ -787,7 +787,7 @@ public class VisioImageExport {
     public void ImageExportOptions_CloneRasterSettingsAcrossDocumentSelection() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        document.AddPage("Options").Size(2, 1).AddRectangle(1, 0.5, 1, 0.5, "Options");
+        document.AddPage("Options").Size(OfficeLength.Inches(2), OfficeLength.Inches(1)).AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, VisioMeasurementUnit.Inches)), "Options");
         var options = new VisioImageExportOptions { Scale = 0.5D, Supersampling = 1 };
         options.RasterEncoding.Jpeg.Quality = 67;
         options.RasterEncoding.Jpeg.Progressive = true;
@@ -802,7 +802,7 @@ public class VisioImageExport {
     public void SvgExport_RejectsOverflowingScaleBeforeRendering() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Overflow").Size(2, 1);
+        VisioPage page = document.AddPage("Overflow").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
         var options = new VisioImageExportOptions { Scale = double.MaxValue };
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -816,8 +816,8 @@ public class VisioImageExport {
 
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Typography").Size(3, 1.5);
-        VisioShape shape = page.AddRectangle(1.5, 0.75, 2.4, 0.7, "Scoped Visio text");
+        VisioPage page = document.AddPage("Typography").Size(OfficeLength.Inches(3), OfficeLength.Inches(1.5));
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.75, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), "Scoped Visio text");
         shape.TextStyle = new VisioTextStyle {
             FontFamily = "Scoped Visio",
             Size = 18D
@@ -842,8 +842,8 @@ public class VisioImageExport {
     public void DirectVisioExportAppliesFontLossPolicyBeforeReturning() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("Policy").Size(2, 1);
-        VisioShape shape = page.AddRectangle(1, 0.5, 1.5, 0.6, "Policy");
+        VisioPage page = document.AddPage("Policy").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Policy");
         shape.TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Definitely Missing" };
         var options = new VisioImageExportOptions {
             Supersampling = 1,
@@ -862,7 +862,7 @@ public class VisioImageExport {
     public void PackagePreview_UsesCallerCodecThroughCanonicalExport(OfficeImageExportFormat format) {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
-        VisioPage page = document.AddPage("CallerCodec").Size(2, 1);
+        VisioPage page = document.AddPage("CallerCodec").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
         AddCustomPreviewShape(page);
         var codec = new SolidImageCodec(OfficeColor.FromRgb(12, 90, 180));
         var options = new VisioImageExportOptions {
@@ -886,7 +886,7 @@ public class VisioImageExport {
     }
 
     private static void AddCustomPreviewShape(VisioPage page) {
-        VisioMaster master = new("custom-preview", "CustomPreview", new VisioShape("master-shape", 0, 0, 1, 1, string.Empty));
+        VisioMaster master = new("custom-preview", "CustomPreview", new VisioShape("master-shape", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
         master.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
             Id = "rIdImage",
             Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
@@ -895,7 +895,7 @@ public class VisioImageExport {
             Extension = ".custom",
             Data = new byte[] { 1, 2, 3, 4 }
         });
-        VisioShape shape = page.AddRectangle(1, 0.5, 1, 0.7, string.Empty);
+        VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.7, page.DefaultUnit)), string.Empty);
         shape.Master = master;
         shape.NameU = master.NameU;
         shape.SetUserCell("OfficeIMO.StencilPreviewImageRelationshipId", "rIdImage", "STR");

@@ -21,7 +21,7 @@ public sealed class EmailContentSafetyTests {
     public void CorpusProducesAdvisoryEvidenceAndPreservesOriginalBodies(string file, string? signal, bool concealed) {
         using Stream stream = typeof(EmailContentSafetyTests).Assembly.GetManifestResourceStream(
             "OfficeIMO.Email.Tests.Fixtures.PromptInjection." + file)!;
-        using EmailReadResult read = new EmailDocumentReader().Read(stream, file);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(stream, file);
         string? originalHtml = read.Document.Body.Html;
         string? originalText = read.Document.Body.Text;
         var projection = EmailBodyProjection.Create(read.Document, new EmailBodyProjectionOptions {

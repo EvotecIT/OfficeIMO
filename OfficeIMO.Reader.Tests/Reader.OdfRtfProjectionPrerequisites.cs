@@ -137,7 +137,7 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
         Assert.Throws<ReaderResourceLimitException>(() => reader.ReadDocument(bytes, name,
             new ReaderOptions { ResourceLimits = new ReaderResourceLimits { MaxAssets = 0 } }));
         Assert.NotEmpty(reader.ReadDocument(bytes, name).Assets);
-        ReaderChunk[] chunks = reader.Read(bytes, name, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata }).ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(bytes, name, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata }).ToArray();
         Assert.All(chunks, chunk => Assert.Null(chunk.Markdown));
     }
 

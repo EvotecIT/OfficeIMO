@@ -361,12 +361,9 @@ namespace OfficeIMO.Excel {
                 if (_lastAccessedRowIndex == row) {
                     rowElement = _lastAccessedRow;
                 } else if (_lastAccessedRowIndex < row) {
+                    int previousRowIndex = _lastAccessedRowIndex;
                     for (Row? next = _lastAccessedRow.NextSibling<Row>(); next != null; next = next.NextSibling<Row>()) {
-                        if (next.RowIndex == null) {
-                            continue;
-                        }
-
-                        int nextRowIndex = (int)next.RowIndex.Value;
+                        int nextRowIndex = ExcelWorksheetCoordinates.GetRowIndex(next, ref previousRowIndex);
                         if (nextRowIndex == row) {
                             rowElement = next;
                             break;
@@ -378,8 +375,9 @@ namespace OfficeIMO.Excel {
 
             if (rowElement == null) {
                 // Sibling links, unlike a typed element enumeration, allocate nothing; lookups land here on every backward step.
+                int previousRowIndex = 0;
                 for (OpenXmlElement? child = sheetData.FirstChild; child != null; child = child.NextSibling()) {
-                    if (child is Row r && r.RowIndex != null && r.RowIndex.Value == (uint)row) {
+                    if (child is Row r && ExcelWorksheetCoordinates.GetRowIndex(r, ref previousRowIndex) == row) {
                         rowElement = r;
                         break;
                     }
@@ -401,12 +399,9 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_lastAccessedCellColumnIndex < targetColumnIndex) {
+                    int nextImplicitColumn = _lastAccessedCellColumnIndex + 1;
                     for (Cell? next = _lastAccessedCell.NextSibling<Cell>(); next != null; next = next.NextSibling<Cell>()) {
-                        if (next.CellReference?.Value is not string nextRefValue || nextRefValue.Length == 0) {
-                            continue;
-                        }
-
-                        int nextColumnIndex = GetColumnIndex(nextRefValue);
+                        int nextColumnIndex = ExcelWorksheetCoordinates.GetColumnIndex(next, ref nextImplicitColumn);
                         if (nextColumnIndex == targetColumnIndex) {
                             CacheLastAccessedCell(rowElement, row, column, next);
                             return next;
@@ -416,12 +411,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
+            int nextImplicitColumnIndex = 1;
             for (OpenXmlElement? child = rowElement.FirstChild; child != null; child = child.NextSibling()) {
-                if (child is not Cell cell || cell.CellReference?.Value is not string existingRefValue || existingRefValue.Length == 0) {
+                if (child is not Cell cell) {
                     continue;
                 }
 
-                int existingColumnIndex = GetColumnIndex(existingRefValue);
+                int existingColumnIndex = ExcelWorksheetCoordinates.GetColumnIndex(cell, ref nextImplicitColumnIndex);
                 if (existingColumnIndex == targetColumnIndex) {
                     CacheLastAccessedCell(rowElement, row, column, cell);
                     return cell;

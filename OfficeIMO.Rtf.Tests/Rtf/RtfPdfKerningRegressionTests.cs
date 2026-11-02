@@ -45,7 +45,7 @@ public sealed class RtfPdfKerningRegressionTests {
     [Fact]
     public void ParsedKerningStateInheritsIntoGroupsAndExplicitZeroDisablesIt() {
         const string rtf = @"{\rtf1\ansi\fs24\kerning24\pard {TA}\par\kerning0 TA\par}";
-        RtfReadResult parsed = RtfDocument.Read(rtf);
+        RtfReadResult parsed = RtfDocument.ParseResult(rtf);
         RtfParagraph[] paragraphs = parsed.Document.Paragraphs.ToArray();
         Assert.Equal(2, paragraphs.Length);
         Assert.Equal(24, Assert.Single(paragraphs[0].Runs).KerningHalfPoints);

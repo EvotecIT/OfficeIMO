@@ -205,10 +205,10 @@ namespace OfficeIMO.Visio {
             return OfficeGeometry.SegmentIntersectsRectangle(
                 (a.X, a.Y),
                 (b.X, b.Y),
-                bounds.Left,
-                bounds.Bottom,
-                bounds.Right,
-                bounds.Top);
+                bounds.LeftInches,
+                bounds.BottomInches,
+                bounds.RightInches,
+                bounds.TopInches);
         }
 
         private static int CountConnectorCrossings(RouteCandidate candidate, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
@@ -272,18 +272,18 @@ namespace OfficeIMO.Visio {
             }
 
             const double tolerance = 1e-6;
-            return outer.Left <= inner.Left + tolerance &&
-                   outer.Bottom <= inner.Bottom + tolerance &&
-                   outer.Right + tolerance >= inner.Right &&
-                   outer.Top + tolerance >= inner.Top;
+            return outer.LeftInches <= inner.LeftInches + tolerance &&
+                   outer.BottomInches <= inner.BottomInches + tolerance &&
+                   outer.RightInches + tolerance >= inner.RightInches &&
+                   outer.TopInches + tolerance >= inner.TopInches;
         }
 
         private static VisioShapeBounds Inflate(VisioShapeBounds bounds, double padding) {
             return new VisioShapeBounds(
-                bounds.Left - padding,
-                bounds.Bottom - padding,
-                bounds.Right + padding,
-                bounds.Top + padding);
+                bounds.LeftInches - padding,
+                bounds.BottomInches - padding,
+                bounds.RightInches + padding,
+                bounds.TopInches + padding);
         }
     }
 }

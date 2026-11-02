@@ -55,7 +55,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\clvertalc", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clvertalb", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.True(roundTripTable.Rows[0].RepeatHeader);
         Assert.Equal(RtfTableWidthUnit.Percent, roundTripTable.Rows[0].Cells[0].PreferredWidthUnit);
         Assert.Equal(1250, roundTripTable.Rows[0].Cells[0].PreferredWidth);
@@ -140,7 +140,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\clvmgf", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clvmrg", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.Equal(RtfTableCellMerge.First, roundTripTable.Rows[0].Cells[0].HorizontalMerge);
         Assert.Equal(RtfTableCellMerge.Continue, roundTripTable.Rows[0].Cells[1].HorizontalMerge);
         Assert.Equal(RtfTableCellMerge.First, roundTripTable.Rows[0].Cells[2].VerticalMerge);
@@ -190,7 +190,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\clbrdrt\brdrs\brdrw20\brdrcf1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clbrdrb\brdrdash\brdrw40\brdrcf2", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         RtfTableCell readCell = roundTripTable.Rows[0].Cells[0];
         Assert.Equal(120, readCell.PaddingTopTwips);
         Assert.Equal(RtfTableCellBorderStyle.Single, readCell.TopBorder.Style);
@@ -244,7 +244,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\clNoWrap", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\clvertalc", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.True(roundTripTable.Rows[0].Cells[0].NoWrap);
         Assert.Equal(RtfTableCellVerticalAlignment.Center, roundTripTable.Rows[0].Cells[0].VerticalAlignment);
     }
@@ -291,7 +291,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Contains(@"\trpaddt60\trpaddft3", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\trqc", rtf, StringComparison.Ordinal);
 
-        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.Equal(RtfTableAlignment.Center, roundTripTable.Rows[0].Alignment);
         Assert.Equal(480, roundTripTable.Rows[0].HeightTwips);
         Assert.Equal(4000, roundTripTable.Rows[0].PreferredWidth);
@@ -334,7 +334,7 @@ public partial class RtfHtmlConverterTests {
         string rtf = document.ToRtf();
         Assert.Contains(@"\picw96\pich48\picwgoal2400\pichgoal1200", rtf, StringComparison.Ordinal);
 
-        RtfImage roundTripImage = Assert.IsType<RtfImage>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        RtfImage roundTripImage = Assert.IsType<RtfImage>(Assert.Single(RtfDocument.ParseResult(rtf).Document.Blocks));
         Assert.Equal(96, roundTripImage.SourceWidth);
         Assert.Equal(48, roundTripImage.SourceHeight);
         Assert.Equal(2400, roundTripImage.DesiredWidthTwips);
@@ -371,7 +371,7 @@ public partial class RtfHtmlConverterTests {
         Assert.Null(small.DesiredWidthTwips);
         Assert.Null(small.DesiredHeightTwips);
         Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "HtmlRtfImageFittedToPage");
-        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.Read(result.RequireValue().ToRtf()).Document.Blocks[0]);
+        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.ParseResult(result.RequireValue().ToRtf()).Document.Blocks[0]);
         Assert.Equal(large.DesiredWidthTwips, reopened.DesiredWidthTwips);
         Assert.Equal(large.DesiredHeightTwips, reopened.DesiredHeightTwips);
     }

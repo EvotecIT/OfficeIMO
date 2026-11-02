@@ -159,7 +159,7 @@ public sealed class OpmlDocumentTests {
         OpmlDocument document = await OpmlDocument.LoadAsync(input);
         Assert.Equal(5, input.Position);
         using var output = new MemoryStream(new byte[512], writable: true);
-        await document.WriteAsync(output);
+        await document.SaveAsync(output);
         Assert.Equal(0, output.Position);
         Assert.Equal("A", OpmlDocument.Load(output).Outlines.Single().Text);
     }
@@ -171,13 +171,13 @@ public sealed class OpmlDocumentTests {
         OpmlDocument loaded = OpmlDocument.Load(new MemoryStream(latinBytes));
         Assert.Equal(latinSource, loaded.ToOpml());
         using var exact = new MemoryStream();
-        loaded.Write(exact);
+        loaded.Save(exact);
         Assert.Equal(latinBytes, exact.ToArray());
 
         const string utf16Declaration = "<?xml version=\"1.0\" encoding=\"utf-16\"?><opml version=\"2.0\"><head/><body/></opml>";
         OpmlDocument parsed = OpmlDocument.Parse(utf16Declaration);
         using var output = new MemoryStream();
-        parsed.Write(output);
+        parsed.Save(output);
         string serialized = Encoding.UTF8.GetString(output.ToArray());
         Assert.Contains("encoding=\"utf-8\"", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(OpmlVersion.Opml20, OpmlDocument.Load(new MemoryStream(output.ToArray())).Version);

@@ -129,19 +129,19 @@ explicit package and builder decision, while every built reader remains immutabl
 
 ## Incremental ingestion
 
-Use `EnumerateChunks` when a consumer can process and discard one chunk at a time:
+Use `Enumerate` when a consumer can process and discard one chunk at a time:
 
 ```csharp
 var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().Build();
 var options = ReaderOptions.CreateSafeIngestion();
 options.ComputeHashes = false;
 
-foreach (ReaderChunk chunk in reader.EnumerateChunks("large.txt", options)) {
+foreach (ReaderChunk chunk in reader.Enumerate("large.txt", options)) {
     IndexChunk(chunk);
 }
 ```
 
-`EnumerateChunksAsync` provides asynchronous pull and backpressure on .NET 8 and .NET 10.
+`EnumerateAsync` provides asynchronous pull and backpressure on .NET 8 and .NET 10.
 Plain text supports paths and forward-only streams. CSV and Excel provide incremental path output through
 their existing row-extraction engines. Excel still opens the owning workbook model and metadata; incremental
 output avoids building the complete Reader result graph. Other handlers use a materialized fallback.
@@ -298,7 +298,7 @@ Native async file handlers are awaited directly. Synchronous file handlers run o
 reader's concurrency gate; their file-specific behavior also applies to async and batch reads.
 
 Table exports accept cancellation while scanning and writing rows. Pass a token to
-`reader.ExportTables(tables, cancellationToken: token)` for CSV, Markdown and JSON together, or use
+`tables.ExportTables(cancellationToken: token)` for CSV, Markdown and JSON together, or use
 `table.ToCsv(token)`, `table.ToMarkdownTable(token)` and `table.ToJson(indented: true, cancellationToken: token)` separately.
 
 - `ReaderOptions` and format-neutral input/processing limits

@@ -101,7 +101,7 @@ public sealed partial class ReaderRegistryTests {
                 .Build();
             File.WriteAllText(file, "input");
 
-            ReaderChunk chunk = Assert.Single(reader.Read(file));
+            ReaderChunk chunk = Assert.Single(reader.Enumerate(file));
             Assert.Equal("rich-document-output", chunk.Text);
 
             OfficeDocumentReadResult result = reader.ReadDocument(file);

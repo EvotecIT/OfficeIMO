@@ -26,7 +26,7 @@ public sealed class EmailConversionMatrixTests {
             byte[] artifact = writer.ToBytes(current, target, out EmailWriteResult write);
             Assert.DoesNotContain(write.Diagnostics,
                 diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
-            EmailReadResult read = reader.Read(artifact);
+            EmailReadResult read = reader.ReadDocument(artifact);
             Assert.DoesNotContain(read.Diagnostics,
                 diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
             Assert.Equal(target, read.Document.Format);
@@ -65,7 +65,7 @@ public sealed class EmailConversionMatrixTests {
             "Content-Type: multipart/signed; protocol=\"application/pkcs7-signature\"; boundary=\"s\"\r\n\r\n" +
             "--s\r\nContent-Type: text/plain\r\n\r\nbody\r\n" +
             "--s\r\nContent-Type: application/pkcs7-signature\r\n\r\nsignature\r\n--s--\r\n");
-        EmailDocument protectedDocument = new EmailDocumentReader().Read(source).Document;
+        EmailDocument protectedDocument = new EmailDocumentReader().ReadDocument(source).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             protectedDocument, EmailFileFormat.OutlookMsg);

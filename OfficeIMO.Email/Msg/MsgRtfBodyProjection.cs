@@ -14,7 +14,7 @@ internal static class MsgRtfBodyProjection {
             options.Limits.MaxInputBytes = maximum;
             options.Limits.MaxInputCharacters = maximum;
             options.Limits.MaxTextCharacters = maximum;
-            RtfReadResult result = RtfDocument.Read(rtf!, options, state.CancellationToken);
+            RtfReadResult result = RtfDocument.ParseResult(rtf!, options, state.CancellationToken);
             AddDiagnostics(result.Diagnostics, state.Diagnostics, location);
             string? html = result.Document.HtmlEncapsulation?.Html;
             return string.IsNullOrWhiteSpace(html) ? null : html;

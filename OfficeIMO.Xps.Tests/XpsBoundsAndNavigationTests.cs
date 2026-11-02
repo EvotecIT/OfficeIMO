@@ -16,7 +16,7 @@ public sealed class XpsBoundsAndNavigationTests {
     [Fact]
     public void RepeatedPageAndDocumentReferencesShareEditsAndRetainOrder() {
         var original = XpsDocument.Create(); original.AddPage(100, 100).AddPath("M0,0L10,10"); original.AddPage(200, 100);
-        byte[] bytes = XpsDocumentTests.Rewrite(original.Save(), DocumentPart, data => Edit(data, xml => {
+        byte[] bytes = XpsDocumentTests.Rewrite(original.ToBytes(), DocumentPart, data => Edit(data, xml => {
             for (int i = 0; i < 100; i++) xml.Add(new XElement(xml.Elements().First()));
         }));
         bytes = XpsDocumentTests.Rewrite(bytes, SequencePart, data => Edit(data, xml => xml.Add(new XElement(xml.Elements().Single()))));
@@ -27,7 +27,7 @@ public sealed class XpsBoundsAndNavigationTests {
         Assert.Same(loaded.Pages[0], loaded.Pages[102]);
         loaded.Pages[2].AddPath("M0,0L30,30", "#FF0000FF");
         Assert.Equal(2, loaded.Pages[0].GetMarkup().Elements().Count());
-        var reopened = XpsDocument.Load(loaded.Save());
+        var reopened = XpsDocument.Load(loaded.ToBytes());
         Assert.Equal(204, reopened.Pages.Count);
         Assert.Equal(2, reopened.Pages[102].GetMarkup().Elements().Count());
         Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { Limits = { MaxPages = 203 } }));
@@ -44,7 +44,7 @@ public sealed class XpsBoundsAndNavigationTests {
         }
         XElement PageRef(string source) => new(ns + "PageContent", new XAttribute("Source", "/" + source), new XElement(ns + "PageContent.LinkTargets", new XElement(ns + "LinkTarget", new XAttribute("Name", "same")), new XElement(ns + "LinkTarget", new XAttribute("Name", "absent"))));
         doc.AddResource("Documents/2/FixedDocument.fdoc", Encoding.UTF8.GetBytes(new XElement(ns + "FixedDocument", PageRef(two.PartName), PageRef(three.PartName)).ToString()), "application/vnd.ms-package.xps-fixeddocument+xml");
-        byte[] bytes = XpsDocumentTests.Rewrite(doc.Save(), DocumentPart, _ => Encoding.UTF8.GetBytes(new XElement(ns + "FixedDocument", PageRef(one.PartName)).ToString()));
+        byte[] bytes = XpsDocumentTests.Rewrite(doc.ToBytes(), DocumentPart, _ => Encoding.UTF8.GetBytes(new XElement(ns + "FixedDocument", PageRef(one.PartName)).ToString()));
         bytes = XpsDocumentTests.Rewrite(bytes, SequencePart, data => Edit(data, xml => xml.Add(new XElement(ns + "DocumentReference", new XAttribute("Source", "/Documents/2/FixedDocument.fdoc")))));
         var loaded = XpsDocument.Load(bytes);
         string? Href() => (string?)XElement.Parse(loaded.Pages[0].ToSvg().Svg).Descendants(Svg + "a").Single().Attribute("href");

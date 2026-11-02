@@ -15,9 +15,9 @@ public class VisioPackageMetadataContractTests {
         document.Properties.Title = "Metadata control";
         document.Properties.Author = "Test author";
         if (family == VisioPackageType.Stencil) {
-            document.RegisterMaster("Symbol", new VisioShape("1", 1, 1, 1, 1, "Label"));
+            document.RegisterMaster("Symbol", new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Label"));
         } else {
-            document.AddPage("First page").Shapes.Add(new VisioShape("1", 1, 1, 1, 1, "Label"));
+            document.AddPage("First page").Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Label"));
         }
 
         AssertMetadata(document.ToBytes(), family);

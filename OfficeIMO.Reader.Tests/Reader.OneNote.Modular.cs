@@ -394,7 +394,7 @@ public sealed class ReaderOneNoteModularTests {
         string path = FixturePath("testOneNote2016.one");
 
         Assert.Equal(ReaderInputKind.OneNote, reader.DetectKind(path));
-        Assert.Contains("This is one note 2016", Assert.Single(reader.Read(path)).Text, StringComparison.Ordinal);
+        Assert.Contains("This is one note 2016", Assert.Single(reader.Enumerate(path)).Text, StringComparison.Ordinal);
         using FileStream stream = File.OpenRead(path);
         OfficeDocumentReadResult result = reader.ReadDocument(stream, "registered.one");
         Assert.Equal(ReaderInputKind.OneNote, result.Kind);

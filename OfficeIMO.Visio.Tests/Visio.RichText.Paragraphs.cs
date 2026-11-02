@@ -21,7 +21,7 @@ public sealed class VisioRichTextParagraphTests {
         VisioShape shape = page.Shapes.Single(shape => shape.Id == "22");
         XElement[] text = Label(page, "22").Descendants(Svg + "text").ToArray();
         Assert.Equal(new[] { "Event Queue", "(wait)" }, text.Select(node => node.Value));
-        double left = (shape.PinX - (shape.TextStyle?.TextWidth ?? shape.Width) / 2D + (shape.TextStyle?.LeftMargin ?? 0D)) * 96D;
+        double left = (shape.PinX.ToInches() - (shape.TextStyle?.TextWidth ?? shape.Width.ToInches()) / 2D + (shape.TextStyle?.LeftMargin ?? 0D)) * 96D;
         Assert.InRange(Number(text[0], "x") - left, -.002D, .002D);
         Assert.True(Number(text[1], "x") > Number(text[0], "x") + 20D);
         Assert.InRange(Number(text[1], "y") - Number(text[0], "y"), 39.99D, 40.01D);

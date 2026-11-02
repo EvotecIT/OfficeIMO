@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
-            if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan directPlan)) {
+            if (!TryCreateDirectTabularPlan(source, document.DateSystem, cancellationToken, out DirectTabularPlan directPlan)) {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
                 using (DirectTabularWorkbookStream workbookStream =
-                       BuildDirectTabularWorkbookStream(document, sheet, directPlan)) {
+                       BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan)) {
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
                     workbookBytes = BuildCompoundFile(document, workbookStream);
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");

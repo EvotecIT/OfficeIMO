@@ -9,7 +9,7 @@ public class RtfLosslessEditorTests {
         const string rtf = @"{\rtf1\ansi{\*\unknown Target}{\fonttbl{\f0 Target;}}{\*\userprops{\propname Target}\proptype30{\staticval Target}}{\*\docvar {Target}{Target}}\pard Target {\b Target}\par{\field{\*\fldinst HYPERLINK ""https://example.test/Target""}{\fldrslt Target}}}";
         const string expected = @"{\rtf1\ansi{\*\unknown Target}{\fonttbl{\f0 Target;}}{\*\userprops{\propname Target}\proptype30{\staticval Target}}{\*\docvar {Target}{Target}}\pard Replaced {\b Replaced}\par{\field{\*\fldinst HYPERLINK ""https://example.test/Target""}{\fldrslt Replaced}}}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         int replacements = editor.ReplaceText("Target", "Replaced");
 
         Assert.Equal(3, replacements);
@@ -28,7 +28,7 @@ public class RtfLosslessEditorTests {
     public void ReplaceText_Escapes_Inserted_Rtf_Text() {
         const string rtf = @"{\rtf1\ansi\pard Target\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.ReplaceText("Target", @"A{\B} ż");
 
         Assert.Equal(@"{\rtf1\ansi\pard A\{\\B\} \u380?\par}", editor.ToRtf());
@@ -39,7 +39,7 @@ public class RtfLosslessEditorTests {
     public void SetGenerator_Replaces_Duplicates_And_Preserves_Body() {
         const string rtf = @"{\rtf1\ansi{\*\generator Old;}{\*\generator Duplicate;}{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetGenerator("New {generator} ż");
 
         const string expected = @"{\rtf1\ansi{\*\generator New \{generator\} \u380?;}{\info{\title Keep}}\pard Body \'80\par}";
@@ -53,7 +53,7 @@ public class RtfLosslessEditorTests {
     public void SetGenerator_Creates_And_Removes_Root_Generator_Group() {
         const string rtf = @"{\rtf1\ansi\deff0\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetGenerator("OfficeIMO");
 
         Assert.Equal(@"{\rtf1\ansi\deff0{\*\generator OfficeIMO;}\pard Body\par}", editor.ToRtf());
@@ -69,7 +69,7 @@ public class RtfLosslessEditorTests {
     public void SetRootSettings_Replaces_Duplicates_And_Preserves_Tables_And_Body() {
         const string rtf = @"{\rtf1\ansi\mac\ansicpg1250\deff1\uc2{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetCharacterSet(RtfDocumentCharacterSet.Mac, 1252);
         editor.SetDefaultFont(0);
         editor.SetUnicodeSkipCount(0);
@@ -90,7 +90,7 @@ public class RtfLosslessEditorTests {
     public void SetRootSettings_Creates_And_Removes_Optional_Header_Controls_Before_Metadata() {
         const string rtf = @"{\rtf1{\info{\title Keep}}\pard Body \u380??\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetCharacterSet(RtfDocumentCharacterSet.Ansi, 1250);
         editor.SetDefaultFont(2);
         editor.SetUnicodeSkipCount(2);
@@ -118,7 +118,7 @@ public class RtfLosslessEditorTests {
     public void SetRootPageSetup_Replaces_Duplicates_And_Preserves_Metadata_And_Body() {
         const string rtf = @"{\rtf1\ansi\paperw1000\paperw1111\paperh2000\psz4\binfsxn2\binsxn3\margl100\margr200\margt300\margb400\headery50\footery60\gutter70\rtlgutter\landscape\titlepg{\fonttbl{\f0 Calibri;}}{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetPageSize(12240, 15840);
         editor.SetPrinterPaper(9, 7, 8);
         editor.SetMargins(720, 1440, 1080, 900);
@@ -156,7 +156,7 @@ public class RtfLosslessEditorTests {
     public void SetRootPageSetup_Creates_And_Removes_Optional_Controls_Before_Metadata() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetPageSize(8000, 10000);
         editor.SetMargins(leftTwips: 720, topTwips: 360);
         editor.SetHeaderFooterDistance(300, 420);
@@ -202,7 +202,7 @@ public class RtfLosslessEditorTests {
     public void SetInfo_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Old}{\author Someone}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetInfo(RtfDocumentInfoField.Title, "New {title} ż");
         editor.SetInfo(RtfDocumentInfoField.Author, null);
         editor.SetInfo(RtfDocumentInfoField.Company, "Evotec");
@@ -223,7 +223,7 @@ public class RtfLosslessEditorTests {
     public void SetInfo_Creates_Info_Group_When_Missing() {
         const string rtf = @"{\rtf1\ansi\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetInfo(RtfDocumentInfoField.Title, "Created");
 
         Assert.Equal(@"{\rtf1\ansi{\info{\title Created}}\pard Body\par}", editor.ToRtf());
@@ -234,7 +234,7 @@ public class RtfLosslessEditorTests {
     public void SetInfo_Removes_Info_Group_When_Last_Field_Is_Removed() {
         const string rtf = @"{\rtf1\ansi{\info{\title Gone}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetInfo(RtfDocumentInfoField.Title, null);
 
         Assert.Equal(@"{\rtf1\ansi\pard Body\par}", editor.ToRtf());
@@ -245,7 +245,7 @@ public class RtfLosslessEditorTests {
     public void SetInfoTimestamp_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}{\creatim\yr2020\mo1\dy2\hr3\min4\sec5}\edmins10\nofpages2}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetInfoTimestamp(RtfDocumentInfoTimestampField.Created, new DateTime(2026, 6, 15, 10, 20, 30));
         editor.SetInfoTimestamp(RtfDocumentInfoTimestampField.Revised, new DateTime(2026, 6, 16, 11, 21, 31));
         editor.SetInfoNumber(RtfDocumentInfoNumberField.EditingMinutes, 42);
@@ -268,7 +268,7 @@ public class RtfLosslessEditorTests {
     public void SetInfoTimestamp_And_Number_Create_Info_Group_When_Missing() {
         const string rtf = @"{\rtf1\ansi\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetInfoTimestamp(RtfDocumentInfoTimestampField.Printed, new DateTime(2026, 1, 2, 3, 4, 5));
         editor.SetInfoNumber(RtfDocumentInfoNumberField.InternalVersion, 123);
 
@@ -282,7 +282,7 @@ public class RtfLosslessEditorTests {
     public void SetDocumentVariable_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}{\*\userprops{\propname Owner}\proptype30{\staticval Evotec}}{\*\docvar {Client}{Old}}{\*\docvar {Remove}{Gone}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetDocumentVariable("Client", "New {client} ż");
         editor.SetDocumentVariable("Region", "EMEA");
         editor.SetDocumentVariable("Remove", null);
@@ -309,7 +309,7 @@ public class RtfLosslessEditorTests {
     public void SetDocumentVariable_Creates_DocVar_After_Header_When_Metadata_Is_Missing() {
         const string rtf = @"{\rtf1\ansi\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetDocumentVariable("Mode", string.Empty);
 
         Assert.Equal(@"{\rtf1\ansi{\*\docvar {Mode}{}}\pard Body\par}", editor.ToRtf());
@@ -322,7 +322,7 @@ public class RtfLosslessEditorTests {
     public void SetUserProperty_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}{\*\userprops{\propname Client}\proptype30{\staticval Old}{\propname Remove}\proptype30{\staticval Gone}{\propname External}{\linkval Sheet1!A1}}{\*\docvar {Mode}{Draft}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetUserProperty(RtfUserProperty.Text("Client", "New {client} ż"));
         editor.SetUserProperty(RtfUserProperty.Boolean("Approved", true));
         editor.RemoveUserProperty("Remove");
@@ -356,7 +356,7 @@ public class RtfLosslessEditorTests {
     public void SetUserProperty_Creates_UserProps_Before_Existing_DocVars() {
         const string rtf = @"{\rtf1\ansi{\*\docvar {Mode}{Draft}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetUserProperty("Client", "Contoso");
 
         Assert.Equal(@"{\rtf1\ansi{\*\userprops{\propname Client}\proptype30{\staticval Contoso}}{\*\docvar {Mode}{Draft}}\pard Body\par}", editor.ToRtf());
@@ -369,7 +369,7 @@ public class RtfLosslessEditorTests {
     public void SetXmlNamespace_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\*\xmlnstbl{\xmlns1 old;}{\xmlns2 remove;}{\xmlns1 duplicate;}}{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetXmlNamespace(1, "urn:new {ns} ż");
         editor.SetXmlNamespace(3, "urn:add");
         editor.RemoveXmlNamespace(2);
@@ -396,7 +396,7 @@ public class RtfLosslessEditorTests {
     public void SetXmlNamespace_Creates_And_Removes_Namespace_Table() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\info{\title Keep}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetXmlNamespace(7, "urn:created");
 
         Assert.Equal(@"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\*\xmlnstbl{\xmlns7 urn:created;}}{\info{\title Keep}}\pard Body\par}", editor.ToRtf());
@@ -414,7 +414,7 @@ public class RtfLosslessEditorTests {
     public void SetFont_Replaces_Adds_And_Removes_Font_Table_Entries_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0\fswiss Calibri;}{\f1\froman Old;}{\f1 Duplicate;}}{\info{\title Keep}}\pard\f1 Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetFont(new RtfFont(1, "New {Font} ż") {
             Family = RtfFontFamily.Modern,
             Charset = 238,
@@ -469,7 +469,7 @@ public class RtfLosslessEditorTests {
     public void SetFont_Creates_And_Removes_Font_Table_Before_Metadata() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetFont(new RtfFont(0, "Calibri") {
             Family = RtfFontFamily.Swiss,
             Charset = 0
@@ -492,7 +492,7 @@ public class RtfLosslessEditorTests {
     public void SetStyleName_Renames_Adds_Deduplicates_And_Removes_Styles_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\stylesheet{\s1\sbasedon0\snext1\b Old;}{\*\cs2\additive Link;}{\s1 Duplicate;}}\pard\s1 Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetStyleName(1, "Heading {One} ż");
         editor.SetStyleName(3, "Added", RtfStyleKind.Character);
         editor.RemoveStyle(2, RtfStyleKind.Character);
@@ -523,7 +523,7 @@ public class RtfLosslessEditorTests {
     public void SetStyleName_Creates_And_Removes_Stylesheet_Before_Revision_Table() {
         const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetStyleName(9, "Table Grid", RtfStyleKind.Table);
 
         Assert.Equal(@"{\rtf1\ansi{\stylesheet{\*\ts9 Table Grid;}}{\*\revtbl{Alice;}}\pard Body\par}", editor.ToRtf());
@@ -542,7 +542,7 @@ public class RtfLosslessEditorTests {
     public void SetRevisionAuthor_Replaces_Adds_And_Removes_Authors_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}{Bob;}{Remove;}}{\*\rsidtbl\rsidroot7}\pard\revised\revauth1 Body \'80\revised0\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetRevisionAuthor(1, "Bób {Two}");
         editor.SetRevisionAuthor(3, "Dana");
         editor.RemoveRevisionAuthor(2);
@@ -564,7 +564,7 @@ public class RtfLosslessEditorTests {
     public void SetRevisionAuthor_Creates_And_Removes_Revision_Table_Before_SaveIds() {
         const string rtf = @"{\rtf1\ansi{\*\rsidtbl\rsidroot7}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetRevisionAuthor(0, "Alice");
         editor.SetRevisionAuthor(1, "Bob");
 
@@ -585,7 +585,7 @@ public class RtfLosslessEditorTests {
     public void SetFileReference_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs Old.docx}{\file\fid1\fvalidmac Remove.doc}{\file\fid0 Duplicate.docx}}{\*\xmlnstbl{\xmlns1 urn:keep;}}{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetFileReference(new RtfFileReference(0, @"C:\New {file} ż.docx") {
             RelativePathStart = 3,
             OperatingSystemNumber = 42,
@@ -625,7 +625,7 @@ public class RtfLosslessEditorTests {
     public void SetFileReference_Creates_And_Removes_File_Table() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\*\xmlnstbl{\xmlns1 urn:keep;}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetFileReference(new RtfFileReference(4, "created.docx") {
             Sources = RtfFileSource.Dos
         });
@@ -646,7 +646,7 @@ public class RtfLosslessEditorTests {
     public void SetColor_Replaces_Adds_And_Removes_Color_Table_Entries_Without_Normalizing_Body() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\colortbl;\red1\green2\blue3;\red4\green5\blue6\caccenttwo\cshade25;}{\stylesheet{\s1\cf1 Style;}}\pard\cf1 Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetColor(1, new RtfColor(10, 20, 30) {
             ThemeColor = RtfThemeColor.AccentOne,
             Tint = 40
@@ -681,7 +681,7 @@ public class RtfLosslessEditorTests {
     public void SetColor_Creates_And_Removes_Color_Table_Before_Stylesheet() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}}{\stylesheet{\s1 Style;}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetColor(1, new RtfColor(68, 114, 196) {
             ThemeColor = RtfThemeColor.Hyperlink,
             Shade = 25
@@ -705,7 +705,7 @@ public class RtfLosslessEditorTests {
     public void RevisionSaveIds_Update_Root_Add_Remove_And_Preserve_Body() {
         const string rtf = @"{\rtf1\ansi{\*\rsidtbl\rsidroot7\rsid15\rsid1024\rsid15}{\info{\title Keep}}\pard\pararsid20 Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetRevisionRootSaveId(9);
         editor.AddRevisionSaveId(2048);
         editor.AddRevisionSaveId(15);
@@ -725,7 +725,7 @@ public class RtfLosslessEditorTests {
     public void RevisionSaveIds_Create_And_Remove_Rsid_Table() {
         const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetRevisionRootSaveId(7);
         editor.AddRevisionSaveId(15);
 
@@ -748,7 +748,7 @@ public class RtfLosslessEditorTests {
     public void AppendParagraph_Preserves_Existing_Syntax_And_Escapes_Text() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.AppendParagraph(@"Next {\line} ż");
 
         const string expected = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par\pard Next \{\\line\} \u380?\par}";

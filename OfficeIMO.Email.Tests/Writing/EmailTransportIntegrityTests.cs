@@ -12,7 +12,7 @@ public sealed class EmailTransportIntegrityTests {
             "--parts\r\nContent-Type: text/html\r\n" + header + ": original\r\n\r\n<p>body</p>\r\n" +
             "--parts\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=file.bin\r\n" +
             header + ": original\r\n\r\nbytes\r\n--parts--\r\n";
-        using var parsed = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(mime));
+        using var parsed = new EmailDocumentReader().ReadDocument(Encoding.ASCII.GetBytes(mime));
         var writer = new EmailDocumentWriter();
         byte[] output = writer.ToBytes(parsed.Document, EmailFileFormat.Eml, out var result);
         Assert.False(result.HasErrors);
@@ -49,7 +49,7 @@ public sealed class EmailTransportIntegrityTests {
         int originalCount = document.Headers.Count;
         var writer = new EmailDocumentWriter(new EmailWriterOptions(policy));
         byte[] bytes = writer.ToBytes(document, EmailFileFormat.Eml, out EmailWriteResult result);
-        using EmailReadResult parsed = new EmailDocumentReader().Read(bytes);
+        using EmailReadResult parsed = new EmailDocumentReader().ReadDocument(bytes);
         Assert.False(result.HasErrors);
         Assert.Equal(EmailConversionLossDisposition.Accepted, result.LossDisposition);
         Assert.Equal(keep, parsed.Document.Headers.Any(item => item.Name == "DKIM-Signature"));
@@ -63,7 +63,7 @@ public sealed class EmailTransportIntegrityTests {
     [Fact]
     public void UnchangedRawSourceKeepsTransportEvidenceExactlyAndMutationBlocksReuse() {
         byte[] source = Encoding.ASCII.GetBytes("Subject: Original\r\nDKIM-Signature: v=1; bh=AAAA; b=BBBB\r\nContent-Length: 4\r\nContent-Type: text/plain\r\n\r\nbody");
-        using EmailReadResult read = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).Read(source);
+        using EmailReadResult read = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true)).ReadDocument(source);
         var writer = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true));
         Assert.True(writer.AnalyzeConversion(read.Document).CanWrite);
         Assert.Equal(source, writer.ToBytes(read.Document, EmailFileFormat.Eml, out EmailWriteResult result));
@@ -107,7 +107,7 @@ public sealed class EmailTransportIntegrityTests {
         document.Headers.Add(new EmailHeader("Received", "from original.example.test"));
         var writer = new EmailDocumentWriter(new EmailWriterOptions(OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures));
         byte[] bytes = writer.ToBytes(document, format, out EmailWriteResult result);
-        using EmailReadResult read = new EmailDocumentReader().Read(bytes);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(bytes);
         Assert.False(result.HasErrors);
         Assert.DoesNotContain(read.Document.Headers, header => header.Name == "DKIM-Signature" || header.Name == "Content-MD5");
         Assert.Contains(read.Document.Headers, header => header.Name == "Received");

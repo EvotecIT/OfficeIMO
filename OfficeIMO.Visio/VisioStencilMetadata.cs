@@ -458,8 +458,8 @@ namespace OfficeIMO.Visio {
             foreach (VisioStencilConnectionPoint point in stencil.SourceConnectionPoints) {
                 double baseWidth = point.SourceWidth ?? GetDefaultSizeInInches(stencil.DefaultWidth, stencil.DefaultUnit);
                 double baseHeight = point.SourceHeight ?? GetDefaultSizeInInches(stencil.DefaultHeight, stencil.DefaultUnit);
-                double scaleX = baseWidth > 0 ? shape.Width / baseWidth : 1D;
-                double scaleY = baseHeight > 0 ? shape.Height / baseHeight : 1D;
+                double scaleX = baseWidth > 0 ? shape.WidthInches / baseWidth : 1D;
+                double scaleY = baseHeight > 0 ? shape.HeightInches / baseHeight : 1D;
                 shape.ConnectionPoints.Add(new VisioConnectionPoint(point.X * scaleX, point.Y * scaleY, point.DirX, point.DirY) {
                     SectionIndex = point.SectionIndex
                 });

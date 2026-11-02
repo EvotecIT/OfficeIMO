@@ -182,10 +182,10 @@ public static class VisioDocumentModelExtensions {
                         "shape",
                         shape.Id,
                         new OfficeDocumentModelRegion {
-                            X = InchesToPoints(shape.PinX - (shape.Width / 2D)),
-                            Y = InchesToPoints(shape.PinY - (shape.Height / 2D)),
-                            Width = InchesToPoints(shape.Width),
-                            Height = InchesToPoints(shape.Height)
+                            X = InchesToPoints(shape.PinXInches - (shape.WidthInches / 2D)),
+                            Y = InchesToPoints(shape.PinYInches - (shape.HeightInches / 2D)),
+                            Width = InchesToPoints(shape.WidthInches),
+                            Height = InchesToPoints(shape.HeightInches)
                         });
                 }
             }

@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Rtf;
 public sealed class RtfNormalizationReportTests {
     [Fact]
     public void Source_Omissions_Remain_Observable_After_Appending_The_Read_Model() {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi{\*\vendorpayload Hidden}Visible\par}").Document;
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi{\*\vendorpayload Hidden}Visible\par}").Document;
         RtfDocument destination = RtfDocument.Create();
         RtfDocumentMergeResult merged = destination.AppendDocument(source);
         Assert.Contains(merged.Report.NativeDiagnostics, item => item.Feature == "vendorpayload" && item.Action == RtfConversionAction.Omitted);
@@ -16,9 +16,9 @@ public sealed class RtfNormalizationReportTests {
 
     [Fact]
     public void Normalization_Reports_Read_Policy_Blocks_And_Invalidated_Alternate_Html() {
-        RtfReadResult blocked = RtfDocument.Read(@"{\rtf1\ansi{\*\filetbl{\file\fid0 path}}Visible\par}", RtfReadOptions.UntrustedDefaults);
+        RtfReadResult blocked = RtfDocument.ParseResult(@"{\rtf1\ansi{\*\filetbl{\file\fid0 path}}Visible\par}", RtfReadOptions.UntrustedDefaults);
         Assert.Contains(blocked.Document.ToRtfResult().Report.NativeDiagnostics, item => item.Code == "RTF106" && item.Action == RtfConversionAction.Blocked);
-        RtfDocument html = RtfDocument.Read(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original HTML</p>}\htmlrtf1 Original fallback\par}").Document;
+        RtfDocument html = RtfDocument.ParseResult(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original HTML</p>}\htmlrtf1 Original fallback\par}").Document;
         Assert.DoesNotContain(html.ToRtfResult().Report.Diagnostics, item => item.Code == "RtfNormalizationHtmlOmitted");
         html.Paragraphs[0].Runs[0].Text = "Edited";
         Assert.Contains(html.ToRtfResult().Report.NativeDiagnostics, item => item.Code == "RtfNormalizationHtmlOmitted" && item.Action == RtfConversionAction.Omitted);
@@ -29,12 +29,12 @@ public sealed class RtfNormalizationReportTests {
     [InlineData(true)]
     public void Normalization_Reports_Unbound_Source_Content_Even_When_Read_Warnings_Are_Disabled(bool warn) {
         const string source = @"{\rtf1\ansi{\*\vendorpayload Secret metadata}\pard Visible\par}";
-        RtfReadResult read = RtfDocument.Read(source, new RtfReadOptions { WarnOnUnsupportedDestinations = warn });
+        RtfReadResult read = RtfDocument.ParseResult(source, new RtfReadOptions { WarnOnUnsupportedDestinations = warn });
         Assert.Equal(source, read.ToRtfLossless());
         RtfConversionResult<string> output = read.Document.ToRtfResult();
         Assert.Contains(output.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == "vendorpayload" && diagnostic.Action == RtfConversionAction.Omitted);
         Assert.Throws<RtfConversionLossException>(() => output.ThrowIfLoss());
-        Assert.Equal("Visible", RtfDocument.Read(output.Value).Document.Paragraphs[0].ToPlainText());
+        Assert.Equal("Visible", RtfDocument.ParseResult(output.Value).Document.Paragraphs[0].ToPlainText());
         Assert.DoesNotContain("vendorpayload", output.Value, StringComparison.Ordinal);
         RtfConversionResult<string> cloned = read.Document.Clone().ToRtfResult();
         Assert.Equal(output.Report.Diagnostics.Select(item => item.Code), cloned.Report.Diagnostics.Select(item => item.Code));
@@ -50,6 +50,6 @@ public sealed class RtfNormalizationReportTests {
         var second = document.ToRtfResult();
         second.ThrowIfLoss();
         Assert.False(second.HasLoss);
-        Assert.Equal("First", RtfDocument.Read(second.Value).Document.Paragraphs[0].ToPlainText());
+        Assert.Equal("First", RtfDocument.ParseResult(second.Value).Document.Paragraphs[0].ToPlainText());
     }
 }

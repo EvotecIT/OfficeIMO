@@ -8,7 +8,7 @@ public class RtfLosslessEditorPageBordersTests {
     public void SetPageBorders_Replaces_Duplicates_And_Preserves_Metadata_And_Body() {
         const string rtf = @"{\rtf1\ansi\pgbrdrhead\pgbrdrfoot\pgbrdropt34\pgbrdrsnap\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf1\pgbrdrt\brdrdb\brdrw18\pgbrdrb\brdrdot\brsp20{\info{\title Keep}}\pard Body \'80\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetPageBorderOptions(
             includeHeader: false,
             includeFooter: true,
@@ -50,7 +50,7 @@ public class RtfLosslessEditorPageBordersTests {
     public void SetPageBorders_Creates_And_Removes_Options_And_Sides_Before_Metadata() {
         const string rtf = @"{\rtf1\ansi{\info{\title Keep}}\pard Body\par}";
 
-        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        RtfLosslessEditor editor = RtfDocument.ParseResult(rtf).EditLossless();
         editor.SetPageBorderOptions(
             includeHeader: true,
             includeFooter: true,

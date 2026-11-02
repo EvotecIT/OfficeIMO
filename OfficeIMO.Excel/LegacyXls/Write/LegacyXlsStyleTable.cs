@@ -79,8 +79,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         internal static LegacyXlsStyleTable CreateDirectTabular(
             ExcelDocument document,
-            LegacyXlsFontTable fontTable) =>
-            Create(document, Array.Empty<ExcelSheet>(), fontTable);
+            LegacyXlsFontTable fontTable,
+            uint? dateStyleIndex = null) =>
+            Create(document, Array.Empty<ExcelSheet>(), fontTable,
+                dateStyleIndex.HasValue ? new[] { 0U, dateStyleIndex.Value } : null);
 
         internal ushort GetBiffStyleIndex(uint? openXmlStyleIndex) {
             uint index = openXmlStyleIndex ?? 0U;

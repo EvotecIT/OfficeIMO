@@ -29,7 +29,7 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Applies a reusable shape style.</summary>
         /// <param name="style">Shape style to apply.</param>
-        public VisioFluentShape Style(VisioShapeStyle style) { _s.ApplyStyle(style); return this; }
+        public VisioFluentShape ApplyStyle(VisioShapeStyle style) { _s.ApplyStyle(style); return this; }
 
         /// <summary>Sets the whole-shape text color.</summary>
         public VisioFluentShape TextColor(Color color) { EnsureTextStyle().Color = color; return this; }

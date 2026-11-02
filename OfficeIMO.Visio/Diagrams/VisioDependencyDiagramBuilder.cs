@@ -303,7 +303,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AssignLayers();
             SizePageForLayout();
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
             AddNodes(page);
             AddDependencies(page);
@@ -376,7 +376,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -426,9 +426,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }
@@ -445,10 +445,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
             double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
-            bool overflows = bounds.Left < horizontalMargin ||
-                             bounds.Bottom < verticalMargin ||
-                             bounds.Right > page.Width - horizontalMargin ||
-                             bounds.Top > page.Height - verticalMargin;
+            bool overflows = bounds.LeftInches < horizontalMargin ||
+                             bounds.BottomInches < verticalMargin ||
+                             bounds.RightInches > page.WidthInches - horizontalMargin ||
+                             bounds.TopInches > page.HeightInches - verticalMargin;
             if (overflows) {
                 page.FitToContent(horizontalMargin, verticalMargin);
             }
@@ -527,14 +527,14 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {
-            if (Math.Abs(from.PinX - to.PinX) >= Math.Abs(from.PinY - to.PinY)) {
-                bool toRight = to.PinX >= from.PinX;
+            if (Math.Abs(from.PinXInches - to.PinXInches) >= Math.Abs(from.PinYInches - to.PinYInches)) {
+                bool toRight = to.PinXInches >= from.PinXInches;
                 fromSide = toRight ? VisioSide.Right : VisioSide.Left;
                 toSide = toRight ? VisioSide.Left : VisioSide.Right;
                 return;
             }
 
-            bool toAbove = to.PinY >= from.PinY;
+            bool toAbove = to.PinYInches >= from.PinYInches;
             fromSide = toAbove ? VisioSide.Top : VisioSide.Bottom;
             toSide = toAbove ? VisioSide.Bottom : VisioSide.Top;
         }

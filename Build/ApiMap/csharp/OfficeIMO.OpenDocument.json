@@ -2,6 +2,16 @@
   "package": "OfficeIMO.OpenDocument",
   "changes": [
     {
+      "old": "OdfDocument.ValidatePackageSignatures(path, provider, options)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OdfDocument.ValidateSignatures(path, provider, options)",
+      "replacement": "SignPackage and TrySignPackage retain their existing provider and format-specific evidence contracts.",
+      "category": "naming",
+      "reason": "Package signature operations use the same stems; VBA and PDF external-signature workflows remain explicit.",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.OpenDocument.OdfDocument.Metadata",
       "kind": "property",
       "action": "rename",

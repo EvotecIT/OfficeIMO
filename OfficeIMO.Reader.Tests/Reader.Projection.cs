@@ -46,7 +46,7 @@ public sealed class ReaderProjectionTests {
         if (route == "async") {
             await Assert.ThrowsAsync<NotSupportedException>(() => reader.ReadDocumentAsync(input, "source.guard", Lean()));
         } else if (route == "incremental") {
-            Assert.Throws<NotSupportedException>(() => reader.EnumerateChunks(input, "source.guard", Lean()).ToArray());
+            Assert.Throws<NotSupportedException>(() => reader.Enumerate(input, "source.guard", Lean()).ToArray());
         } else {
             Assert.Throws<NotSupportedException>(() => reader.ReadDocument(input, "source.guard", Lean()));
         }
@@ -77,7 +77,7 @@ public sealed class ReaderProjectionTests {
         options.OpenXmlMaxPartUncompressedBytes = 1024;
         options.OpenXmlMaxTotalUncompressedBytes = 4096;
         using var input = new MemoryStream(Encoding.UTF8.GetBytes("content"));
-        var chunks = reader.EnumerateChunks(input, "source.snapshot", options);
+        var chunks = reader.Enumerate(input, "source.snapshot", options);
         options.Projection = ReaderProjection.Full;
         options.OpenXmlMaxPartUncompressedBytes = null;
         options.OpenXmlMaxTotalUncompressedBytes = null;

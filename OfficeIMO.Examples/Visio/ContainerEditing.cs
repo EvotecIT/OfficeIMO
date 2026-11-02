@@ -11,11 +11,11 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Container Editing.vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Application Containers", 11, 8.5);
+            VisioPage page = document.AddPage("Application Containers", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape api = page.AddStencilShape(VisioStencils.Network.Get("server"), "api", 3, 5.5, "API");
-            VisioShape worker = page.AddStencilShape(VisioStencils.Network.Get("server"), "worker", 6, 5.5, "Worker");
-            VisioShape queue = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "queue", 4.5, 3.6, "Queue");
+            VisioShape api = page.AddStencilShape(VisioStencils.Network.Get("server"), "api", OfficeLength.Inches(3), OfficeLength.Inches(5.5), "API");
+            VisioShape worker = page.AddStencilShape(VisioStencils.Network.Get("server"), "worker", OfficeLength.Inches(6), OfficeLength.Inches(5.5), "Worker");
+            VisioShape queue = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "queue", OfficeLength.Inches(4.5), OfficeLength.Inches(3.6), "Queue");
 
             page.AddConnector(api, queue, ConnectorKind.Dynamic, VisioSide.Bottom, VisioSide.Top).Label = "publish";
             page.AddConnector(queue, worker, ConnectorKind.Dynamic, VisioSide.Top, VisioSide.Bottom).Label = "consume";

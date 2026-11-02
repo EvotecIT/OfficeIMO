@@ -14,7 +14,7 @@ public sealed class MsgKitExampleCompatibilityTests {
             conversionLossPolicy: EmailConversionLossPolicy.Warn));
 
         foreach (MsgKitArtifact artifact in artifacts) {
-            EmailReadResult source = reader.Read(artifact.Bytes);
+            EmailReadResult source = reader.ReadDocument(artifact.Bytes);
             Assert.DoesNotContain(source.Diagnostics,
                 diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
             Assert.Equal(artifact.Kind, source.Document.OutlookItemKind);
@@ -24,7 +24,7 @@ public sealed class MsgKitExampleCompatibilityTests {
                 EmailFileFormat.OutlookMsg, EmailFileFormat.Eml, EmailFileFormat.Tnef
             }) {
                 byte[] rewritten = writer.ToBytes(source.Document, format);
-                EmailReadResult reopened = reader.Read(rewritten);
+                EmailReadResult reopened = reader.ReadDocument(rewritten);
                 Assert.DoesNotContain(reopened.Diagnostics,
                     diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
                 Assert.Equal(format, reopened.Document.Format);

@@ -48,17 +48,17 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             Assert.Equal("OfficeIMO Page Background", fill.NameU);
             Assert.True(fill.IsBackgroundSurface);
             Assert.Equal(expectedFill, fill.FillColor.ToString(), ignoreCase: true);
-            Assert.Equal(page.Width, fill.Width, 6);
-            Assert.Equal(page.Height, fill.Height, 6);
-            Assert.Equal(page.Width / 2, fill.PinX, 6);
-            Assert.Equal(page.Height / 2, fill.PinY, 6);
+            Assert.Equal(page.Width.ToInches(), fill.Width.ToInches(), 6);
+            Assert.Equal(page.Height.ToInches(), fill.Height.ToInches(), 6);
+            Assert.Equal(page.Width.ToInches() / 2, fill.PinX.ToInches(), 6);
+            Assert.Equal(page.Height.ToInches() / 2, fill.PinY.ToInches(), 6);
             Assert.Equal(0, fill.LinePattern);
             Assert.True(fill.Protection.LockSelect);
             foreach (var source in envelope.Nodes) {
                 var shape = page.Shapes.Single(item => item.Id == source.Id);
                 Assert.Equal(source.Label, shape.Text);
-                Assert.Equal((source.X!.Value + source.Width!.Value / 2) / 100, shape.PinX, 6);
-                Assert.Equal(source.Width.Value / 100, shape.Width, 6);
+                Assert.Equal((source.X!.Value + source.Width!.Value / 2) / 100, shape.PinX.ToInches(), 6);
+                Assert.Equal(source.Width.Value / 100, shape.Width.ToInches(), 6);
                 Assert.NotEqual(true, shape.Protection.LockSelect);
             }
             var connector = Assert.Single(page.Connectors);
@@ -67,8 +67,8 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             Assert.Equal(expectedFill, connector.TextStyle!.BackgroundColor!.Value.ToString(), ignoreCase: true);
             Assert.Equal(VisioConnectorRerouteBehavior.Never, connector.RerouteBehavior);
             Assert.All(connector.Waypoints, point => {
-                Assert.InRange(point.X, 0D, page.Width);
-                Assert.InRange(point.Y, 0D, page.Height);
+                Assert.InRange(point.X, 0D, page.Width.ToInches());
+                Assert.InRange(point.Y, 0D, page.Height.ToInches());
             });
             XNamespace ns = "http://www.w3.org/2000/svg";
             var svg = XDocument.Parse(page.ToSvg());

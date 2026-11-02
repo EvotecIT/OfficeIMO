@@ -34,27 +34,27 @@ namespace OfficeIMO.Tests {
                 void Check(VisioPage page) {
                     VisioShape title = page.Shapes.Single(shape => shape.Id == "title");
                     Assert.Equal(text, title.Text);
-                    Assert.True(title.Height > 2D * 22D / 72D);
-                    Assert.Equal(5.45D, title.Width, 6);
+                    Assert.True(title.Height.ToInches() > 2D * 22D / 72D);
+                    Assert.Equal(5.45D, title.Width.ToInches(), 6);
                     Assert.Equal("Arial", title.TextStyle!.FontFamily);
                     Assert.Equal(22D, title.TextStyle.Size!.Value, 6);
                     Assert.True(title.TextStyle.Bold);
                     Assert.Equal(0.04D, title.TextStyle.TopMargin!.Value, 6);
                     Assert.Equal(0.04D, title.TextStyle.BottomMargin!.Value, 6);
                     var bounds = title.GetShapeBounds();
-                    Assert.True(bounds.Top <= page.Height);
-                    Assert.True(bounds.Bottom >= 0);
+                    Assert.True(bounds.Top.ToInches() <= page.Height.ToInches());
+                    Assert.True(bounds.Bottom.ToInches() >= 0);
                     Assert.All(page.Shapes.Where(shape => shape.Id == "api" || shape.Id == "database"),
-                        shape => Assert.True(bounds.Bottom >= shape.GetShapeBounds().Top + 0.08D - 0.000001D));
+                        shape => Assert.True(bounds.Bottom.ToInches() >= shape.GetShapeBounds().Top.ToInches() + 0.08D - 0.000001D));
                 }
 
                 Check(document.Pages[0]);
-                double height = document.Pages[0].Shapes.Single(shape => shape.Id == "title").Height;
+                double height = document.Pages[0].Shapes.Single(shape => shape.Id == "title").Height.ToInches();
                 document.Save();
                 Assert.Empty(VisioValidator.Validate(path));
                 VisioPage loaded = VisioDocument.Load(path).Pages[0];
                 Check(loaded);
-                Assert.Equal(height, loaded.Shapes.Single(shape => shape.Id == "title").Height, 6);
+                Assert.Equal(height, loaded.Shapes.Single(shape => shape.Id == "title").Height.ToInches(), 6);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }

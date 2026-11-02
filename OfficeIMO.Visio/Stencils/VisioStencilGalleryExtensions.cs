@@ -49,16 +49,16 @@ namespace OfficeIMO.Visio.Stencils {
                                     + (rows * effectiveOptions.CellHeight)
                                     + Math.Max(0, rows - 1) * effectiveOptions.RowGap;
             if (effectiveOptions.AutoResizePage) {
-                page.Width = Math.Max(page.Width, requiredWidth);
-                page.Height = Math.Max(page.Height, requiredHeight);
+                page.WidthInches = Math.Max(page.WidthInches, requiredWidth);
+                page.HeightInches = Math.Max(page.HeightInches, requiredHeight);
             }
 
             string title = string.IsNullOrWhiteSpace(effectiveOptions.Title) ? catalog.Name : effectiveOptions.Title!;
-            VisioShape titleShape = page.AddTextBox(
+            VisioShape titleShape = page.AddTextBoxInches(
                 ReserveId(reservedIds, effectiveOptions.IdPrefix, "title"),
-                page.Width / 2D,
-                page.Height - effectiveOptions.Top - (titleHeight / 2D),
-                Math.Max(1D, page.Width - (effectiveOptions.Left * 2D)),
+                page.WidthInches / 2D,
+                page.HeightInches - effectiveOptions.Top - (titleHeight / 2D),
+                Math.Max(1D, page.WidthInches - (effectiveOptions.Left * 2D)),
                 titleHeight,
                 title,
                 VisioMeasurementUnit.Inches);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Visio.Stencils {
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
 
-            double gridTop = page.Height - effectiveOptions.Top - titleHeight - titleGap;
+            double gridTop = page.HeightInches - effectiveOptions.Top - titleHeight - titleGap;
             List<VisioShape> placed = new();
             for (int i = 0; i < stencils.Count; i++) {
                 VisioStencilShape stencil = stencils[i];
@@ -100,7 +100,7 @@ namespace OfficeIMO.Visio.Stencils {
 
                 FitStencil(stencil, effectiveOptions, out double iconWidth, out double iconHeight);
                 double iconY = cellTop - 0.44D;
-                VisioShape icon = page.AddStencilShape(
+                VisioShape icon = page.AddStencilShapeInches(
                     stencil,
                     ReserveId(reservedIds, itemPrefix, "shape"),
                     centerX,
@@ -173,7 +173,7 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         private static void AddLabel(VisioPage page, string id, double x, double y, double width, double height, string text, double size, bool bold, OfficeColor color) {
-            VisioShape label = page.AddTextBox(id, x, y, width, height, text, VisioMeasurementUnit.Inches);
+            VisioShape label = page.AddTextBoxInches(id, x, y, width, height, text, VisioMeasurementUnit.Inches);
             VisioSemanticUserCells.MarkGeneratedAdornment(label);
             label.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",

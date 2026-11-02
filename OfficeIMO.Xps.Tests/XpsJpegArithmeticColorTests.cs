@@ -26,7 +26,7 @@ public sealed class XpsJpegArithmeticColorTests {
             markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource",
                 "{ColorConvertedBitmap " + source + " " + profileUri + "}");
             page.ReplaceMarkup(markup);
-            var loaded = XpsDocument.Load(document.Save()); page = loaded.Pages[0];
+            var loaded = XpsDocument.Load(document.ToBytes()); page = loaded.Pages[0];
             var svg = page.ToSvg(); Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));
             var images = new[] {

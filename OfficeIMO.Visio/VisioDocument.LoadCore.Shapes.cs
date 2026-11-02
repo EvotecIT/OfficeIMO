@@ -70,30 +70,30 @@ namespace OfficeIMO.Visio {
                 string? v = cell.Attribute("V")?.Value;
                 switch (n) {
                     case "PinX":
-                        shape.PinX = ParseDouble(v);
+                        shape.PinXInches = ParseDouble(v);
                         pinXFound = true;
                         break;
                     case "PinY":
-                        shape.PinY = ParseDouble(v);
+                        shape.PinYInches = ParseDouble(v);
                         pinYFound = true;
                         break;
                     case "Width":
-                        shape.Width = ParseDouble(v);
+                        shape.WidthInches = ParseDouble(v);
                         widthFound = true;
                         shape.HasExplicitWidth = true;
                         break;
                     case "Height":
-                        shape.Height = ParseDouble(v);
+                        shape.HeightInches = ParseDouble(v);
                         heightFound = true;
                         shape.HasExplicitHeight = true;
                         break;
                     case "LocPinX":
-                        shape.LocPinX = ParseDouble(v);
+                        shape.LocPinXInches = ParseDouble(v);
                         locPinXFound = true;
                         shape.HasExplicitLocPinX = true;
                         break;
                     case "LocPinY":
-                        shape.LocPinY = ParseDouble(v);
+                        shape.LocPinYInches = ParseDouble(v);
                         locPinYFound = true;
                         shape.HasExplicitLocPinY = true;
                         break;
@@ -234,21 +234,21 @@ namespace OfficeIMO.Visio {
                 if (!pinXFound) {
                     XElement? pinX = xform.Element(ns + "PinX");
                     if (pinX != null) {
-                        shape.PinX = ParseDouble(pinX.Value);
+                        shape.PinXInches = ParseDouble(pinX.Value);
                         pinXFound = true;
                     }
                 }
                 if (!pinYFound) {
                     XElement? pinY = xform.Element(ns + "PinY");
                     if (pinY != null) {
-                        shape.PinY = ParseDouble(pinY.Value);
+                        shape.PinYInches = ParseDouble(pinY.Value);
                         pinYFound = true;
                     }
                 }
                 if (!widthFound) {
                     XElement? width = xform.Element(ns + "Width");
                     if (width != null) {
-                        shape.Width = ParseDouble(width.Value);
+                        shape.WidthInches = ParseDouble(width.Value);
                         widthFound = true;
                         shape.HasExplicitWidth = true;
                     }
@@ -256,7 +256,7 @@ namespace OfficeIMO.Visio {
                 if (!heightFound) {
                     XElement? height = xform.Element(ns + "Height");
                     if (height != null) {
-                        shape.Height = ParseDouble(height.Value);
+                        shape.HeightInches = ParseDouble(height.Value);
                         heightFound = true;
                         shape.HasExplicitHeight = true;
                     }
@@ -264,7 +264,7 @@ namespace OfficeIMO.Visio {
                 if (!locPinXFound) {
                     XElement? locPinX = xform.Element(ns + "LocPinX");
                     if (locPinX != null) {
-                        shape.LocPinX = ParseDouble(locPinX.Value);
+                        shape.LocPinXInches = ParseDouble(locPinX.Value);
                         locPinXFound = true;
                         shape.HasExplicitLocPinX = true;
                     }
@@ -272,7 +272,7 @@ namespace OfficeIMO.Visio {
                 if (!locPinYFound) {
                     XElement? locPinY = xform.Element(ns + "LocPinY");
                     if (locPinY != null) {
-                        shape.LocPinY = ParseDouble(locPinY.Value);
+                        shape.LocPinYInches = ParseDouble(locPinY.Value);
                         locPinYFound = true;
                         shape.HasExplicitLocPinY = true;
                     }
@@ -287,10 +287,10 @@ namespace OfficeIMO.Visio {
             }
 
             if (!locPinXFound) {
-                shape.LocPinX = shape.Width / 2;
+                shape.LocPinXInches = shape.WidthInches / 2;
             }
             if (!locPinYFound) {
-                shape.LocPinY = shape.Height / 2;
+                shape.LocPinYInches = shape.HeightInches / 2;
             }
             shape.HasExplicitLocPinX = locPinXFound;
             shape.HasExplicitLocPinY = locPinYFound;

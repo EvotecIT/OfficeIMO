@@ -42,7 +42,7 @@ public class VisioLegacyXmlTests {
 
     [Fact]
     public void ReportsOmissionsAndLeavesDestinationUntouchedUntilExplicitlyAccepted() {
-        VisioDocument document = VisioDocument.Create(); document.AddPage("Page", 10, 7);
+        VisioDocument document = VisioDocument.Create(); document.AddPage("Page", OfficeLength.Inches(10), OfficeLength.Inches(7));
         using var target = new MemoryStream(new byte[100], writable: true);
         byte[] before = target.ToArray();
         Assert.Throws<OfficeConversionException>(() => document.SaveLegacyXml(target));
@@ -55,11 +55,11 @@ public class VisioLegacyXmlTests {
     [InlineData(VisioPackageType.Stencil)]
     public void CreatesEditsAndConvertsLegacyFamilies(VisioPackageType family) {
         VisioDocument document = VisioDocument.Create(family);
-        if (family == VisioPackageType.Stencil) document.RegisterMaster("Box", new VisioShape("1", 2, 2, 2, 1, "Reusable"));
+        if (family == VisioPackageType.Stencil) document.RegisterMaster("Box", new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Reusable"));
         else {
-            VisioPage page = document.AddPage("Workflow", 10, 7);
-            var start = new VisioShape("1", 2, 2, 2, 1, "Start");
-            var end = new VisioShape("2", 6, 2, 2, 1, "End");
+            VisioPage page = document.AddPage("Workflow", OfficeLength.Inches(10), OfficeLength.Inches(7));
+            var start = new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start");
+            var end = new VisioShape("2", OfficeLength.Inches(6), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "End");
             page.Shapes.Add(start); page.Shapes.Add(end);
             page.Connectors.Add(new VisioConnector(start, end));
         }

@@ -19,7 +19,7 @@ public sealed class XpsTiffPackedTests {
             var document = XpsDocument.Create(format);
             string resource = document.AddResource("Images/packed.tif", File.ReadAllBytes(Path.Combine(corpus, fields[0])), "image/tiff");
             document.AddPage(57, 51).AddImage(resource, 0, 0, 57, 51);
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg.Svg), out var drawing));

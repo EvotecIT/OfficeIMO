@@ -21,7 +21,7 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
 
     [Fact]
     public void AppendReportsInvalidationOfCurrentDestinationAlternateHtml() {
-        RtfDocument destination = RtfDocument.Read(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original</p>}\htmlrtf1 Original\par}").Document;
+        RtfDocument destination = RtfDocument.ParseResult(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original</p>}\htmlrtf1 Original\par}").Document;
         Assert.True(destination.IsHtmlEncapsulationCurrent);
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("Appended");
@@ -85,7 +85,7 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
 
     [Fact]
     public void FlatteningRootPageSetupAndAlternateHtmlIsExplicitInTheMergeReport() {
-        RtfDocument source = RtfDocument.Read(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Alternate</p>}\htmlrtf1 Body\par}").Document;
+        RtfDocument source = RtfDocument.ParseResult(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Alternate</p>}\htmlrtf1 Body\par}").Document;
         source.PageSetup.MarginLeftTwips = 2880;
         var result = RtfDocument.Create().AppendDocument(source);
         Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == "RtfMergeDocumentPageSetupOmitted" && item.Action == RtfConversionAction.Omitted);

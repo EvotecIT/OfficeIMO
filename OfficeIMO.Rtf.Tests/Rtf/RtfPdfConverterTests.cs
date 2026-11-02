@@ -888,7 +888,7 @@ public class RtfPdfConverterTests {
         Assert.Contains(result.Warnings, warning => warning.Code == "ShapeFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
     }
 
-    private static RtfDocument ParseRtf(string rtf) => RtfDocument.Read(rtf).Document;
+    private static RtfDocument ParseRtf(string rtf) => RtfDocument.ParseResult(rtf).Document;
 
     private static string ExtractPdfContentStreams(byte[] pdf) {
         string raw = Encoding.GetEncoding("ISO-8859-1").GetString(pdf);

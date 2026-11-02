@@ -64,7 +64,7 @@ namespace OfficeIMO.Visio.Stencils {
             int pageIndex = 1;
             foreach (GalleryPageGroup group in groups) {
                 string pageName = MakePageName(group.Title, pageIndex);
-                VisioPage page = document.AddPage(pageName, effectiveOptions.PageWidth, effectiveOptions.PageHeight, effectiveOptions.PageUnit);
+                VisioPage page = document.AddPageInches(pageName, effectiveOptions.PageWidth, effectiveOptions.PageHeight, effectiveOptions.PageUnit);
                 VisioStencilCatalog pageCatalog = new(group.CatalogName, group.Shapes);
                 page.AddStencilGallery(pageCatalog, new VisioStencilGalleryOptions {
                     Title = group.Title,
@@ -86,12 +86,12 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         private static void AddOverviewPage(VisioDocument document, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions options, string title) {
-            VisioPage page = document.AddPage("Stencil Gallery Overview", options.PageWidth, options.PageHeight, options.PageUnit);
+            VisioPage page = document.AddPageInches("Stencil Gallery Overview", options.PageWidth, options.PageHeight, options.PageUnit);
             HashSet<string> usedIds = new(StringComparer.OrdinalIgnoreCase);
-            double contentWidth = Math.Max(1D, page.Width - 1.2D);
-            double centerX = page.Width / 2D;
-            double headingY = Math.Max(0.8D, page.Height - 0.75D);
-            VisioShape heading = page.AddTextBox(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-title")), centerX, headingY, contentWidth, 0.55, title, VisioMeasurementUnit.Inches);
+            double contentWidth = Math.Max(1D, page.WidthInches - 1.2D);
+            double centerX = page.WidthInches / 2D;
+            double headingY = Math.Max(0.8D, page.HeightInches - 0.75D);
+            VisioShape heading = page.AddTextBoxInches(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-title")), centerX, headingY, contentWidth, 0.55, title, VisioMeasurementUnit.Inches);
             VisioSemanticUserCells.MarkGeneratedAdornment(heading);
             heading.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos Display",
@@ -106,7 +106,7 @@ namespace OfficeIMO.Visio.Stencils {
                              " stencils across " +
                              catalog.Categories.Count.ToString(CultureInfo.InvariantCulture) +
                              " categories";
-            VisioShape subtitle = page.AddTextBox(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-summary")), centerX, headingY - 0.55D, contentWidth, 0.35, summary, VisioMeasurementUnit.Inches);
+            VisioShape subtitle = page.AddTextBoxInches(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-summary")), centerX, headingY - 0.55D, contentWidth, 0.35, summary, VisioMeasurementUnit.Inches);
             VisioSemanticUserCells.MarkGeneratedAdornment(subtitle);
             subtitle.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
@@ -130,7 +130,7 @@ namespace OfficeIMO.Visio.Stencils {
                 .GroupBy(shape => shape.Category, StringComparer.OrdinalIgnoreCase)
                 .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
                 .Take(10)) {
-                VisioShape row = page.AddTextBox(
+                VisioShape row = page.AddTextBoxInches(
                     ReserveId(usedIds, MakeId(options.IdPrefix, "overview-category-" + Slug(group.Key))),
                     centerX,
                     y,
@@ -178,7 +178,7 @@ namespace OfficeIMO.Visio.Stencils {
                                 pageIndex.ToString(CultureInfo.InvariantCulture) +
                                 " of " +
                                 pageCount.ToString(CultureInfo.InvariantCulture);
-            VisioShape footer = page.AddTextBox(MakeId(options.IdPrefix, "footer-" + pageIndex.ToString(CultureInfo.InvariantCulture)), page.Width / 2D, 0.28D, page.Width - 1D, 0.22D, footerText, VisioMeasurementUnit.Inches);
+            VisioShape footer = page.AddTextBoxInches(MakeId(options.IdPrefix, "footer-" + pageIndex.ToString(CultureInfo.InvariantCulture)), page.WidthInches / 2D, 0.28D, page.WidthInches - 1D, 0.22D, footerText, VisioMeasurementUnit.Inches);
             VisioSemanticUserCells.MarkGeneratedAdornment(footer);
             footer.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",

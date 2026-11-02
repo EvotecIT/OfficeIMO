@@ -51,7 +51,7 @@ peak, input/output size, source commit, dirty-tree state, and environment.
 ```powershell
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks -- --verify-budgets
 dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks -- --operation OpenEditSave --repeat 5 --corpus-dir .benchmark-artifacts\powerpoint\corpus --json .benchmark-artifacts\powerpoint\officeimo.json
-dotnet run -c Release -f net8.0 --project .\OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -- --operation OpenEditSave --repeat 5 --corpus-dir .benchmark-artifacts\powerpoint\corpus --json .benchmark-artifacts\powerpoint\shapecrawler.json
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.PowerPoint.Benchmarks.ShapeCrawler -- --operation OpenEditSave --repeat 5 --corpus-dir .benchmark-artifacts\powerpoint\corpus --json .benchmark-artifacts\powerpoint\shapecrawler.json
 ```
 
 The Windows and Ubuntu 24.04 evidence is recorded in

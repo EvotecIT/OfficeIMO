@@ -144,7 +144,7 @@ public sealed partial class MhtmlDocument {
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         EmailReadResult result = new EmailDocumentReader(mimeOptions ?? EmailReaderOptions.Default)
-            .Read(path, cancellationToken);
+            .ReadDocument(path, cancellationToken);
         return new MhtmlDocument(result, CreateFileBaseUri(path), htmlOptions);
     }
 
@@ -152,7 +152,7 @@ public sealed partial class MhtmlDocument {
     public static MhtmlDocument Load(Stream stream, EmailReaderOptions? mimeOptions = null,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         EmailReadResult result = new EmailDocumentReader(mimeOptions ?? EmailReaderOptions.Default)
-            .Read(stream, cancellationToken);
+            .ReadDocument(stream, cancellationToken);
         return new MhtmlDocument(result, null, htmlOptions);
     }
 
@@ -161,7 +161,7 @@ public sealed partial class MhtmlDocument {
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         EmailReadResult result = await new EmailDocumentReader(mimeOptions ?? EmailReaderOptions.Default)
-            .ReadAsync(path, cancellationToken).ConfigureAwait(false);
+            .ReadDocumentAsync(path, cancellationToken).ConfigureAwait(false);
         return new MhtmlDocument(result, CreateFileBaseUri(path), htmlOptions);
     }
 
@@ -169,7 +169,7 @@ public sealed partial class MhtmlDocument {
     public static async Task<MhtmlDocument> LoadAsync(Stream stream, EmailReaderOptions? mimeOptions = null,
         HtmlConversionDocumentOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
         EmailReadResult result = await new EmailDocumentReader(mimeOptions ?? EmailReaderOptions.Default)
-            .ReadAsync(stream, cancellationToken).ConfigureAwait(false);
+            .ReadDocumentAsync(stream, cancellationToken).ConfigureAwait(false);
         return new MhtmlDocument(result, null, htmlOptions);
     }
 

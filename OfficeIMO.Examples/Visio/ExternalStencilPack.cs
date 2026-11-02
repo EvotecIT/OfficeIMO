@@ -33,15 +33,15 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("External Stencil Pack", 14, 8.5);
+            VisioPage page = document.AddPage("External Stencil Pack", OfficeLength.Inches(14), OfficeLength.Inches(8.5));
             page.Grid(visible: false, snap: true);
 
-            VisioShape frame = page.AddRectangle(7, 4.25, 13.2, 6.7, string.Empty);
+            VisioShape frame = page.AddRectangle(OfficeLength.Inches(7), OfficeLength.Inches(4.25), OfficeLength.Inches(13.2), OfficeLength.Inches(6.7), string.Empty);
             frame.FillColor = Color.FromRgb(247, 250, 252);
             frame.LineColor = Color.FromRgb(218, 230, 242);
             frame.LineWeight = 0.012;
 
-            VisioShape lane = page.AddRectangle(7, 5.75, 12.4, 2.35, string.Empty);
+            VisioShape lane = page.AddRectangle(OfficeLength.Inches(7), OfficeLength.Inches(5.75), OfficeLength.Inches(12.4), OfficeLength.Inches(2.35), string.Empty);
             lane.FillColor = Color.FromRgb(255, 255, 255);
             lane.LineColor = Color.FromRgb(205, 220, 236);
             lane.LineWeight = 0.01;
@@ -54,9 +54,9 @@ namespace OfficeIMO.Examples.Visio {
                 HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
-            page.AddTextBox("title", 7, 8.0, 12.5, 0.5, "External VSSX stencil pack: real imported masters").TextStyle = titleStyle;
+            page.AddTextBox("title", OfficeLength.Inches(7), OfficeLength.Inches(8.0), OfficeLength.Inches(12.5), OfficeLength.Inches(0.5), "External VSSX stencil pack: real imported masters").TextStyle = titleStyle;
 
-            page.AddTextBox("subtitle", 7, 7.45, 10.8, 0.34, "Microsoft Integration and Azure stencil artwork imported from a .vssx package").TextStyle = new VisioTextStyle {
+            page.AddTextBox("subtitle", OfficeLength.Inches(7), OfficeLength.Inches(7.45), OfficeLength.Inches(10.8), OfficeLength.Inches(0.34), "Microsoft Integration and Azure stencil artwork imported from a .vssx package").TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 11,
                 Color = Color.FromRgb(85, 99, 113),
@@ -70,16 +70,10 @@ namespace OfficeIMO.Examples.Visio {
             for (int i = 0; i < selected.Count && i < x.Length; i++) {
                 VisioStencilShape stencil = selected[i];
                 string id = "ext-" + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                VisioShape shape = page.AddStencilShape(stencil, id, x[i], y[i], string.Empty);
+                VisioShape shape = page.AddStencilShape(stencil, id, OfficeLength.Inches(x[i]), OfficeLength.Inches(y[i]), string.Empty);
                 shapes.Add(shape);
 
-                VisioShape label = page.AddTextBox(
-                    id + "-label",
-                    x[i],
-                    y[i] - Math.Max(0.7, shape.Height / 2D + 0.28),
-                    1.7,
-                    0.42,
-                    stencil.Name);
+                VisioShape label = page.AddTextBox(id + "-label", OfficeLength.Inches(x[i]), OfficeLength.Inches(y[i] - Math.Max(0.7, shape.Height.ToInches() / 2D + 0.28)), OfficeLength.Inches(1.7), OfficeLength.Inches(0.42), stencil.Name);
                 label.TextStyle = new VisioTextStyle {
                     FontFamily = "Aptos",
                     Size = 11,

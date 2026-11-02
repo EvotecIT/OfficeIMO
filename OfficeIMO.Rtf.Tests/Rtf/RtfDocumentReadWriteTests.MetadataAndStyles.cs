@@ -9,7 +9,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Rich_Font_Table_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0\froman\fcharset0\fprq2\cpg1252\fbias0{\*\panose 02020603050405020304}{\*\fname Times New Roman}{\*\fontemb\fttruetype{\*\fontfile\cpg1252 TimesNewRoman.ttf}010203ff} Times New Roman{\*\falt Times};}{\f1\fmodern\fcharset238\fprq1\cpg1250 Consolas;}{\f2\fbidi\fcharset178\fprq0\cpg1256 Arabic Typesetting;}}\pard\f1 Code\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.Fonts,
@@ -52,7 +52,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Default_Font_Id_From_Header() {
         const string rtf = @"{\rtf1\ansi\deff1{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}\pard Default\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(1, result.Document.Settings.DefaultFontId);
@@ -63,7 +63,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Rich_Color_Table_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red68\green114\blue196\caccentone\ctint40;\red237\green125\blue49\caccenttwo\cshade25;\red5\green99\blue193\chyperlink;}\pard\cf1 Accent\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.Colors,
@@ -97,7 +97,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_File_Table_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\filetbl{\file\fid0\frelative18\fvalidntfs C:\\Private\\Resume\\Edu\\File2.docx}{\file\fid1\fosnum42\fvalidmac\fnetwork MacHD:Docs:Linked.doc}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf, RtfReadOptions.CreateCompatibilityProfile());
+        RtfReadResult result = RtfDocument.ParseResult(rtf, RtfReadOptions.CreateCompatibilityProfile());
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.FileReferences,
@@ -121,7 +121,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Xml_Namespace_Table_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\xmlnstbl{\xmlns1 http://schemas.example.test/word;}{\xmlns2 urn:contoso:custom;}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.XmlNamespaces,
@@ -140,7 +140,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Rich_Stylesheet_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\stylesheet{\s1{\*\keycode\shift\ctrl n}\sbasedon0\snext1\slink2\sautoupd\shidden\slocked\spersonal\scompose\sreply\ssemihidden\sunhideused\sqformat\spriority9\styrsid123 Heading 1;}{\*\cs2\additive\slink1 Character Link;}}\pard\s1 Heading\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.Styles,
@@ -182,7 +182,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Stylesheet_Direct_Character_Formatting_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}{\colortbl;\red255\green0\blue0;\red255\green255\blue0;}{\stylesheet{\s1\b\i\ul\fs28\f1\cf1\highlight2 Emphasis;}{\*\cs2\b0\i0\ulnone\cf0 Plain Link;}}\pard\s1 Heading\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.Styles,
@@ -213,7 +213,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Stylesheet_Direct_Paragraph_Formatting_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}{\stylesheet{\s3\pagebb\keepn\keep\noline\hyphpar0\contextualspace\adjustright0\nosnaplinegrid0\widctlpar\outlinelevel2\rtlpar\absw5040\absh-720\phpg\posxc\pvpg\posyt\abslock\absnoovrlp0\nowrap\dxfrtext173\dfrmtxtx240\dfrmtxty360\overlay\dropcapli3\dropcapt2\tqr\tldot\tx2880\li720\ri360\fi-180\sb120\sa240\sbauto1\saauto0\sl360\slmult1\cbpat1\cfpat2\shading5000\bghoriz\brdrt\brdrs\brdrw12\brdrcf1\brdrl\brdrdb\brdrw8\brdrcf2\brdrb\brdrdot\brdrr\brdrdash\qc Paragraph Format;}}\pard\s3 Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfStyle style = Assert.Single(result.Document.Styles);
@@ -278,7 +278,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Table_Stylesheet_Row_And_Cell_Formatting_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\colortbl;\red255\green0\blue0;\red0\green0\blue255;}{\stylesheet{\*\ts9\tsrowd\trgaph120\trrh360\trautofit0\rtlrow\trleft720\trqc\trftsWidth3\trwWidth5000\trcbpat1\trcfpat2\trpat5\trshdng6250\trbgdkhor\trpaddt120\trpaddft3\trpaddl180\trpaddfl3\trspdt20\trspdft3\tabsnoovrlp\tphpg\tpvpara\tposx1440\tposyb\tdfrmtxtLeft80\trbrdrt\brdrs\brdrw12\brdrcf1\clftsWidth3\clwWidth2400\clcbpat1\clcfpat2\clshdng3750\clbgdkhor\clvertalc\cltxlrtbv\clNoWrap\clFitText\clbrdrt\brdrdb\brdrw8\brdrcf2\clpadt60\clpadft3\cellx2400 Table Grid;}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfStyle style = Assert.Single(result.Document.Styles);
@@ -335,7 +335,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_And_Write_Rich_Info_Metadata_Timestamps_And_Statistics() {
         const string rtf = @"{\rtf1\ansi{\info{\title Title}{\subject Subject}{\author Author}{\manager Manager}{\company Company}{\operator Operator}{\category Category}{\keywords one,two}{\doccomm Comment}{\hlinkbase https://example.test/}{\creatim\yr2026\mo6\dy15\hr10\min20\sec30}{\revtim\yr2026\mo6\dy16\hr11\min21\sec31}\edmins42\nofpages7\nofwords120\nofchars600\nofcharsws700\vern123}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
         RtfDocumentInfo info = result.Document.Properties;
 
         Assert.Equal(rtf, result.ToRtfLossless());
@@ -359,7 +359,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(123, info.InternalVersion);
 
         string written = result.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocumentInfo writtenInfo = RtfDocument.Read(written).Document.Properties;
+        RtfDocumentInfo writtenInfo = RtfDocument.ParseResult(written).Document.Properties;
 
         Assert.Contains(@"{\hlinkbase https://example.test/}", written, StringComparison.Ordinal);
         Assert.Contains(@"{\creatim\yr2026\mo6\dy15\hr10\min20\sec30}", written, StringComparison.Ordinal);
@@ -375,7 +375,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Generator_Metadata_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\generator RichEdit 10.0.19041;}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("RichEdit 10.0.19041", result.Document.Properties.Generator);
@@ -386,7 +386,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_User_Properties_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\userprops{\propname Client}\proptype30{\staticval Contoso}{\propname Approved}\proptype11{\staticval 1}{\propname Score}\proptype5{\staticval 98.5}{\propname External}{\linkval Sheet1!A1}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(4, result.Document.UserProperties.Count);
@@ -420,7 +420,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Document_Variables_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\docvar {Client}{Contoso}}{\*\docvar {Region}{EMEA}}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.DocumentVariables,
@@ -439,7 +439,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Run_Revisions_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\revtbl{Alice;}{Bob;}}\pard Base {\revised\revauth0\revdttm123 Inserted\revised0} {\deleted\revauth1 Removed\deleted0}\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Collection(result.Document.RevisionAuthors,
@@ -462,7 +462,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Revision_Save_Id_Table_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\rsidtbl\rsidroot7\rsid15\rsid1024\rsid65535}\pard\pararsid20 Base \charrsid30\insrsid40\delrsid50 Revised\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(7, result.Document.RevisionRootSaveId);
@@ -480,7 +480,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Annotation_Metadata_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Target{\annotation{\*\atnid c1}{\*\atnauthor Alice}{\*\atntime\yr2026\mo1\dy2\hr3\min4\sec5}\chatn\pard Review note\par}\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);

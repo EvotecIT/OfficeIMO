@@ -13,12 +13,12 @@ public class VisioMasterInstancesTests {
     [Fact]
     public void GeneratedMasterChildLinksSurviveLaterInsertionAndReordering() {
         var document = VisioDocument.Create();
-        var root = new VisioShape("root", 1, 1, 2, 2, "");
-        root.Children.Add(new VisioShape("child", 1, 1, 1, 1, "original"));
+        var root = new VisioShape("root", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
+        root.Children.Add(new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "original"));
         var master = document.RegisterMaster("Strings", root);
-        var instance = document.AddPage("Page").AddShape("instance", master, 3, 3, 2, 2);
+        var instance = document.AddPage("Page").AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)));
         string assigned = instance.Children[0].MasterShapeId!;
-        root.Children.Insert(0, new VisioShape(assigned, 1, 1, 1, 1, "inserted"));
+        root.Children.Insert(0, new VisioShape(assigned, OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "inserted"));
         foreach (var loaded in new[] { VisioDocument.Load(new MemoryStream(document.ToBytes())), VisioDocument.LoadLegacyXml(new MemoryStream(document.ToLegacyXmlResult().Value)).Value }) {
             var child = loaded.Pages[0].Shapes[0].Children[0];
             Assert.Equal(assigned, child.MasterShapeId);
@@ -53,7 +53,7 @@ public class VisioMasterInstancesTests {
         var document = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "nxbre-ie3.vsx")).Value;
         var page = document.AddPage("Symbols");
         var master = document.GetMaster("Equivalent");
-        var symbol = page.AddShape("symbol", master, 3, 3, 2, 2);
+        var symbol = page.AddShape("symbol", master, OfficeLength.Inches(3), OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(2));
         Assert.Equal(master.Shape.Text, symbol.Text);
         Assert.Contains("=", page.ToSvg());
         foreach (string? empty in new string?[] { "", null }) {
@@ -69,14 +69,14 @@ public class VisioMasterInstancesTests {
     public void ExplicitZeroLocalPinsSurviveStandaloneAndMasterBackedSaves() {
         var document = VisioDocument.Create();
         var page = document.AddPage("Pins");
-        var master = document.RegisterMaster("Box", new VisioShape("1", 1, 1, 2, 2, ""));
-        page.AddRectangle(1, 1, 2, 2);
-        page.AddShape("master", master, 5, 5, 2, 2);
-        foreach (var shape in page.Shapes) { shape.LocPinX = 0; shape.LocPinY = 0; }
+        var master = document.RegisterMaster("Box", new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), ""));
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
+        page.AddShape("master", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
+        foreach (var shape in page.Shapes) { shape.LocPinX = OfficeLength.Inches(0); shape.LocPinY = OfficeLength.Inches(0); }
         foreach (bool deltasOnly in new[] { true, false }) {
             document.WriteMasterDeltasOnly = deltasOnly;
             foreach (var saved in new[] { VisioDocument.Load(new MemoryStream(document.ToBytes())), VisioDocument.LoadLegacyXml(new MemoryStream(document.ToLegacyXmlResult().Value)).Value }) {
-                Assert.All(saved.Pages[0].Shapes, shape => { Assert.Equal(0, shape.LocPinX); Assert.Equal(0, shape.LocPinY); });
+                Assert.All(saved.Pages[0].Shapes, shape => { Assert.Equal(0, shape.LocPinX.ToInches()); Assert.Equal(0, shape.LocPinY.ToInches()); });
             }
         }
     }
@@ -86,8 +86,8 @@ public class VisioMasterInstancesTests {
     [InlineData(true)]
     public void ImportIntoDocumentWithExistingFontsKeepsBothFontFamilies(bool guardedFont) {
         var stencil = VisioDocument.Create(VisioPackageType.Stencil);
-        var root = new VisioShape("1", 1, 1, 2, 2, "");
-        root.Children.Add(new VisioShape("2", 1, 1, 1, 1, "Imported") { TextStyle = new VisioTextStyle { FontFamily = "Consolas", Size = 12 } });
+        var root = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
+        root.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Imported") { TextStyle = new VisioTextStyle { FontFamily = "Consolas", Size = 12 } });
         stencil.RegisterMaster("Group", root);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
         try {
@@ -105,14 +105,14 @@ public class VisioMasterInstancesTests {
                 xml.Save(output);
             }
             var document = VisioDocument.Create(); var page = document.AddPage("Page");
-            page.AddRectangle(1, 1, 1, 1, "Existing").TextStyle = new VisioTextStyle { FontFamily = "Arial", Size = 12 };
+            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Existing").TextStyle = new VisioTextStyle { FontFamily = "Arial", Size = 12 };
             _ = document.ToBytes();
             document.ImportStencilMasters(path);
             var importedFont = document.GetMaster("Group").RawMasterContentXml!.Descendants().Single(cell => (string?)cell.Attribute("N") == "Font");
             string importedId = (string)importedFont.Attribute("V")!;
             Assert.Equal("1", importedId);
             Assert.Equal(guardedFont ? "GUARD(FONT(\"Consolas\"))" : "FONT(\"Consolas\")", (string?)importedFont.Attribute("F"));
-            var instance = page.AddShape("group", "Group", 4, 4, 2, 2);
+            var instance = page.AddShape("group", "Group", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
             Assert.Equal("Consolas", instance.Children[0].TextStyle!.FontFamily);
             var loaded = VisioDocument.Load(new MemoryStream(document.ToBytes()));
             Assert.Equal("Arial", loaded.Pages[0].Shapes[0].TextStyle!.FontFamily);
@@ -126,14 +126,14 @@ public class VisioMasterInstancesTests {
         const string xml = "<VisioDocument xmlns='http://schemas.microsoft.com/visio/2003/core'><Fonts><FontEntry ID='0' Name='Arial'/></Fonts><Masters><Master ID='1' NameU='Group'><Shapes><Shape ID='7' Type='Group'><XForm><Width>4</Width><Height>2</Height><LocPinX>2</LocPinX><LocPinY>1</LocPinY></XForm><Shapes><Shape ID='8'><XForm><PinX>1</PinX><PinY>0.5</PinY><Width>2</Width><Height>1</Height><LocPinX>1</LocPinX><LocPinY>0.5</LocPinY></XForm><Fill><FillForegnd>#FF0000</FillForegnd></Fill><Char IX='0'><Font>0</Font><Size>0.1666666666666667</Size></Char><Text>Inherited child</Text></Shape></Shapes></Shape></Shapes></Master></Masters><Pages><Page ID='0'><Shapes><Shape ID='10' Master='1' Type='Group'><XForm><PinX>5</PinX><PinY>5</PinY><Width>8</Width><Height>4</Height><LocPinX>4</LocPinX><LocPinY>2</LocPinY></XForm><Shapes><Shape ID='11' MasterShape='8'/></Shapes></Shape></Shapes></Page></Pages></VisioDocument>";
         var document = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml))).Value;
         var child = document.Pages[0].Shapes[0].Children[0];
-        Assert.Equal(2, child.PinX); Assert.Equal(1, child.PinY); Assert.Equal(4, child.Width); Assert.Equal(2, child.Height);
+        Assert.Equal(2, child.PinX.ToInches()); Assert.Equal(1, child.PinY.ToInches()); Assert.Equal(4, child.Width.ToInches()); Assert.Equal(2, child.Height.ToInches());
         Assert.Equal("Inherited child", child.Text);
         Assert.Equal(OfficeIMO.OfficeColor.Red, child.FillColor);
         Assert.Equal("Arial", child.TextStyle!.FontFamily); Assert.Equal(12, child.TextStyle.Size!.Value, 6);
-        child.PinX = 3; child.Text = "edited";
+        child.PinX = OfficeLength.Inches(3); child.Text = "edited";
         foreach (var saved in new[] { VisioDocument.Load(new MemoryStream(document.ToBytes())), VisioDocument.LoadLegacyXml(new MemoryStream(document.ToLegacyXmlResult().Value)).Value }) {
             var reopened = saved.Pages[0].Shapes[0].Children[0];
-            Assert.Equal(3, reopened.PinX); Assert.Equal(4, reopened.Width); Assert.Equal("edited", reopened.Text);
+            Assert.Equal(3, reopened.PinX.ToInches()); Assert.Equal(4, reopened.Width.ToInches()); Assert.Equal("edited", reopened.Text);
             Assert.Equal(OfficeIMO.OfficeColor.Red, reopened.FillColor);
             Assert.Equal("Inherited child", saved.Masters.First().Shape.Children[0].Text);
         }
@@ -153,18 +153,18 @@ public class VisioMasterInstancesTests {
                 document.ImportStencilMasters(package, new[] { "Atom" });
             } finally { File.Delete(package); }
         }
-        var page = document.AddPage("Instances", 12, 10);
+        var page = document.AddPage("Instances", OfficeLength.Inches(12), OfficeLength.Inches(10));
         var master = document.GetMaster("Atom");
-        var first = page.AddShape("first", master, 3, 6, master.Shape.Width * 2, master.Shape.Height * 2);
-        var second = page.AddShape("second", "Atom", 8, 6, master.Shape.Width, master.Shape.Height);
+        var first = page.AddShape("first", master, OfficeLength.Inches(3), OfficeLength.Inches(6), master.Shape.Width * 2, master.Shape.Height * 2);
+        var second = page.AddShape("second", "Atom", OfficeLength.Inches(8), OfficeLength.Inches(6), master.Shape.Width, master.Shape.Height);
         Assert.Equal(2, first.Children.Count);
         Assert.Equal("Group", first.Type);
-        Assert.Equal(master.Shape.Children[0].Width * 2, first.Children[0].Width, 8);
+        Assert.Equal(master.Shape.Children[0].Width.ToInches() * 2, first.Children[0].Width.ToInches(), 8);
         Assert.Equal(master.Shape.Children[0].Text, first.Children[0].Text);
         Assert.Equal(master.Shape.Children[0].FillColor, first.Children[0].FillColor);
         first.Children[0].Text = "Edited relation";
         first.Children[0].SetUserCell("Review", "approved");
-        first.PinX += 1;
+        first.PinX += OfficeLength.Inches(1);
         var connector = page.AddConnector(first, second);
         Assert.NotEqual(first.Children[0].Text, second.Children[0].Text);
         Assert.NotEqual(first.Children[0].Text, master.Shape.Children[0].Text);
@@ -178,12 +178,12 @@ public class VisioMasterInstancesTests {
             Assert.Equal(2, instance.Children.Count);
             Assert.Equal("Edited relation", instance.Children[0].Text);
             Assert.Equal("approved", instance.Children[0].GetUserCellValue("Review"));
-            Assert.Equal(first.Children[0].Width, instance.Children[0].Width, 8);
-            Assert.Equal(first.Children[0].PinX, instance.Children[0].PinX, 8);
+            Assert.Equal(first.Children[0].Width.ToInches(), instance.Children[0].Width.ToInches(), 8);
+            Assert.Equal(first.Children[0].PinX.ToInches(), instance.Children[0].PinX.ToInches(), 8);
             for (int index = 0; index < first.Children.Count; index++) {
-                Assert.Equal(first.Children[index].PinY, instance.Children[index].PinY, 8);
-                Assert.Equal(first.Children[index].LocPinX, instance.Children[index].LocPinX, 8);
-                Assert.Equal(first.Children[index].LocPinY, instance.Children[index].LocPinY, 8);
+                Assert.Equal(first.Children[index].PinY.ToInches(), instance.Children[index].PinY.ToInches(), 8);
+                Assert.Equal(first.Children[index].LocPinX.ToInches(), instance.Children[index].LocPinX.ToInches(), 8);
+                Assert.Equal(first.Children[index].LocPinY.ToInches(), instance.Children[index].LocPinY.ToInches(), 8);
             }
             Assert.NotNull(instance.Children[0].MasterShape);
             Assert.Equal("first", savedPage.Connectors.Single().From?.Id);
@@ -197,14 +197,14 @@ public class VisioMasterInstancesTests {
         var document = VisioDocument.LoadLegacyXml(Path.Combine(AppContext.BaseDirectory, "Fixtures", "LegacyXml", "nxbre-ie3.vsx")).Value;
         var page = document.AddPage("Scaled");
         var master = document.GetMaster("Atom");
-        var instance = page.AddShape("scaled", master, 4, 4, master.Shape.Width * 3, master.Shape.Height * 2);
+        var instance = page.AddShape("scaled", master, OfficeLength.Inches(4), OfficeLength.Inches(4), master.Shape.Width * 3, master.Shape.Height * 2);
         var xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         XNamespace ns = xml.Root!.Name.Namespace;
         var group = xml.Descendants(ns + "Page").Single(p => (string?)p.Attribute("Name") == "Scaled").Element(ns + "Shapes")!.Elements(ns + "Shape").Single();
         var line = group.Element(ns + "Shapes")!.Elements(ns + "Shape").First().Element(ns + "Geom")!.Elements(ns + "LineTo").First();
-        Assert.Equal(instance.Children[0].Width, (double)line.Element(ns + "X")!, 8);
+        Assert.Equal(instance.Children[0].Width.ToInches(), (double)line.Element(ns + "X")!, 8);
         var warning = document.GetMaster("Warning sign");
-        page.AddShape("warning", warning, 5, 5, warning.Shape.Width * 2, warning.Shape.Height * 3);
+        page.AddShape("warning", warning, OfficeLength.Inches(5), OfficeLength.Inches(5), warning.Shape.Width * 2, warning.Shape.Height * 3);
         Assert.Equal(2, page.Shapes.Count);
         Assert.Equal("scaled", page.Shapes[0].Id);
         xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
@@ -214,27 +214,27 @@ public class VisioMasterInstancesTests {
     [Fact]
     public void NestedGroupCreationRemapsLocalFormulaReferencesAndPreservesQuotedText() {
         var document = VisioDocument.Create();
-        var blueprint = new VisioShape("7", 2, 1, 4, 2, "root");
-        var child = new VisioShape("8", 1, .5, 2, 1, "child");
+        var blueprint = new VisioShape("7", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(4), OfficeLength.Inches(2), "root");
+        var child = new VisioShape("8", OfficeLength.Inches(1), OfficeLength.Inches(.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "child");
         child.SetUserCell("WidthCopy", "4", formula: "Sheet.7!Width");
         child.SetUserCell("Literal", "Sheet.7!Width", formula: "\"Sheet.7!Width\"");
-        child.Children.Add(new VisioShape("9", .5, .25, 1, .5, "nested"));
+        child.Children.Add(new VisioShape("9", OfficeLength.Inches(.5), OfficeLength.Inches(.25), OfficeLength.Inches(1), OfficeLength.Inches(.5), "nested"));
         blueprint.Children.Add(child);
         var master = document.RegisterMaster("Nested", blueprint);
         var page = document.AddPage("Page");
-        page.AddRectangle(1, 1, 1, 1, "existing");
-        var first = page.AddShape("instance", master, 5, 5, 8, 4);
+        page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "existing");
+        var first = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)));
         Assert.Single(first.Children);
-        Assert.Equal(4, first.Children[0].Width);
-        Assert.Equal(2, first.Children[0].PinX);
-        Assert.Equal(2, first.Children[0].Children[0].Width);
+        Assert.Equal(4, first.Children[0].Width.ToInches());
+        Assert.Equal(2, first.Children[0].PinX.ToInches());
+        Assert.Equal(2, first.Children[0].Children[0].Width.ToInches());
         var xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         XNamespace ns = xml.Root!.Name.Namespace;
         var root = xml.Descendants(ns + "Page").Descendants(ns + "Shape").Single(s => (string?)s.Element(ns + "Text") == "root");
         string nativeId = (string)root.Attribute("ID")!;
         Assert.Equal("Sheet." + nativeId + "!Width", (string?)root.Descendants(ns + "User").Single(r => (string?)r.Attribute("NameU") == "WidthCopy").Element(ns + "Value")!.Attribute("F"));
         Assert.Equal("\"Sheet.7!Width\"", (string?)root.Descendants(ns + "User").Single(r => (string?)r.Attribute("NameU") == "Literal").Element(ns + "Value")!.Attribute("F"));
-        page.Shapes.Insert(0, new VisioShape(nativeId, 1, 1, 1, 1, "new"));
+        page.Shapes.Insert(0, new VisioShape(nativeId, OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "new"));
         var loaded = VisioDocument.Load(new MemoryStream(document.ToBytes()));
         var instance = loaded.Pages[0].FindShapeById("instance")!;
         Assert.Equal(nativeId, instance.PersistedId);

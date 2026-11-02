@@ -72,7 +72,7 @@ public sealed class ExternalOutlookSmimeCorpusTests {
     private static EmailReadResult Read(string directory, string fileName) {
         string path = Path.Combine(directory, fileName);
         Assert.True(File.Exists(path), "Expected Outlook corpus artifact is missing: " + fileName);
-        EmailReadResult read = new EmailDocumentReader().Read(path);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(path);
         try {
             Assert.DoesNotContain(read.Diagnostics, diagnostic =>
                 diagnostic.Severity == EmailDiagnosticSeverity.Error);

@@ -207,7 +207,7 @@ public sealed class OutlookRecurrenceIcsConverterTests {
         };
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailReadResult read = new EmailDocumentReader().ReadDocument(eml);
         EmailAttachment calendar = Assert.Single(read.Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar",
                 StringComparison.OrdinalIgnoreCase));
@@ -263,7 +263,7 @@ public sealed class OutlookRecurrenceIcsConverterTests {
         };
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(eml).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(eml).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar",
                 StringComparison.OrdinalIgnoreCase));
         IcsDocument ics = IcsDocument.Load(Assert.IsType<byte[]>(calendar.Content));
@@ -304,7 +304,7 @@ public sealed class OutlookRecurrenceIcsConverterTests {
         };
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
-        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(eml).Document.Attachments,
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().ReadDocument(eml).Document.Attachments,
             attachment => string.Equals(attachment.ContentType, "text/calendar",
                 StringComparison.OrdinalIgnoreCase));
         ContentLineComponent todo = Assert.Single(IcsDocument.Load(

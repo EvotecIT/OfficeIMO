@@ -103,7 +103,7 @@ using OfficeIMO.Security;
 IOfficeSecurityProvider security = OfficeSecurityProvider.Default;
 EpubDocument.SignPackage("book.epub", security, signingCertificate);
 OfficeXmlPackageSignatureValidationReport validation =
-    EpubDocument.ValidatePackageSignatures("book.epub", security);
+    EpubDocument.ValidateSignatures("book.epub", security);
 ```
 
 The signed manifest covers every non-carrier ZIP entry. Validation rejects missing, changed, duplicate, and unsigned entries. General producer-specific EPUB signatures and DRM/resource decryption remain outside this API. Recognized IDPF and Adobe font obfuscation is handled separately by the reader.

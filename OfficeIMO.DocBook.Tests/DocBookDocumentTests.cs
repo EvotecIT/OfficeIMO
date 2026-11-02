@@ -1162,7 +1162,7 @@ public sealed class DocBookDocumentTests {
         DocBookDocument document = await DocBookDocument.LoadAsync(input);
         Assert.Equal(3, input.Position);
         using var output = new MemoryStream(new byte[512], writable: true);
-        await document.WriteAsync(output);
+        await document.SaveAsync(output);
         Assert.Equal(0, output.Position);
         Assert.Equal(DocBookProfile.DocBook52, DocBookDocument.Load(output).Profile);
     }
@@ -1174,13 +1174,13 @@ public sealed class DocBookDocumentTests {
         DocBookDocument loaded = DocBookDocument.Load(new MemoryStream(latinBytes));
         Assert.Equal(latinSource, loaded.ToDocBook());
         using var exact = new MemoryStream();
-        loaded.Write(exact);
+        loaded.Save(exact);
         Assert.Equal(latinBytes, exact.ToArray());
 
         const string utf16Declaration = "<?xml version=\"1.0\" encoding=\"utf-16\"?><article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"/>";
         DocBookDocument parsed = DocBookDocument.Parse(utf16Declaration);
         using var output = new MemoryStream();
-        parsed.Write(output);
+        parsed.Save(output);
         string serialized = Encoding.UTF8.GetString(output.ToArray());
         Assert.Contains("encoding=\"utf-8\"", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(DocBookProfile.DocBook52, DocBookDocument.Load(new MemoryStream(output.ToArray())).Profile);

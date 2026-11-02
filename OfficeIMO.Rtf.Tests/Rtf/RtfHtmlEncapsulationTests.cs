@@ -9,7 +9,7 @@ public class RtfHtmlEncapsulationTests {
     public void UntrustedFromHtmlWithHugeUnicodeFallbackReadsWithoutExpandingIt() {
         const string input = @"{\rtf1\ansi\fromhtml1\uc2147483647{\uc0\u233}}";
 
-        RtfDocument document = RtfDocument.Read(input, RtfReadOptions.UntrustedDefaults).Document;
+        RtfDocument document = RtfDocument.ParseResult(input, RtfReadOptions.UntrustedDefaults).Document;
 
         Assert.Equal(int.MaxValue, document.Settings.UnicodeSkipCount);
         Assert.NotNull(document.HtmlEncapsulation);
@@ -23,7 +23,7 @@ public class RtfHtmlEncapsulationTests {
     [InlineData("append")]
     [InlineData("format")]
     public void Semantic_Edits_Invalidate_Original_Html_For_All_Exports(string mutation) {
-        RtfDocument document = RtfDocument.Read(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original HTML</p>}\htmlrtf1 Original fallback\par}").Document;
+        RtfDocument document = RtfDocument.ParseResult(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>Original HTML</p>}\htmlrtf1 Original fallback\par}").Document;
         Assert.True(document.IsHtmlEncapsulationCurrent);
         RtfDocument clone = document.Clone();
         switch (mutation) {
@@ -66,7 +66,7 @@ public class RtfHtmlEncapsulationTests {
     [InlineData(@"{\rtf1\ansi\fromhtml1{\*\htmltag <p>}A & B < C{\*\htmltag </p>}}", "<p>A &amp; B &lt; C</p>")]
     [InlineData(@"{\rtf1\ansi\ansicpg1252\deff0\fromhtml1{\fonttbl{\f0\fcharset0 Arial;}{\f1\fcharset204 Arial;}}{\*\htmltag <p>}\htmlrtf1\f1\htmlrtf0 \'c0{\*\htmltag </p>}}", "<p>А</p>")]
     public void Extract_Uses_Shared_Text_Scoped_Suppression_And_Original_Tag_Content(string input, string expected) {
-        string html = RtfDocument.Read(input).Document.HtmlEncapsulation!.Html;
+        string html = RtfDocument.ParseResult(input).Document.HtmlEncapsulation!.Html;
         // HtmlEncode may choose equivalent numeric references for non-ASCII characters.
         Assert.Equal(System.Net.WebUtility.HtmlDecode(expected), System.Net.WebUtility.HtmlDecode(html));
     }
@@ -75,7 +75,7 @@ public class RtfHtmlEncapsulationTests {
     public void Read_Models_Outlook_Html_Encapsulation_And_Preserves_Lossless_Source() {
         const string rtf = @"{\rtf1\ansi\fromhtml1{\*\htmltag <p><b>Rich</b> message</p>}\htmlrtf1 Plain fallback}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.NotNull(result.Document.HtmlEncapsulation);
         Assert.Equal(1, result.Document.HtmlEncapsulation!.Version);
@@ -86,7 +86,7 @@ public class RtfHtmlEncapsulationTests {
     [Fact]
     public void Html_Conversion_Prefers_Encapsulated_Content_Through_Safe_Importer() {
         const string rtf = @"{\rtf1\ansi\fromhtml1{\*\htmltag <p><b>Rich</b> <a href='javascript:alert(1)'>message</a></p>}\htmlrtf1 Plain fallback}";
-        RtfDocument document = RtfDocument.Read(rtf).Document;
+        RtfDocument document = RtfDocument.ParseResult(rtf).Document;
         var options = new RtfToHtmlOptions();
 
         RtfToHtmlResult result = document.ToHtmlResult(options);
@@ -103,7 +103,7 @@ public class RtfHtmlEncapsulationTests {
     [Fact]
     public void Html_Conversion_Can_Use_Rtf_Fallback_Explicitly() {
         const string rtf = @"{\rtf1\ansi\fromhtml1{\*\htmltag <p><b>Rich</b> message</p>}\htmlrtf1 Plain fallback}";
-        RtfDocument document = RtfDocument.Read(rtf).Document;
+        RtfDocument document = RtfDocument.ParseResult(rtf).Document;
 
         string html = document.ToHtml(new RtfToHtmlOptions { PreferEncapsulatedHtml = false });
 
@@ -119,7 +119,7 @@ public class RtfHtmlEncapsulationTests {
 
         string normalized = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         string withoutHtml = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false, IncludeHtmlEncapsulation = false });
-        RtfDocument roundTrip = RtfDocument.Read(normalized).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(normalized).Document;
 
         Assert.Contains(@"\fromhtml1", normalized, StringComparison.Ordinal);
         Assert.Contains(@"{\*\htmltag ", normalized, StringComparison.Ordinal);

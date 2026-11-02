@@ -33,6 +33,7 @@ public partial class CsvBenchmarks
             throw new InvalidOperationException("Raw CSV input has a different row count.");
 
         ValidateRawReadOutput(nameof(OfficeIMO_ReadDataReaderGetStrings), OfficeIMO_ReadDataReaderGetStrings);
+        ValidateRawReadOutput(nameof(ExcelReaderNet_ReadFields), ExcelReaderNet_ReadFields);
         ValidateRawReadOutput(nameof(CsvHelper_ReadFields), CsvHelper_ReadFields);
         ValidateRawReadOutput(nameof(Sylvan_ReadFields), Sylvan_ReadFields);
         ValidateRawReadOutput(nameof(Sylvan_ReadFieldSpans), Sylvan_ReadFieldSpans);

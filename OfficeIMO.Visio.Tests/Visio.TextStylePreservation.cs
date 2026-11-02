@@ -140,7 +140,7 @@ public sealed class VisioTextStylePreservationTests {
     public void MasterInstanceStyleChangesKeepRemappedFormulasAndDoNotEditTheSource(bool group) {
         var document = Load(false, 7, 4, master: true, group: group, sizeFormula: "GUARD(Sheet.1!Width*6 pt)");
         var master = document.Masters.Single();
-        var instance = document.AddPage("Instance").AddShape("8", master, 3, 3, 2, 1);
+        var instance = document.AddPage("Instance").AddShape("8", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         instance.TextStyle!.Color = OfficeColor.Red;
         var xml = XDocument.Load(new MemoryStream(document.ToLegacyXmlResult().Value));
         XElement shape = xml.Descendants(Legacy + "Pages").Descendants(Legacy + "Shape").Single(e => (string?)e.Attribute("ID") == "8");

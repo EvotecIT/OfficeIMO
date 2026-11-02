@@ -39,7 +39,7 @@ public sealed class ReaderAsciiDocModularTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAsciiDocHandler().Build();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("= Registry\n\nContent\n"), writable: false);
 
-        ReaderChunk[] chunks = reader.Read(stream, "registry.adoc").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(stream, "registry.adoc").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Equal(ReaderInputKind.AsciiDoc, reader.DetectKind("registry.adoc"));

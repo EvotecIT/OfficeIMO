@@ -40,7 +40,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
         byte[] rtf = Encoding.ASCII.GetBytes(rtfResult.Value.ToRtf());
-        RtfReadResult reopenedRtf = RtfDocument.Read(Encoding.ASCII.GetString(rtf));
+        RtfReadResult reopenedRtf = RtfDocument.ParseResult(Encoding.ASCII.GetString(rtf));
 
         HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });

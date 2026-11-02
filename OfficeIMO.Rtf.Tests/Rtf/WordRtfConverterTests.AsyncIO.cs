@@ -48,7 +48,7 @@ public partial class WordRtfConverterTests {
             }
         }
 
-        using WordDocument fromText = RtfDocument.Read(rtf).Document.ToWordDocument();
+        using WordDocument fromText = RtfDocument.ParseResult(rtf).Document.ToWordDocument();
         Assert.Contains("Async clinical ż", string.Concat(fromText.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
         using WordDocument fromBytes = RtfDocument.LoadResult(bytes).Document.ToWordDocument();

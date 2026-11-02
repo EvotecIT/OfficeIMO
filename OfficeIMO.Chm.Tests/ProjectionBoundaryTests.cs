@@ -105,7 +105,7 @@ public sealed class ProjectionBoundaryTests {
         using var stream = new MemoryStream(ChmFixture.Html("<p>Text</p>"));
         Assert.ThrowsAny<OperationCanceledException>(() => {
             if (rich) reader.ReadDocument(stream, "topic.html", cancellationToken: cancelled.Token);
-            else reader.Read(stream, "topic.html", cancellationToken: cancelled.Token).ToArray();
+            else reader.Enumerate(stream, "topic.html", cancellationToken: cancelled.Token).ToArray();
         });
         Assert.Equal(cancelled.Token, parser.ReceivedToken);
     }

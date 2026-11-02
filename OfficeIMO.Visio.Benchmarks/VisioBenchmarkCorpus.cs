@@ -29,17 +29,12 @@ internal static class VisioBenchmarkCorpus {
         document.Properties.Title = $"Benchmark {scale.Name}";
         document.Properties.Author = "OfficeIMO";
         for (int pageIndex = 0; pageIndex < scale.PageCount; pageIndex++) {
-            VisioPage page = document.AddPage($"Page-{pageIndex + 1}", 20, 20);
+            VisioPage page = document.AddPage($"Page-{pageIndex + 1}", OfficeLength.Inches(20), OfficeLength.Inches(20));
             var shapes = new List<VisioShape>(scale.ShapesPerPage);
             for (int shapeIndex = 0; shapeIndex < scale.ShapesPerPage; shapeIndex++) {
                 int column = shapeIndex % 20;
                 int row = shapeIndex / 20;
-                VisioShape shape = page.AddRectangle(
-                    0.75 + column * 0.9,
-                    19.25 - row * 0.9,
-                    0.7,
-                    0.45,
-                    $"P{pageIndex + 1}-S{shapeIndex + 1}");
+                VisioShape shape = page.AddRectangle(OfficeLength.Inches(0.75 + column * 0.9), OfficeLength.Inches(19.25 - row * 0.9), OfficeLength.Inches(0.7), OfficeLength.Inches(0.45), $"P{pageIndex + 1}-S{shapeIndex + 1}");
                 shape.SetShapeData("Index", shapeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 shapes.Add(shape);
                 if (shapeIndex != 0) {

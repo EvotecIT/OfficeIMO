@@ -109,7 +109,7 @@ public class RtfPdfImportTests {
         byte[] pdf = CreateSemanticPdf();
 
         string rtf = LoadSemanticPdf(pdf).ToRtfDocument(CreateImportOptions()).ToRtf();
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
 
         Assert.Contains("Clinical Summary", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");

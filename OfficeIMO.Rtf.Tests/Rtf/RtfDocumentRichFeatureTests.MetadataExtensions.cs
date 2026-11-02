@@ -16,7 +16,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\userprops{\propname Client}\proptype30{\staticval Contoso}{\propname Approved}\proptype11{\staticval 1}{\propname Score}\proptype5{\staticval 98.5}{\propname External}{\linkval Sheet1!A1}}", rtf, StringComparison.Ordinal);
         Assert.Collection(read.Document.UserProperties,
@@ -49,7 +49,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = true });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\generator Contoso RTF Writer;}", rtf, StringComparison.Ordinal);
         Assert.Equal("Contoso RTF Writer", read.Document.Properties.Generator);
@@ -64,7 +64,7 @@ public partial class RtfDocumentRichFeatureTests {
         document.AddParagraph("Body");
 
         string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"{\*\docvar {Client}{Contoso}}{\*\docvar {Region}{EMEA}}", rtf, StringComparison.Ordinal);
         Assert.Collection(read.Document.DocumentVariables,

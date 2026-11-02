@@ -35,8 +35,8 @@ public sealed class IWorkReaderDirectoryBundleTests {
             Assert.Equal(result.Source.SourceHash, chunk.SourceHash);
             Assert.Equal(result.Source.LengthBytes, chunk.SourceLengthBytes);
         });
-        Assert.Equal(result.Chunks.Count, (await reader.ReadAsync(bundle.Path)).Count);
-        Assert.Equal(result.Chunks.Select(chunk => chunk.Text), reader.EnumerateChunks(bundle.Path).Select(chunk => chunk.Text));
+        Assert.Equal(result.Chunks.Count, ((await reader.ReadDocumentAsync(bundle.Path)).Chunks).Count);
+        Assert.Equal(result.Chunks.Select(chunk => chunk.Text), reader.Enumerate(bundle.Path).Select(chunk => chunk.Text));
         Assert.True(Assert.Single(reader.GetCapabilities()).SupportsDirectoryBundle);
         using JsonDocument manifest = JsonDocument.Parse(reader.GetCapabilityManifestJson());
         JsonElement capability = Assert.Single(manifest.RootElement.GetProperty("handlers").EnumerateArray());
@@ -49,7 +49,7 @@ public sealed class IWorkReaderDirectoryBundleTests {
         Assert.Equal(result.Source.SourceHash, reader.ReadDocument(trailing).Source.SourceHash);
         Assert.Equal(result.Source.SourceHash, (await reader.ReadDocumentAsync(trailing)).Source.SourceHash);
         Assert.Equal(ReaderInputKind.IWork, reader.Detect(trailing).Kind);
-        Assert.Equal(result.Chunks.Select(chunk => chunk.Text), reader.EnumerateChunks(trailing).Select(chunk => chunk.Text));
+        Assert.Equal(result.Chunks.Select(chunk => chunk.Text), reader.Enumerate(trailing).Select(chunk => chunk.Text));
         Assert.Equal(new[] { bundle.Path }, reader.EnumerateDocumentPaths(new[] { trailing }).ToArray());
         Assert.Equal(1, reader.ReadFolderDetailed(trailing).FilesParsed);
 
@@ -179,12 +179,12 @@ public sealed class IWorkReaderDirectoryBundleTests {
         using var bundle = new ExtractedBundle("nim-iwork/simple.pages", ".pages");
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         var options = new ReaderOptions { ResourceLimits = new ReaderResourceLimits { MaxChunks = 0 } };
-        Assert.Throws<ReaderResourceLimitException>(() => reader.Read(bundle.Path, options).ToArray());
-        Assert.Throws<ReaderResourceLimitException>(() => reader.EnumerateChunks(bundle.Path, options).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(bundle.Path, options).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.Enumerate(bundle.Path, options).ToArray());
         Assert.Throws<ReaderResourceLimitException>(() => reader.ReadDocument(bundle.Path, options));
         await Assert.ThrowsAsync<ReaderResourceLimitException>(() => reader.ReadDocumentAsync(bundle.Path, options));
         Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolderDetailed(bundle.Root, options: options));
-        Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolderDocuments(bundle.Root, options: options).ToArray());
+        Assert.Throws<ReaderResourceLimitException>(() => reader.EnumerateFolderDocuments(bundle.Root, options: options).ToArray());
         Assert.Throws<ReaderResourceLimitException>(() => reader.ReadPathDocumentsDetailed(bundle.Path, options: options));
         int chunksPerBundle = reader.ReadDocument(bundle.Path).Chunks.Count;
         options.ResourceLimits.MaxChunks = chunksPerBundle;

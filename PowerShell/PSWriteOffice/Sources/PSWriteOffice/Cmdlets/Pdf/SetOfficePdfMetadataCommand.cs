@@ -9,11 +9,11 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <summary>Updates metadata on a generated PDF, an open editing block, or file copies.</summary>
 /// <para>Omitted values retain existing metadata; an empty string clears a value. Incremental appends a native metadata revision. File outputs are atomic; document edits return the updated native document with PassThru.</para>
 /// <example><summary>Set metadata while generating a report.</summary>
-/// <code>New-OfficePdf -Path ./Report.pdf { PdfMetadata -Title 'Service review'; PdfHeading 'Service review' }</code></example>
+/// <code>New-OfficePdf -Path ./Report.pdf { PdfDocumentProperties -Title 'Service review'; PdfHeading 'Service review' }</code></example>
 /// <example><summary>Update a loaded document and save a copy.</summary>
-/// <code>Open-OfficePdf ./Report.pdf -OutputPath ./Reviewed.pdf { PdfMetadata -Title 'Reviewed report' }</code></example>
+/// <code>Open-OfficePdf ./Report.pdf -OutputPath ./Reviewed.pdf { PdfDocumentProperties -Title 'Reviewed report' }</code></example>
 [Cmdlet(VerbsCommon.Set, "OfficePdfMetadata", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
-[Alias("PdfMetadata")]
+[Alias("PdfDocumentProperties")]
 [OutputType(typeof(PdfDocument), typeof(FileInfo))]
 public sealed class SetOfficePdfMetadataCommand : PdfMutationCmdlet {
     /// <summary>Document title; an empty string clears it.</summary>

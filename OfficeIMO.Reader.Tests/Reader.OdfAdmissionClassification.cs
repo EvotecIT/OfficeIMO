@@ -44,7 +44,7 @@ public sealed class ReaderOdfAdmissionClassificationTests {
             async Task Read() {
                 if (route == "direct") reader.ReadDocument(bytes, "source.odp", options);
                 else if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                else reader.ReadFolder(directory, options: options).ToArray();
+                else reader.EnumerateFolder(directory, options: options).ToArray();
             }
             ReaderResourceLimitException error = await Assert.ThrowsAsync<ReaderResourceLimitException>(Read);
             Assert.Equal("opendocument.MaximumDecodedCharacters", error.LimitName); Assert.Equal(maximum, error.Maximum);
@@ -93,12 +93,12 @@ public sealed class ReaderOdfAdmissionClassificationTests {
         try {
             async Task Read() {
                 if (route == "direct") reader.ReadDocument(bytes, "source.odt", options);
-                else if (route == "lazy") reader.Read(bytes, "source.odt", options).ToArray();
+                else if (route == "lazy") reader.Enumerate(bytes, "source.odt", options).ToArray();
                 else if (route.Contains("zip")) reader.ReadDocument(route == "zip" ? Wrap(bytes, "source.odt") : Wrap(Wrap(bytes, "source.odt"), "nested.zip"), "source.zip", options);
                 else {
                     string path = Path.Combine(directory, "source.odt"); File.WriteAllBytes(path, bytes);
                     if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                    else reader.ReadFolder(directory, options: options).ToArray();
+                    else reader.EnumerateFolder(directory, options: options).ToArray();
                 }
             }
             if (kind == "integer") {
@@ -130,7 +130,7 @@ public sealed class ReaderOdfAdmissionClassificationTests {
         var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata };
         ReaderResourceLimitException error = Assert.Throws<ReaderResourceLimitException>(() => {
             if (route == "loaded") document.ReadDocument("source.odt", options, format);
-            else new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(format).Build().Read(document.ToBytes(), "source.odt", options).ToArray();
+            else new OfficeDocumentReaderBuilder().AddOpenDocumentHandler(format).Build().Enumerate(document.ToBytes(), "source.odt", options).ToArray();
         });
         Assert.Equal("OpenDocument.MaxExtractedCharacters", error.LimitName); Assert.Equal(3, error.Maximum); Assert.Equal(3, format.MaxExtractedCharacters);
     }

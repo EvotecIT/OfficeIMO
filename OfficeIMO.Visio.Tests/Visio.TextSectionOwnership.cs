@@ -180,7 +180,7 @@ public sealed class VisioTextSectionOwnershipTests {
         if (connector) {
             page.AddConnector("1", new OfficeIMO.Drawing.OfficePoint(1, 1), new OfficeIMO.Drawing.OfficePoint(3, 1)).Label = "Label";
         } else {
-            page.Shapes.Add(new VisioShape("1", 2, 1, 2, 1, "Label"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Label"));
         }
         VisioTextStyle style = Style(document, connector);
         style.FontFamily = "Arial";

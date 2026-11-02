@@ -2,6 +2,16 @@
   "package": "OfficeIMO.Rtf",
   "changes": [
     {
+      "old": "RtfDocument.Read(string, RtfReadOptions?, CancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "RtfDocument.ParseResult(string, RtfReadOptions?, CancellationToken)",
+      "category": "lifecycle",
+      "replacement": "Use Parse for the model or ParseResult for the model, lossless syntax and diagnostics.",
+      "reason": "One rich text parser preserves the complete evidence payload.",
+      "applied": true
+    },
+    {
       "old": "OfficeIMO.Rtf.RtfReadOptions.CreateUntrustedProfile()",
       "kind": "method",
       "action": "rename",

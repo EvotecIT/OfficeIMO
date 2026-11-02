@@ -43,7 +43,7 @@ The packages target `netstandard2.0`, .NET 8, and .NET 10; Windows builds also t
 
 | Capability | Status | Contract and evidence |
 | --- | --- | --- |
-| <!-- capability:core-parse --> Core parsing | Full | `RtfDocument.Read/Load` parse groups, controls, text, binary payloads, and recoverable malformed input. |
+| <!-- capability:core-parse --> Core parsing | Full | `RtfDocument.ParseResult/Load` parse groups, controls, text, binary payloads, and recoverable malformed input. |
 | <!-- capability:lossless-roundtrip --> Lossless round trip | Full | `ToRtfLossless` and lossless save preserve source bytes, unknown destinations, binary payloads, and trailing bytes. Semantic writes are normalized. |
 | <!-- capability:bounded-ingestion --> Bounded ingestion | Full | `RtfReadOptions.UntrustedDefaults` caps input bytes/chars, depth, tokens, groups, text, binary, images, objects, and semantic blocks. |
 | <!-- capability:cancellation --> Cancellation | Full | String, byte, file, and stream routes support cooperative cancellation through tokenization and semantic binding. |

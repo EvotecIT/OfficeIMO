@@ -51,7 +51,7 @@ public sealed class MimeKitAdversarialInteropTests {
         using MimeMessage oracle = MimeMessage.Load(path);
         string[] oracleReceived = oracle.Headers.Where(header => header.Field.Equals("Received",
                 StringComparison.OrdinalIgnoreCase)).Select(header => header.Value).ToArray();
-        using EmailReadResult read = new EmailDocumentReader().Read(path);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(path);
         string[] officeReceived = read.Document.Headers.Where(header => header.Name.Equals("Received",
                 StringComparison.OrdinalIgnoreCase)).Select(header => header.Value).ToArray();
 
@@ -97,7 +97,7 @@ public sealed class MimeKitAdversarialInteropTests {
         string wire = Encoding.ASCII.GetString(produced);
         Assert.Contains("filename*0*=", wire, StringComparison.OrdinalIgnoreCase);
 
-        using EmailReadResult read = new EmailDocumentReader().Read(produced);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(produced);
         Assert.Equal(new[] { "first", "second" }, read.Document.Headers
             .Where(header => header.Name == "X-Trace").Select(header => header.Value).ToArray());
         EmailAttachment nested = Assert.Single(read.Document.Attachments,

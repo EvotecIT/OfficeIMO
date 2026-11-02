@@ -27,7 +27,7 @@ public class RtfHtmlListTests {
         Assert.Contains(@"\ls1\ilvl0", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ls2\ilvl0", rtf, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfDocument roundTrip = RtfDocument.ParseResult(rtf).Document;
         Assert.Equal(1, roundTrip.Paragraphs[0].ListId);
         Assert.Equal(1, roundTrip.Paragraphs[1].ListId);
         Assert.Equal(2, roundTrip.Paragraphs[2].ListId);

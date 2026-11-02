@@ -8,7 +8,7 @@
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
-    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">5.1.1</ExcelReaderBenchmarkVersion>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">7.3.4</ExcelReaderBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -36,7 +36,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100, LayoutMode = mode });
         Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.GroupNotProjected);
-        Assert.Equal(2, result.Page.Shapes.Single(item => item.Id == "api").PinX, 6);
+        Assert.Equal(2, result.Page.Shapes.Single(item => item.Id == "api").PinX.ToInches(), 6);
     }
 
     [Fact]
@@ -45,13 +45,13 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
         Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         void Check(VisioPage page) {
-            Assert.Equal(10, page.Width, 6);
-            Assert.Equal(8, page.Height, 6);
+            Assert.Equal(10, page.Width.ToInches(), 6);
+            Assert.Equal(8, page.Height.ToInches(), 6);
             var node = page.Shapes.Single(item => item.Id == "api");
-            Assert.Equal(2, node.PinX, 6);
-            Assert.Equal(6.5, node.PinY, 6);
-            Assert.Equal(2, node.Width, 6);
-            Assert.Equal(1, node.Height, 6);
+            Assert.Equal(2, node.PinX.ToInches(), 6);
+            Assert.Equal(6.5, node.PinY.ToInches(), 6);
+            Assert.Equal(2, node.Width.ToInches(), 6);
+            Assert.Equal(1, node.Height.ToInches(), 6);
             var connector = Assert.Single(page.Connectors);
             Assert.Equal(VisioConnectorRerouteBehavior.Never, connector.RerouteBehavior);
             Assert.Equal(2, connector.FromConnectionPoint!.X, 6);
@@ -99,7 +99,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         var result = envelope.ToOfficeVisio(new OfficeVisioVisualOptions { PixelsPerInch = 100 });
         var title = result.Page.Shapes.Single(shape => shape.Text == "Services");
         var node = result.Page.Shapes.Single(shape => shape.Id == "api");
-        Assert.True(title.PinY - title.Height / 2 > node.PinY + node.Height / 2);
+        Assert.True(title.PinY.ToInches() - title.Height.ToInches() / 2 > node.PinY.ToInches() + node.Height.ToInches() / 2);
         envelope.Nodes[0].Y = 0;
         var crowded = envelope.ToOfficeVisio();
         Assert.DoesNotContain(crowded.Page.Shapes, shape => shape.Text == "Services");

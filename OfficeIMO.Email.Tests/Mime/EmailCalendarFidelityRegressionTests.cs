@@ -13,7 +13,7 @@ public sealed class EmailCalendarFidelityRegressionTests {
             "BEGIN:VEVENT\r\nUID:room-role@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;CUTYPE=" + calendarUserType + ":mailto:asset@example.com\r\nEND:VEVENT\r\n",
             "REQUEST");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -28,7 +28,7 @@ public sealed class EmailCalendarFidelityRegressionTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:location-parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "LOCATION;ALTREP=\"cid:map\":Room\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
@@ -44,11 +44,11 @@ public sealed class EmailCalendarFidelityRegressionTests {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:task-owner@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ORGANIZER;CN=Owner:mailto:owner@example.com\r\nEND:VTODO\r\n", "PUBLISH");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
-        EmailDocument stored = new EmailDocumentReader().Read(
+        EmailDocument stored = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         string regenerated = CalendarText(new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(stored, EmailFileFormat.Eml));
 
@@ -62,7 +62,7 @@ public sealed class EmailCalendarFidelityRegressionTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:description-only@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "DESCRIPTION:Calendar description\r\nEND:VEVENT\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(eml).Document;
 
         byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
         using var stream = new MemoryStream(rewritten);

@@ -10,12 +10,13 @@ Diagram builders turn structured application data into consistently laid-out VSD
 ## Architecture diagram
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("architecture.vsdx")
     .ArchitectureDiagram("System Overview", diagram => diagram
-        .Title()
+        .AddTitle()
         .Legend()
         .Theme(VisioStyleTheme.Technical())
         .Region("vnet", "Virtual Network", 1, 0, 3, 2)
@@ -34,7 +35,7 @@ VisioDocument.Create("architecture.vsdx")
 ```csharp
 VisioDocument.Create("network-topology.vsdx")
     .NetworkTopologyDiagram("Branch topology", topology => topology
-        .Title()
+        .AddTitle()
         .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
         .Firewall("firewall", "Firewall")
         .Switch("core", "Core Switch")
@@ -55,7 +56,7 @@ VisioDocument.Create("network-topology.vsdx")
 ```csharp
 VisioDocument.Create("sequence.vsdx")
     .SequenceDiagram("Checkout sequence", sequence => sequence
-        .Title()
+        .AddTitle()
         .Theme(VisioStyleTheme.Fluent())
         .Actor("customer", "Customer")
         .Participant("web", "Web App")

@@ -54,8 +54,8 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioConnectionPoint AddRouteEndpoint(VisioShape shape, double x, double y) {
-            double localX = x.ToInches(_unit) - shape.PinX + shape.Width / 2;
-            double localY = y.ToInches(_unit) - shape.PinY + shape.Height / 2;
+            double localX = x.ToInches(_unit) - shape.PinXInches + shape.WidthInches / 2;
+            double localY = y.ToInches(_unit) - shape.PinYInches + shape.HeightInches / 2;
             if (!_routeEndpointIndex.TryGetValue(shape, out RouteEndpointIndex? index)) {
                 index = new RouteEndpointIndex();
                 _routeEndpointIndex.Add(shape, index);
