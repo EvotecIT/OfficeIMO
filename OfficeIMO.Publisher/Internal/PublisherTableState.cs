@@ -40,6 +40,10 @@ internal sealed class PublisherTableState {
     internal IReadOnlyList<PublisherTableBorderSegment> BorderSegments { get; }
     internal OfficeShape? CreatePaint() => _paint?.Clone();
 
+    internal PublisherTableState WithDecoration(IReadOnlyList<OfficeColor?> fills, IReadOnlyList<PublisherTableBorderSegment> borders) =>
+        new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasPlacement, Hidden,
+            Columns, Rows, Cells, Padding, _paint, BoundsEditLimitation, IsAuthored, fills, borders);
+
     internal PublisherTableState WithCells(IReadOnlyList<PublisherTableCellSlot> cells) {
         var fills = Cells.Select((cell, index) => (cell, index)).ToDictionary(item => (item.cell.Row, item.cell.Column), item => CellFills[item.index]);
         return new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasPlacement, Hidden,

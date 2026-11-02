@@ -6,7 +6,7 @@ internal sealed partial class PublisherNativeWriter {
     private readonly List<PublisherNativeStreamEdit> _tableTrackEdits = new();
     private bool _hasTableBounds;
 
-    /// <summary>Moves direct table frames or scales a fixed grid without changing cells, stories or paint.</summary>
+    /// <summary>Moves direct table frames, scales a fixed grid or updates existing utility paint without changing cell ownership.</summary>
     private void CompareTable(PublisherTableState before, PublisherTableState after) {
         _token.ThrowIfCancellationRequested();
         if (TableEqual(before, after)) return;
@@ -18,17 +18,19 @@ internal sealed partial class PublisherNativeWriter {
             || before.PageTransform != OfficeTransform.Translate(before.X, before.Y)
             || after.PageTransform != OfficeTransform.Translate(after.X, after.Y)
             || !before.Cells.SequenceEqual(after.Cells)
-            || !before.CellFills.SequenceEqual(after.CellFills) || !before.BorderSegments.SequenceEqual(after.BorderSegments)
             || !ShapeEqual(paint == null ? null : PublisherShapeGeometry.Resize(paint, after.Width, after.Height), after.CreatePaint())
             || !ScaledTracks(before.Columns, after.Columns, before.Width, after.Width)
             || !ScaledTracks(before.Rows, after.Rows, before.Height, after.Height)) {
-            Reject("Contents/object/" + before.Id, "Table changes extend beyond untransformed placement and proportional fixed-grid resizing."); return;
+            Reject("Contents/object/" + before.Id, "Table changes extend beyond untransformed placement, proportional fixed-grid resizing and existing utility paint."); return;
         }
+        CompareTableDecoration(before, after);
         if ((before.Width != after.Width || before.Height != after.Height) && !PlanTableTracks(before, after)) {
             Reject("Contents/object/" + before.Id, "Table resizing requires complete direct fixed tracks, matching nominal and laid-out sizes, and exact positive signed-EMU dimensions."); return;
         }
-        Bounds(before.Id, before.PageId, after.X, after.Y, after.Width, after.Height);
-        _hasTableBounds = true;
+        if (before.X != after.X || before.Y != after.Y || before.Width != after.Width || before.Height != after.Height) {
+            Bounds(before.Id, before.PageId, after.X, after.Y, after.Width, after.Height);
+            _hasTableBounds = true;
+        }
     }
 
     private static bool ScaledTracks(IReadOnlyList<double> before, IReadOnlyList<double> after, double oldExtent, double newExtent) {

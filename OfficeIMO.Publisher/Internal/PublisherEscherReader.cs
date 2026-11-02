@@ -101,6 +101,7 @@ internal sealed class PublisherEscherReader {
             if (values.TryGetValue(0x6802, out uint tableId)) {
                 if (_result.TableArtwork.Count >= _context.Options.Limits.MaxItems)
                     throw new InvalidDataException("Publisher table artwork limit exceeded.");
+                shape.NativeBinding = Binding(record, fsp, anchor, null, children, tableId, 0x6802);
                 _result.TableArtwork.Add(new PublisherTableArtwork(tableId, values, shape));
             }
         }
@@ -115,7 +116,8 @@ internal sealed class PublisherEscherReader {
         return shape;
     }
     private PublisherNativeShapeBinding Binding(PublisherEscherRecord container, PublisherEscherRecord fsp,
-        PublisherEscherRecord client, PublisherEscherRecord? anchor, IReadOnlyList<PublisherEscherRecord> children, uint id) {
+        PublisherEscherRecord client, PublisherEscherRecord? anchor, IReadOnlyList<PublisherEscherRecord> children, uint id,
+        ushort publicationKey = 0x6801) {
         PublisherNativeValueSlot ClientSlot(PublisherEscherRecord record, ushort key) {
             for (int position = record.Offset + 4; position < record.End; position += 6)
                 if (_data.U16(position) == key) return new PublisherNativeValueSlot(position + 2, _data.U32(position + 2));
@@ -137,7 +139,7 @@ internal sealed class PublisherEscherReader {
                     slots.Add(new PublisherNativePropertySlot(operation, new PublisherNativeValueSlot(position + 2, _data.U32(position + 2))));
             }
         return new PublisherNativeShapeBinding(id, _data.U32(fsp.Offset), container.Offset, container.Length, fsp.Offset,
-            ClientSlot(client, 0x6801), coordinates.ToArray(), slots);
+            ClientSlot(client, publicationKey), coordinates.ToArray(), slots, publicationKey);
     }
     private IReadOnlyList<OfficeArtProperty> ReadProperties(IReadOnlyList<PublisherEscherRecord> children) {
         var result = new List<OfficeArtProperty>();

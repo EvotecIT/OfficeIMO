@@ -592,9 +592,26 @@ editing. A table's graphic belongs to the table and is excluded from `Shapes`.
 colors through `OfficeBorderSide`. Segment endpoints are row/column boundaries,
 so a shared edge appears once even when it borders two cells. These decorations
 render through qualified rectangular table placement and remain preserved during
-supported cell-text saves. They are read-only; decoration editing, gradients,
+supported cell-text saves. `SetTableCellFillColor` sets or clears an opaque solid
+cell background using its anchor coordinates. `SetTableBorderStyle` changes an
+existing shared edge's solid color and positive point width, selecting the exact
+endpoints from its snapshot. Both operations update rendering transactionally.
+Native source saving supports recoloring existing visible solid fills and changing
+existing shared-border color/width through unambiguous local scalar fields. It
+refuses visibility changes, record insertion/removal and widths without an exact
+signed-EMU representation. Adding, splitting or removing shared edges, gradients,
 cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
+
+```csharp
+var styledTable = publication.Pages[0].Tables.First();
+var filledCell = styledTable.Cells.First(cell => cell.FillColor.HasValue);
+publication.SetTableCellFillColor(styledTable.Id, filledCell.RowIndex,
+    filledCell.ColumnIndex, OfficeColor.FromRgb(192, 224, 192));
+var edge = styledTable.BorderSegments.First();
+publication.SetTableBorderStyle(styledTable.Id, edge.FirstRow, edge.FirstColumn,
+    edge.LastRow, edge.LastColumn, new OfficeBorderSide(OfficeColor.FromRgb(0, 128, 0), 1));
+```
 
 ```csharp
 var table = publication.Pages[0].Tables.First(item => item.CanEditCellText);

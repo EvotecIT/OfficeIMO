@@ -653,10 +653,21 @@ grid-boundary endpoints. Utility shapes remain outside publication object
 identity. Existing Core colors, border-side values and drawing primitives own
 the projected paint. Public cell-text growth preserves complete Escher bytes;
 native initial/resaved PDFs match an independent text-edited decorated control.
-Native/managed pixel parity, decoration mutation and decorated template-free
-encoding remain unqualified. The comparison worker retains explicit unknown
+Native/managed pixel parity and decorated template-free encoding remain
+unqualified. The comparison worker retains explicit unknown
 fill/border observations, including unavailable diagonal observations, and its
 extended inventory also completes on the 96-cell control.
+
+The `tableCellStyleEditing` record extends existing-source saving to solid cell
+recoloring and shared-border color/width edits through the public canonical model.
+The complete saved Escher stream matches the independent control in both
+directions. Native initial/resaved inventories retain all cell text, spans, tracks,
+fills and edges; four PDF page pairs match at 100 dpi. The writer guards existing
+local scalar slots and refuses visibility changes, utility-record insertion or
+removal, ambiguous ownership and widths without an exact signed-EMU encoding.
+Restoring original styles before saving returns the exact original PUB bytes.
+This does not qualify decorated template-free generation, native cell editing
+after opening these outputs or repair-free acceptance.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

@@ -3,6 +3,13 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherModelState {
+    internal PublisherModelState SetTableCellFillColor(uint id, int row, int column, OfficeColor? color, CancellationToken token) =>
+        WithPublication(_publication.SetTableCellFillColor(id, row, column, color, token));
+
+    internal PublisherModelState SetTableBorderStyle(uint id, int firstRow, int firstColumn, int lastRow, int lastColumn,
+        OfficeBorderSide side, CancellationToken token) =>
+        WithPublication(_publication.SetTableBorderStyle(id, firstRow, firstColumn, lastRow, lastColumn, side, token));
+
     internal PublisherModelState MergeTableCells(uint id, int row, int column, int rowCount, int columnCount, CancellationToken token) =>
         WithPublication(_publication.MergeTableCells(id, row, column, rowCount, columnCount, _decoded.Options, token));
 

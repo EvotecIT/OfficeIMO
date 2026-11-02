@@ -4,6 +4,24 @@ using OfficeIMO.Publisher.Internal;
 namespace OfficeIMO.Publisher;
 
 public sealed partial class PublisherDocument {
+    /// <summary>Sets the opaque solid fill, or clears the fill, of the cell anchored at the given zero-based coordinates.</summary>
+    /// <remarks>Covered merged positions are rejected. Existing snapshots remain unchanged. Native source saving currently supports recoloring an existing visible solid fill; changing visibility or inserting paint records is refused. Validation, cancellation or projection failure leaves the document unchanged.</remarks>
+    public void SetTableCellFillColor(uint tableId, int rowIndex, int columnIndex, OfficeColor? color,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        Commit(model.SetTableCellFillColor(tableId, rowIndex, columnIndex, color, cancellationToken).Project(cancellationToken), cancellationToken);
+    }
+
+    /// <summary>Changes the opaque solid color and positive width of one existing shared border, selected by its exact grid-boundary endpoints.</summary>
+    /// <remarks>The selected range must match exactly one entry in BorderSegments. This operation retains its ownership and endpoints; adding, splitting or removing borders is not supported. Width uses points. Native saving requires an existing unambiguous local color and width field and an exact signed-EMU width. Failed edits leave the document unchanged.</remarks>
+    public void SetTableBorderStyle(uint tableId, int firstRow, int firstColumn, int lastRow, int lastColumn,
+        OfficeBorderSide side, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        Commit(model.SetTableBorderStyle(tableId, firstRow, firstColumn, lastRow, lastColumn, side, cancellationToken).Project(cancellationToken), cancellationToken);
+    }
+
     /// <summary>Merges a rectangular range of complete cells in an authored table, using zero-based coordinates and positive row and column counts.</summary>
     /// <remarks>Every intersecting cell must fit wholly inside the requested range. Styled paragraphs from the selected cells are retained in their existing definition order in the new anchor cell; other cells and grid tracks remain intact. A range already occupied by one complete cell is unchanged. Imported native table topology is not editable through this operation. Failed validation or cancellation leaves the document unchanged.</remarks>
     public void MergeTableCells(uint tableId, int firstRow, int firstColumn, int rowCount, int columnCount,

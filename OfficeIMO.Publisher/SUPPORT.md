@@ -95,7 +95,7 @@ still consume the image-processing byte budget.
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
 | Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control measurement and glyph output. Plain printable-ASCII native contexts span color, threshold and space boundaries, retaining glyph slices for raster/SVG/PDF; broader scripts, decorations and producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment; undeclared stops use the qualified text-engine default or publication fallback | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed. With no usable default-tab carrier, layout reports `PUB_DEFAULT_TAB_UNASSESSED` and uses the generic 36-point grid. Native device advances and broader tabbed-line placement remain separate rendering limits |
-| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; decoration mutation, cell-specific padding and other native paint remain unassessed |
+| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; anchor-cell fills and exact existing shared-border styles are editable; qualified text edits preserve complete story partitions, and bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` identify those operations. Unavailable geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`. Native style saving requires existing unambiguous visible solid utility fields; visibility changes, edge topology, cell-specific padding and other paint remain unqualified |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
@@ -1041,8 +1041,27 @@ Public paragraph growth preserves the complete Escher stream and all other
 unaffected storage. Native opening, PDF export, separate SaveAs and reopen match
 an independent text-edited decorated control: cell text, tracks, fill/border
 observations and two native PDF page pairs at 100 dpi. This qualifies opaque
-decoration preservation during the listed text edit, not decoration mutation,
-decorated template-free authoring, native cell editing or repair-free opening.
+decoration preservation during the listed text edit.
+
+`SetTableCellFillColor` edits an anchor cell's opaque solid background, including
+clearing it in the managed model. Authored merges keep the anchor fill.
+`SetTableBorderStyle` changes the color and positive width of exactly one existing
+shared edge selected by its complete grid-boundary endpoints. Both operations
+retain immutable snapshots and commit only after successful projection.
+
+The `tableCellStyleEditing` qualification record covers native source recoloring
+of an existing visible fill and color/width changes to existing shared borders.
+Both directions match the complete Escher stream of independently produced
+controls. Other logical streams and directory metadata remain preserved, apart
+from explicit stale-preview invalidation. Restoring the original styles before
+saving copies the original publication bytes exactly. Microsoft Publisher opens,
+exports, separately saves and reopens both edited outputs: all four native cell
+inventories match their controls, and four PDF page pairs match at 100 dpi.
+This profile requires unambiguous existing local color/width fields and exact
+signed-EMU widths. Visibility changes and utility-record insertion/removal refuse
+native output, including under Allow. Decorated template-free authoring, native
+cell editing after opening the generated output, broader paint and repair-free
+opening remain unqualified.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the
