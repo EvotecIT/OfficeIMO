@@ -135,7 +135,7 @@ public class WordImageOptimizationTests {
         using var stream = new MemoryStream(bytes);
         var image = word.AddParagraph("Converted media").AddImage(stream, "source." + format, OfficeIMO.OfficeLength.Pixels(96), OfficeIMO.OfficeLength.Pixels(48));
         string id = image.RelationshipId!;
-        word.AddHeadersAndFooters();
+        _ = word.PageSetup.Header;
         var headerPart = word._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single();
         ImagePart originalPart = (ImagePart)word._wordprocessingDocument.MainDocumentPart.GetPartById(id);
         headerPart.AddPart(originalPart, "rIdShared");
@@ -195,11 +195,10 @@ public class WordImageOptimizationTests {
     [Fact]
     public void CompleteInventoryIncludesMultipleBodyPicturesAndHeaderWithoutChangingXml() {
         using WordDocument word = WordDocument.Create();
-        word.AddHeadersAndFooters();
         var paragraph = word.AddParagraph("Before and after pictures");
         Insert(paragraph, 96, 48);
         Insert(paragraph, 192, 96);
-        Insert(word.Header.Default!.AddParagraph("Header"), 96, 48);
+        Insert(word.PageSetup.Header.AddParagraph("Header"), 96, 48);
         Insert(word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0], 96, 48);
         string before = word._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         var policy = new WordImageOptimizationOptions { TargetDpi = 72, KeepOriginalWhenNotSmaller = false };

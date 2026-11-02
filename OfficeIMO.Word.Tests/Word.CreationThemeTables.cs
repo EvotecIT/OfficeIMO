@@ -383,9 +383,9 @@ public class WordCreationThemeTables {
     [Fact]
     public void DefaultGeometryFillsTheCurrentSectionAndExplicitGridIsStillAvailable() {
         using var document = WordDocument.Create();
-        document.Sections.Last().PageSettings.Width = OfficeLength.Inches(10);
-        document.Sections.Last().Margins.Left = OfficeLength.Inches(1);
-        document.Sections.Last().Margins.Right = OfficeLength.Inches(1);
+        document.Sections.Last().PageSetup.Size.Width = OfficeLength.Inches(10);
+        document.Sections.Last().PageSetup.Margins.Left = OfficeLength.Inches(1);
+        document.Sections.Last().PageSetup.Margins.Right = OfficeLength.Inches(1);
         WordTable table = AddRows(document, "typed");
         Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
         document.AddTable(1, 2, WordTableStyle.TableGrid);

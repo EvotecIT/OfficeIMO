@@ -14,15 +14,15 @@ internal static partial class PageSettings {
         Console.WriteLine("[*] Creating standard document with Page Orientation");
         string filePath = System.IO.Path.Combine(folderPath, "Basic Document with PageOrientationChange.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
-            Console.WriteLine("+ Page Orientation (starting): " + document.PageOrientation);
+            Console.WriteLine("+ Page Orientation (starting): " + document.PageSetup.Orientation);
 
-            document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+            document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
 
-            Console.WriteLine("+ Page Orientation (middle): " + document.PageOrientation);
+            Console.WriteLine("+ Page Orientation (middle): " + document.PageSetup.Orientation);
 
-            document.PageOrientation = OfficePageOrientation.Portrait;
+            document.PageSetup.Orientation = OfficePageOrientation.Portrait;
 
-            Console.WriteLine("+ Page Orientation (ending): " + document.PageOrientation);
+            Console.WriteLine("+ Page Orientation (ending): " + document.PageSetup.Orientation);
 
             document.AddParagraph("Test");
 

@@ -22,9 +22,9 @@ public sealed class PdfShapeGroupTests {
     public void BehindTextGroupsFollowMirroredMarginsAndRetainPageRelativePositions(bool marginRelative, int startNumber) {
         using WordDocument word = WordDocument.Create();
         var section = word.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
-        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40D);
         section.AddPageNumbering(startNumber);
         word.Settings.MirrorMargins = true;
         word.AddParagraph("First");
@@ -133,8 +133,8 @@ public sealed class PdfShapeGroupTests {
     [InlineData(true, true)]
     public void ParagraphRelativeGroupFollowsAnchorAfterPaginationAndCoexistsWithImage(bool columns, bool heading) {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
-        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
         if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int i = 0; i < (columns ? 40 : 20); i++) word.AddParagraph("Filler " + i).FontSize = global::OfficeIMO.OfficeLength.Points(12);
         var paragraph = word.AddParagraph();

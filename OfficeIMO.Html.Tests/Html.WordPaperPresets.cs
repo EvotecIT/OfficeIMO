@@ -16,7 +16,7 @@ public sealed class HtmlWordPaperPresetTests {
             DefaultPageSize = preset, DefaultOrientation = orientation
         });
         using WordDocument word = result.Value;
-        Assert.Equal(preset, word.Sections[0].PageSettings.PageSize);
+        Assert.Equal(preset, word.Sections[0].PageSetup.Size.PageSize);
         if (positioned) {
             Assert.Single(word.TextBoxes);
         } else {

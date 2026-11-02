@@ -13,11 +13,11 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
+                document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
 
-                document.PageSettings.PageSize = WordPageSize.A4;
+                document.PageSetup.Size.PageSize = WordPageSize.A4;
 
-                var pageSettings = document.PageSettings ?? throw new InvalidOperationException("Page settings are not initialized.");
+                var pageSettings = document.PageSetup.Size ?? throw new InvalidOperationException("Page settings are not initialized.");
 
                 Console.WriteLine(checked((uint?)(pageSettings.Height?.ToTwips()))?.ToString() ?? "Height not set");
                 Console.WriteLine(checked((uint?)(pageSettings.Width?.ToTwips()))?.ToString() ?? "Width not set");

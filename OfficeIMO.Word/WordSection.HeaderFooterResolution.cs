@@ -19,8 +19,8 @@ public partial class WordSection {
         for (int index = GetSectionOrdinal(); index >= 0; index--) {
             WordSection section = _document.Sections[index];
             if (!WordHeadersAndFooters.GetHeaderReference(_document, section, kind)) continue;
-            return kind == HeaderFooterValues.First ? section.Header?.First
-                : kind == HeaderFooterValues.Even ? section.Header?.Even : section.Header?.Default;
+            return kind == HeaderFooterValues.First ? section.Headers?.First
+                : kind == HeaderFooterValues.Even ? section.Headers?.Even : section.Headers?.Default;
         }
         return null;
     }
@@ -31,8 +31,8 @@ public partial class WordSection {
         for (int index = GetSectionOrdinal(); index >= 0; index--) {
             WordSection section = _document.Sections[index];
             if (!WordHeadersAndFooters.GetFooterReference(_document, section, kind)) continue;
-            return kind == HeaderFooterValues.First ? section.Footer?.First
-                : kind == HeaderFooterValues.Even ? section.Footer?.Even : section.Footer?.Default;
+            return kind == HeaderFooterValues.First ? section.Footers?.First
+                : kind == HeaderFooterValues.Even ? section.Footers?.Even : section.Footers?.Default;
         }
         return null;
     }

@@ -32,9 +32,8 @@ internal static class RealWorldWorkflowShowcase {
         using WordDocument document = WordDocument.Create(sourcePath);
         document.Settings.FontSize = OfficeLength.Points(11);
         document.BuiltinDocumentProperties.Title = "Customer delivery summary";
-        document.AddHeadersAndFooters();
-        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = global::OfficeIMO.OfficeLength.Points(9);
-        document.FooterDefaultOrCreate.AddPageNumber(includeTotalPages: true);
+        document.PageSetup.Header.AddParagraph("Northwind Operations · Quarterly service review").FontSize = global::OfficeIMO.OfficeLength.Points(9);
+        document.PageSetup.Footer.AddPageNumber(includeTotalPages: true);
 
         AddTitleBlock(document, "NORTHWIND OPERATIONS / QUARTERLY SERVICE REVIEW", "Customer delivery summary",
             "Ready for acceptance. Illustrative figures from structured project data.");

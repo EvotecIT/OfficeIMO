@@ -15,8 +15,7 @@ namespace OfficeIMO.Tests {
                 body.Append(new Paragraph(
                     new Run(new RunProperties(new Bold()), new Text("Hello {{Customer")),
                     new Run(new RunProperties(new Italic()), new Text(".Name}}!"))));
-                document.AddHeadersAndFooters();
-                document.Header!.Default!.AddParagraph("Order {{Order.Id}}");
+                document.PageSetup.Header.AddParagraph("Order {{Order.Id}}");
 
                 var values = new Dictionary<string, object?> {
                     ["Customer"] = new Dictionary<string, object?> { ["Name"] = "Ada" },
@@ -28,7 +27,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, result.PlaceholderCount);
                 Assert.Equal(2, result.ReplacedPlaceholderCount);
                 Assert.Contains("Hello Ada!", body.InnerText, StringComparison.Ordinal);
-                Assert.Contains("Order 42", document.Header.Default.Paragraphs.Single().Text, StringComparison.Ordinal);
+                Assert.Contains("Order 42", document.PageSetup.Header.Paragraphs.Single().Text, StringComparison.Ordinal);
                 Assert.True(body.Descendants<Run>().First().RunProperties?.Bold != null);
                 Assert.True(body.Descendants<Run>().Skip(1).First().RunProperties?.Italic != null);
                 document.Save();

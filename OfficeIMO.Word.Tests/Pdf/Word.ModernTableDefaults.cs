@@ -23,12 +23,12 @@ public partial class Word {
     public void SaveAsPdf_ModernTablesRetainDirectCellTextOverrides(string scope, string role) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body marker");
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordTable table = scope switch {
             "body" => document.AddTable(2, 2),
             "nested" => document.AddTable(1, 1).Rows[0].Cells[0].AddTable(2, 2),
-            "header" => document.Header.Default!.AddTable(2, 2),
-            "footer" => document.Footer.Default!.AddTable(2, 2),
+            "header" => document.PageSetup.Header.AddTable(2, 2),
+            "footer" => document.PageSetup.Footer.AddTable(2, 2),
             _ => throw new ArgumentOutOfRangeException(nameof(scope))
         };
         int row = role == "header" ? 0 : 1;

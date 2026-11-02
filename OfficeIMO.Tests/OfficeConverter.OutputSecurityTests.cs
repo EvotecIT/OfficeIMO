@@ -64,7 +64,7 @@ public sealed class OfficeConverterOutputSecurityTests {
         try {
             string input = Path.Combine(directory, "source.docx"), output = Path.Combine(directory, "result.md");
             using (var source = WordDocument.Create(input)) {
-                source.AddHeadersAndFooters(); source.Header!.Default!.AddParagraph("Running content");
+                source.PageSetup.Header.AddParagraph("Running content");
                 source.AddParagraph("Body content"); source.Save();
             }
             File.WriteAllText(output, "original destination");

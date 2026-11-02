@@ -749,8 +749,7 @@ public partial class HtmlWordGapClosure {
     [Fact]
     public async Task WordTableCell_AddHtmlAsync_UsesHeaderPartForTopLevelImage() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordHeader header = document.Sections[0].Header.Default!;
+        WordHeader header = document.Sections[0].PageSetup.Header;
         WordTableCell cell = header.AddTable(1, 1).Rows[0].Cells[0];
         string html = $"""<img src="data:image/png;base64,{ValidPng}" alt="Header PNG">""";
 
@@ -763,7 +762,7 @@ public partial class HtmlWordGapClosure {
         document.Save(stream);
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(stream.ToArray()));
 
-        WordTableCell reloadedCell = reloaded.Sections[0].Header.Default!.Tables[0].Rows[0].Cells[0];
+        WordTableCell reloadedCell = reloaded.Sections[0].PageSetup.Header.Tables[0].Rows[0].Cells[0];
         Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.IsImage);
         Assert.Empty(reloaded.Images);
     }

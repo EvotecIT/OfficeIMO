@@ -282,8 +282,8 @@ namespace OfficeIMO.Word.Html {
                 AddExportDiagnostic(options, "package-signatures-omitted", "OPC package signature metadata is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportHeadersAndFooters && document.Sections.Any(section =>
-                section.Header.Default != null || section.Header.Even != null || section.Header.First != null ||
-                section.Footer.Default != null || section.Footer.Even != null || section.Footer.First != null)) {
+                section.PageSetup.GetHeader(WordHeaderFooterType.Default) != null || section.PageSetup.GetHeader(WordHeaderFooterType.Even) != null || section.PageSetup.GetHeader(WordHeaderFooterType.First) != null ||
+                section.PageSetup.GetFooter(WordHeaderFooterType.Default) != null || section.PageSetup.GetFooter(WordHeaderFooterType.Even) != null || section.PageSetup.GetFooter(WordHeaderFooterType.First) != null)) {
                 AddExportDiagnostic(options, "headers-footers-omitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportFootnotes && document.FootNotes.Count > 0) {

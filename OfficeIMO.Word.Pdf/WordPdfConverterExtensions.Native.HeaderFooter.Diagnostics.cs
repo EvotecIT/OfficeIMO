@@ -53,12 +53,12 @@ namespace OfficeIMO.Word.Pdf {
         private static void ConfigureNativeHeaderFooter(PdfCore.PdfPageBuilder page, WordSection section, WordPdfExportOptions? options, double headerMarginExpansion, double footerMarginExpansion, NativeFontMap nativeFontMap, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             bool hasEvenPageStory = section.DocumentOddEvenSettingEnabled;
             RecordNativeHeaderFooterDiagnostics(section.ResolveDefaultHeader(), options, "default header");
-            if (section.DifferentFirstPage)
+            if (section.PageSetup.DifferentFirstPage)
                 RecordNativeHeaderFooterDiagnostics(section.ResolveFirstHeader(), options, "first header");
             if (hasEvenPageStory)
                 RecordNativeHeaderFooterDiagnostics(section.ResolveEvenHeader(), options, "even header");
             RecordNativeHeaderFooterDiagnostics(section.ResolveDefaultFooter(), options, "default footer");
-            if (section.DifferentFirstPage)
+            if (section.PageSetup.DifferentFirstPage)
                 RecordNativeHeaderFooterDiagnostics(section.ResolveFirstFooter(), options, "first footer");
             if (hasEvenPageStory)
                 RecordNativeHeaderFooterDiagnostics(section.ResolveEvenFooter(), options, "even footer");
@@ -74,65 +74,65 @@ namespace OfficeIMO.Word.Pdf {
             RecordNativeRunningImageWrapDiagnostics(section, options,
                 headerTextDiagnostics == null, footerTextDiagnostics == null);
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.ResolveDefaultHeader(), listMarkers, nativeFontMap, headerTextDiagnostics);
-            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
+            NativeHeaderFooterText? firstHeader = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
             NativeHeaderFooterText? evenHeader = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenHeader(), listMarkers, nativeFontMap, headerTextDiagnostics) : null;
             NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.ResolveDefaultFooter(), listMarkers, nativeFontMap, footerTextDiagnostics);
-            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstFooter(), listMarkers, nativeFontMap, footerTextDiagnostics) : null;
+            NativeHeaderFooterText? firstFooter = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterText(section.ResolveFirstFooter(), listMarkers, nativeFontMap, footerTextDiagnostics) : null;
             NativeHeaderFooterText? evenFooter = hasEvenPageStory ? GetNativeHeaderFooterText(section.ResolveEvenFooter(), listMarkers, nativeFontMap, footerTextDiagnostics) : null;
             IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.ResolveDefaultHeader(), options, "default header image");
-            IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.ResolveFirstHeader(), options, "first header image") : Array.Empty<NativeHeaderFooterImage>();
+            IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterImages(section.ResolveFirstHeader(), options, "first header image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = hasEvenPageStory ? GetNativeHeaderFooterImages(section.ResolveEvenHeader(), options, "even header image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> defaultFooterImages = GetNativeHeaderFooterImages(section.ResolveDefaultFooter(), options, "default footer image");
-            IReadOnlyList<NativeHeaderFooterImage> firstFooterImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.ResolveFirstFooter(), options, "first footer image") : Array.Empty<NativeHeaderFooterImage>();
+            IReadOnlyList<NativeHeaderFooterImage> firstFooterImages = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterImages(section.ResolveFirstFooter(), options, "first footer image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> evenFooterImages = hasEvenPageStory ? GetNativeHeaderFooterImages(section.ResolveEvenFooter(), options, "even footer image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterShape> defaultHeaderShapes = GetNativeHeaderFooterShapes(section.ResolveDefaultHeader());
-            IReadOnlyList<NativeHeaderFooterShape> firstHeaderShapes = section.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.ResolveFirstHeader()) : Array.Empty<NativeHeaderFooterShape>();
+            IReadOnlyList<NativeHeaderFooterShape> firstHeaderShapes = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.ResolveFirstHeader()) : Array.Empty<NativeHeaderFooterShape>();
             IReadOnlyList<NativeHeaderFooterShape> evenHeaderShapes = hasEvenPageStory ? GetNativeHeaderFooterShapes(section.ResolveEvenHeader()) : Array.Empty<NativeHeaderFooterShape>();
             IReadOnlyList<NativeHeaderFooterShape> defaultFooterShapes = GetNativeHeaderFooterShapes(section.ResolveDefaultFooter());
-            IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = section.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.ResolveFirstFooter()) : Array.Empty<NativeHeaderFooterShape>();
+            IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = section.PageSetup.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.ResolveFirstFooter()) : Array.Empty<NativeHeaderFooterShape>();
             IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = hasEvenPageStory ? GetNativeHeaderFooterShapes(section.ResolveEvenFooter()) : Array.Empty<NativeHeaderFooterShape>();
             PdfCore.PdfStandardFont? headerFont = ResolveNativeHeaderFooterFont(
                 ResolveNativeHeaderFooterBaseFont(section._document, options, isHeader: true),
                 nativeFontMap,
                 section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 hasEvenPageStory ? section.ResolveEvenHeader() : null);
             PdfCore.PdfStandardFont? footerFont = ResolveNativeHeaderFooterFont(
                 ResolveNativeHeaderFooterBaseFont(section._document, options, isHeader: false),
                 nativeFontMap,
                 section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
             string? headerFontFamily = ResolveNativeHeaderFooterFontFamily(
                 nativeFontMap,
                 section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 hasEvenPageStory ? section.ResolveEvenHeader() : null);
             string? footerFontFamily = ResolveNativeHeaderFooterFontFamily(
                 nativeFontMap,
                 section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
             global::OfficeIMO.OfficeColor? headerColor = ResolveNativeHeaderFooterColor(
                 section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 hasEvenPageStory ? section.ResolveEvenHeader() : null);
             global::OfficeIMO.OfficeColor? footerColor = ResolveNativeHeaderFooterColor(
                 section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
             double? headerFontSize = ResolveNativeHeaderFooterFontSize(
                 section.ResolveDefaultHeader(),
-                section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 hasEvenPageStory ? section.ResolveEvenHeader() : null);
             double? footerFontSize = ResolveNativeHeaderFooterFontSize(
                 section.ResolveDefaultFooter(),
-                section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
+                section.PageSetup.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
             ApplyNativeHeaderFooterPageNumberStyle(page, defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter);
-            bool hasFirstHeaderVariant = section.DifferentFirstPage;
+            bool hasFirstHeaderVariant = section.PageSetup.DifferentFirstPage;
             bool hasEvenHeaderVariant = hasEvenPageStory;
-            bool hasFirstFooterVariant = section.DifferentFirstPage;
+            bool hasFirstFooterVariant = section.PageSetup.DifferentFirstPage;
             bool hasEvenFooterVariant = hasEvenPageStory;
             if (defaultHeader != null || hasFirstHeaderVariant || hasEvenHeaderVariant ||
                 defaultHeaderImages.Count > 0 || firstHeaderImages.Count > 0 || evenHeaderImages.Count > 0 ||

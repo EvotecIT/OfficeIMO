@@ -91,14 +91,14 @@ public sealed class ExportOfficeWordCommand : OfficeCmdlet {
             table.AutoFitToContents();
             var section = document.Sections[0];
             if (Orientation.HasValue) {
-                section.PageOrientation = Orientation.Value;
+                section.PageSetup.Orientation = Orientation.Value;
             } else {
                 try {
                     new WordPaperStyle().FitTableColumnsToHeaders(table);
                 } catch (InvalidOperationException) {
                     // Projection creates nonempty rectangular, unmerged rows. The remaining
                     // fit failure means header minima exceed the portrait text area.
-                    section.PageOrientation = OfficeIMO.OfficePageOrientation.Landscape;
+                    section.PageSetup.Orientation = OfficeIMO.OfficePageOrientation.Landscape;
                 }
             }
             table.AutoFitToWindow();

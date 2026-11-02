@@ -896,9 +896,9 @@ namespace OfficeIMO.Word.Html {
                                     : WordTable.EstimateCellContentWidthInDxa(doc, cell._tableCell);
                             if (cell == null && headerFooter != null) {
                                 resolveImageContainerWidthTwips = () => Math.Max(1,
-                                    (int)(section.PageSettings.Width?.ToTwips() ?? WordPageSizes.A4.Width.ToTwips())
-                                    - (int)section.Margins.Left.GetValueOrDefault().ToTwips()
-                                    - (int)section.Margins.Right.GetValueOrDefault().ToTwips());
+                                    (int)(section.PageSetup.Size.Width?.ToTwips() ?? WordPageSizes.A4.Width.ToTwips())
+                                    - (int)section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips()
+                                    - (int)section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips());
                             }
                             ProcessImage(
                                 (IHtmlImageElement)element,
@@ -1006,31 +1006,31 @@ namespace OfficeIMO.Word.Html {
 
             var pageSizeValue = element.GetAttribute("data-page-size");
             if (Enum.TryParse<WordPageSize>(pageSizeValue, ignoreCase: true, out var pageSize) && pageSize != WordPageSize.Unknown) {
-                section.PageSettings.PageSize = pageSize;
+                section.PageSetup.Size.PageSize = pageSize;
             }
 
             var orientationValue = element.GetAttribute("data-page-orientation");
             if (TryParsePageOrientation(orientationValue, out var orientation)) {
-                section.PageOrientation = orientation.ToOfficeEnum();
+                section.PageSetup.Orientation = orientation.ToOfficeEnum();
             }
 
             if (TryGetUInt32Attribute(element, "data-page-width-twips", out var width)) {
-                section.PageSettings.Width= ((width) is { } wordLength62092 ? global::OfficeIMO.OfficeLength.Points((wordLength62092) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+                section.PageSetup.Size.Width= ((width) is { } wordLength62092 ? global::OfficeIMO.OfficeLength.Points((wordLength62092) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             if (TryGetUInt32Attribute(element, "data-page-height-twips", out var height)) {
-                section.PageSettings.Height= ((height) is { } wordLength62251 ? global::OfficeIMO.OfficeLength.Points((wordLength62251) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+                section.PageSetup.Size.Height= ((height) is { } wordLength62251 ? global::OfficeIMO.OfficeLength.Points((wordLength62251) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
             if (TryGetInt32Attribute(element, "data-margin-top-twips", out var top)) {
-                section.Margins.Top = global::OfficeIMO.OfficeLength.Points((top) / 20D);
+                section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((top) / 20D);
             }
             if (TryGetUInt32Attribute(element, "data-margin-right-twips", out var right)) {
-                section.Margins.Right = global::OfficeIMO.OfficeLength.Points((right) / 20D);
+                section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points((right) / 20D);
             }
             if (TryGetInt32Attribute(element, "data-margin-bottom-twips", out var bottom)) {
-                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
+                section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
             }
             if (TryGetUInt32Attribute(element, "data-margin-left-twips", out var left)) {
-                section.Margins.Left = global::OfficeIMO.OfficeLength.Points((left) / 20D);
+                section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points((left) / 20D);
             }
         }
 

@@ -12,19 +12,20 @@ public sealed class WordCreatedObjectTests {
     [Fact]
     public void ReturnedHeadersAndFootersRemainAttachedToTheirSection() {
         using var document = WordDocument.Create();
-        var first = document.AddHeadersAndFooters();
-        first.Header.AddParagraph("First header");
-        first.Footer.AddParagraph("First footer");
+        WordHeader firstHeader = document.PageSetup.Header;
+        firstHeader.AddParagraph("First header");
+        document.PageSetup.Footer.AddParagraph("First footer");
         var section = document.AddSection();
-        var second = section.AddHeadersAndFooters();
-        second.Header.AddParagraph("Second header");
-        second.Footer.AddParagraph("Second footer");
-        Assert.Same(first.Header, document.Sections[0].Header.Default);
-        Assert.Same(second.Footer, section.Footer.Default);
-        Assert.Same(second.Header, section.AddHeadersAndFooters().Header);
+        WordHeader secondHeader = section.PageSetup.Header;
+        WordFooter secondFooter = section.PageSetup.Footer;
+        secondHeader.AddParagraph("Second header");
+        secondFooter.AddParagraph("Second footer");
+        Assert.Same(firstHeader, document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Default));
+        Assert.Same(secondFooter, section.PageSetup.GetFooter(WordHeaderFooterType.Default));
+        Assert.Same(secondHeader, section.PageSetup.Header);
         using var loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        Assert.Contains(loaded.Sections[0].Header.Default!.Paragraphs, paragraph => paragraph.Text == "First header");
-        Assert.Contains(loaded.Sections[1].Footer.Default!.Paragraphs, paragraph => paragraph.Text == "Second footer");
+        Assert.Contains(loaded.Sections[0].PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "First header");
+        Assert.Contains(loaded.Sections[1].PageSetup.Footer.Paragraphs, paragraph => paragraph.Text == "Second footer");
         Assert.Empty(new OpenXmlValidator(DocumentFormat.OpenXml.FileFormatVersions.Microsoft365).Validate(loaded._wordprocessingDocument));
     }
 

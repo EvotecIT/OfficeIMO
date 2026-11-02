@@ -44,10 +44,10 @@ remain editable. The parsed HTML source is not modified.
 ```csharp
 document.AddHtml("<p>Body content</p>");
 WordSection section = document.Sections[0];
-WordHeader header = section.GetOrCreateHeader(WordHeaderFooterType.Default);
+WordHeader header = section.PageSetup.Header;
 IReadOnlyList<WordElement> imported = header.AddHtml(
     HtmlConversionDocument.Parse("<p>Report header</p>"), section: section);
-section.GetOrCreateFooter(WordHeaderFooterType.First).AddHtml(
+section.PageSetup.FirstPageFooter.AddHtml(
     HtmlConversionDocument.Parse("<p>First-page footer</p>"));
 ```
 

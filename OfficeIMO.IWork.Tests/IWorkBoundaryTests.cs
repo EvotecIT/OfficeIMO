@@ -581,20 +581,20 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Projection.Sections.Count);
         Assert.Equal(2, result.Value.Sections.Count);
-        Assert.Contains(result.Value.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.Contains(result.Value.Sections[1].Header.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "Second header");
-        Assert.Contains(result.Value.Sections[1].Footer.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].PageSetup.Footer.Paragraphs,
             paragraph => paragraph.Text == "Second footer");
         using var bytes = new MemoryStream();
         result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.Equal(2, reopened.Sections.Count);
-        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[0].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.Contains(reopened.Sections[1].Header.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[1].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "Second header");
     }
 
@@ -607,19 +607,19 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Projection.Sections.Count);
         Assert.Equal(3, result.Value.Sections.Count);
-        Assert.Contains(result.Value.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.Null(result.Value.Sections[1].Header.Default);
-        Assert.Contains(result.Value.Sections[2].Header.Default!.Paragraphs,
+        Assert.Null(result.Value.Sections[1].PageSetup.GetHeader(WordHeaderFooterType.Default));
+        Assert.Contains(result.Value.Sections[2].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "Second header");
-        Assert.Contains(result.Value.Sections[2].Footer.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[2].PageSetup.Footer.Paragraphs,
             paragraph => paragraph.Text == "Second footer");
         using var bytes = new MemoryStream();
         result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.Equal(3, reopened.Sections.Count);
-        Assert.Contains(reopened.Sections[2].Header.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[2].PageSetup.Header.Paragraphs,
             paragraph => paragraph.Text == "Second header");
     }
 

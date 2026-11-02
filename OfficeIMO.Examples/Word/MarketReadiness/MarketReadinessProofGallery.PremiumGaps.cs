@@ -84,8 +84,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument source = WordDocument.Create(sourcePath)) {
                 source.BuiltinDocumentProperties.Title = "Agreement Draft";
                 source.AddParagraph("Agreement Draft").Style = WordParagraphStyles.Heading1;
-                source.HeaderDefaultOrCreate.AddParagraph("Classification: Internal");
-                source.FooterDefaultOrCreate.AddParagraph("Agreement pack: Draft");
+                source.PageSetup.Header.AddParagraph("Classification: Internal");
+                source.PageSetup.Footer.AddParagraph("Agreement pack: Draft");
                 source.AddParagraph("Payment is due within 30 days.");
                 source.AddParagraph("Service credits are capped at one month of fees.");
                 WordTable table = source.AddTable(2, 2);
@@ -105,8 +105,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument target = WordDocument.Create(targetPath)) {
                 target.BuiltinDocumentProperties.Title = "Agreement Draft";
                 target.AddParagraph("Agreement Draft").Style = WordParagraphStyles.Heading1;
-                target.HeaderDefaultOrCreate.AddParagraph("Classification: Customer");
-                target.FooterDefaultOrCreate.AddParagraph("Agreement pack: Approved");
+                target.PageSetup.Header.AddParagraph("Classification: Customer");
+                target.PageSetup.Footer.AddParagraph("Agreement pack: Approved");
                 target.AddParagraph("Payment is due within 14 days.");
                 target.AddParagraph("Service credits are capped at two months of fees.");
                 target.AddParagraph("Escalation contacts must be reviewed quarterly.");

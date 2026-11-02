@@ -27,7 +27,12 @@ public sealed class AddOfficeWordHeaderCommand : PSWriteOffice.Cmdlets.OfficeMut
     protected override void ProcessRecord() {
         var context = WordDslContext.Require(this);
         var section = context.RequireSection();
-        var header = section.GetOrCreateHeader(Type);
+        var setup = section.PageSetup;
+        var header = Type switch {
+            WordHeaderFooterType.First => setup.FirstPageHeader,
+            WordHeaderFooterType.Even => setup.EvenPageHeader,
+            _ => setup.Header
+        };
 
         using (context.Push(header)) {
             Content?.InvokeReturnAsIs();

@@ -8,7 +8,7 @@ namespace OfficeIMO.Word {
         private int CombineRuns(WordHeaderFooter wordHeaderFooter) {
             int count = 0;
             if (wordHeaderFooter != null) {
-                var defaultHeader = this.Header?.Default;
+                var defaultHeader = this.Sections[0].Headers?.Default;
                 if (defaultHeader != null) {
                     foreach (var p in defaultHeader.Paragraphs) count += CombineIdenticalRuns(p._paragraph);
                     foreach (var table in defaultHeader.Tables) {
@@ -406,44 +406,46 @@ namespace OfficeIMO.Word {
                 list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
             }
 
-            if (this.Header?.Default != null) {
-                list.AddRange(FindAndReplaceNested(this.Header.Default.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Header.Default.Tables) {
+            var headers = this.Sections[0].Headers;
+            var footers = this.Sections[0].Footers;
+            if (headers.Default is { } defaultHeader) {
+                list.AddRange(FindAndReplaceNested(defaultHeader.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in defaultHeader.Tables) {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }
 
-            if (this.Header?.Even != null) {
-                list.AddRange(FindAndReplaceNested(this.Header.Even.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Header.Even.Tables) {
+            if (headers.Even is { } evenHeader) {
+                list.AddRange(FindAndReplaceNested(evenHeader.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in evenHeader.Tables) {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }
 
-            if (this.Header?.First != null) {
-                list.AddRange(FindAndReplaceNested(this.Header.First.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Header.First.Tables) {
+            if (headers.First is { } firstHeader) {
+                list.AddRange(FindAndReplaceNested(firstHeader.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in firstHeader.Tables) {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }
 
-            if (this.Footer?.Default != null) {
-                list.AddRange(FindAndReplaceNested(this.Footer.Default.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Footer.Default.Tables) {
+            if (footers.Default is { } defaultFooter) {
+                list.AddRange(FindAndReplaceNested(defaultFooter.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in defaultFooter.Tables) {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }
 
-            if (this.Footer?.Even != null) {
-                list.AddRange(FindAndReplaceNested(this.Footer.Even.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Footer.Even.Tables) {
+            if (footers.Even is { } evenFooter) {
+                list.AddRange(FindAndReplaceNested(evenFooter.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in evenFooter.Tables) {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }
 
-            if (this.Footer?.First != null) {
-                list.AddRange(FindAndReplaceNested(this.Footer.First.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Footer.First.Tables) {
+            if (footers.First is { } firstFooter) {
+                list.AddRange(FindAndReplaceNested(firstFooter.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                foreach (var table in firstFooter.Tables) {
                     list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
                 }
             }

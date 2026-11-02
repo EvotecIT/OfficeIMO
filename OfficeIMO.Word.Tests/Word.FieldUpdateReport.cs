@@ -1446,7 +1446,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Body source").AddBookmark("BodyBookmark");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
                 Footer footer = document._wordprocessingDocument.MainDocumentPart!.FooterParts.Single().Footer!;

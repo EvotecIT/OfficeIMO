@@ -35,44 +35,46 @@ namespace OfficeIMO.Word {
                 result.FindRegex(table.Paragraphs, regex, result.MutableTableParagraphs);
             }
 
-            if (document.Header?.Default != null) {
-                result.FindRegex(document.Header.Default.Paragraphs, regex, result.MutableDefaultHeaderParagraphs);
-                foreach (var table in document.Header.Default.Tables) {
+            var headers = document.Sections[0].Headers;
+            var footers = document.Sections[0].Footers;
+            if (headers.Default is { } defaultHeader) {
+                result.FindRegex(defaultHeader.Paragraphs, regex, result.MutableDefaultHeaderParagraphs);
+                foreach (var table in defaultHeader.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.MutableDefaultHeaderParagraphs);
                 }
             }
 
-            if (document.Header?.Even != null) {
-                result.FindRegex(document.Header.Even.Paragraphs, regex, result.MutableEvenPageHeaderParagraphs);
-                foreach (var table in document.Header.Even.Tables) {
+            if (headers.Even is { } evenHeader) {
+                result.FindRegex(evenHeader.Paragraphs, regex, result.MutableEvenPageHeaderParagraphs);
+                foreach (var table in evenHeader.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.MutableEvenPageHeaderParagraphs);
                 }
             }
 
-            if (document.Header?.First != null) {
-                result.FindRegex(document.Header.First.Paragraphs, regex, result.MutableFirstPageHeaderParagraphs);
-                foreach (var table in document.Header.First.Tables) {
+            if (headers.First is { } firstHeader) {
+                result.FindRegex(firstHeader.Paragraphs, regex, result.MutableFirstPageHeaderParagraphs);
+                foreach (var table in firstHeader.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.MutableFirstPageHeaderParagraphs);
                 }
             }
 
-            if (document.Footer?.Default != null) {
-                result.FindRegex(document.Footer.Default.Paragraphs, regex, result.MutableDefaultFooterParagraphs);
-                foreach (var table in document.Footer.Default.Tables) {
+            if (footers.Default is { } defaultFooter) {
+                result.FindRegex(defaultFooter.Paragraphs, regex, result.MutableDefaultFooterParagraphs);
+                foreach (var table in defaultFooter.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.MutableDefaultFooterParagraphs);
                 }
             }
 
-            if (document.Footer?.Even != null) {
-                result.FindRegex(document.Footer.Even.Paragraphs, regex, result.MutableEvenPageFooterParagraphs);
-                foreach (var table in document.Footer.Even.Tables) {
+            if (footers.Even is { } evenFooter) {
+                result.FindRegex(evenFooter.Paragraphs, regex, result.MutableEvenPageFooterParagraphs);
+                foreach (var table in evenFooter.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.MutableEvenPageFooterParagraphs);
                 }
             }
 
-            if (document.Footer?.First != null) {
-                result.FindRegex(document.Footer.First.Paragraphs, regex, result.MutableFirstPageFooterParagraphs);
-                foreach (var table in document.Footer.First.Tables) {
+            if (footers.First is { } firstFooter) {
+                result.FindRegex(firstFooter.Paragraphs, regex, result.MutableFirstPageFooterParagraphs);
+                foreach (var table in firstFooter.Tables) {
                     result.FindRegex(table.Paragraphs, regex, result.MutableFirstPageFooterParagraphs);
                 }
             }

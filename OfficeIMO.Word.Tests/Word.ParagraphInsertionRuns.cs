@@ -14,13 +14,13 @@ public partial class Word {
     [InlineData("footer")]
     public void AppendedParagraphTextStartsWithItsAuthoredRun(string story) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordParagraph paragraph = story switch {
             "body" => document.AddParagraph(),
             "section" => document.Sections[0].AddParagraph(),
             "cell" => document.AddTable(1, 1).Rows[0].Cells[0].AddParagraph(removeExistingParagraphs: true),
-            "header" => document.Header.Default!.AddParagraph(),
-            "footer" => document.Footer.Default!.AddParagraph(),
+            "header" => document.PageSetup.Header.AddParagraph(),
+            "footer" => document.PageSetup.Footer.AddParagraph(),
             _ => throw new ArgumentOutOfRangeException(nameof(story))
         };
         paragraph.AddText("FIRST").SetBold();

@@ -17,8 +17,8 @@ namespace OfficeIMO.Word {
 
                 WordSection section = document.Sections[story.SectionIndex];
                 WordHeaderFooter target = story.IsHeader
-                    ? section.GetOrCreateHeader(story.Type.ToOfficeEnum())
-                    : section.GetOrCreateFooter(story.Type.ToOfficeEnum());
+                    ? section.PageSetup.GetOrCreateHeader(story.Type.ToOfficeEnum())
+                    : section.PageSetup.GetOrCreateFooter(story.Type.ToOfficeEnum());
                 foreach (WordParagraph paragraph in target.Paragraphs.ToList()) {
                     paragraph.Remove();
                 }

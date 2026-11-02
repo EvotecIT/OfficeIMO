@@ -92,8 +92,8 @@ using OfficeIMO;
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("Letter.docx");
-document.HeaderDefaultOrCreate.AddParagraph("Northwind Traders");
-document.FooterDefaultOrCreate.AddParagraph("Page ").AddPageNumber(includeTotalPages: true);
+document.PageSetup.Header.AddParagraph("Northwind Traders");
+document.PageSetup.Footer.AddParagraph("Page ").AddPageNumber(includeTotalPages: true);
 
 document.AddImage("logo.png", width: OfficeLength.Centimeters(4));
 document.AddParagraph("Dear customer,");

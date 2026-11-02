@@ -175,9 +175,9 @@ internal sealed class OfficeMarkupWordExporter {
             double? width = image.Width, height = image.Height;
             if (!width.HasValue && !height.HasValue) {
                 var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
-                double pageWidth = (double?)section?.PageSettings.Width?.ToTwips() ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
-                double leftMargin = (double?)section?.Margins.Left?.ToTwips() ?? 1440;
-                double rightMargin = (double?)section?.Margins.Right?.ToTwips() ?? 1440;
+                double pageWidth = (double?)section?.PageSetup.Size.Width?.ToTwips() ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
+                double leftMargin = (double?)section?.PageSetup.Margins.Left?.ToTwips() ?? 1440;
+                double rightMargin = (double?)section?.PageSetup.Margins.Right?.ToTwips() ?? 1440;
                 double scale = Math.Min(1, Math.Max(1, (pageWidth - leftMargin - rightMargin) / 15) / info.Width);
                 width = info.Width * scale;
                 height = info.Height * scale;
@@ -242,18 +242,20 @@ internal sealed class OfficeMarkupWordExporter {
     }
 
     private static void AddHeaderFooter(WordExportContext context, OfficeMarkupHeaderFooterBlock headerFooter) {
-        var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
-        if (section == null) {
-            context.Document.AddHeadersAndFooters();
-            section = context.Document.Sections.First();
-        }
-
+        var setup = (context.CurrentSection ?? context.Document.Sections[0]).PageSetup;
         var type = ParseHeaderFooterType(headerFooter.Attributes);
-        if (string.Equals(headerFooter.HeaderFooterKind, "footer", StringComparison.OrdinalIgnoreCase)) {
-            section.GetOrCreateFooter(type).AddParagraph(headerFooter.Text);
-        } else {
-            section.GetOrCreateHeader(type).AddParagraph(headerFooter.Text);
-        }
+        WordHeaderFooter target = string.Equals(headerFooter.HeaderFooterKind, "footer", StringComparison.OrdinalIgnoreCase)
+            ? type switch {
+                WordHeaderFooterType.First => setup.FirstPageFooter,
+                WordHeaderFooterType.Even => setup.EvenPageFooter,
+                _ => setup.Footer
+            }
+            : type switch {
+                WordHeaderFooterType.First => setup.FirstPageHeader,
+                WordHeaderFooterType.Even => setup.EvenPageHeader,
+                _ => setup.Header
+            };
+        target.AddParagraph(headerFooter.Text);
     }
 
     private static void AddTableOfContents(WordExportContext context, OfficeMarkupTableOfContentsBlock toc) {

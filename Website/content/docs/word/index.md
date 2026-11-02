@@ -112,9 +112,9 @@ document.AddParagraph("Portrait section content");
 
 // Start a new section in landscape
 var section = document.AddSection();
-section.PageOrientation = Orientation.Landscape;
-section.PageSettings.Width = 15840;
-section.PageSettings.Height = 12240;
+section.PageSetup.Orientation = Orientation.Landscape;
+section.PageSetup.Size.Width = 15840;
+section.PageSetup.Size.Height = 12240;
 
 document.AddParagraph("Landscape section content");
 

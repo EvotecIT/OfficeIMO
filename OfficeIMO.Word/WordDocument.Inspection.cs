@@ -70,7 +70,7 @@ namespace OfficeIMO.Word {
                 var sectionSnapshot = new WordSectionInfo {
                     Index = sectionIndex,
                     SectionBreakType = ResolveSectionBreakType(section, sectionIndex),
-                    Orientation = NormalizeOpenXmlEnumValue(section._sectionProperties?.GetFirstChild<PageSize>()?.Orient) ?? section.PageOrientation.ToString(),
+                    Orientation = NormalizeOpenXmlEnumValue(section._sectionProperties?.GetFirstChild<PageSize>()?.Orient) ?? section.PageSetup.Orientation.ToString(),
                     PageWidth = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value),
                     PageHeight = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageSize>()?.Height?.Value),
                     MarginTop = ReadTwipLength(section._sectionProperties?.GetFirstChild<PageMargin>()?.Top?.Value),
@@ -83,10 +83,10 @@ namespace OfficeIMO.Word {
                     ColumnSpacing = section.ColumnsSpace,
                     HasColumnSeparator = section._sectionProperties?.GetFirstChild<Columns>()?.Separator?.Value ?? false,
                     PageNumberStart = section._sectionProperties?.GetFirstChild<PageNumberType>()?.Start?.Value,
-                    HeaderCount = CountHeaderParts(section.Header),
-                    FooterCount = CountFooterParts(section.Footer),
-                    DifferentFirstPage = section.DifferentFirstPage,
-                    DifferentOddAndEvenPages = section.DifferentOddAndEvenPages,
+                    HeaderCount = CountHeaderParts(section.Headers),
+                    FooterCount = CountFooterParts(section.Footers),
+                    DifferentFirstPage = section.PageSetup.DifferentFirstPage,
+                    DifferentOddAndEvenPages = section.PageSetup.DifferentOddAndEvenPages,
                     DocumentOddEvenSettingEnabled = section.DocumentOddEvenSettingEnabled,
                     HasExplicitDefaultHeader = section._sectionProperties?.Elements<HeaderReference>()
                         .Any(reference => reference.Type?.Value == HeaderFooterValues.Default) == true,
@@ -100,10 +100,10 @@ namespace OfficeIMO.Word {
                         .Any(reference => reference.Type?.Value == HeaderFooterValues.Even) == true,
                     HasExplicitEvenFooter = section._sectionProperties?.Elements<FooterReference>()
                         .Any(reference => reference.Type?.Value == HeaderFooterValues.Even) == true,
-                    DefaultHeader = BuildHeaderFooterSnapshot(section.Header?.Default, "header", "default", expansionContext),
-                    DefaultFooter = BuildHeaderFooterSnapshot(section.Footer?.Default, "footer", "default", expansionContext),
-                    FirstHeader = BuildHeaderFooterSnapshot(section.Header?.First, "header", "first", expansionContext),
-                    FirstFooter = BuildHeaderFooterSnapshot(section.Footer?.First, "footer", "first", expansionContext),
+                    DefaultHeader = BuildHeaderFooterSnapshot(section.Headers?.Default, "header", "default", expansionContext),
+                    DefaultFooter = BuildHeaderFooterSnapshot(section.Footers?.Default, "footer", "default", expansionContext),
+                    FirstHeader = BuildHeaderFooterSnapshot(section.Headers?.First, "header", "first", expansionContext),
+                    FirstFooter = BuildHeaderFooterSnapshot(section.Footers?.First, "footer", "first", expansionContext),
                     EvenHeader = BuildHeaderFooterSnapshot(section.ResolveEvenHeader(), "header", "even", expansionContext),
                     EvenFooter = BuildHeaderFooterSnapshot(section.ResolveEvenFooter(), "footer", "even", expansionContext),
                 };

@@ -18,9 +18,9 @@ namespace OfficeIMO.Examples.Word
                 {
                     document.BuiltinDocumentProperties.Title = "Quarterly Review";
                     document.BuiltinDocumentProperties.Creator = "OfficeIMO";
-                    document.PageOrientation = OfficePageOrientation.Portrait;
-                    document.PageSettings.PageSize = WordPageSize.A4;
-                    document.Sections[0].SetMargins(WordMargin.Normal);
+                    document.PageSetup.Orientation = OfficePageOrientation.Portrait;
+                    document.PageSetup.Size.PageSize = WordPageSize.A4;
+                    document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;
                     var paragraph1 = document.AddParagraph();
                     paragraph1 = paragraph1.AddText("Hello ");
                     paragraph1 = paragraph1.AddText("World");

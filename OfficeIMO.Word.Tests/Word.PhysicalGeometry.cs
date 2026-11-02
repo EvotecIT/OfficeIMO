@@ -10,10 +10,10 @@ public partial class Word {
     public void PhysicalGeometry_RoundsAtTheNativeBoundaryAndSurvivesSaving() {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.Margins.Left = OfficeLength.Inches(0.5);
-        section.Margins.Top = OfficeLength.Points(-12.03);
-        section.Margins.HeaderDistance = OfficeLength.Points(18.03);
-        section.PageSettings.Width = OfficeLength.Points(612.03);
+        section.PageSetup.Margins.Left = OfficeLength.Inches(0.5);
+        section.PageSetup.Margins.Top = OfficeLength.Points(-12.03);
+        section.PageSetup.Margins.HeaderDistance = OfficeLength.Points(18.03);
+        section.PageSetup.Size.Width = OfficeLength.Points(612.03);
         WordParagraph paragraph = document.AddParagraph("Physical dimensions");
         paragraph.IndentationBefore = OfficeLength.Points(-18.03);
         paragraph.LineSpacingBefore = OfficeLength.Points(6.03);
@@ -54,9 +54,9 @@ public partial class Word {
         OfficeLength negative = OfficeLength.Emus(-1);
         string sectionBefore = section._sectionProperties.OuterXml;
         string rowBefore = row._tableRow.OuterXml;
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.Margins.Left = negative);
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.Margins.HeaderDistance = negative);
-        Assert.Throws<ArgumentOutOfRangeException>(() => section.PageSettings.Width = negative);
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.PageSetup.Margins.Left = negative);
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.PageSetup.Margins.HeaderDistance = negative);
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.PageSetup.Size.Width = negative);
         Assert.Throws<ArgumentOutOfRangeException>(() => row.Height = negative);
         Assert.Throws<ArgumentOutOfRangeException>(() => row.MinimumHeight = negative);
         Assert.Equal(sectionBefore, section._sectionProperties.OuterXml);

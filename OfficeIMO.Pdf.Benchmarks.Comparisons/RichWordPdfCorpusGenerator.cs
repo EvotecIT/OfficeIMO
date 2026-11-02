@@ -19,9 +19,9 @@ internal static class RichWordPdfCorpusGenerator {
         string imagePath = Path.Combine(repositoryRoot, "Assets", "Images", "Others", "Logo-evotec.png");
 
         using (WordDocument document = WordDocument.Create(docxPath)) {
-            document.AddHeadersAndFooters();
-            WordHeader? header = document.Header?.Default;
-            WordFooter? footer = document.Footer?.Default;
+            _ = document.PageSetup.Header;
+            WordHeader? header = document.PageSetup.GetHeader(WordHeaderFooterType.Default);
+            WordFooter? footer = document.PageSetup.GetFooter(WordHeaderFooterType.Default);
             if (header == null || footer == null) {
                 throw new InvalidDataException("Word fixture did not create default header and footer parts.");
             }

@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesInSectionsAndHeaders.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 Assert.True(document.Sections.Count == 1);
 
@@ -517,7 +517,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddHyperlinkInsideHeaderTextBox() {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderTextBoxWithHyperlink.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var textBox = defaultHeader.AddTextBox("Header hyperlink test");
 

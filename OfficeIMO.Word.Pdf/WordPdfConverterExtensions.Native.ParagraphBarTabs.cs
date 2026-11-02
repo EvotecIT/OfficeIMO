@@ -32,7 +32,7 @@ public static partial class WordPdfConverterExtensions {
         bool mapsHeader, bool mapsFooter) {
         Record(section.ResolveDefaultHeader(), "default header", mapsHeader);
         Record(section.ResolveDefaultFooter(), "default footer", mapsFooter);
-        if (section.DifferentFirstPage) {
+        if (section.PageSetup.DifferentFirstPage) {
             Record(section.ResolveFirstHeader(), "first header", mapsHeader);
             Record(section.ResolveFirstFooter(), "first footer", mapsFooter);
         }

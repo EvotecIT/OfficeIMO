@@ -228,7 +228,7 @@ public sealed class MermaidDocumentTests {
     private static void AssertWordImageFitsContent(OfficeIMO.Word.WordDocument document) {
         var image = Assert.Single(document.Images);
         var section = document.Sections.First();
-        double available = ((double)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (double)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (double)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15;
+        double available = ((double)checked((uint?)(section.PageSetup.Size.Width?.ToTwips()))!.Value - (double)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) - (double)checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips()))) / 15;
         Assert.InRange(image.Width!.Value.ToPixels(), 1, available + 0.001);
     }
 

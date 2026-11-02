@@ -39,8 +39,8 @@ public sealed class WordPdfDocumentDefaultRunStyleTests {
         normal.StyleRunProperties = new W.StyleRunProperties();
         WordParagraph paragraph = route switch {
             "cell" => document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
-            "header" => document.HeaderDefaultOrCreate.AddParagraph(),
-            "footer" => document.FooterDefaultOrCreate.AddParagraph(),
+            "header" => document.PageSetup.Header.AddParagraph(),
+            "footer" => document.PageSetup.Footer.AddParagraph(),
             _ => document.AddParagraph()
         };
         var properties = new W.RunProperties();

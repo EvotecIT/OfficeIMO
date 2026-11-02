@@ -293,8 +293,7 @@ public sealed class WordPdfTabInheritanceTests {
                 .Single(note => note.Type == null && note.Id?.Value > 0).Append(source);
         } else {
             document.AddParagraph("BODY");
-            document.AddHeadersAndFooters();
-            document.Header.Default!.AddParagraph("SEED");
+            document.PageSetup.Header.AddParagraph("SEED");
             W.Paragraph seed = main.HeaderParts.SelectMany(part => part.Header.Elements<W.Paragraph>())
                 .Single(paragraph => paragraph.InnerText == "SEED");
             seed.InsertAfterSelf(source);

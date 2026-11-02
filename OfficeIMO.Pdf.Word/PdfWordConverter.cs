@@ -664,8 +664,8 @@ namespace OfficeIMO.Pdf.Word {
             System.Text.RegularExpressions.Match match = LeaderLinePattern.Match(lines[0].Text.Trim());
             if (!match.Success) return false;
             WordSection section = document.Sections[document.Sections.Count - 1];
-            long textWidth = (section.PageSettings.Width?.ToTwips() ?? 12240L) -
-                (section.Margins.Left?.ToTwips() ?? 0L) - (section.Margins.Right?.ToTwips() ?? 0L);
+            long textWidth = (section.PageSetup.Size.Width?.ToTwips() ?? 12240L) -
+                (section.PageSetup.Margins.Left?.ToTwips() ?? 0L) - (section.PageSetup.Margins.Right?.ToTwips() ?? 0L);
             if (textWidth <= 720) return false;
             paragraph = document.AddParagraph();
             paragraph.AddTabStop(OfficeLength.Points(Math.Min(int.MaxValue, textWidth) / 20D), WordTabAlignment.Right, WordTabLeader.Dot);

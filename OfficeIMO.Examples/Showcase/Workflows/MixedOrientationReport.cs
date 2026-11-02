@@ -20,7 +20,7 @@ internal static class MixedOrientationReport {
         document.AddParagraph("Recommendation").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("Take Cedar to a controlled pilot. Confirm export completeness and escalation coverage before making a final selection.");
         var section = document.AddSection();
-        section.PageOrientation = OfficePageOrientation.Landscape;
+        section.PageSetup.Orientation = OfficePageOrientation.Landscape;
         document.AddParagraph("Evidence comparison").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("A landscape section gives each criterion enough room for a useful explanation.");
         string[,] rows = {

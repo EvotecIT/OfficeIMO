@@ -19,9 +19,9 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVariants.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
-            document.DifferentFirstPage = true;
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentFirstPage = true;
+            document.PageSetup.DifferentOddAndEvenPages = true;
 
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Header");
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Footer");
@@ -62,9 +62,9 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderFooterVariants.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
-            document.DifferentFirstPage = true;
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentFirstPage = true;
+            document.PageSetup.DifferentOddAndEvenPages = true;
 
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Header");
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
@@ -116,9 +116,9 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderWatermarkVariants.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
-            document.DifferentFirstPage = true;
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentFirstPage = true;
+            document.PageSetup.DifferentOddAndEvenPages = true;
 
             RequireSectionHeader(document, 0, HeaderFooterValues.First)
                 .AddWatermark(WordWatermarkStyle.Text, "STALE FIRST WATERMARK");
@@ -161,9 +161,9 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
-            document.DifferentFirstPage = true;
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentFirstPage = true;
+            document.PageSetup.DifferentOddAndEvenPages = true;
 
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Header");
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Footer");
@@ -196,8 +196,8 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeMissingEvenReferences.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMissingEvenReferences.pdf");
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentOddAndEvenPages = true;
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Odd only header");
             RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Odd only footer");
             for (int i = 0; i < 240; i++) document.AddParagraph($"Body paragraph {i}");
@@ -213,7 +213,7 @@ public partial class Word {
             package.Save();
         }
         using (WordDocument document = WordDocument.Load(docPath)) {
-            Assert.False(document.Sections[0].DifferentOddAndEvenPages);
+            Assert.False(document.Sections[0].PageSetup.DifferentOddAndEvenPages);
             document.SaveAsPdf(pdfPath);
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
@@ -227,7 +227,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Configured_Header_And_Footer_Offsets() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
         header.AddParagraph("Offset Header Line One");
         header.AddParagraph("Offset Header Line Two");

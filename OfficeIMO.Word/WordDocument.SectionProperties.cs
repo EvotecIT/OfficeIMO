@@ -5,30 +5,6 @@ namespace OfficeIMO.Word {
     // Exposes section-level properties.
     public partial class WordDocument {
         /// <summary>
-        /// Gets or sets the orientation of the pages in the first section.
-        /// </summary>
-        /// <remarks>
-        /// When a document contains multiple sections, consider using
-        /// <c>Sections[wantedSection].PageOrientation</c> instead.
-        /// </remarks>
-        public OfficePageOrientation PageOrientation {
-            get {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageOrientation.");
-                }
-
-                return this.Sections[0].PageOrientation;
-            }
-            set {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageOrientation.");
-                }
-
-                this.Sections[0].PageOrientation = value;
-            }
-        }
-
-        /// <summary>
         /// Gets or sets the page borders for the first section.
         /// </summary>
         /// <remarks>
@@ -49,54 +25,6 @@ namespace OfficeIMO.Word {
                 }
 
                 this.Sections[0].Borders = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the margins for the first section.
-        /// </summary>
-        /// <remarks>
-        /// Use <c>Sections[wantedSection].Margins</c> when a document has more
-        /// than one section.
-        /// </remarks>
-        public WordMargins Margins {
-            get {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Margins.");
-                }
-
-                return this.Sections[0].Margins;
-            }
-            set {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].Margins.");
-                }
-
-                this.Sections[0].Margins = value;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the page size settings for the first section.
-        /// </summary>
-        /// <remarks>
-        /// For multi&#8209;section documents use
-        /// <c>Sections[wantedSection].PageSettings</c> instead.
-        /// </remarks>
-        public WordPageSizes PageSettings {
-            get {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageSettings.");
-                }
-
-                return this.Sections[0].PageSettings;
-            }
-            set {
-                if (this.Sections.Count > 1) {
-                    Debug.WriteLine("This document contains more than 1 section. Consider using Sections[wantedSection].PageSettings.");
-                }
-
-                this.Sections[0].PageSettings = value;
             }
         }
 

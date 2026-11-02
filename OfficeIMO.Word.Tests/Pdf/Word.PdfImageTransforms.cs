@@ -24,8 +24,8 @@ public sealed class WordPdfImageTransformTests {
         document.AddParagraph("Body marker");
         WordParagraph paragraph = context switch {
             "table" => document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-            "header" or "simple-header" => document.HeaderDefaultOrCreate.AddParagraph(),
-            "footer" or "simple-footer" => document.FooterDefaultOrCreate.AddParagraph(),
+            "header" or "simple-header" => document.PageSetup.Header.AddParagraph(),
+            "footer" or "simple-footer" => document.PageSetup.Footer.AddParagraph(),
             _ => document.AddParagraph()
         };
         using var pixels = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(4, 2));

@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
                 document.AddParagraph().AddImage(System.IO.Path.Combine(_directoryWithImages, "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
                 document.AddTextBox("Allocated text box");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 RequireSectionHeader(document, 0, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default)
                     .AddPageNumber(WordPageNumberStyle.VerticalOutline2);
 

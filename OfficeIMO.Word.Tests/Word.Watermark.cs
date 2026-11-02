@@ -15,27 +15,27 @@ namespace OfficeIMO.Tests {
             return document.Sections[index];
         }
 
-        private static WordHeaders GetHeaders(WordDocument document, int sectionIndex) {
+        private static WordPageSetup GetHeaders(WordDocument document, int sectionIndex) {
             var section = GetSection(document, sectionIndex);
-            return Assert.IsType<WordHeaders>(section.Header);
+            return section.PageSetup;
         }
 
-        private static WordHeaders GetDocumentHeaders(WordDocument document) {
-            return Assert.IsType<WordHeaders>(document.Header);
+        private static WordPageSetup GetDocumentHeaders(WordDocument document) {
+            return document.PageSetup;
         }
 
         private static WordHeader GetHeader(WordDocument document, int sectionIndex, HeaderFooterValues type) {
             var headers = GetHeaders(document, sectionIndex);
             if (type == HeaderFooterValues.Default) {
-                return Assert.IsType<WordHeader>(headers.Default);
+                return Assert.IsType<WordHeader>(headers.GetHeader(WordHeaderFooterType.Default));
             }
 
             if (type == HeaderFooterValues.First) {
-                return Assert.IsType<WordHeader>(headers.First);
+                return Assert.IsType<WordHeader>(headers.GetHeader(WordHeaderFooterType.First));
             }
 
             if (type == HeaderFooterValues.Even) {
-                return Assert.IsType<WordHeader>(headers.Even);
+                return Assert.IsType<WordHeader>(headers.GetHeader(WordHeaderFooterType.Even));
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, null);
@@ -44,15 +44,15 @@ namespace OfficeIMO.Tests {
         private static WordHeader GetHeader(WordDocument document, HeaderFooterValues type) {
             var headers = GetDocumentHeaders(document);
             if (type == HeaderFooterValues.Default) {
-                return Assert.IsType<WordHeader>(headers.Default);
+                return Assert.IsType<WordHeader>(headers.GetHeader(WordHeaderFooterType.Default));
             }
 
             if (type == HeaderFooterValues.First) {
-                return Assert.IsType<WordHeader>(headers.First);
+                return Assert.IsType<WordHeader>(headers.GetHeader(WordHeaderFooterType.First));
             }
 
             if (type == HeaderFooterValues.Even) {
-                return Assert.IsType<WordHeader>(headers.Even);
+                return Assert.IsType<WordHeader>(headers.GetHeader(WordHeaderFooterType.Even));
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, null);
@@ -63,17 +63,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithWatermark.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var firstSection = GetSection(document, 0);
-                firstSection.SetMargins(WordMargin.Normal);
+                firstSection.PageSetup.Margins.Type = WordMargin.Normal;
 
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Watermark");
 
                 document.AddSection();
                 var secondSection = GetSection(document, 1);
-                secondSection.AddHeadersAndFooters();
-                secondSection.Margins.Type = WordMargin.Narrow;
+                _ = secondSection.PageSetup.Header;
+                secondSection.PageSetup.Margins.Type = WordMargin.Narrow;
 
                 Assert.False(watermark.Stroked);
                 Assert.False(watermark.AllowInCell);
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 firstSectionWatermark.Stroked = true;
 
                 var thirdSection = GetSection(document, 2);
-                thirdSection.AddHeadersAndFooters();
+                _ = thirdSection.PageSetup.Header;
                 var thirdHeader = GetHeader(document, 2, HeaderFooterValues.Default);
                 var thirdWatermark = thirdHeader.AddWatermark(WordWatermarkStyle.Text, "Check me");
                 thirdWatermark.Rotation = 180;
@@ -168,13 +168,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Section 0");
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 firstHeader.AddWatermark(WordWatermarkStyle.Text, "Watermark");
 
                 document.AddSection();
                 var secondSection = GetSection(document, 1);
-                secondSection.AddHeadersAndFooters();
+                _ = secondSection.PageSetup.Header;
                 var secondHeader = GetHeader(document, 1, HeaderFooterValues.Default);
                 secondHeader.AddWatermark(WordWatermarkStyle.Text, "Draft");
                 document.Settings.SetBackgroundColor(Color.Azure);
@@ -280,9 +280,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test");
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
-                document.DifferentOddAndEvenPages = true;
+                _ = document.PageSetup.Header;
+                document.PageSetup.DifferentFirstPage = true;
+                document.PageSetup.DifferentOddAndEvenPages = true;
 
                 var defaultHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.First);
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_CreatingWordDocumentWithImageWatermark.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 firstHeader.AddWatermark(WordWatermarkStyle.Image, imagePath);
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkImageDimensions.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Image, imagePath);
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                 System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("fr-FR");
                 using (WordDocument document = WordDocument.Create(filePath)) {
                     document.AddParagraph("Test");
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                     var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Offset",
                         global::OfficeIMO.OfficeLength.Millimeters(25.4), global::OfficeIMO.OfficeLength.Centimeters(-1.27), 2.0);
@@ -437,7 +437,7 @@ namespace OfficeIMO.Tests {
         public void Test_WatermarkColorSupportsHex() {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkColorSupportsHex.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Hex");
                 watermark.Color = Color.Red;
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests {
         public void Test_WatermarkColorSupportsUppercaseHexWithHash() {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkColorSupportsUppercaseHexWithHash.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Upper");
                 watermark.Color = OfficeColor.Parse("#FF00FF");
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
         public void Test_WatermarkSupportsMultipleColorInputs() {
             string filePath = Path.Combine(_directoryWithFiles, "Test_WatermarkSupportsMultipleColorInputs.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 // OfficeIMO colors
                 var redHeader = GetHeader(document, 0, HeaderFooterValues.Default);
@@ -488,34 +488,34 @@ namespace OfficeIMO.Tests {
                 red.Color = Color.Red;
 
                 document.AddSection();
-                document.Sections[1].AddHeadersAndFooters();
+                _ = document.Sections[1].PageSetup.Header;
                 var greenHeader = GetHeader(document, 1, HeaderFooterValues.Default);
                 var green = greenHeader.AddWatermark(WordWatermarkStyle.Text, "Green");
                 green.Color = Color.Green;
 
                 document.AddSection();
-                document.Sections[2].AddHeadersAndFooters();
+                _ = document.Sections[2].PageSetup.Header;
                 var blueHeader = GetHeader(document, 2, HeaderFooterValues.Default);
                 var blue = blueHeader.AddWatermark(WordWatermarkStyle.Text, "Blue");
                 blue.Color = Color.Blue;
 
                 // Hex without '#'
                 document.AddSection();
-                document.Sections[3].AddHeadersAndFooters();
+                _ = document.Sections[3].PageSetup.Header;
                 var magentaHeader = GetHeader(document, 3, HeaderFooterValues.Default);
                 var magenta = magentaHeader.AddWatermark(WordWatermarkStyle.Text, "Magenta");
                 magenta.Color = OfficeColor.Parse("FF00FF");
 
                 // Hex with '#'
                 document.AddSection();
-                document.Sections[4].AddHeadersAndFooters();
+                _ = document.Sections[4].PageSetup.Header;
                 var cyanHeader = GetHeader(document, 4, HeaderFooterValues.Default);
                 var cyan = cyanHeader.AddWatermark(WordWatermarkStyle.Text, "Cyan");
                 cyan.Color = OfficeColor.Parse("#00ffff");
 
                 // Named color string
                 document.AddSection();
-                document.Sections[5].AddHeadersAndFooters();
+                _ = document.Sections[5].PageSetup.Header;
                 var yellowHeader = GetHeader(document, 5, HeaderFooterValues.Default);
                 var yellow = yellowHeader.AddWatermark(WordWatermarkStyle.Text, "Yellow");
                 yellow.Color = OfficeColor.Parse("yellow");
@@ -566,7 +566,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, $"Test_WatermarkColorRoundTripAndRendering_{expectedHex}.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var firstHeader = GetHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = firstHeader.AddWatermark(WordWatermarkStyle.Text, "Color");
                 watermark.Color = Color.Parse(input);

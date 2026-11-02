@@ -157,7 +157,7 @@ public partial class Word {
             .Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties = null;
         WordTable table = story == "body" ? document.AddTable(1, 1, WordTableStyle.TableGrid)
-            : (story == "header" ? (WordHeaderFooter)document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate).AddTable(1, 1, WordTableStyle.TableGrid);
+            : (story == "header" ? (WordHeaderFooter)document.PageSetup.Header : document.PageSetup.Footer).AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = null;
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");

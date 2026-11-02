@@ -14,12 +14,12 @@ public static partial class WordRtfConverterExtensions {
 
     private static void CopySectionHeaderFooters(WordSection source, RtfSection destination, RtfDocument document,
         Dictionary<string, int> revisionAuthors) {
-        CopyHeaderFooter(source.Header.Default, document, destination.AddHeader, RtfHeaderFooterKind.Header, revisionAuthors);
-        CopyHeaderFooter(source.Header.First, document, destination.AddHeader, RtfHeaderFooterKind.FirstHeader, revisionAuthors);
-        CopyHeaderFooter(source.Header.Even, document, destination.AddHeader, RtfHeaderFooterKind.LeftHeader, revisionAuthors);
-        CopyHeaderFooter(source.Footer.Default, document, destination.AddFooter, RtfHeaderFooterKind.Footer, revisionAuthors);
-        CopyHeaderFooter(source.Footer.First, document, destination.AddFooter, RtfHeaderFooterKind.FirstFooter, revisionAuthors);
-        CopyHeaderFooter(source.Footer.Even, document, destination.AddFooter, RtfHeaderFooterKind.LeftFooter, revisionAuthors);
+        CopyHeaderFooter(source.PageSetup.GetHeader(WordHeaderFooterType.Default), document, destination.AddHeader, RtfHeaderFooterKind.Header, revisionAuthors);
+        CopyHeaderFooter(source.PageSetup.GetHeader(WordHeaderFooterType.First), document, destination.AddHeader, RtfHeaderFooterKind.FirstHeader, revisionAuthors);
+        CopyHeaderFooter(source.PageSetup.GetHeader(WordHeaderFooterType.Even), document, destination.AddHeader, RtfHeaderFooterKind.LeftHeader, revisionAuthors);
+        CopyHeaderFooter(source.PageSetup.GetFooter(WordHeaderFooterType.Default), document, destination.AddFooter, RtfHeaderFooterKind.Footer, revisionAuthors);
+        CopyHeaderFooter(source.PageSetup.GetFooter(WordHeaderFooterType.First), document, destination.AddFooter, RtfHeaderFooterKind.FirstFooter, revisionAuthors);
+        CopyHeaderFooter(source.PageSetup.GetFooter(WordHeaderFooterType.Even), document, destination.AddFooter, RtfHeaderFooterKind.LeftFooter, revisionAuthors);
     }
 
     private static void ApplySectionHeaderFooters(RtfDocument source, WordDocument destination, WordSection[] sections, RtfWordNumberingPlan numbering) {
@@ -45,11 +45,11 @@ public static partial class WordRtfConverterExtensions {
             RtfHeaderFooterKind.LeftFooter or RtfHeaderFooterKind.RightFooter;
         if (isFooter) {
             WordHeadersAndFooters.AddFooterReference(document, section, type);
-            return type == HeaderFooterValues.First ? section.Footer.First! :
-                type == HeaderFooterValues.Even ? section.Footer.Even! : section.Footer.Default!;
+            return type == HeaderFooterValues.First ? section.PageSetup.GetFooter(WordHeaderFooterType.First)! :
+                type == HeaderFooterValues.Even ? section.PageSetup.GetFooter(WordHeaderFooterType.Even)! : section.PageSetup.GetFooter(WordHeaderFooterType.Default)!;
         }
         WordHeadersAndFooters.AddHeaderReference(document, section, type);
-        return type == HeaderFooterValues.First ? section.Header.First! :
-            type == HeaderFooterValues.Even ? section.Header.Even! : section.Header.Default!;
+        return type == HeaderFooterValues.First ? section.PageSetup.GetHeader(WordHeaderFooterType.First)! :
+            type == HeaderFooterValues.Even ? section.PageSetup.GetHeader(WordHeaderFooterType.Even)! : section.PageSetup.GetHeader(WordHeaderFooterType.Default)!;
     }
 }

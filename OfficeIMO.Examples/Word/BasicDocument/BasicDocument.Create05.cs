@@ -13,16 +13,16 @@ namespace OfficeIMO.Examples.Word {
                 string imagePaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Images");
                 var filePathImage = System.IO.Path.Combine(imagePaths, "EvotecLogo.png");
 
-                document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(0.5D);
-                document.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Points(0.5D);
-                document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
-                document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+                document.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(0.5D);
+                document.Sections[0].PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(0.5D);
+                document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
+                document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
 
                 document.Settings.FontFamily = "Arial";
                 document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
-                var defaultHeader = document.HeaderDefaultOrCreate;
-                var defaultFooter = document.FooterDefaultOrCreate;
+                var defaultHeader = document.PageSetup.Header;
+                var defaultFooter = document.PageSetup.Footer;
 
                 Console.WriteLine("Images count: " + document.Images.Count);
 

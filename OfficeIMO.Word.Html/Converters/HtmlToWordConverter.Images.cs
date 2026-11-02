@@ -372,9 +372,9 @@ namespace OfficeIMO.Word.Html {
                 contentWidthTwips = containerWidthTwips.Value;
             } else {
                 var section = doc.Sections.Count > 0 ? doc.Sections[doc.Sections.Count - 1] : null;
-                var pageWidthTwips = section?.PageSettings.Width?.ToTwips() ?? checked((uint)(WordPageSizes.A4.Width.ToTwips()));
-                var leftMarginTwips = section?.Margins.Left?.ToTwips() ?? 1440U;
-                var rightMarginTwips = section?.Margins.Right?.ToTwips() ?? 1440U;
+                var pageWidthTwips = section?.PageSetup.Size.Width?.ToTwips() ?? checked((uint)(WordPageSizes.A4.Width.ToTwips()));
+                var leftMarginTwips = section?.PageSetup.Margins.Left?.ToTwips() ?? 1440U;
+                var rightMarginTwips = section?.PageSetup.Margins.Right?.ToTwips() ?? 1440U;
                 contentWidthTwips = Math.Max(0D, pageWidthTwips - leftMarginTwips - rightMarginTwips);
             }
             if (contentWidthTwips <= 0) {

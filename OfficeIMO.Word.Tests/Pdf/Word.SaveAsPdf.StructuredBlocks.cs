@@ -1027,7 +1027,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Text, "CONFIDENTIAL");
             watermark.FontFamily = "Arial";
@@ -1061,7 +1061,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Image, imagePath);
             watermark.Opacity = 0.35;
@@ -1155,7 +1155,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterCellLineBreak.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 1, WordTableStyle.TableNormal);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "Native header first";
             headerTable.Rows[0].Cells[0].AddParagraph("Native header second");

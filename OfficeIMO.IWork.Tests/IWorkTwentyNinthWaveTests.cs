@@ -12,22 +12,22 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Sections.Count);
-        Assert.Contains(result.Value.Sections[0].Header.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].PageSetup.EvenPageHeader.Paragraphs,
             paragraph => paragraph.Text == "First default header");
-        Assert.Contains(result.Value.Sections[0].Footer.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].PageSetup.EvenPageFooter.Paragraphs,
             paragraph => paragraph.Text == "First default footer");
-        Assert.Contains(result.Value.Sections[1].Header.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].PageSetup.EvenPageHeader.Paragraphs,
             paragraph => paragraph.Text == "Second even header");
-        Assert.Contains(result.Value.Sections[1].Footer.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].PageSetup.EvenPageFooter.Paragraphs,
             paragraph => paragraph.Text == "Second even footer");
 
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Contains(reopened.Sections[0].Header.Even!.Paragraphs,
+        Assert.Contains(reopened.Sections[0].PageSetup.EvenPageHeader.Paragraphs,
             paragraph => paragraph.Text == "First default header");
-        Assert.Contains(reopened.Sections[1].Header.Even!.Paragraphs,
+        Assert.Contains(reopened.Sections[1].PageSetup.EvenPageHeader.Paragraphs,
             paragraph => paragraph.Text == "Second even header");
     }
 

@@ -83,9 +83,8 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
             new DocDefaults(new RunPropertiesDefault(defaults));
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
             document.AddParagraph("BODY");
-            paragraph = document.Header.Default.AddParagraph("BACKGROUND");
+            paragraph = document.PageSetup.Header.AddParagraph("BACKGROUND");
         } else if (story == "cell") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "BACKGROUND";

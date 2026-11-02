@@ -93,9 +93,9 @@ namespace OfficeIMO.Word.Markdown {
             WordMarkdownExportOptions options,
             CancellationToken cancellationToken,
             int sectionIndex) {
-            AppendHeaderFooterSemanticBlock(markdown, section.Header.Default, options, cancellationToken, sectionIndex, "default", isHeader: true);
-            AppendHeaderFooterSemanticBlock(markdown, section.Header.First, options, cancellationToken, sectionIndex, "first", isHeader: true);
-            AppendHeaderFooterSemanticBlock(markdown, section.Header.Even, options, cancellationToken, sectionIndex, "even", isHeader: true);
+            AppendHeaderFooterSemanticBlock(markdown, section.PageSetup.GetHeader(WordHeaderFooterType.Default), options, cancellationToken, sectionIndex, "default", isHeader: true);
+            AppendHeaderFooterSemanticBlock(markdown, section.PageSetup.GetHeader(WordHeaderFooterType.First), options, cancellationToken, sectionIndex, "first", isHeader: true);
+            AppendHeaderFooterSemanticBlock(markdown, section.PageSetup.GetHeader(WordHeaderFooterType.Even), options, cancellationToken, sectionIndex, "even", isHeader: true);
         }
 
         private void AppendFooterSemanticBlocks(
@@ -104,9 +104,9 @@ namespace OfficeIMO.Word.Markdown {
             WordMarkdownExportOptions options,
             CancellationToken cancellationToken,
             int sectionIndex) {
-            AppendHeaderFooterSemanticBlock(markdown, section.Footer.Default, options, cancellationToken, sectionIndex, "default", isHeader: false);
-            AppendHeaderFooterSemanticBlock(markdown, section.Footer.First, options, cancellationToken, sectionIndex, "first", isHeader: false);
-            AppendHeaderFooterSemanticBlock(markdown, section.Footer.Even, options, cancellationToken, sectionIndex, "even", isHeader: false);
+            AppendHeaderFooterSemanticBlock(markdown, section.PageSetup.GetFooter(WordHeaderFooterType.Default), options, cancellationToken, sectionIndex, "default", isHeader: false);
+            AppendHeaderFooterSemanticBlock(markdown, section.PageSetup.GetFooter(WordHeaderFooterType.First), options, cancellationToken, sectionIndex, "first", isHeader: false);
+            AppendHeaderFooterSemanticBlock(markdown, section.PageSetup.GetFooter(WordHeaderFooterType.Even), options, cancellationToken, sectionIndex, "even", isHeader: false);
         }
 
         private void AppendHeaderFooterSemanticBlock(

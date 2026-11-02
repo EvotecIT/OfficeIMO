@@ -115,13 +115,13 @@ namespace OfficeIMO.Tests {
         public void CompareStructureDistinguishesDefaultAndFirstPageHeaders() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_default_header_variant.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.HeaderDefaultOrCreate.AddParagraph("Classification: Confidential");
+                doc.PageSetup.Header.AddParagraph("Classification: Confidential");
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_first_header_variant.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.HeaderFirstOrCreate.AddParagraph("Classification: Confidential");
+                doc.PageSetup.FirstPageHeader.AddParagraph("Classification: Confidential");
                 doc.Save();
             }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_changed_body_to_header.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.HeaderDefaultOrCreate.AddParagraph("Status: Approved");
+                doc.PageSetup.Header.AddParagraph("Status: Approved");
                 doc.Save();
             }
 

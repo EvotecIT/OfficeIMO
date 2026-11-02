@@ -87,8 +87,8 @@ public sealed class WordPdfRunSpacingTests {
             paragraph.Text = "ABCD";
         } else if (route is "header" or "footer") {
             document.AddParagraph("BODY");
-            document.AddHeadersAndFooters();
-            paragraph = (route == "header" ? (WordHeaderFooter)document.Header.Default : document.Footer.Default).AddParagraph("ABCD");
+            _ = document.PageSetup.Header;
+            paragraph = (route == "header" ? (WordHeaderFooter)document.PageSetup.GetHeader(WordHeaderFooterType.Default) : document.PageSetup.GetFooter(WordHeaderFooterType.Default)).AddParagraph("ABCD");
         } else {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "ABCD");
             if (route == "link") paragraph.AddHyperLink("ABCD", new Uri("https://example.com/"));

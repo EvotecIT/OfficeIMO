@@ -23,7 +23,7 @@ public sealed class PdfAnchoredImagePaginationTests {
                 new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
             var section = word.Sections[0];
-            section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+            section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
             if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var anchor = word.AddParagraph();
             var control = anchor.AddPictureControl(path, OfficeLength.Pixels(24), OfficeLength.Pixels(24));
@@ -75,8 +75,8 @@ public sealed class PdfAnchoredImagePaginationTests {
     public void ForegroundImageFollowsAnchorParagraphToItsFirstPage(bool columns, string kind) {
         using WordDocument word = WordDocument.Create();
         var section = word.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
         if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int index = 0; index < 16; index++) {
             var filler = word.AddParagraph("Filler " + index);

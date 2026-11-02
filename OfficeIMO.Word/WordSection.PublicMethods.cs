@@ -6,15 +6,6 @@ namespace OfficeIMO.Word {
     // Adds public operations for working with sections.
     public partial class WordSection {
         /// <summary>
-        /// Updates the margins for this section.
-        /// </summary>
-        /// <param name="pageMargins">Margin values to apply.</param>
-        /// <returns>The current section.</returns>
-        public WordSection SetMargins(WordMargin pageMargins) {
-            return WordMargins.SetMargins(this, pageMargins);
-        }
-
-        /// <summary>
         /// Adds a new paragraph to the section.
         /// </summary>
         /// <param name="newRun">Whether to create a run within the paragraph.</param>
@@ -145,54 +136,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Returns an existing header of the requested <paramref name="type"/> or creates it if missing.
-        /// For <see cref="HeaderFooterValues.Default"/>, this ensures default header/footer parts exist.
-        /// For <see cref="HeaderFooterValues.First"/> and <see cref="HeaderFooterValues.Even"/>, this toggles
-        /// the appropriate section option which provisions the corresponding parts and settings.
-        /// </summary>
-        public WordHeader GetOrCreateHeader(WordHeaderFooterType type) {
-            if (type == WordHeaderFooterType.Default) {
-                if (Header.Default == null) AddHeadersAndFooters();
-                return Header.Default ?? throw new InvalidOperationException("Failed to create default header.");
-            }
-
-            if (type == WordHeaderFooterType.First) {
-                if (Header.First == null) DifferentFirstPage = true;
-                return Header.First ?? throw new InvalidOperationException("Failed to create first-page header.");
-            }
-
-            if (type == WordHeaderFooterType.Even) {
-                if (Header.Even == null) DifferentOddAndEvenPages = true;
-                return Header.Even ?? throw new InvalidOperationException("Failed to create even-page header.");
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
-        }
-
-        /// <summary>
-        /// Returns an existing footer of the requested <paramref name="type"/> or creates it if missing.
-        /// Behavior mirrors <see cref="GetOrCreateHeader"/>.
-        /// </summary>
-        public WordFooter GetOrCreateFooter(WordHeaderFooterType type) {
-            if (type == WordHeaderFooterType.Default) {
-                if (Footer.Default == null) AddHeadersAndFooters();
-                return Footer.Default ?? throw new InvalidOperationException("Failed to create default footer.");
-            }
-
-            if (type == WordHeaderFooterType.First) {
-                if (Footer.First == null) DifferentFirstPage = true;
-                return Footer.First ?? throw new InvalidOperationException("Failed to create first-page footer.");
-            }
-
-            if (type == WordHeaderFooterType.Even) {
-                if (Footer.Even == null) DifferentOddAndEvenPages = true;
-                return Footer.Even ?? throw new InvalidOperationException("Failed to create even-page footer.");
-            }
-
-            throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
-        }
-
-        /// <summary>
         /// Adds a watermark to the section.
         /// </summary>
         /// <param name="watermarkStyle">Watermark style.</param>
@@ -263,14 +206,6 @@ namespace OfficeIMO.Word {
         /// <returns>The created paragraph.</returns>
         public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, anchor, addStyle, tooltip, history);
-        }
-
-        /// <summary>
-        /// Adds default headers and footers to the section.
-        /// </summary>
-        /// <returns>The attached default header and footer.</returns>
-        public (WordHeader Header, WordFooter Footer) AddHeadersAndFooters() {
-            return WordHeadersAndFooters.AddHeadersAndFooters(this);
         }
 
         /// <summary>

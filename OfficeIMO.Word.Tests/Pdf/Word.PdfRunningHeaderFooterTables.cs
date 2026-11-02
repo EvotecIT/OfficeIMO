@@ -35,9 +35,9 @@ public partial class Word {
     public void RunningHeaderFooterTablePreservesBordersDirectionAndDocumentSource(bool footer, bool up, bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         source.AddParagraph("BODY");
-        source.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
-        source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        source.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         CreateRunningStoryTable(story, "HEADER", 120,
             up ? WordTextDirection.BottomToTopLeftToRight : WordTextDirection.TopToBottomRightToLeft);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
@@ -69,11 +69,11 @@ public partial class Word {
     [InlineData(true)]
     public void RunningHeaderFooterVariantsCalculateFieldsInsideTables(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
-        document.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        document.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        document.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         WordHeaderFooter[] stories = footer
-            ? new WordHeaderFooter[] { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate }
-            : new WordHeaderFooter[] { document.HeaderFirstOrCreate, document.HeaderEvenOrCreate, document.HeaderDefaultOrCreate };
+            ? new WordHeaderFooter[] { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer }
+            : new WordHeaderFooter[] { document.PageSetup.FirstPageHeader, document.PageSetup.EvenPageHeader, document.PageSetup.Header };
         string[] labels = { "First", "Even", "Default" };
         double[] heights = { 24, 72, 120 };
         for (int index = 0; index < stories.Length; index++) {
@@ -101,7 +101,7 @@ public partial class Word {
     [InlineData(true, true)]
     public void RunningHeaderFooterUncachedFieldsKeepIndividualNumberStylesAndLiteralBraces(bool footer, bool complex) {
         using WordDocument document = CreateJoinedParagraphDocument(); document.AddParagraph("BODY");
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         CreateRunningStoryTable(story, "TABLE", 24, WordTextDirection.LeftToRightTopToBottom);
         WordParagraph paragraph = story.AddParagraph("VISIBLE {page} ");
         if (complex) paragraph._paragraph.Append(new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
@@ -119,7 +119,7 @@ public partial class Word {
     [InlineData(true)]
     public void RunningHeaderFooterJoinedParagraphFieldsUseCurrentPageValues(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         CreateRunningStoryTable(story, "TABLE", 24, WordTextDirection.LeftToRightTopToBottom);
         WordParagraph first = story.AddParagraph("JOIN");
         first._paragraph.Append(new W.SimpleField(new W.Run(new W.Text("999"))) { Instruction = " PAGE " });
@@ -147,7 +147,7 @@ public partial class Word {
     public void RunningHeaderFooterUnseparatedSectionCountRetainsVisibilityAndNumberStyle(bool footer, bool table, bool hidden) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.Sections[0].AddPageNumbering(5, WordNumberFormat.Decimal);
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph paragraph = table
             ? CreateRunningStoryTable(story, string.Empty, 24, WordTextDirection.LeftToRightTopToBottom).Rows[0].Cells[0].Paragraphs[0]
             : story.AddParagraph();
@@ -178,7 +178,7 @@ public partial class Word {
     public void RunningHeaderFooterPageNumberElementsSurviveDocxAndNativeImport(bool footer, bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         source.Sections[0].AddPageNumbering(5, WordNumberFormat.Decimal);
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         WordParagraph paragraph = CreateRunningStoryTable(story, "PAGE", 24, WordTextDirection.LeftToRightTopToBottom).Rows[0].Cells[0].Paragraphs[0];
         paragraph._paragraph.Append(new W.Run(new W.PageNumber()), new W.Run(new W.Text("/")),
             new W.SimpleField(new W.Run(new W.Text("999"))) { Instruction = " NUMPAGES " });

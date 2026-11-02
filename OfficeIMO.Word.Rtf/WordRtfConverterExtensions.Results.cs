@@ -644,8 +644,8 @@ public static partial class WordRtfConverterExtensions {
         var visited = new HashSet<WordHeaderFooter>();
         foreach (WordSection section in document.Sections) {
             WordHeaderFooter?[] stories = {
-                section.Header.Default, section.Header.First, section.Header.Even,
-                section.Footer.Default, section.Footer.First, section.Footer.Even
+                section.PageSetup.GetHeader(WordHeaderFooterType.Default), section.PageSetup.GetHeader(WordHeaderFooterType.First), section.PageSetup.GetHeader(WordHeaderFooterType.Even),
+                section.PageSetup.GetFooter(WordHeaderFooterType.Default), section.PageSetup.GetFooter(WordHeaderFooterType.First), section.PageSetup.GetFooter(WordHeaderFooterType.Even)
             };
             foreach (WordHeaderFooter? story in stories) {
                 if (story == null || !visited.Add(story)) continue;

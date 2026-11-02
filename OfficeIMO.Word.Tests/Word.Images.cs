@@ -217,8 +217,8 @@ namespace OfficeIMO.Tests {
 
             var image = Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg");
 
-            document.AddHeadersAndFooters();
-            document.DifferentOddAndEvenPages = true;
+            _ = document.PageSetup.Header;
+            document.PageSetup.DifferentOddAndEvenPages = true;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var evenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
             var paragraph = table.Rows[0].Cells[1].AddParagraph();
             paragraph.AddImage(filePathImage, OfficeIMO.OfficeLength.Pixels(200), OfficeIMO.OfficeLength.Pixels(200));
 
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var tableInHeader = defaultHeader.AddTable(2, 2);

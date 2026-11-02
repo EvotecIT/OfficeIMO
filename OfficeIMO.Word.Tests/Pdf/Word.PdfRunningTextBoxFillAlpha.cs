@@ -16,7 +16,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_TranslucentRunningTextBoxOutlineRetainsWarnedContent(bool footer) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        WordHeaderFooter header = document.Sections[1].Header!.First!;
+        WordHeaderFooter header = document.Sections[1].PageSetup.FirstPageHeader;
         WordTextBox box = header.TextBoxes.Single();
         Wps.ShapeProperties shape = box.Anchor!.Descendants<Wps.ShapeProperties>().Single();
         shape.RemoveAllChildren<A.Outline>();
@@ -25,7 +25,7 @@ public partial class Word {
             Width = 25400
         }, true);
         if (footer) {
-            WordHeaderFooter target = document.Sections[1].Footer!.First!;
+            WordHeaderFooter target = document.Sections[1].PageSetup.FirstPageFooter;
             foreach (var child in target.ChildElements.ToArray()) child.Remove();
             foreach (W.Paragraph source in header._header!.Elements<W.Paragraph>().ToArray()) {
                 source.Remove();
@@ -45,7 +45,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_RunningTextBoxFillAlphaReachesHeaderAndFooterCanvasOnce(bool footer) {
         using WordDocument document = CreateCompactRunningTextBoxPaintControl();
-        WordHeaderFooter header = document.Sections[1].Header!.First!;
+        WordHeaderFooter header = document.Sections[1].PageSetup.FirstPageHeader;
         WordTextBox box = header.TextBoxes.Single();
         Wps.ShapeProperties shape = box.Anchor!.Descendants<Wps.ShapeProperties>().Single();
         shape.RemoveAllChildren<A.NoFill>();
@@ -57,7 +57,7 @@ public partial class Word {
             Width = 25400
         }, true);
         if (footer) {
-            WordHeaderFooter target = document.Sections[1].Footer!.First!;
+            WordHeaderFooter target = document.Sections[1].PageSetup.FirstPageFooter;
             foreach (var child in target.ChildElements.ToArray()) child.Remove();
             foreach (W.Paragraph source in header._header!.Elements<W.Paragraph>().ToArray()) {
                 source.Remove();

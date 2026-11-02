@@ -15,9 +15,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test");
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
-                document.DifferentOddAndEvenPages = true;
+                document.PageSetup.DifferentFirstPage = true;
+                document.PageSetup.DifferentOddAndEvenPages = true;
 
                 var section0 = document.Sections[0];
                 var defaultHeader = GetRequiredHeader(section0);

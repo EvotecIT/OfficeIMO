@@ -6743,6 +6743,285 @@
       "replacement": "Rename the property. WordList.FontFamily returns null (not an empty string) when no font is set.",
       "reason": "FontFamily is the shared spelling for a font family name.",
       "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.PageSettings : WordPageSizes",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.Size : WordPageSizes",
+      "replacement": "section.PageSetup.Size",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.Margins : WordMargins",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.Margins : WordMargins",
+      "replacement": "section.PageSetup.Margins",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.PageOrientation : OfficePageOrientation",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.Orientation : OfficePageOrientation",
+      "replacement": "section.PageSetup.Orientation",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.DifferentFirstPage",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.DifferentFirstPage",
+      "replacement": "section.PageSetup.DifferentFirstPage",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.DifferentOddAndEvenPages",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.DifferentOddAndEvenPages",
+      "replacement": "section.PageSetup.DifferentOddAndEvenPages",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.Header : WordHeaders",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / FirstPageHeader / EvenPageHeader : WordHeader",
+      "replacement": "section.Header.Default -> section.PageSetup.Header (creates the default header and footer when missing); Header.First -> PageSetup.FirstPageHeader (enables DifferentFirstPage when missing); Header.Even -> PageSetup.EvenPageHeader (enables DifferentOddAndEvenPages when missing). To inspect without creating: section.PageSetup.GetHeader(WordHeaderFooterType.Default/First/Even), which returns null when absent.",
+      "reason": "Running content is reached through the section PageSetup with get-or-create properties; the WordHeaders slot collection is no longer public.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.Footer : WordFooters",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordPageSetup.Footer / FirstPageFooter / EvenPageFooter : WordFooter",
+      "replacement": "section.Footer.Default -> section.PageSetup.Footer; Footer.First -> PageSetup.FirstPageFooter; Footer.Even -> PageSetup.EvenPageFooter. To inspect without creating: section.PageSetup.GetFooter(type).",
+      "reason": "Running content is reached through the section PageSetup with get-or-create properties; the WordFooters slot collection is no longer public.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetHeader() / GetHeader(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.GetHeader(WordHeaderFooterType) : WordHeader?",
+      "replacement": "section.PageSetup.GetHeader(type); the parameterless overload becomes GetHeader(WordHeaderFooterType.Default).",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetFooter() / GetFooter(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordPageSetup.GetFooter(WordHeaderFooterType) : WordFooter?",
+      "replacement": "section.PageSetup.GetFooter(type); the parameterless overload becomes GetFooter(WordHeaderFooterType.Default).",
+      "reason": "Page setup and running content belong to the owning section's PageSetup; the flat route duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetOrCreateHeader(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / FirstPageHeader / EvenPageHeader",
+      "replacement": "GetOrCreateHeader(Default/First/Even) -> section.PageSetup.Header / FirstPageHeader / EvenPageHeader.",
+      "reason": "The get-or-create properties on PageSetup are the single creating route.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.GetOrCreateFooter(WordHeaderFooterType)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordPageSetup.Footer / FirstPageFooter / EvenPageFooter",
+      "replacement": "GetOrCreateFooter(Default/First/Even) -> section.PageSetup.Footer / FirstPageFooter / EvenPageFooter.",
+      "reason": "The get-or-create properties on PageSetup are the single creating route.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.AddHeadersAndFooters() : (WordHeader, WordFooter)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / Footer",
+      "replacement": "Remove the call; section.PageSetup.Header or .Footer creates the default header and footer on first use and returns it.",
+      "reason": "Creation is implicit in the get-or-create PageSetup properties.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.SetMargins(WordMargin) : WordSection",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordMargins.Type",
+      "replacement": "section.PageSetup.Margins.Type = WordMargin.Narrow;",
+      "reason": "The margin preset setter applies the same preset; the method duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordMargins.SetMargins(WordSection, WordMargin) : WordSection",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordMargins.Type",
+      "replacement": "section.PageSetup.Margins.Type = preset;",
+      "reason": "The margin preset setter applies the same preset; the static helper duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.PageSettings : WordPageSizes",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Size",
+      "replacement": "document.PageSetup.Size",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Margins : WordMargins",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Margins",
+      "replacement": "document.PageSetup.Margins (no setter; edit the margin values or Margins.Type).",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.PageOrientation : OfficePageOrientation",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Orientation",
+      "replacement": "document.PageSetup.Orientation",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.DifferentFirstPage",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.DifferentFirstPage",
+      "replacement": "document.PageSetup.DifferentFirstPage",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.DifferentOddAndEvenPages",
+      "replacement": "document.PageSetup.DifferentOddAndEvenPages",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Header : WordHeaders?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Header / FirstPageHeader / EvenPageHeader",
+      "replacement": "document.Header.Default -> document.PageSetup.Header; .First -> FirstPageHeader; .Even -> EvenPageHeader; inspect without creating with document.PageSetup.GetHeader(type).",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.Footer : WordFooters?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.PageSetup.Footer / FirstPageFooter / EvenPageFooter",
+      "replacement": "document.Footer.Default -> document.PageSetup.Footer; .First -> FirstPageFooter; .Even -> EvenPageFooter; inspect without creating with document.PageSetup.GetFooter(type).",
+      "reason": "WordDocument.PageSetup is the first section's PageSetup; the flat document member duplicated it.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.HeaderDefaultOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.Header",
+      "replacement": "document.PageSetup.Header",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.HeaderFirstOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.FirstPageHeader",
+      "replacement": "document.PageSetup.FirstPageHeader",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.HeaderEvenOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.EvenPageHeader",
+      "replacement": "document.PageSetup.EvenPageHeader",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FooterDefaultOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.Footer",
+      "replacement": "document.PageSetup.Footer",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FooterFirstOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.FirstPageFooter",
+      "replacement": "document.PageSetup.FirstPageFooter",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.FooterEvenOrCreate",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordPageSetup.EvenPageFooter",
+      "replacement": "document.PageSetup.EvenPageFooter",
+      "reason": "Get-or-create running content uses the shared Header/FirstPageHeader/EvenPageHeader names on PageSetup.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddHeadersAndFooters() : (WordHeader, WordFooter)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / Footer",
+      "replacement": "Remove the call; document.PageSetup.Header or .Footer creates the default header and footer on first use and returns it.",
+      "reason": "Creation is implicit in the get-or-create PageSetup properties.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this WordDocument) / (this WordSection)",
+      "kind": "method",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup.Header / Footer",
+      "replacement": "Remove the call; use document.PageSetup.Header/Footer or section.PageSetup.Header/Footer. The WordHeadersAndFooters class is no longer public.",
+      "reason": "Duplicate extension route for header/footer creation.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordHeaders",
+      "kind": "type",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup",
+      "replacement": "headers.Default/First/Even -> setup.GetHeader(WordHeaderFooterType.Default/First/Even) or the creating Header/FirstPageHeader/EvenPageHeader properties.",
+      "reason": "The slot collection is internal; PageSetup exposes each story directly.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Word.WordFooters",
+      "kind": "type",
+      "action": "remove",
+      "new": "OfficeIMO.Word.WordPageSetup",
+      "replacement": "footers.Default/First/Even -> setup.GetFooter(type) or the creating Footer/FirstPageFooter/EvenPageFooter properties.",
+      "reason": "The slot collection is internal; PageSetup exposes each story directly.",
+      "category": "authoring"
     }
   ],
   "packageMoves": [

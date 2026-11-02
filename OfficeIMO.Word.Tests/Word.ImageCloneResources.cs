@@ -26,7 +26,7 @@ public sealed class WordImageCloneResourcesTests {
         image._Image.Descendants<A.Blip>().Single().Append(new A.BlipExtensionList(
             new A.BlipExtension(layer) { Uri = "{C183D7F6-7BD8-4E7A-B99F-10C4A6E58B54}" }));
         destination.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
-        var target = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var target = destination.Sections[0].PageSetup.Header.AddParagraph();
         image.Clone(target);
         var owner = destination.MainDocumentPartRoot.HeaderParts.Single();
         var copied = target._paragraph.Descendants().Single(item => item.LocalName == "imgLayer");
@@ -72,7 +72,7 @@ public sealed class WordImageCloneResourcesTests {
         paragraph._run!.Append(new W.Picture(new V.Shape(fill,
             new V.ImageData { RelationshipId = source.MainDocumentPartRoot.GetIdOfPart(imagePart) }) {
                 Id = "textured", Style = "width:15pt;height:15pt" }));
-        var header = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        var header = destination.Sections[0].PageSetup.Header;
         header.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
         var target = header.AddParagraph();
         paragraph.Image!.Clone(target);
@@ -102,7 +102,7 @@ public sealed class WordImageCloneResourcesTests {
             new A.HyperlinkOnClick { Id = click.Id }, new A.HyperlinkOnHover { Id = hover.Id });
 
         destination.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
-        var target = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var target = destination.Sections[0].PageSetup.Header.AddParagraph();
         image.Clone(target);
         var owner = destination.MainDocumentPartRoot.HeaderParts.Single();
         var copiedClick = Assert.Single(target._paragraph.Descendants<A.HyperlinkOnClick>());
@@ -127,7 +127,7 @@ public sealed class WordImageCloneResourcesTests {
         var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20))!;
         var targetDocument = otherDocument ? destination : source;
         targetDocument.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
-        var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var target = targetDocument.Sections[0].PageSetup.Header.AddParagraph();
         image.Clone(target);
         var roots = new OpenXmlElement[] { targetDocument.MainDocumentPartRoot.Document!,
             targetDocument.MainDocumentPartRoot.HeaderParts.Single().Header! };
@@ -147,7 +147,7 @@ public sealed class WordImageCloneResourcesTests {
             new V.Shapetype { Id = "shared-type", CoordinateSize = "21600,21600", EdgePath = "m0,0l21600,21600e" },
             new V.Shape(new V.ImageData { RelationshipId = source.MainDocumentPartRoot.GetIdOfPart(part) }) {
                 Id = "source", Type = "#shared-type", Style = "width:15pt;height:15pt" }));
-        var header = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        var header = destination.Sections[0].PageSetup.Header;
         header.AddParagraph("Existing")._run!.Append(new W.Picture(new V.Shapetype { Id = "shared-type", EdgePath = "different" }));
         var target = header.AddParagraph();
         paragraph.Image!.Clone(target);
@@ -177,7 +177,7 @@ public sealed class WordImageCloneResourcesTests {
         extension.SetAttribute(new OpenXmlAttribute("r", "embed", relationships, source.MainDocumentPartRoot.GetIdOfPart(svgPart)));
         image._Image.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().Single().Append(
             new DocumentFormat.OpenXml.Drawing.BlipExtensionList(new DocumentFormat.OpenXml.Drawing.BlipExtension(extension) { Uri = "{96DAC541-7B7A-43D3-8B79-8F7C33B92B69}" }));
-        var header = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        var header = destination.Sections[0].PageSetup.Header;
         header.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
         var target = header.AddParagraph();
         image.Clone(target);

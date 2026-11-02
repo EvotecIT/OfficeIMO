@@ -19,8 +19,7 @@ public class OpenXmlValidationTests {
         document.AddTableOfContent(WordTableOfContentsStyle.Template2);
         document.AddPageBreak();
         document.AddParagraph("Section");
-        document.AddHeadersAndFooters();
-        document.Footer?.Default?.AddPageNumber(WordPageNumberStyle.Roman);
+        document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.Roman);
 
         _ = document.ToBytes();
 

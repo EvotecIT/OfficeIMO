@@ -40,16 +40,16 @@ public partial class WordRtfConverterTests {
 
         using WordDocument word = rtfDocument.ToWordDocument();
 
-        Assert.Equal(OfficePageOrientation.Landscape, word.PageOrientation);
-        Assert.Equal(16838U, checked((uint?)(word.PageSettings.Width?.ToTwips())));
-        Assert.Equal(11906U, checked((uint?)(word.PageSettings.Height?.ToTwips())));
-        Assert.Equal(1440U, checked((uint)(word.Margins.Left.GetValueOrDefault().ToTwips())));
-        Assert.Equal(720U, checked((uint)(word.Margins.Right.GetValueOrDefault().ToTwips())));
-        Assert.Equal(1080, checked((int?)(word.Margins.Top?.ToTwips())));
-        Assert.Equal(1080, checked((int?)(word.Margins.Bottom?.ToTwips())));
-        Assert.Equal(180U, checked((uint)(word.Margins.Gutter.GetValueOrDefault().ToTwips())));
-        Assert.Equal(360U, checked((uint)(word.Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
-        Assert.Equal(540U, checked((uint)(word.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
+        Assert.Equal(OfficePageOrientation.Landscape, word.PageSetup.Orientation);
+        Assert.Equal(16838U, checked((uint?)(word.PageSetup.Size.Width?.ToTwips())));
+        Assert.Equal(11906U, checked((uint?)(word.PageSetup.Size.Height?.ToTwips())));
+        Assert.Equal(1440U, checked((uint)(word.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(720U, checked((uint)(word.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
+        Assert.Equal(1080, checked((int?)(word.PageSetup.Margins.Top?.ToTwips())));
+        Assert.Equal(1080, checked((int?)(word.PageSetup.Margins.Bottom?.ToTwips())));
+        Assert.Equal(180U, checked((uint)(word.PageSetup.Margins.Gutter.GetValueOrDefault().ToTwips())));
+        Assert.Equal(360U, checked((uint)(word.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
+        Assert.Equal(540U, checked((uint)(word.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
         Assert.True(word.RtlGutter);
         Assert.Equal(5, word.PageNumberType.Start?.Value);
         Assert.Equal(NumberFormatValues.LowerRoman, word.PageNumberType.Format?.Value);
@@ -73,20 +73,20 @@ public partial class WordRtfConverterTests {
         Assert.Equal(RestartNumberValues.Continuous, word.EndnoteProperties.NumberingRestart?.Val?.Value);
         Assert.Equal(NumberFormatValues.Decimal, word.EndnoteProperties.NumberingFormat?.Val?.Value);
         Assert.Equal(EndnotePositionValues.DocumentEnd, word.EndnoteProperties.EndnotePosition?.Val?.Value);
-        Assert.True(word.DifferentFirstPage);
-        Assert.True(word.DifferentOddAndEvenPages);
+        Assert.True(word.PageSetup.DifferentFirstPage);
+        Assert.True(word.PageSetup.DifferentOddAndEvenPages);
         Assert.True(word.Settings.MirrorMargins);
-        Assert.NotNull(word.Header?.Default);
-        Assert.NotNull(word.Header?.First);
-        Assert.NotNull(word.Header?.Even);
-        Assert.NotNull(word.Footer?.Default);
-        Assert.NotNull(word.Footer?.Even);
-        Assert.Equal("Header bold", string.Concat(word.Header!.Default!.Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Equal("First header", string.Concat(word.Header!.First!.Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Equal("Even header", string.Concat(word.Header!.Even!.Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Contains(word.Header.Default.Paragraphs, paragraph => paragraph.Text == "bold" && paragraph.Bold);
-        Assert.Equal("Footer text", string.Concat(word.Footer!.Default!.Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Equal("Even footer", string.Concat(word.Footer!.Even!.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.NotNull(word.PageSetup.GetHeader(WordHeaderFooterType.Default));
+        Assert.NotNull(word.PageSetup.GetHeader(WordHeaderFooterType.First));
+        Assert.NotNull(word.PageSetup.GetHeader(WordHeaderFooterType.Even));
+        Assert.NotNull(word.PageSetup.GetFooter(WordHeaderFooterType.Default));
+        Assert.NotNull(word.PageSetup.GetFooter(WordHeaderFooterType.Even));
+        Assert.Equal("Header bold", string.Concat(word.PageSetup.Header.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal("First header", string.Concat(word.PageSetup.FirstPageHeader.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal("Even header", string.Concat(word.PageSetup.EvenPageHeader.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Contains(word.PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "bold" && paragraph.Bold);
+        Assert.Equal("Footer text", string.Concat(word.PageSetup.Footer.Paragraphs.Select(paragraph => paragraph.Text)));
+        Assert.Equal("Even footer", string.Concat(word.PageSetup.EvenPageFooter.Paragraphs.Select(paragraph => paragraph.Text)));
     }
 
     [Fact]
@@ -100,14 +100,14 @@ public partial class WordRtfConverterTests {
         secondTable.Rows[0].Cells[1].AddParagraph("S2B", removeExistingParagraphs: true);
 
         WordSection first = word.Sections[0];
-        first.PageOrientation = OfficePageOrientation.Landscape;
-        first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(841.9D);
-        first.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(595.3D);
-        first.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
-        first.Margins.Right = global::OfficeIMO.OfficeLength.Points(36D);
-        first.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(12D);
-        first.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(15D);
-        first.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(21D);
+        first.PageSetup.Orientation = OfficePageOrientation.Landscape;
+        first.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(841.9D);
+        first.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(595.3D);
+        first.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        first.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(36D);
+        first.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(12D);
+        first.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(15D);
+        first.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(21D);
         first.RtlGutter = true;
         first.AddPageNumbering(3, WordNumberFormat.UpperRoman);
         first.Borders.LeftStyle = WordBorderStyle.Dotted;
@@ -122,7 +122,7 @@ public partial class WordRtfConverterTests {
         sectionPageBorders.OffsetFrom = PageBorderOffsetValues.Page;
         first.AddFootnoteProperties(WordNumberFormat.UpperLetter, WordFootnotePosition.PageBottom, WordNoteNumberRestart.EachPage, startNumber: 3);
         first.AddEndnoteProperties(WordNumberFormat.LowerLetter, WordEndnotePosition.SectionEnd, WordNoteNumberRestart.EachSection, startNumber: 9);
-        first.DifferentFirstPage = true;
+        first.PageSetup.DifferentFirstPage = true;
         first._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = VerticalJustificationValues.Center });
         first.ColumnCount = 2;
         first.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
@@ -275,12 +275,12 @@ public partial class WordRtfConverterTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         Assert.Equal(2, word.Sections.Count);
-        Assert.True(word.Sections[0].PageOrientation == OfficePageOrientation.Landscape);
-        Assert.Equal(16838U, checked((uint?)(word.Sections[0].PageSettings.Width?.ToTwips())));
-        Assert.Equal(1440U, checked((uint)(word.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
-        Assert.Equal(240U, checked((uint)(word.Sections[0].Margins.Gutter.GetValueOrDefault().ToTwips())));
-        Assert.Equal(300U, checked((uint)(word.Sections[0].Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
-        Assert.Equal(420U, checked((uint)(word.Sections[0].Margins.FooterDistance.GetValueOrDefault().ToTwips())));
+        Assert.True(word.Sections[0].PageSetup.Orientation == OfficePageOrientation.Landscape);
+        Assert.Equal(16838U, checked((uint?)(word.Sections[0].PageSetup.Size.Width?.ToTwips())));
+        Assert.Equal(1440U, checked((uint)(word.Sections[0].PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(240U, checked((uint)(word.Sections[0].PageSetup.Margins.Gutter.GetValueOrDefault().ToTwips())));
+        Assert.Equal(300U, checked((uint)(word.Sections[0].PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
+        Assert.Equal(420U, checked((uint)(word.Sections[0].PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
         Assert.True(word.Sections[0].RtlGutter);
         Assert.Equal(3, word.Sections[0].PageNumberType.Start?.Value);
         Assert.Equal(NumberFormatValues.UpperRoman, word.Sections[0].PageNumberType.Format?.Value);
@@ -311,7 +311,7 @@ public partial class WordRtfConverterTests {
         VerticalTextAlignmentOnPage wordVerticalAlignment = word.Sections[0]._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()!;
         Assert.NotNull(wordVerticalAlignment);
         Assert.Equal(VerticalJustificationValues.Both, wordVerticalAlignment.Val?.Value);
-        Assert.True(word.Sections[0].DifferentFirstPage);
+        Assert.True(word.Sections[0].PageSetup.DifferentFirstPage);
         Assert.Equal(2, word.Sections[0].ColumnCount);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), word.Sections[0].ColumnsSpace);
         Assert.True(word.Sections[0].HasColumnSeparator);

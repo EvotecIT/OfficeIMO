@@ -64,14 +64,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Adds default headers and footers to the document.
-        /// </summary>
-        /// <returns>The attached default header and footer.</returns>
-        public (WordHeader Header, WordFooter Footer) AddHeadersAndFooters() {
-            return WordHeadersAndFooters.AddHeadersAndFooters(this);
-        }
-
-        /// <summary>
         /// Inserts a break into the document.
         /// </summary>
         /// <param name="breakType">Type of break to insert.</param>

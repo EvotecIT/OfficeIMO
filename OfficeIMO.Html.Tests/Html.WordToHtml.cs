@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Visible body");
             document.Sections[0]
-                .GetOrCreateHeader(WordHeaderFooterType.Default)
+                .PageSetup.Header
                 .AddParagraph("Tracked header ")
                 .AddInsertedText("revision", "Reviewer");
 
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_WordToHtml_ReusedOptionsKeepConcurrentDiagnosticsIsolated() {
             using var documentWithHeader = WordDocument.Create();
             documentWithHeader.AddParagraph("Header document body");
-            documentWithHeader.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Omitted header");
+            documentWithHeader.Sections[0].PageSetup.Header.AddParagraph("Omitted header");
             using var plainDocument = WordDocument.Create();
             plainDocument.AddParagraph("Plain document body");
             var options = new WordHtmlExportOptions();
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ReportsSingleLandscapeSectionGeometryWhenMetadataIsDisabled() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Landscape content");
-            doc.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+            doc.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
 
             HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence();
 
@@ -661,8 +661,8 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Body text");
             var section = doc.Sections[0];
-            section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Header text");
-            section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer text");
+            section.PageSetup.Header.AddParagraph("Header text");
+            section.PageSetup.Footer.AddParagraph("Footer text");
 
             string defaultHtml = doc.ToHtml();
 
@@ -683,8 +683,8 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Body text");
             var section = doc.Sections[0];
-            section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Header text");
-            section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer text");
+            section.PageSetup.Header.AddParagraph("Header text");
+            section.PageSetup.Footer.AddParagraph("Footer text");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
 
@@ -695,10 +695,10 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Footer text", StringComparison.Ordinal));
 
             var roundTripSection = roundTrip.Sections[0];
-            Assert.NotNull(roundTripSection.Header.Default);
-            Assert.NotNull(roundTripSection.Footer.Default);
-            var header = roundTripSection.Header.Default!;
-            var footer = roundTripSection.Footer.Default!;
+            Assert.NotNull(roundTripSection.PageSetup.GetHeader(WordHeaderFooterType.Default));
+            Assert.NotNull(roundTripSection.PageSetup.GetFooter(WordHeaderFooterType.Default));
+            var header = roundTripSection.PageSetup.Header;
+            var footer = roundTripSection.PageSetup.Footer;
             Assert.Contains(header.Paragraphs, paragraph => string.Equals(paragraph.Text, "Header text", StringComparison.Ordinal));
             Assert.Contains(footer.Paragraphs, paragraph => string.Equals(paragraph.Text, "Footer text", StringComparison.Ordinal));
         }
@@ -709,16 +709,16 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("First body");
             var second = doc.AddSection(WordSectionBreakType.NextPage);
             second.AddParagraph("Second body");
-            second.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Second header");
+            second.PageSetup.Header.AddParagraph("Second header");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { ExportHeadersAndFooters = true });
 
             using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
             Assert.True(roundTrip.Sections.Count >= 2);
-            Assert.DoesNotContain(roundTrip.Sections[0].Header.Default?.Paragraphs ?? new List<WordParagraph>(),
+            Assert.DoesNotContain(roundTrip.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Default)?.Paragraphs ?? new List<WordParagraph>(),
                 paragraph => string.Equals(paragraph.Text, "Second header", StringComparison.Ordinal));
-            var header = Assert.IsAssignableFrom<WordHeader>(roundTrip.Sections[1].Header.Default);
+            var header = Assert.IsAssignableFrom<WordHeader>(roundTrip.Sections[1].PageSetup.GetHeader(WordHeaderFooterType.Default));
             Assert.Contains(header.Paragraphs, paragraph => string.Equals(paragraph.Text, "Second header", StringComparison.Ordinal));
         }
 
@@ -1554,12 +1554,12 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("First section");
             var second = doc.AddSection(WordSectionBreakType.NextPage);
-            second.PageOrientation = OfficePageOrientation.Landscape;
-            second.PageSettings.PageSize = WordPageSize.Letter;
-            second.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
-            second.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
-            second.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
-            second.Margins.Right = global::OfficeIMO.OfficeLength.Points(54D);
+            second.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            second.PageSetup.Size.PageSize = WordPageSize.Letter;
+            second.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+            second.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+            second.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            second.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(54D);
             second.AddParagraph("Second section");
 
             string defaultHtml = doc.ToHtml();
@@ -1605,12 +1605,12 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             doc.AddParagraph("First section");
             var second = doc.AddSection(WordSectionBreakType.NextPage);
-            second.PageSettings.PageSize = WordPageSize.Letter;
-            second.PageOrientation = OfficePageOrientation.Landscape;
-            second.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
-            second.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
-            second.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
-            second.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
+            second.PageSetup.Size.PageSize = WordPageSize.Letter;
+            second.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            second.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+            second.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+            second.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            second.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
             second.AddParagraph("Second section");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true, IncludeDefaultCss = false });
@@ -1625,12 +1625,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, roundTrip.Sections.Count);
             var roundTripSecond = roundTrip.Sections[1];
-            Assert.Equal(OfficePageOrientation.Landscape, roundTripSecond.PageOrientation);
-            Assert.Equal(WordPageSize.Letter, roundTripSecond.PageSettings.PageSize);
-            Assert.Equal(1440, checked((int?)(roundTripSecond.Margins.Top?.ToTwips())));
-            Assert.Equal(720, checked((int?)(roundTripSecond.Margins.Bottom?.ToTwips())));
-            Assert.Equal(1080U, checked((uint)(roundTripSecond.Margins.Left.GetValueOrDefault().ToTwips())));
-            Assert.Equal(1200U, checked((uint)(roundTripSecond.Margins.Right.GetValueOrDefault().ToTwips())));
+            Assert.Equal(OfficePageOrientation.Landscape, roundTripSecond.PageSetup.Orientation);
+            Assert.Equal(WordPageSize.Letter, roundTripSecond.PageSetup.Size.PageSize);
+            Assert.Equal(1440, checked((int?)(roundTripSecond.PageSetup.Margins.Top?.ToTwips())));
+            Assert.Equal(720, checked((int?)(roundTripSecond.PageSetup.Margins.Bottom?.ToTwips())));
+            Assert.Equal(1080U, checked((uint)(roundTripSecond.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+            Assert.Equal(1200U, checked((uint)(roundTripSecond.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
             var paragraph = Assert.Single(roundTripSecond.Paragraphs, paragraph => string.Equals(paragraph.Text, "Second section", StringComparison.Ordinal));
             Assert.Null(checked((int?)(paragraph.IndentationBefore?.ToTwips())));
             Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));

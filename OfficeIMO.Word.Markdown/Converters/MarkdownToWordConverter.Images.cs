@@ -20,9 +20,9 @@ namespace OfficeIMO.Word.Markdown {
 
         private static double EstimatePageContentWidthPixels(WordDocument document) {
             var section = document.Sections.FirstOrDefault();
-            var pageWidthTwips = (double?)section?.PageSettings.Width?.ToTwips() ?? DefaultPageWidthTwips;
-            var leftMarginTwips = (double?)section?.Margins.Left?.ToTwips() ?? DefaultHorizontalMarginTwips;
-            var rightMarginTwips = (double?)section?.Margins.Right?.ToTwips() ?? DefaultHorizontalMarginTwips;
+            var pageWidthTwips = (double?)section?.PageSetup.Size.Width?.ToTwips() ?? DefaultPageWidthTwips;
+            var leftMarginTwips = (double?)section?.PageSetup.Margins.Left?.ToTwips() ?? DefaultHorizontalMarginTwips;
+            var rightMarginTwips = (double?)section?.PageSetup.Margins.Right?.ToTwips() ?? DefaultHorizontalMarginTwips;
             var contentTwips = pageWidthTwips - leftMarginTwips - rightMarginTwips;
 
             if (contentTwips < MinimumContentWidthPixels) {

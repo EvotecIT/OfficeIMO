@@ -117,7 +117,7 @@ public sealed class WordPdfLigatureTests {
             paragraph.Text = "fi";
         } else if (story is "header" or "footer") {
             document.AddParagraph(" ");
-            WordHeaderFooter runningStory = story == "header" ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+            WordHeaderFooter runningStory = story == "header" ? document.PageSetup.Header : document.PageSetup.Footer;
             paragraph = runningStory.AddParagraph("fi");
         } else {
             paragraph = document.AddParagraph(story == "link" ? string.Empty : "fi");

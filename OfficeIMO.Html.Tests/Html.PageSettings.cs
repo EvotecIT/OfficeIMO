@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(options);
             
-            Assert.Equal(OfficePageOrientation.Landscape, doc.PageOrientation);
-            Assert.Equal(WordPageSize.A5, doc.PageSettings.PageSize);
+            Assert.Equal(OfficePageOrientation.Landscape, doc.PageSetup.Orientation);
+            Assert.Equal(WordPageSize.A5, doc.PageSetup.Size.PageSize);
         }
 
         [Fact]

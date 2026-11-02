@@ -715,8 +715,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         PdfWordConversionResult word = logical.ConvertToWordWithEvidence();
         using (word.Value) {
             OfficeIMO.Word.WordSection section = Assert.Single(word.Value.Sections);
-            Assert.True(checked((uint?)(section.PageSettings.Width?.ToTwips())) > 0);
-            Assert.True(checked((uint?)(section.PageSettings.Height?.ToTwips())) > 0);
+            Assert.True(checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) > 0);
+            Assert.True(checked((uint?)(section.PageSetup.Size.Height?.ToTwips())) > 0);
             Assert.Contains(word.Report.Warnings, static warning =>
                 warning.Code == "pdf-source-page-size-not-applied" &&
                 warning.LossKind == OfficeConversionLossKind.Approximation);

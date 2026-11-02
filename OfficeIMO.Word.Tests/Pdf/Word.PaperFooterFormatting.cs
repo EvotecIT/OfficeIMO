@@ -18,10 +18,10 @@ public sealed class WordPaperFooterFormattingTests {
     [InlineData(true, true)]
     public void PageFieldsUseSourceRunTypographyBeforeOrAfterInsertion(bool styleFirst, bool total) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        document.DifferentFirstPage = false;
-        document.DifferentOddAndEvenPages = false;
-        WordParagraph footer = document.FooterDefaultOrCreate.AddParagraph("Report footer ");
+        _ = document.PageSetup.Header;
+        document.PageSetup.DifferentFirstPage = false;
+        document.PageSetup.DifferentOddAndEvenPages = false;
+        WordParagraph footer = document.PageSetup.Footer.AddParagraph("Report footer ");
         if (styleFirst) Style(footer);
         footer.AddPageNumber(total, separator: " / ");
         if (!styleFirst) Style(footer);
@@ -33,7 +33,7 @@ public sealed class WordPaperFooterFormattingTests {
         document.Save(serialized);
         serialized.Position = 0;
         using WordDocument reopened = WordDocument.Load(serialized);
-        var runs = reopened.FooterDefaultOrCreate._footer!.Descendants<Run>().Where(run => run.Elements<Text>().Any()).ToArray();
+        var runs = reopened.PageSetup.Footer._footer!.Descendants<Run>().Where(run => run.Elements<Text>().Any()).ToArray();
         Assert.Equal(total ? 4 : 2, runs.Length);
         foreach (Run run in runs) {
             Assert.Equal("17", run.RunProperties?.FontSize?.Val?.Value);
@@ -91,7 +91,7 @@ public sealed class WordPaperFooterFormattingTests {
         document.Save(serialized);
         serialized.Position = 0;
         using WordDocument reopened = WordDocument.Load(serialized);
-        foreach (WordFooter footer in new[] { reopened.FooterDefaultOrCreate, reopened.FooterEvenOrCreate }) {
+        foreach (WordFooter footer in new[] { reopened.PageSetup.Footer, reopened.PageSetup.EvenPageFooter }) {
             Assert.All(footer._footer!.Descendants<Run>(), run => {
                 Assert.Equal("16", run.RunProperties?.FontSize?.Val?.Value);
                 Assert.Equal("506070", run.RunProperties?.Color?.Val?.Value);

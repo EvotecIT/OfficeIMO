@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
                 var bodyTable = document.AddTable(1, 1);
                 bodyTable.Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.Author, advanced: true);
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 header.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].AddField(WordFieldType.Page, advanced: true);

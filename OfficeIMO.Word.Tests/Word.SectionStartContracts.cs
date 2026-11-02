@@ -75,11 +75,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
         Assert.Equal(WordSectionBreakType.NextPage, section.BreakType);
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(61.7D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(61.7D);
         section.BreakType = WordSectionBreakType.Continuous;
         Assert.Throws<ArgumentOutOfRangeException>(() => section.BreakType = (WordSectionBreakType)999);
         Assert.Equal(WordSectionBreakType.Continuous, section.BreakType);
-        Assert.Equal(1234U, checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(1234U, checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
         section._sectionProperties.RemoveAllChildren<SectionType>();
         Assert.Equal(WordSectionBreakType.NextPage, section.BreakType);
     }
@@ -88,7 +88,7 @@ public partial class Word {
     public void SectionStartContract_TypedSectionPreservesPrecedingHeaderAndStart() {
         using WordDocument document = WordDocument.Create();
         document.Sections[0].BreakType = WordSectionBreakType.Continuous;
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("OriginalHeader");
         document.AddParagraph("FirstSection");
         document.AddSection(WordSectionBreakType.OddPage).AddParagraph("SecondSection");

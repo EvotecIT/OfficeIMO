@@ -15,7 +15,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ExactMixedRunningTextBoxWithClippedInkRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
+        WordTextBox box = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
         box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
@@ -39,7 +39,7 @@ public partial class Word {
     public void SaveAsPdf_BackgroundRunningTextBoxOverBodyKeepsAnchoredPaint() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.BehindDoc = true;
         anchor.VerticalPosition!.PositionOffset!.Text = "914400";
@@ -62,7 +62,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ForegroundRunningTextBoxStrokeOverBodyRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         anchor.Descendants<Wps.ShapeProperties>().Single().AddChild(
@@ -80,7 +80,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ForegroundRunningTextBoxBelowBodyMarginRetainsWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.RemoveAllChildren<W14.RelativeHeight>();
         anchor.Extent!.Cy = 571500L;
@@ -98,7 +98,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_ForegroundRunningTextBoxOverBodyRetainsWarnedContentFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.BehindDoc = false;
         anchor.VerticalPosition!.PositionOffset!.Text = "914400";
@@ -123,7 +123,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OversizedMixedRunningTextBoxRetainsWarnedContentFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordParagraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Paragraphs.Single();
+        WordParagraph inner = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "x";
         inner.FontFamily = "Arial";
@@ -147,8 +147,8 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         document.Settings.MirrorMargins = true;
         WordSection selectingSection = document.Sections[1];
-        selectingSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
-        selectingSection.Margins.Right = global::OfficeIMO.OfficeLength.Points(144D);
+        selectingSection.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        selectingSection.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(144D);
         // This section's first header is on visible page 2. The unswapped 72pt
         // text origin clears the centered box; the actual 144pt origin does not.
         // Preserve the warned flow until admission uses the effective page frame.
@@ -176,8 +176,8 @@ public partial class Word {
     public void SaveAsPdf_PageAnchoredTextBoxAdmitsFittingMixedRunSizes() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
-        WordTextBox textBox = document.Sections[1].Header!.First!.TextBoxes.Single();
-        DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
+        WordTextBox textBox = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single();
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.RemoveAllChildren<W14.RelativeHeight>();
         textBox.Height = OfficeLength.Emus(571500L); // Authored 45pt frame, not 20% of the margin height.
@@ -226,7 +226,7 @@ public partial class Word {
     [InlineData(WordLineSpacingRule.AtLeast)]
     public void SaveAsPdf_PageAnchoredTextBoxRejectsOversizedAuthoredLineSpacing(WordLineSpacingRule rule) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        WordParagraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Paragraphs.Single();
+        WordParagraph inner = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Paragraphs.Single();
         inner.Text = "SMALL";
         inner.FontFamily = "Arial";
         inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);

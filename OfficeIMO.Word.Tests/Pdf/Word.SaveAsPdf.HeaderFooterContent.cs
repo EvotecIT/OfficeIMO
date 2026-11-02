@@ -18,7 +18,7 @@ public partial class Word {
     public void SaveAsPdf_HidesCrossParagraphInstructionsAndHeaderLinkFieldCode() {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCrossParagraphAndHeaderFieldVisibility.pdf");
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
         WordParagraph headerParagraph = header.AddParagraph("Header ");
         WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/")).Paragraph;
@@ -54,7 +54,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWideHeaderFooterZones.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("LeftHeaderOverflowMarker");
             WordParagraph centeredHeader = header.AddParagraph("CenterHeaderOverflowMarker");
@@ -131,7 +131,7 @@ public partial class Word {
             IncludePageNumbers = false
         };
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("Native warning header text");
             header.AddParagraph().AddTextBox(string.Empty, WordImageTextWrapping.Square);
@@ -164,7 +164,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenHeaderFooterText.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
             headerParagraph.AddText("VisibleHeaderStart");
             WordParagraph hiddenHeader = headerParagraph.AddText("HiddenHeaderRun");
@@ -199,7 +199,7 @@ public partial class Word {
     public void SaveAsPdf_HeaderFieldInstructionAcrossParagraphsDoesNotEmitSimpleFieldToken() {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfHeaderCrossParagraphField.pdf");
         using (WordDocument document = WordDocument.Create()) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph()._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
             WordParagraph continuation = header.AddParagraph();
@@ -226,7 +226,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsHeaderFooterText.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
             headerParagraph.AddText("headerBeforeCaps ");
             WordParagraph headerCaps = headerParagraph.AddText("capsHeaderRun");
@@ -265,7 +265,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
             document.AddParagraph("Native GIF header image body");
             document.Save();
@@ -294,7 +294,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordTextBox headerTextBox = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTextBox("Native header text box");
             headerTextBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
 
@@ -325,7 +325,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header._header.Append(CreateNativeHeaderFooterTextPathParagraph("Native WordArt header"));
 
@@ -350,7 +350,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeColor.Parse("#99ccff"), OfficeIMO.OfficeColor.Parse("#003366"), OfficeIMO.OfficeLength.Points(1.5));
 
@@ -389,7 +389,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native image header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
             headerParagraph.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(32));
@@ -429,7 +429,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph headerParagraph = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native picture-control header");
             headerParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
             headerParagraph.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Header Logo", "HeaderLogo");
@@ -461,7 +461,7 @@ public partial class Word {
     public void SaveAsPdf_OfficeIMOEngine_Bounds_Header_PictureControls_Per_Paragraph() {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph();
         header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "First", "First");
         header.AddPictureControl(imagePath, OfficeLength.Pixels(32), OfficeLength.Pixels(32), "Second", "Second");
@@ -481,7 +481,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordRepeatingSection headerRepeating = RequireSectionHeader(document, 0, HeaderFooterValues.Default)
                 .AddParagraph("Native header repeating section: ")
                 .AddRepeatingSection("HeaderTasks", "HeaderTasks", "HeaderTasksTag");
@@ -519,7 +519,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("Native header approval: ").AddCheckBox(true, "Header Approval", "HeaderApproval");
             header.AddParagraph("Native header due: ").AddDatePicker(new DateTime(2026, 5, 31), "Header Due", "HeaderDue");

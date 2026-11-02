@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                 section.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(15), Color.Yellow, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
                 section.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
 
-                section.AddHeadersAndFooters();
+                _ = section.PageSetup.Header;
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 defaultHeader.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(15), Color.Blue, Color.Black);
                 defaultHeader.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(25), OfficeIMO.OfficeLength.Points(15), Color.Green, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);

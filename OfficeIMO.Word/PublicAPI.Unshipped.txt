@@ -28,7 +28,27 @@ OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind
 *REMOVED*OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontName, string! colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*OfficeIMO.Word.WordDocument.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 OfficeIMO.Word.WordDocument.AppendDocument(OfficeIMO.Word.WordDocument! source, OfficeIMO.Word.WordDocumentMergeOptions? options) -> void
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.get -> bool
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentFirstPage.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.get -> bool
+*REMOVED*OfficeIMO.Word.WordDocument.DifferentOddAndEvenPages.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.Footer.get -> OfficeIMO.Word.WordFooters?
+*REMOVED*OfficeIMO.Word.WordDocument.FooterDefaultOrCreate.get -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordDocument.FooterEvenOrCreate.get -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordDocument.FooterFirstOrCreate.get -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordDocument.Header.get -> OfficeIMO.Word.WordHeaders?
+*REMOVED*OfficeIMO.Word.WordDocument.HeaderDefaultOrCreate.get -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordDocument.HeaderEvenOrCreate.get -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordDocument.HeaderFirstOrCreate.get -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordDocument.Margins.get -> OfficeIMO.Word.WordMargins!
+*REMOVED*OfficeIMO.Word.WordDocument.Margins.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.PageOrientation.get -> OfficeIMO.OfficePageOrientation
+*REMOVED*OfficeIMO.Word.WordDocument.PageOrientation.set -> void
+*REMOVED*OfficeIMO.Word.WordDocument.PageSettings.get -> OfficeIMO.Word.WordPageSizes!
+*REMOVED*OfficeIMO.Word.WordDocument.PageSettings.set -> void
+OfficeIMO.Word.WordDocument.PageSetup.get -> OfficeIMO.Word.WordPageSetup!
 OfficeIMO.Word.WordDocumentMergeOptions
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.get -> OfficeIMO.Word.WordMergeSectionMode
 OfficeIMO.Word.WordDocumentMergeOptions.SectionMode.set -> void
@@ -40,7 +60,24 @@ OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.get -> bool
 OfficeIMO.Word.WordFieldUpdateOptions.UpdateTablesOfContents.set -> void
 OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.get -> bool
 OfficeIMO.Word.WordFieldUpdateOptions.UseLayoutPagination.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters
+*REMOVED*OfficeIMO.Word.WordFooters.Default.get -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordFooters.Default.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters.Even.get -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordFooters.Even.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters.First.get -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordFooters.First.set -> void
+*REMOVED*OfficeIMO.Word.WordFooters.WordFooters() -> void
 OfficeIMO.Word.WordHeaderFooter.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordHeaders
+*REMOVED*OfficeIMO.Word.WordHeaders.Default.get -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordHeaders.Default.set -> void
+*REMOVED*OfficeIMO.Word.WordHeaders.Even.get -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordHeaders.Even.set -> void
+*REMOVED*OfficeIMO.Word.WordHeaders.First.get -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordHeaders.First.set -> void
+*REMOVED*OfficeIMO.Word.WordHeaders.WordHeaders() -> void
+*REMOVED*OfficeIMO.Word.WordHeadersAndFooters
 *REMOVED*OfficeIMO.Word.WordImage.AlphaInversionColorHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordImage.AlphaInversionColorHex.set -> void
 *REMOVED*OfficeIMO.Word.WordImage.ColorChangeFromHex.get -> string?
@@ -73,6 +110,23 @@ OfficeIMO.Word.WordMergeSectionMode.UseDestinationSections = 1 -> OfficeIMO.Word
 OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordMergeStyleMode.KeepDifferentStyles = 1 -> OfficeIMO.Word.WordMergeStyleMode
 OfficeIMO.Word.WordMergeStyleMode.UseDestinationStyles = 0 -> OfficeIMO.Word.WordMergeStyleMode
+OfficeIMO.Word.WordPageSetup
+OfficeIMO.Word.WordPageSetup.DifferentFirstPage.get -> bool
+OfficeIMO.Word.WordPageSetup.DifferentFirstPage.set -> void
+OfficeIMO.Word.WordPageSetup.DifferentOddAndEvenPages.get -> bool
+OfficeIMO.Word.WordPageSetup.DifferentOddAndEvenPages.set -> void
+OfficeIMO.Word.WordPageSetup.EvenPageFooter.get -> OfficeIMO.Word.WordFooter!
+OfficeIMO.Word.WordPageSetup.EvenPageHeader.get -> OfficeIMO.Word.WordHeader!
+OfficeIMO.Word.WordPageSetup.FirstPageFooter.get -> OfficeIMO.Word.WordFooter!
+OfficeIMO.Word.WordPageSetup.FirstPageHeader.get -> OfficeIMO.Word.WordHeader!
+OfficeIMO.Word.WordPageSetup.Footer.get -> OfficeIMO.Word.WordFooter!
+OfficeIMO.Word.WordPageSetup.GetFooter(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordFooter?
+OfficeIMO.Word.WordPageSetup.GetHeader(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordHeader?
+OfficeIMO.Word.WordPageSetup.Header.get -> OfficeIMO.Word.WordHeader!
+OfficeIMO.Word.WordPageSetup.Margins.get -> OfficeIMO.Word.WordMargins!
+OfficeIMO.Word.WordPageSetup.Orientation.get -> OfficeIMO.OfficePageOrientation
+OfficeIMO.Word.WordPageSetup.Orientation.set -> void
+OfficeIMO.Word.WordPageSetup.Size.get -> OfficeIMO.Word.WordPageSizes!
 OfficeIMO.Word.WordParagraph.AddTableAfter(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordParagraph.AddTableBefore(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordParagraph.BackgroundColor.get -> OfficeIMO.OfficeColor?
@@ -114,7 +168,26 @@ OfficeIMO.Word.WordRunInfo.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Word.WordRunInfo.Color.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.Word.WordRunInfo.ColorHex.get -> string?
 *REMOVED*OfficeIMO.Word.WordRunInfo.RunShadingFillColorHex.get -> string?
+*REMOVED*OfficeIMO.Word.WordSection.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
+*REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.get -> bool
+*REMOVED*OfficeIMO.Word.WordSection.DifferentFirstPage.set -> void
+*REMOVED*OfficeIMO.Word.WordSection.DifferentOddAndEvenPages.get -> bool
+*REMOVED*OfficeIMO.Word.WordSection.DifferentOddAndEvenPages.set -> void
+*REMOVED*OfficeIMO.Word.WordSection.Footer.get -> OfficeIMO.Word.WordFooters!
+*REMOVED*OfficeIMO.Word.WordSection.GetFooter() -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordSection.GetFooter(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordFooter?
+*REMOVED*OfficeIMO.Word.WordSection.GetHeader() -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordSection.GetHeader(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordHeader?
+*REMOVED*OfficeIMO.Word.WordSection.GetOrCreateFooter(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordFooter!
+*REMOVED*OfficeIMO.Word.WordSection.GetOrCreateHeader(OfficeIMO.Word.WordHeaderFooterType type) -> OfficeIMO.Word.WordHeader!
+*REMOVED*OfficeIMO.Word.WordSection.Header.get -> OfficeIMO.Word.WordHeaders!
+*REMOVED*OfficeIMO.Word.WordSection.Margins.get -> OfficeIMO.Word.WordMargins!
+*REMOVED*OfficeIMO.Word.WordSection.PageOrientation.get -> OfficeIMO.OfficePageOrientation
+*REMOVED*OfficeIMO.Word.WordSection.PageOrientation.set -> void
+*REMOVED*OfficeIMO.Word.WordSection.PageSettings.get -> OfficeIMO.Word.WordPageSizes!
+OfficeIMO.Word.WordSection.PageSetup.get -> OfficeIMO.Word.WordPageSetup!
+*REMOVED*OfficeIMO.Word.WordSection.SetMargins(OfficeIMO.Word.WordMargin pageMargins) -> OfficeIMO.Word.WordSection!
 OfficeIMO.Word.WordSettings.BackgroundColor.get -> OfficeIMO.OfficeColor?
 *REMOVED*OfficeIMO.Word.WordSettings.BackgroundColor.get -> string?
 *REMOVED*OfficeIMO.Word.WordSettings.SetBackgroundColor(string! backgroundColor) -> OfficeIMO.Word.WordSettings!
@@ -216,9 +289,12 @@ static OfficeIMO.Word.WordDocument.TrySignPackage(string! filePath, OfficeIMO.Se
 *REMOVED*static OfficeIMO.Word.WordDocument.TrySignPackageSignature(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, System.Security.Cryptography.X509Certificates.X509Certificate2! signingCertificate, OfficeIMO.Security.OfficePackageSigningOptions? options = null) -> OfficeIMO.Security.OfficePackageSigningResult!
 *REMOVED*static OfficeIMO.Word.WordDocument.ValidatePackageSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
 static OfficeIMO.Word.WordDocument.ValidateSignatures(string! filePath, OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.OfficePackageSignatureValidationOptions? options = null) -> OfficeIMO.Security.OfficePackageSignatureValidationReport!
+*REMOVED*static OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this OfficeIMO.Word.WordDocument! document) -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
+*REMOVED*static OfficeIMO.Word.WordHeadersAndFooters.AddHeadersAndFooters(this OfficeIMO.Word.WordSection! section) -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontFamily, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontFamily, OfficeIMO.OfficeColor? color, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 *REMOVED*static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+*REMOVED*static OfficeIMO.Word.WordMargins.SetMargins(OfficeIMO.Word.WordSection! wordSection, OfficeIMO.Word.WordMargin pageMargins) -> OfficeIMO.Word.WordSection!

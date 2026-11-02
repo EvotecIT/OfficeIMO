@@ -143,8 +143,8 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 WordSection? section = table.Document.Sections.FirstOrDefault();
-                double pageWidth = section?.PageSettings.Width?.ToPoints() ?? 612D;
-                double textWidth = pageWidth - (section?.Margins.Left?.ToPoints() ?? 72D) - (section?.Margins.Right?.ToPoints() ?? 72D);
+                double pageWidth = section?.PageSetup.Size.Width?.ToPoints() ?? 612D;
+                double textWidth = pageWidth - (section?.PageSetup.Margins.Left?.ToPoints() ?? 72D) - (section?.PageSetup.Margins.Right?.ToPoints() ?? 72D);
                 if (textWidth <= 0D) return GetWidthCss(table.Width);
                 double percent = Math.Min(100D, length.ToPoints() * 100D / textWidth);
                 return $"{FormatCssNumber(percent)}%";

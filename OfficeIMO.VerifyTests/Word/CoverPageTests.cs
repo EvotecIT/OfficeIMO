@@ -19,8 +19,8 @@ public class CoverPageTests : VerifyTestBase {
     [Fact]
     public async Task AddingCoverPage() {
         using var document = WordDocument.Create();
-        document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-        document.PageSettings.PageSize = WordPageSize.A4;
+        document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
+        document.PageSetup.Size.PageSize = WordPageSize.A4;
         document.BuiltinDocumentProperties.Title = "Cover Page Templates";
         document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
         document.ApplicationProperties.Company = "Evotec Services";

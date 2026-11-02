@@ -204,7 +204,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (WordSection section in document.Sections) {
-                section.DifferentOddAndEvenPages = true;
+                section.PageSetup.DifferentOddAndEvenPages = true;
             }
         }
 
@@ -239,7 +239,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.DifferentFirstPage) {
-                section.DifferentFirstPage = true;
+                section.PageSetup.DifferentFirstPage = true;
             }
 
             if (sectionFormat.Orientation != null) {
@@ -254,27 +254,27 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.PageWidthTwips != null) {
-                section.PageSettings.Width= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value) is { } wordLength14476 ? global::OfficeIMO.OfficeLength.Points((wordLength14476) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+                section.PageSetup.Size.Width= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageWidthTwips.Value) is { } wordLength14476 ? global::OfficeIMO.OfficeLength.Points((wordLength14476) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (sectionFormat.PageHeightTwips != null) {
-                section.PageSettings.Height= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value) is { } wordLength14672 ? global::OfficeIMO.OfficeLength.Points((wordLength14672) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+                section.PageSetup.Size.Height= (((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.PageHeightTwips.Value) is { } wordLength14672 ? global::OfficeIMO.OfficeLength.Points((wordLength14672) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             }
 
             if (sectionFormat.MarginTopTwips != null) {
-                section.Margins.Top = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginTopTwips.Value) / 20D);
+                section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginTopTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginRightTwips != null) {
-                section.Margins.Right = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value) / 20D);
+                section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginRightTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginBottomTwips != null) {
-                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginBottomTwips.Value) / 20D);
+                section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((sectionFormat.MarginBottomTwips.Value) / 20D);
             }
 
             if (sectionFormat.MarginLeftTwips != null) {
-                section.Margins.Left = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value) / 20D);
+                section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.MarginLeftTwips.Value) / 20D);
             }
 
             PageMargin? pageMargin = section._sectionProperties.GetFirstChild<PageMargin>();

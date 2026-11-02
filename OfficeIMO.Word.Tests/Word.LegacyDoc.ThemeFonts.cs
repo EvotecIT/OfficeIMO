@@ -20,8 +20,8 @@ public partial class Word {
         source.AddParagraph("Body control");
         WordParagraph paragraph = story switch {
             "body" => source.AddParagraph("Story heading"),
-            "header" => source.HeaderDefaultOrCreate.AddParagraph("Story heading"),
-            "footer" => source.FooterDefaultOrCreate.AddParagraph("Story heading"),
+            "header" => source.PageSetup.Header.AddParagraph("Story heading"),
+            "footer" => source.PageSetup.Footer.AddParagraph("Story heading"),
             "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").Paragraph.FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
             "endnote" => source.AddParagraph("Reference").AddEndNote("Story heading").Paragraph.EndNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
             _ => AddCharacterScaleComment(source)

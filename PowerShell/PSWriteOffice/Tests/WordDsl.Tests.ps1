@@ -1147,9 +1147,9 @@ Describe 'Word DSL surface' {
             $document.CoverPage | Should -Not -BeNullOrEmpty
             $document.CoverPageProperties.Abstract | Should -Be 'Executive summary'
             $document.CoverPageProperties.CompanyEmail | Should -Be 'reports@example.test'
-            $document.Sections[0].PageSettings.PageSize.ToString() | Should -Be 'A4'
-            $document.Sections[0].PageOrientation.ToString() | Should -Be 'Landscape'
-            $document.Sections[0].Margins.Type.ToString() | Should -Be 'Narrow'
+            $document.Sections[0].PageSetup.Size.PageSize.ToString() | Should -Be 'A4'
+            $document.Sections[0].PageSetup.Orientation.ToString() | Should -Be 'Landscape'
+            $document.Sections[0].PageSetup.Margins.Type.ToString() | Should -Be 'Narrow'
             $document.Sections[0].ColumnCount | Should -Be 2
             $document.Sections[0].ColumnsSpace.ToTwips() | Should -Be 720
             $document.Sections[0].HasColumnSeparator | Should -BeTrue

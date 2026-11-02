@@ -14,7 +14,7 @@ public partial class Word {
     [InlineData(2)]
     public void SaveAsPdf_ImplicitFooterPreservesSiblingPageAndSectionFields(int emptyVariant) {
         using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer: true);
-        WordHeaderFooter[] stories = { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate };
+        WordHeaderFooter[] stories = { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer };
         foreach (WordHeaderFooter story in stories)
             foreach (var child in story.ChildElements.ToArray()) child.Remove();
         for (int index = 0; index < 3; index++) {
@@ -58,7 +58,7 @@ public partial class Word {
     [InlineData(2, "hidden")]
     public void SaveAsPdf_EmptyRunningFooterSiblingPreservesAbsentAndEmptyNumberVariants(int variant, string kind) {
         using WordDocument source = CreateEmptyRunningStoryDocument("absent", footer: true);
-        WordHeaderFooter[] stories = { source.FooterFirstOrCreate, source.FooterEvenOrCreate, source.FooterDefaultOrCreate };
+        WordHeaderFooter[] stories = { source.PageSetup.FirstPageFooter, source.PageSetup.EvenPageFooter, source.PageSetup.Footer };
         foreach (WordHeaderFooter story in stories)
             foreach (var child in story.ChildElements.ToArray()) child.Remove();
         // Creating first/even stories also creates header peers. This control
@@ -120,7 +120,7 @@ public partial class Word {
     [InlineData(2, true)]
     public void SaveAsPdf_EmptyRunningFooterPreservesGeneratedPageNumberPresentation(int emptyVariant, bool typography) {
         using WordDocument document = CreateEmptyRunningStoryDocument("absent", footer: true);
-        WordHeaderFooter[] stories = { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate };
+        WordHeaderFooter[] stories = { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer };
         foreach (var child in stories[emptyVariant].ChildElements.ToArray()) child.Remove();
         for (int index = 0; index < 3; index++) {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);

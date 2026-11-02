@@ -92,10 +92,10 @@ namespace OfficeIMO.Word.Html {
                 ApplyDocumentMetadata(wordDoc, document);
 
                 if (options.DefaultPageSize.HasValue) {
-                    wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
+                    wordDoc.PageSetup.Size.PageSize = options.DefaultPageSize.Value;
                 }
                 if (options.DefaultOrientation.HasValue) {
-                    wordDoc.PageOrientation = options.DefaultOrientation.Value;
+                    wordDoc.PageSetup.Orientation = options.DefaultOrientation.Value;
                 }
 
                 var section = wordDoc.Sections.First();

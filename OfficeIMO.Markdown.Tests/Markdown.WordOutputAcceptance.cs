@@ -16,9 +16,8 @@ public sealed class WordMarkdownOutputAcceptanceTests {
     [InlineData(true)]
     public void OmittedRunningContentRemainsVisibleToLossAcceptance(bool include) {
         using var word = WordDocument.Create();
-        word.AddHeadersAndFooters();
-        word.Header!.Default!.AddParagraph("Header content");
-        word.Footer!.Default!.AddParagraph("Footer content");
+        word.PageSetup.Header.AddParagraph("Header content");
+        word.PageSetup.Footer.AddParagraph("Footer content");
         word.AddParagraph("Body content");
         var options = new WordMarkdownExportOptions { IncludeHeadersAndFootersAsSemanticBlocks = include };
         using var markdown = word.ToMarkdown(options, out OfficeConversionReport report);
@@ -56,8 +55,8 @@ public sealed class WordMarkdownOutputAcceptanceTests {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-markdown-image-acceptance-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
-            using var word = WordDocument.Create(); word.AddHeadersAndFooters();
-            word.Header!.Default!.AddParagraph("Omitted running content");
+            using var word = WordDocument.Create();
+            word.PageSetup.Header.AddParagraph("Omitted running content");
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
             using (var source = new MemoryStream(png)) word.AddParagraph().AddImage(source, "embedded.png", width: OfficeIMO.OfficeLength.Pixels(32), height: OfficeIMO.OfficeLength.Pixels(32));
             string output = Path.Combine(directory, "report.md"), images = Path.Combine(directory, "images");

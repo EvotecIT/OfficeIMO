@@ -214,17 +214,17 @@ public sealed partial class WordPaperStyle {
     /// <returns>The attached default/even header and footer paragraphs, which remain editable.</returns>
     public (WordParagraph DefaultHeader, WordParagraph EvenHeader, WordParagraph DefaultFooter, WordParagraph EvenFooter) AddPageChrome(WordDocument document, string title, string product, string scope) {
         var paragraphs = new System.Collections.Generic.List<WordParagraph>(4);
-        document.AddHeadersAndFooters();
-        document.DifferentOddAndEvenPages = true;
+        WordHeader defaultHeader = document.PageSetup.Header;
+        document.PageSetup.DifferentOddAndEvenPages = true;
         string header = string.IsNullOrWhiteSpace(scope) ? title : title + " · " + scope;
         string footer = product + (string.IsNullOrWhiteSpace(scope) ? "" : " · " + scope) + " · ";
-        foreach (WordHeader part in new[] { document.HeaderDefaultOrCreate, document.HeaderEvenOrCreate }) {
+        foreach (WordHeader part in new[] { defaultHeader, document.PageSetup.EvenPageHeader }) {
             WordParagraph paragraph = part.AddParagraph(header);
             Format(paragraph, 8, Muted);
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraphs.Add(paragraph);
         }
-        foreach (WordFooter part in new[] { document.FooterDefaultOrCreate, document.FooterEvenOrCreate }) {
+        foreach (WordFooter part in new[] { document.PageSetup.Footer, document.PageSetup.EvenPageFooter }) {
             WordParagraph paragraph = part.AddParagraph(footer);
             paragraph.AddPageNumber(includeTotalPages: true, separator: " / ");
             Format(paragraph, 8, Muted);

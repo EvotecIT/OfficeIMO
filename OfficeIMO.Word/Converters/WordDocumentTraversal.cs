@@ -445,7 +445,7 @@ namespace OfficeIMO.Word {
 
             yield return EnumerateStory(document._wordprocessingDocument.MainDocumentPart?.Document?.Body);
             foreach (WordSection section in document.Sections) {
-                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Header.Default, section.Header.First, section.Header.Even, section.Footer.Default, section.Footer.First, section.Footer.Even }) {
+                foreach (WordHeaderFooter? headerFooter in new WordHeaderFooter?[] { section.Headers.Default, section.Headers.First, section.Headers.Even, section.Footers.Default, section.Footers.First, section.Footers.Even }) {
                     if (headerFooter == null) continue;
                     yield return EnumerateStory((DocumentFormat.OpenXml.OpenXmlCompositeElement?)headerFooter._header ?? headerFooter._footer);
                 }

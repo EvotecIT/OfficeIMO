@@ -265,21 +265,22 @@ public static partial class WordOpenDocumentConversionExtensions {
             sourcePageLayout.LeftHeader != null || sourcePageLayout.LeftFooter != null;
         int skippedFallbackImages = 0;
         if (effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hiddenHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
-            target.AddHeadersAndFooters();
             WordSection firstSection = target.Sections[0];
+            // Create the default stories before the first-page and even-page variants.
+            _ = firstSection.PageSetup.Header;
             if (sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null) {
-                firstSection.DifferentFirstPage = true;
+                firstSection.PageSetup.DifferentFirstPage = true;
             }
             if (sourcePageLayout.LeftHeader != null || sourcePageLayout.LeftFooter != null) {
-                firstSection.DifferentOddAndEvenPages = true;
+                firstSection.PageSetup.DifferentOddAndEvenPages = true;
             }
             foreach ((OdtHeaderFooter? story, WordHeaderFooterType kind, bool isHeader) in
                 EnumerateOdtHeaderFooterVariants(sourcePageLayout)) {
                 OdtHeaderFooter? effectiveStory = story ?? ResolveOdtHeaderFooterFallback(sourcePageLayout, kind, isHeader);
                 if (effectiveStory == null) continue;
                 WordHeaderFooter destination = isHeader
-                    ? firstSection.GetOrCreateHeader(kind)
-                    : firstSection.GetOrCreateFooter(kind);
+                    ? firstSection.PageSetup.GetOrCreateHeader(kind)
+                    : firstSection.PageSetup.GetOrCreateFooter(kind);
                 if (!effectiveStory.IsDisplayed) continue;
                 if (story == null) {
                     skippedFallbackImages += CopyOdtHeaderFooterFallback(effectiveStory, destination, effective, textCaseCulture,
@@ -790,12 +791,12 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static int ApplyOdtPageLayout(OdtPageLayout source, WordSection target) {
         int unsupported = 0;
-        if (source.Width.TryToPoints(out double width)) target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(width * 20D))) / 20D); else unsupported++;
-        if (source.Height.TryToPoints(out double height)) target.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(height * 20D))) / 20D); else unsupported++;
-        if (source.MarginTop.TryToPoints(out double top)) target.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(top * 20D))) / 20D); else unsupported++;
-        if (source.MarginBottom.TryToPoints(out double bottom)) target.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(bottom * 20D))) / 20D); else unsupported++;
-        if (source.MarginLeft.TryToPoints(out double left)) target.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(left * 20D))) / 20D); else unsupported++;
-        if (source.MarginRight.TryToPoints(out double right)) target.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(right * 20D))) / 20D); else unsupported++;
+        if (source.Width.TryToPoints(out double width)) target.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(width * 20D))) / 20D); else unsupported++;
+        if (source.Height.TryToPoints(out double height)) target.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(height * 20D))) / 20D); else unsupported++;
+        if (source.MarginTop.TryToPoints(out double top)) target.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(top * 20D))) / 20D); else unsupported++;
+        if (source.MarginBottom.TryToPoints(out double bottom)) target.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(bottom * 20D))) / 20D); else unsupported++;
+        if (source.MarginLeft.TryToPoints(out double left)) target.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(left * 20D))) / 20D); else unsupported++;
+        if (source.MarginRight.TryToPoints(out double right)) target.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(right * 20D))) / 20D); else unsupported++;
         return unsupported;
     }
 

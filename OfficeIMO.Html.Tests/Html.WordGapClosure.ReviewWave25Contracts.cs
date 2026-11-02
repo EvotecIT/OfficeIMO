@@ -64,9 +64,9 @@ public partial class HtmlWordGapClosure {
         int expectedContentWidth = Assert.IsType<int>(
             WordTable.EstimateCellContentWidthInDxa(document, cell._tableCell));
         WordSection laterSection = document.AddSection();
-        laterSection.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(1000D);
-        laterSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(25D);
-        laterSection.Margins.Right = global::OfficeIMO.OfficeLength.Points(25D);
+        laterSection.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(1000D);
+        laterSection.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(25D);
+        laterSection.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(25D);
 
         cell.AddHtml(HtmlConversionDocument.Parse(
             $"""<img style="width:100%" src="data:image/png;base64,{ValidPng}" alt="Cell image">"""));

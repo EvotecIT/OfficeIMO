@@ -138,7 +138,7 @@ public partial class WordRtfConverterTests {
     private static WordParagraph CreateMixedRunStory(WordDocument source, string story) => story switch {
         "body" => source.AddParagraph(),
         "cell" => source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-        "header" => source.HeaderDefaultOrCreate.AddParagraph(),
+        "header" => source.PageSetup.Header.AddParagraph(),
         "footnote" => source.AddParagraph("Anchor").AddFootNote("Placeholder").Paragraph.FootNote!.Paragraphs!.Last(),
         _ => throw new ArgumentOutOfRangeException(nameof(story))
     };

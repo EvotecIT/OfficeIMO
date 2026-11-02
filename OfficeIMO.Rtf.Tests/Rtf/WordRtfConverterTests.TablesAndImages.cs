@@ -463,10 +463,9 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Report_Images_In_Later_Section_Headers() {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].AddHeadersAndFooters();
-        word.Sections[0].Header.Default!.AddParagraph("First section header");
+        word.Sections[0].PageSetup.Header.AddParagraph("First section header");
         WordSection laterSection = word.AddSection(WordSectionBreakType.NextPage);
-        laterSection.AddHeadersAndFooters();
+        _ = laterSection.PageSetup.Header;
         HeaderReference laterHeaderReference = Assert.Single(
             laterSection._sectionProperties.Elements<HeaderReference>(),
             reference => reference.Type?.Value == HeaderFooterValues.Default);
@@ -486,8 +485,7 @@ public partial class WordRtfConverterTests {
     public void Word_Rtf_Image_Diagnostics_Report_Images_In_Skipped_Header_Tables() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].AddHeadersAndFooters();
-        WordTableCell cell = word.Sections[0].Header.Default!
+        WordTableCell cell = word.Sections[0].PageSetup.Header
             .AddTable(1, 1)
             .Rows[0]
             .Cells[0];

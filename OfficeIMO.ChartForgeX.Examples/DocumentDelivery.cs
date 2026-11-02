@@ -28,8 +28,8 @@ internal static class DocumentDelivery {
 
     private static void WriteWord(string path, IReadOnlyList<VisualSpecimen> specimens) {
         using var document = WordDocument.Create(path);
-        document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-        document.Margins.Type = WordMargin.Normal;
+        document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
+        document.PageSetup.Margins.Type = WordMargin.Normal;
         for (int index = 0; index < specimens.Count; index++) {
             if (index > 0) document.AddPageBreak();
             var specimen = specimens[index];

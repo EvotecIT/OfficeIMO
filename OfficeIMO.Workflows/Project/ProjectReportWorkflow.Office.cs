@@ -20,11 +20,11 @@ public static partial class ProjectReportWorkflow {
         cancellationToken.ThrowIfCancellationRequested();
         var document = WordDocument.Create();
         try {
-            document.PageOrientation = view.PageWidth >= view.PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-            document.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageWidth * 20))) / 20D);
-            document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageHeight * 20))) / 20D);
-            document.Margins.Left = document.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageMargin * 20))) / 20D);
-            document.Margins.Top = document.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(view.PageMargin * 20))) / 20D);
+            document.PageSetup.Orientation = view.PageWidth >= view.PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
+            document.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageWidth * 20))) / 20D);
+            document.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageHeight * 20))) / 20D);
+            document.PageSetup.Margins.Left = document.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageMargin * 20))) / 20D);
+            document.PageSetup.Margins.Top = document.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(view.PageMargin * 20))) / 20D);
             if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddWordCharts(document, view, options, cancellationToken);
             if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return document;
             var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = global::OfficeIMO.OfficeLength.Points(20); title.FontFamily = "Arial"; title.Color = OfficeIMO.OfficeColor.Parse("183047");

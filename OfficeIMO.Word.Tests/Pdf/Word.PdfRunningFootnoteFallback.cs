@@ -16,8 +16,8 @@ public partial class Word {
             AssertMalformedRunningFootnoteReferenceErrors(source, activeReference);
             using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
             AssertMalformedRunningFootnoteReferenceErrors(document, activeReference);
-            Assert.False(document.DifferentFirstPage);
-            Assert.False(document.DifferentOddAndEvenPages);
+            Assert.False(document.PageSetup.DifferentFirstPage);
+            Assert.False(document.PageSetup.DifferentOddAndEvenPages);
             var main = document._wordprocessingDocument.MainDocumentPart!;
             Assert.Empty(main.Document.Descendants<W.FootnoteReference>());
             Assert.Equal(activeReference ? 3 : 2, main.HeaderParts.Sum(part => part.Header.Descendants<W.FootnoteReference>().Count()));
@@ -97,9 +97,9 @@ public partial class Word {
 
     private static WordDocument CreateMalformedRunningFootnoteInput(bool activeReference) {
         WordDocument document = CreateFootnoteDiagnosticDocument();
-        document.AddHeadersAndFooters();
-        document.DifferentFirstPage = true;
-        document.DifferentOddAndEvenPages = true;
+        _ = document.PageSetup.Header;
+        document.PageSetup.DifferentFirstPage = true;
+        document.PageSetup.DifferentOddAndEvenPages = true;
         WordHeader header = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default);
         if (activeReference) AppendMalformedRunningFootnote(document, header, 1, "RUNNINGREFERENCE", "ACTIVERUNNINGNOTE", " RUNNINGTAIL");
         else header.AddParagraph("ACTIVEHEADER");
@@ -109,8 +109,8 @@ public partial class Word {
             activeReference ? 3 : 2, "DORMANTEVENREFERENCE", "DORMANTEVENNOTE");
         // Keep the stored variants and note bodies, but select only the default
         // running story using the canonical section/document activation flags.
-        document.DifferentFirstPage = false;
-        document.DifferentOddAndEvenPages = false;
+        document.PageSetup.DifferentFirstPage = false;
+        document.PageSetup.DifferentOddAndEvenPages = false;
         document.AddParagraph("FIRSTBODY").AddBreak(WordBreakType.Page);
         document.AddParagraph("LASTBODY");
         return document;

@@ -20,7 +20,7 @@ public sealed class WordParagraphContentWidthTests {
 
         Assert.Equal(OfficeIMO.OfficeLength.Points(455D), first.GetContentWidth());
         Assert.Equal(OfficeIMO.OfficeLength.Points(800D), last.GetContentWidth());
-        second.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(50D);
+        second.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(50D);
         Assert.Equal(OfficeIMO.OfficeLength.Points(750D), last.GetContentWidth());
         document.Settings.GutterAtTop = true;
         Assert.Equal(OfficeIMO.OfficeLength.Points(800D), last.GetContentWidth());
@@ -129,14 +129,13 @@ public sealed class WordParagraphContentWidthTests {
         using var document = WordDocument.Create();
         SetPage(document.Sections[0], 12000);
         document.AddParagraph("Body");
-        document.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? document.Footer.Default! : document.Header.Default!;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph paragraph = story.AddParagraph("Shared story");
         WordSection second = document.AddSection();
         SetPage(second, 12000);
         Assert.Equal(OfficeIMO.OfficeLength.Points(500D), paragraph.GetContentWidth());
 
-        second.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(900D);
+        second.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(900D);
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => paragraph.GetContentWidth().ToPoints());
         Assert.Contains("explicit drawing dimensions", error.Message);
     }
@@ -151,9 +150,9 @@ public sealed class WordParagraphContentWidthTests {
     }
 
     private static void SetPage(WordSection section, uint widthTwips) {
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((widthTwips) / 20D);
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
-        section.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
-        section.Margins.Gutter = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((widthTwips) / 20D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
+        section.PageSetup.Margins.Gutter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

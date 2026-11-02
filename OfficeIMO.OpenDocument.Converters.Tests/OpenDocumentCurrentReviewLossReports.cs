@@ -121,8 +121,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph body = source.AddParagraph("Shaded");
         body.BackgroundColor = OfficeColor.Parse("112233");
-        source.AddHeadersAndFooters();
-        WordParagraph header = source.Header!.Default!.AddParagraph("Styled header");
+        WordParagraph header = source.PageSetup.Header.AddParagraph("Styled header");
         header.Bold = true;
         header.FontSize = global::OfficeIMO.OfficeLength.Points(11.5);
 
@@ -750,7 +749,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
-        WordParagraph paragraph = Assert.Single(target.Header!.Default!.Paragraphs, item => item.Text.Contains("Styled", StringComparison.Ordinal));
+        WordParagraph paragraph = Assert.Single(target.PageSetup.Header.Paragraphs, item => item.Text.Contains("Styled", StringComparison.Ordinal));
         WordParagraph[] runs = paragraph.GetRuns().ToArray();
 
         Assert.Contains(runs, run => run.Text == "Styled" && run.Bold);
@@ -1358,11 +1357,9 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void WordToOdtReportsHeaderFooterTablesAndLaterSectionDefaults() {
         using WordDocument source = WordDocument.Create();
-        source.AddHeadersAndFooters();
-        source.Sections[0].Header.Default!.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Table";
+        source.Sections[0].PageSetup.Header.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Table";
         WordSection second = source.AddSection();
-        second.AddHeadersAndFooters();
-        second.Header.Default!.AddParagraph("Later header");
+        second.PageSetup.Header.AddParagraph("Later header");
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
             IncludeHeadersAndFooters = true

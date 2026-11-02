@@ -68,7 +68,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             paragraph = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph();
         } else if (story == "table") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         else paragraph = document.AddParagraph();
@@ -166,7 +166,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             paragraph = RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph();
         } else if (story == "table") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];

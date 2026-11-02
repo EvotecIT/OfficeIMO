@@ -249,7 +249,7 @@ namespace OfficeIMO.Word.Pdf {
                 WordSection firstSection = sections[sectionIndex];
                 if (sectionIndex > 0) ReportNativeContinuousStoryPageFallback(
                     sections[sectionIndex - 1], firstSection, sectionIndex, options);
-                bool preserveLogicalRunningSections = changesRunningStories || UsesNativeSectionPageCounts(firstSection) || firstSection.DifferentFirstPage;
+                bool preserveLogicalRunningSections = changesRunningStories || UsesNativeSectionPageCounts(firstSection) || firstSection.PageSetup.DifferentFirstPage;
                 PdfCore.PdfPageSize sectionPageSize = GetNativePageSize(firstSection, options);
                 (double Header, double Footer) headerFooterMarginExpansion = GetNativeHeaderFooterMarginExpansion(firstSection, options, listMarkers);
                 PdfCore.PdfPageMargins sectionMargins = GetNativeMargins(firstSection, options, headerFooterMarginExpansion);
@@ -378,13 +378,13 @@ namespace OfficeIMO.Word.Pdf {
                     return true;
                 }
 
-                if (section.DifferentFirstPage &&
+                if (section.PageSetup.DifferentFirstPage &&
                     (IsNativeDescendantOf(paragraph._paragraph, section.ResolveFirstHeader()?._header) ||
                      IsNativeDescendantOf(paragraph._paragraph, section.ResolveFirstFooter()?._footer))) {
                     return true;
                 }
 
-                if (section.DifferentOddAndEvenPages &&
+                if (section.PageSetup.DifferentOddAndEvenPages &&
                     (IsNativeDescendantOf(paragraph._paragraph, section.ResolveEvenHeader()?._header) ||
                      IsNativeDescendantOf(paragraph._paragraph, section.ResolveEvenFooter()?._footer))) {
                     return true;
@@ -465,12 +465,12 @@ namespace OfficeIMO.Word.Pdf {
             Math.Abs(first - second) < 0.001D;
 
         private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
-            first.DifferentFirstPage == second.DifferentFirstPage &&
-            (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(checked((uint)(first.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.Margins.HeaderDistance.GetValueOrDefault().ToTwips())))) &&
-            (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(checked((uint)(first.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.Margins.FooterDistance.GetValueOrDefault().ToTwips())))) &&
+            first.PageSetup.DifferentFirstPage == second.PageSetup.DifferentFirstPage &&
+            (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(checked((uint)(first.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())))) &&
+            (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(checked((uint)(first.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())))) &&
             ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
             ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
-            (!first.DifferentFirstPage ||
+            (!first.PageSetup.DifferentFirstPage ||
                 (ReferenceEquals(first.ResolveFirstHeader()?._header, second.ResolveFirstHeader()?._header) &&
                  ReferenceEquals(first.ResolveFirstFooter()?._footer, second.ResolveFirstFooter()?._footer))) &&
             (!first.DocumentOddEvenSettingEnabled ||
@@ -479,10 +479,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasNativeSectionStory(WordSection section, bool isFooter) => isFooter
             ? section.ResolveDefaultFooter() != null ||
-                (section.DifferentFirstPage && section.ResolveFirstFooter() != null) ||
+                (section.PageSetup.DifferentFirstPage && section.ResolveFirstFooter() != null) ||
                 (section.DocumentOddEvenSettingEnabled && section.ResolveEvenFooter() != null)
             : section.ResolveDefaultHeader() != null ||
-                (section.DifferentFirstPage && section.ResolveFirstHeader() != null) ||
+                (section.PageSetup.DifferentFirstPage && section.ResolveFirstHeader() != null) ||
                 (section.DocumentOddEvenSettingEnabled && section.ResolveEvenHeader() != null);
 
         private static bool NativeSectionPageNumberingEquivalent(WordSection first, WordSection second) =>

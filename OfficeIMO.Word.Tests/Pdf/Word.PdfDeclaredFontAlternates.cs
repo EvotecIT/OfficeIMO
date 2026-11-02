@@ -362,8 +362,8 @@ public sealed class WordPdfDeclaredFontAlternateTests {
         WordParagraph paragraph;
         if (owner is "header" or "footer") {
             document.AddParagraph("Body");
-            document.AddHeadersAndFooters();
-            paragraph = (owner == "header" ? (WordHeaderFooter)document.Header.Default : document.Footer.Default)
+            _ = document.PageSetup.Header;
+            paragraph = (owner == "header" ? (WordHeaderFooter)document.PageSetup.GetHeader(WordHeaderFooterType.Default) : document.PageSetup.GetFooter(WordHeaderFooterType.Default))
                 .AddParagraph("AAAA");
         } else if (owner == "table") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];

@@ -28,8 +28,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         try {
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddHeadersAndFooters();
-                WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph("OfficeIMO");
+                WordParagraph headerLogo = document.Sections[0].PageSetup.Header.AddParagraph("OfficeIMO");
                 headerLogo.ParagraphAlignment = WordParagraphAlignment.Right;
                 headerLogo.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(48), OfficeIMO.OfficeLength.Pixels(24));
 
@@ -119,20 +118,19 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Settings.FontFamily = "Calibri";
                 document.Background.SetColor(OfficeColor.Parse("EAF4FF"));
                 WordSection section = document.Sections[0];
-                section.Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
-                section.Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
-                section.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
-                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
+                section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
+                section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
                 section.ColumnCount = 2;
                 section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(27);
                 section.HasColumnSeparator = true;
 
-                document.AddHeadersAndFooters();
-                WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                WordParagraph header = document.Sections[0].PageSetup.Header.AddParagraph();
                 header.ParagraphAlignment = WordParagraphAlignment.Right;
                 header.AddText("Daily layout gate");
                 header.AddImage(logoPath, OfficeIMO.OfficeLength.Pixels(42), OfficeIMO.OfficeLength.Pixels(20));
-                document.Sections[0].Footer.Default!.AddParagraph("OfficeIMO native Word layout proof");
+                document.Sections[0].PageSetup.Footer.AddParagraph("OfficeIMO native Word layout proof");
 
                 document.AddTableOfContent();
                 document.AddParagraph("Daily Word Layout Gate").SetStyle(WordParagraphStyles.Heading1);

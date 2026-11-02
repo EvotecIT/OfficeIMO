@@ -18,10 +18,9 @@ public partial class Word {
         document.AddParagraph("First page");
         document.AddPageBreak();
         document.AddParagraph("Second page");
-        document.AddHeadersAndFooters();
-        document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+        document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
-        Assert.Contains(document.Footer.Default.Elements, element => element is WordStructuredDocumentTag);
+        Assert.Contains(document.PageSetup.Footer.Elements, element => element is WordStructuredDocumentTag);
 
         using PdfPigDocument pdf = OpenAuditPdf(document);
         Assert.Equal(2, pdf.NumberOfPages);
@@ -56,9 +55,8 @@ public partial class Word {
         document.AddParagraph("First page");
         document.AddPageBreak();
         document.AddParagraph("Second page");
-        document.AddHeadersAndFooters();
-        document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Roman);
-        foreach (FieldCode field in document.Footer.Default._footer!.Descendants<FieldCode>()) {
+        document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.Roman);
+        foreach (FieldCode field in document.PageSetup.Footer._footer!.Descendants<FieldCode>()) {
             field.Text = " PAGE \\* " + switches;
         }
 
@@ -155,8 +153,7 @@ public partial class Word {
         PdfDocument pdf;
         using (WordDocument document = WordDocument.Create()) {
             document.AddParagraph("Body");
-            document.AddHeadersAndFooters();
-            document.Footer!.Default.AddPageNumber(WordPageNumberStyle.PlainNumber);
+            document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
             pdf = document.ToPdf();
         }
 

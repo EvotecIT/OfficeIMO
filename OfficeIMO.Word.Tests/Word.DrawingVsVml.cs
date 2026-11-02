@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 using var document = WordDocument.Create();
                 document.AddParagraph().AddImage(source, OfficeIMO.OfficeLength.Points(24.5D), OfficeIMO.OfficeLength.Points(12.25D), options: new OfficeIMO.Word.WordImageOptions { Vml = true });
                 document.AddParagraph().AddImage(source, options: new OfficeIMO.Word.WordImageOptions { Vml = true });
-                var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+                var header = document.Sections[0].PageSetup.Header;
                 WordImage image;
                 using (var input = new MemoryStream(expected, writable: false)) {
                     input.Position = 3;
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 using var payload = new MemoryStream();
                 using (Stream input = ownedPart.GetStream()) input.CopyTo(payload);
                 Assert.Equal(expected, payload.ToArray());
-                WordImage persisted = reopened.Sections[0].Header.Default!.Paragraphs.Single(paragraph => paragraph.IsImage).Image!;
+                WordImage persisted = reopened.Sections[0].PageSetup.Header.Paragraphs.Single(paragraph => paragraph.IsImage).Image!;
                 Assert.Equal(expected, persisted.ToBytes());
                 Assert.Equal("Stream image", persisted.Description);
                 Assert.Contains("width:24.5pt", persisted._vmlShape!.Style!.Value);

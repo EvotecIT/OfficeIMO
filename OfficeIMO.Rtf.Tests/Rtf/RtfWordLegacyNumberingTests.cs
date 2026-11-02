@@ -99,7 +99,7 @@ public sealed class RtfWordLegacyNumberingTests {
         using WordDocument word = conversion.Value;
         Assert.False(conversion.Report.HasLoss);
         WordParagraph cell = Assert.Single(word.Tables[0].Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Cell");
-        WordParagraph header = Assert.Single(word.Header!.Default!.Paragraphs, paragraph => paragraph.Text == "Header");
+        WordParagraph header = Assert.Single(word.PageSetup.Header.Paragraphs, paragraph => paragraph.Text == "Header");
         Assert.Equal(Id(word.Paragraphs[0]), Id(cell));
         Assert.NotEqual(Id(cell), Id(header));
         Assert.Equal(3, LevelFor(word, Id(cell)).StartNumberingValue!.Val!.Value);

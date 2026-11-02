@@ -86,8 +86,8 @@ public sealed class WordPdfThemeFontPrecedenceTests {
         WordParagraph paragraph;
         if (story == "body") paragraph = document.AddParagraph("Fallback");
         else {
-            document.AddParagraph("Body"); document.AddHeadersAndFooters();
-            paragraph = (story == "footer" ? (WordHeaderFooter)document.Footer.Default : document.Header.Default).AddParagraph("Fallback");
+            document.AddParagraph("Body"); _ = document.PageSetup.Header;
+            paragraph = (story == "footer" ? (WordHeaderFooter)document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default)).AddParagraph("Fallback");
         }
         paragraph._run!.RunProperties = new RunProperties(new RunFonts {
             Ascii = "OfficeIMO Unavailable Font", HighAnsi = "Times New Roman",

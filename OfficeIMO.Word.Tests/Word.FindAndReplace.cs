@@ -60,15 +60,15 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].AddText("Test Section");
                 table.Rows[0].Cells[2].Paragraphs[0].AddText("Test ").AddText("Sect").AddText("ion");
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
-                var header = document.Header!.Default;
+                var header = document.PageSetup.GetHeader(WordHeaderFooterType.Default);
                 var tableInHeader = document.AddTable(3, 3);
                 tableInHeader.Rows[0].Cells[0].Paragraphs[0].AddText("Prod Section");
                 tableInHeader.Rows[0].Cells[1].Paragraphs[0].AddText("Prod Section");
                 tableInHeader.Rows[0].Cells[2].Paragraphs[0].AddText("Prod ").AddText("Sect").AddText("ion");
 
-                var footer = document.Footer!.Default;
+                var footer = document.PageSetup.GetFooter(WordHeaderFooterType.Default);
                 var tableInFooter = document.AddTable(3, 3);
                 tableInFooter.Rows[0].Cells[0].Paragraphs[0].AddText("Prod Section");
                 tableInFooter.Rows[0].Cells[1].Paragraphs[0].AddText("Prod Section");

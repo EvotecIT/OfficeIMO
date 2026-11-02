@@ -360,12 +360,12 @@ public sealed class IWorkCorpusTests {
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.All(reopened.Sections, section => {
-            Assert.False(section.DifferentFirstPage);
-            Assert.False(section.DifferentOddAndEvenPages);
+            Assert.False(section.PageSetup.DifferentFirstPage);
+            Assert.False(section.PageSetup.DifferentOddAndEvenPages);
         });
-        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[0].PageSetup.Header.Paragraphs,
             p => p.Text.Contains("Apple Pages Import Fixture"));
-        Assert.Contains(reopened.Sections[0].Footer.Default!.Paragraphs,
+        Assert.Contains(reopened.Sections[0].PageSetup.Footer.Paragraphs,
             p => p.Text.Contains("Fixture coverage:"));
         Assert.Empty(reopened.ValidateDocument());
     }

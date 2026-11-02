@@ -77,7 +77,7 @@ public sealed class WordObjectExportWorkflowTests : IDisposable {
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
         using WordDocument saved = WordDocument.Load(path);
-        Assert.Equal(OfficeIMO.OfficePageOrientation.Landscape, saved.Sections[0].PageOrientation);
+        Assert.Equal(OfficeIMO.OfficePageOrientation.Landscape, saved.Sections[0].PageSetup.Orientation);
         WordTable table = Assert.Single(saved.Tables);
         Assert.Equal(new[] { "Date", "Count" }, table.Rows[0].Cells.Select(cell => cell.Paragraphs[0].Text));
         Assert.Equal(new[] { "2026-10-30", "1,235" }, table.Rows[1].Cells.Select(cell => cell.Paragraphs[0].Text));
@@ -99,7 +99,7 @@ public sealed class WordObjectExportWorkflowTests : IDisposable {
         Assert.False(shell.HadErrors, Errors(shell));
         using WordDocument saved = WordDocument.Load(path);
         Assert.Equal(automatic ? OfficeIMO.OfficePageOrientation.Landscape : OfficeIMO.OfficePageOrientation.Portrait,
-            saved.Sections[0].PageOrientation);
+            saved.Sections[0].PageSetup.Orientation);
         Assert.Equal(12, Assert.Single(saved.Tables).Rows[0].Cells.Count);
     }
 

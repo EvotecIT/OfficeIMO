@@ -33,13 +33,13 @@ public partial class Word {
         document.Settings.TrackRevisions = true;
         document.Settings.TrackFormatting = false;
         document.Settings.TrackMoves = false;
-        document.DifferentOddAndEvenPages = true;
+        document.PageSetup.DifferentOddAndEvenPages = true;
         document.SetDocumentVariable("Qualification", "settings-order");
         document.Settings.ProtectionPassword = "schema-test-only";
         document.Settings.SetProtectionType(WordDocumentProtectionType.ReadOnly);
         using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
-        Assert.True(reopened.DifferentOddAndEvenPages);
+        Assert.True(reopened.PageSetup.DifferentOddAndEvenPages);
         Assert.True(reopened.Settings.UpdateFieldsOnOpen);
         Assert.True(reopened.Settings.MirrorMargins);
         Assert.True(reopened.Settings.GutterAtTop);

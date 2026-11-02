@@ -17,9 +17,9 @@ public partial class Word {
         HeaderFooterValues type = variant switch { 1 => HeaderFooterValues.First, 2 => HeaderFooterValues.Even, _ => HeaderFooterValues.Default };
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("BODY");
-        source.AddHeadersAndFooters();
-        source.DifferentFirstPage = true;
-        source.DifferentOddAndEvenPages = true;
+        _ = source.PageSetup.Header;
+        source.PageSetup.DifferentFirstPage = true;
+        source.PageSetup.DifferentOddAndEvenPages = true;
         WordHeaderFooter story = footer ? RequireSectionFooter(source, 0, type) : RequireSectionHeader(source, 0, type);
         WordTable table = story.AddTable(2, 2, WordTableStyle.TableGrid);
         for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
@@ -42,13 +42,13 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_HeaderFooterTablePreservesEmptyAndAdjacentTables(bool footer) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("BODY");source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         story.AddTable(1, 2, WordTableStyle.TableNormal);
         WordTable second = story.AddTable(1, 1, WordTableStyle.TableNormal);
         second.Rows[0].Cells[0].Paragraphs[0].Text = "SECOND";
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+        WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
         Assert.Equal(2, restoredStory.Tables.Count);
         Assert.Equal(2, Assert.Single(restoredStory.Tables[0].Rows).Cells.Count);
         Assert.Equal("SECOND", Assert.Single(restoredStory.Tables[1].Rows[0].Cells[0].Paragraphs).Text);
@@ -62,8 +62,8 @@ public partial class Word {
     public void LegacyDoc_HeaderFooterTableResolvesItsOwnHyperlinkRelationship(bool footer, bool contentControl) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph().AddHyperLink("BODY", new Uri("https://officeimo.net/body"));
-        source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableNormal);
         Uri target = new Uri("https://officeimo.net/story-table");
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
@@ -74,7 +74,7 @@ public partial class Word {
             paragraph._paragraph.Append(new SdtRun(new SdtContentRun(link)));
         }
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+        WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
         Assert.Contains(Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()),
             run => run.IsHyperLink && run.Hyperlink!.Uri == target);
     }
@@ -86,13 +86,13 @@ public partial class Word {
     [InlineData(true, true)]
     public void LegacyDoc_HeaderFooterTableResolvesItsOwnPictureRelationship(bool footer, bool nested) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("BODY");source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable target = nested ? table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal) : table;
         target.Rows[0].Cells[0].Paragraphs[0].AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(12));
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+        WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTable restoredTable = Assert.Single(restoredStory.Tables);
         WordTable restoredTarget = nested ? Assert.Single(restoredTable.Rows[0].Cells[0].NestedTables) : restoredTable;
         WordParagraph run = Assert.Single(restoredTarget.Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()), paragraph => paragraph.IsImage);
@@ -105,14 +105,14 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_HeaderFooterTablePreservesNestedCellContent(bool footer) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("BODY");source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableNormal);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "OUTER";
         WordTable nested = table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableNormal);
         nested.Rows[0].Cells[0].Paragraphs[0].Text = "NESTED";
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+        WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTable outer = Assert.Single(restoredStory.Tables);
         Assert.Contains(outer.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "OUTER");
         WordTable restoredNested = Assert.Single(outer.Rows[0].Cells[0].NestedTables);
@@ -124,8 +124,8 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_HeaderFooterTablePreservesCellShadingAndBorderOverride(bool footer) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("BODY");source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTableCell cell = story.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "FORMATTED";
         cell.ShadingFillColor = OfficeColor.Parse("FFFF00");
@@ -133,7 +133,7 @@ public partial class Word {
         cell.Borders.BottomColor = OfficeColor.Parse("00FF00");
         cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+        WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordTableCell restoredCell = Assert.Single(restoredStory.Tables).Rows[0].Cells[0];
         Assert.Equal(OfficeColor.Parse("FFFF00"), restoredCell.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Double, restoredCell.Borders.BottomStyle);
@@ -146,14 +146,14 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_HeaderFooterTablePreservesCellBookmarkRange(bool footer) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph("BODY");source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         WordParagraph paragraph = story.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0];
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new BookmarkStart { Id = "51", Name = "StoryCellBookmark" },
             new Run(new Text("MARKED")), new BookmarkEnd { Id = "51" });
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
-        WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+        WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
         Paragraph restoredParagraph = Assert.Single(Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs,
             candidate => candidate.Bookmark?.Name == "StoryCellBookmark")._paragraph;
         BookmarkStart start = Assert.Single(restoredParagraph.Elements<BookmarkStart>());
@@ -167,7 +167,7 @@ public partial class Word {
     [InlineData(true, "WordFooterTableNative.doc")]
     public void LegacyDoc_ImportsIndependentWordHeaderFooterTable(bool footer, string file) {
         using WordDocument document = WordDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", file));
-        WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
+        WordHeaderFooter story = footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : document.PageSetup.GetHeader(WordHeaderFooterType.Default);
         AssertHeaderFooterTableCells(story);
         Assert.Equal("AFTERTABLE", Assert.Single(story.Paragraphs).Text);
     }
@@ -191,8 +191,8 @@ public partial class Word {
     public void LegacyDoc_HeaderFooterTableRepeatedSavePreservesIntentionalParagraphs(bool footer, bool trailingBlank) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("BODY");
-        source.AddHeadersAndFooters();
-        WordHeaderFooter story = footer ? source.Footer.Default : source.Header.Default;
+        _ = source.PageSetup.Header;
+        WordHeaderFooter story = footer ? source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default);
         story.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0].Text = "CELL";
         story.AddParagraph("AFTER");
         if (trailingBlank) story.AddParagraph();
@@ -200,7 +200,7 @@ public partial class Word {
         byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int cycle = 0; cycle < 3; cycle++) {
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
-            WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
+            WordHeaderFooter restoredStory = footer ? restored.PageSetup.GetFooter(WordHeaderFooterType.Default) : restored.PageSetup.GetHeader(WordHeaderFooterType.Default);
             Assert.Equal(expected, restoredStory.Paragraphs.Select(paragraph => paragraph.Text));
             Assert.Equal("CELL", Assert.Single(restoredStory.Tables).Rows[0].Cells[0].Paragraphs[0].Text);
             bytes = restored.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
@@ -214,16 +214,16 @@ public partial class Word {
     public void LegacyDoc_TableEmptyCellBookmarkRemainsEditableAfterRepeatedSave(int storyKind) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("BODY");
-        source.AddHeadersAndFooters();
+        _ = source.PageSetup.Header;
         WordTable table = storyKind == 0 ? source.AddTable(1, 2, WordTableStyle.TableNormal)
-            : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 2, WordTableStyle.TableNormal);
+            : (storyKind == 1 ? (WordHeaderFooter)source.PageSetup.GetHeader(WordHeaderFooterType.Default) : source.PageSetup.GetFooter(WordHeaderFooterType.Default)).AddTable(1, 2, WordTableStyle.TableNormal);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
         table.Rows[0].Cells[1].Paragraphs[0].AddBookmark("EmptyCell");
         byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         for (int cycle = 0; cycle < 3; cycle++) {
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             WordTable restoredTable = storyKind == 0 ? Assert.Single(restored.Tables)
-                : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.Header.Default : restored.Footer.Default).Tables);
+                : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.PageSetup.GetHeader(WordHeaderFooterType.Default) : restored.PageSetup.GetFooter(WordHeaderFooterType.Default)).Tables);
             WordParagraph empty = Assert.Single(restoredTable.Rows[0].Cells[1].Paragraphs);
             Assert.Equal("", empty.Text);
             Assert.Equal("EmptyCell", empty.Bookmark?.Name);
@@ -239,9 +239,9 @@ public partial class Word {
     public void LegacyDoc_NestedTableKeepsMultipleParagraphsWithinTheirCells(int storyKind) {
         using WordDocument source = WordDocument.Create();
         source.AddParagraph("BODY");
-        source.AddHeadersAndFooters();
+        _ = source.PageSetup.Header;
         WordTable outer = storyKind == 0 ? source.AddTable(1, 1, WordTableStyle.TableNormal)
-            : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 1, WordTableStyle.TableNormal);
+            : (storyKind == 1 ? (WordHeaderFooter)source.PageSetup.GetHeader(WordHeaderFooterType.Default) : source.PageSetup.GetFooter(WordHeaderFooterType.Default)).AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable nested = outer.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableNormal);
         nested.GridColumnWidth = new List<int> { 1800, 3000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         nested.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(36D);
@@ -262,7 +262,7 @@ public partial class Word {
             Assert.Equal(0x00D9, BitConverter.ToUInt16(stream, 0x3FC));
             using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
             WordTable restoredOuter = storyKind == 0 ? Assert.Single(restored.Tables)
-                : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.Header.Default : restored.Footer.Default).Tables);
+                : Assert.Single((storyKind == 1 ? (WordHeaderFooter)restored.PageSetup.GetHeader(WordHeaderFooterType.Default) : restored.PageSetup.GetFooter(WordHeaderFooterType.Default)).Tables);
             WordTable restoredNested = Assert.Single(restoredOuter.Rows[0].Cells[0].NestedTables);
             Assert.Equal(2, restoredNested.Rows.Count);
             Assert.Equal(720, checked((int?)(restoredNested.Rows[0].Height?.ToTwips())));

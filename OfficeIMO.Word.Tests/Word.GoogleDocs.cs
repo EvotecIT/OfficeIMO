@@ -3828,15 +3828,15 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Section Layout";
 
             var section = document.Sections[0];
-            section.PageSettings.PageSize = WordPageSize.A5;
-            section.PageOrientation = OfficePageOrientation.Landscape;
-            section.Margins.Top = global::OfficeIMO.OfficeLength.Points(36D);
-            section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(45D);
-            section.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
-            section.Margins.Right = global::OfficeIMO.OfficeLength.Points(63D);
-            section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
-            section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(27D);
-            section.DifferentFirstPage = true;
+            section.PageSetup.Size.PageSize = WordPageSize.A5;
+            section.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(36D);
+            section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(45D);
+            section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(63D);
+            section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+            section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(27D);
+            section.PageSetup.DifferentFirstPage = true;
             section.PageNumberType.Start = 3;
 
             document.AddParagraph("Section layout paragraph");
@@ -3952,8 +3952,7 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Header Bookmark";
             document.AddParagraph("Body text");
-            document.AddHeadersAndFooters();
-            document.Sections[0].Header.Default!.AddParagraph("Header bookmark").AddBookmark("HeaderBookmark");
+            document.Sections[0].PageSetup.Header.AddParagraph("Header bookmark").AddBookmark("HeaderBookmark");
             return document;
         }
 
@@ -3961,9 +3960,8 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Header Footer";
             document.AddParagraph("Body text");
-            document.AddHeadersAndFooters();
-            document.Sections[0].Header.Default!.AddParagraph("Header text");
-            document.Sections[0].Footer.Default!.AddParagraph("Footer text");
+            document.Sections[0].PageSetup.Header.AddParagraph("Header text");
+            document.Sections[0].PageSetup.Footer.AddParagraph("Footer text");
             return document;
         }
 
@@ -3971,9 +3969,9 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs First Page Header Footer";
             document.AddParagraph("Body text");
-            document.Sections[0].DifferentFirstPage = true;
-            document.Sections[0].Header.First!.AddParagraph("First header text");
-            document.Sections[0].Footer.First!.AddParagraph("First footer text");
+            document.Sections[0].PageSetup.DifferentFirstPage = true;
+            document.Sections[0].PageSetup.FirstPageHeader.AddParagraph("First header text");
+            document.Sections[0].PageSetup.FirstPageFooter.AddParagraph("First footer text");
             return document;
         }
 
@@ -3981,9 +3979,9 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Even Page Header Footer";
             document.AddParagraph("Body text");
-            document.Sections[0].DifferentOddAndEvenPages = true;
-            document.Sections[0].Header.Even!.AddParagraph("Even header text");
-            document.Sections[0].Footer.Even!.AddParagraph("Even footer text");
+            document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
+            document.Sections[0].PageSetup.EvenPageHeader.AddParagraph("Even header text");
+            document.Sections[0].PageSetup.EvenPageFooter.AddParagraph("Even footer text");
             return document;
         }
 
@@ -4093,9 +4091,8 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Header Table";
             document.AddParagraph("Body text");
-            document.AddHeadersAndFooters();
 
-            var headerTable = document.Sections[0].Header.Default!.AddTable(2, 2, WordTableStyle.TableGrid);
+            var headerTable = document.Sections[0].PageSetup.Header.AddTable(2, 2, WordTableStyle.TableGrid);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
             headerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -4111,7 +4108,7 @@ namespace OfficeIMO.Tests {
         private WordDocument BuildGoogleDocsHeaderTableBookmarkDocument(string filePath) {
             var document = BuildGoogleDocsHeaderTableDocument(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Header Table Bookmark";
-            document.Sections[0].Header.Default!.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("HeaderCellBookmark");
+            document.Sections[0].PageSetup.Header.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("HeaderCellBookmark");
             return document;
         }
 
@@ -4119,9 +4116,8 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Footer Table";
             document.AddParagraph("Body text");
-            document.AddHeadersAndFooters();
 
-            var footerTable = document.Sections[0].Footer.Default!.AddTable(2, 2, WordTableStyle.TableGrid);
+            var footerTable = document.Sections[0].PageSetup.Footer.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
             footerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -4138,9 +4134,9 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs First Footer Table";
             document.AddParagraph("Body text");
-            document.Sections[0].DifferentFirstPage = true;
+            document.Sections[0].PageSetup.DifferentFirstPage = true;
 
-            var footerTable = document.Sections[0].Footer.First!.AddTable(2, 2, WordTableStyle.TableGrid);
+            var footerTable = document.Sections[0].PageSetup.FirstPageFooter.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
             footerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -4157,9 +4153,9 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Even Footer Table";
             document.AddParagraph("Body text");
-            document.Sections[0].DifferentOddAndEvenPages = true;
+            document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
 
-            var footerTable = document.Sections[0].Footer.Even!.AddTable(2, 2, WordTableStyle.TableGrid);
+            var footerTable = document.Sections[0].PageSetup.EvenPageFooter.AddTable(2, 2, WordTableStyle.TableGrid);
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "F1";
             footerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             footerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -4175,7 +4171,7 @@ namespace OfficeIMO.Tests {
         private WordDocument BuildGoogleDocsEvenFooterTableBookmarkDocument(string filePath) {
             var document = BuildGoogleDocsEvenFooterTableDocument(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Even Footer Table Bookmark";
-            document.Sections[0].Footer.Even!.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("FooterCellBookmark");
+            document.Sections[0].PageSetup.EvenPageFooter.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("FooterCellBookmark");
             return document;
         }
 
@@ -4183,9 +4179,9 @@ namespace OfficeIMO.Tests {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Even Header Table";
             document.AddParagraph("Body text");
-            document.Sections[0].DifferentOddAndEvenPages = true;
+            document.Sections[0].PageSetup.DifferentOddAndEvenPages = true;
 
-            var headerTable = document.Sections[0].Header.Even!.AddTable(2, 2, WordTableStyle.TableGrid);
+            var headerTable = document.Sections[0].PageSetup.EvenPageHeader.AddTable(2, 2, WordTableStyle.TableGrid);
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "H1";
             headerTable.Rows[0].Cells[0].ShadingFillColor = OfficeColor.Parse("D9EAF7");
             headerTable.Rows[0].Cells[0].Borders.RightStyle = WordBorderStyle.Single;
@@ -4201,7 +4197,7 @@ namespace OfficeIMO.Tests {
         private WordDocument BuildGoogleDocsEvenHeaderTableBookmarkDocument(string filePath) {
             var document = BuildGoogleDocsEvenHeaderTableDocument(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Even Header Table Bookmark";
-            document.Sections[0].Header.Even!.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("HeaderCellBookmark");
+            document.Sections[0].PageSetup.EvenPageHeader.Tables[0].Rows[0].Cells[0].Paragraphs[0].AddBookmark("HeaderCellBookmark");
             return document;
         }
 

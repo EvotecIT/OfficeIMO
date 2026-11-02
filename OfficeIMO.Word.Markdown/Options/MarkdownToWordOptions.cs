@@ -95,11 +95,11 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             if (DefaultPageSize.HasValue) {
-                document.PageSettings.PageSize = DefaultPageSize.Value;
+                document.PageSetup.Size.PageSize = DefaultPageSize.Value;
             }
 
             if (DefaultOrientation.HasValue) {
-                document.PageOrientation = DefaultOrientation.Value;
+                document.PageSetup.Orientation = DefaultOrientation.Value;
             }
         }
 

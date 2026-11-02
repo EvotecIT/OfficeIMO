@@ -124,8 +124,7 @@ public sealed class WordConversionFieldVisibilityTests {
     [Fact]
     public void VisibleDrawingInMixedHeaderFieldRetainsItsSourcePart() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordParagraph paragraph = document.Header!.Default!.AddParagraph();
+        WordParagraph paragraph = document.PageSetup.Header.AddParagraph();
         var drawing = new WordDrawing(new DW.Inline(
             new A.Graphic(new A.GraphicData(new PIC.Picture()))));
         paragraph._paragraph.Append(new Run(
