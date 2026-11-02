@@ -24,7 +24,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
     internal string SubsetFontName {
         get {
             int[]? glyphOrder = GetCompactSubsetGlyphOrder();
-            return glyphOrder == null ? FontName : PdfSubsetTag.Apply(FontName, glyphOrder, _data);
+            // The program's fingerprint is the SHA-256 of these bytes; rehashing a large
+            // fallback font for every subset name dominated small documents.
+            return glyphOrder == null ? FontName : PdfSubsetTag.ApplyWithFontHash(FontName, glyphOrder, _subsetFontFingerprint.ToHashBytes());
         }
     }
 
