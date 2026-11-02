@@ -38,9 +38,7 @@ internal static class CandidateModelProjection {
             var frames = FramePage(page).ToDictionary(frame => frame.Id);
             foreach (uint id in page.ObjectIds) {
                 PublisherTextFrame frame = frames[id];
-                if (frame.PreviousFrameId.HasValue || frame.NextFrameId.HasValue || frame.WrapObjectIds.Count != 0
-                    || frame.ColumnCount is < 1 or > 3)
-                    throw new NotSupportedException("The layout specimen requires unlinked, unwrapped one-to-three-column frames.");
+                UnlinkedFrameLayout(frame);
                 objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
                     new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
                     CandidateStorySpec.Styled(document.TextStories.Single(story => story.Id == frame.StoryId)),
@@ -58,9 +56,7 @@ internal static class CandidateModelProjection {
             throw new NotSupportedException("The table specimen requires one physical page and one borderless table with ordinary captions.");
         PublisherPage page = document.Pages[0];
         PublisherTable table = page.Tables[0];
-        if (table.RowCount != 2 || table.ColumnCount != 2 || table.Cells.Count != 4 || !table.HasTextMapping
-            || !table.HasPlacement || !table.StoryId.HasValue || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))
-            throw new NotSupportedException("The table specimen requires the qualified complete unmerged 2x2 grid.");
+        CompleteTable(table);
         var frames = page.TextFrames.ToDictionary(frame => frame.Id);
         var objects = new List<CandidateObjectSpec>();
         foreach (uint id in page.ObjectIds) {
@@ -112,24 +108,45 @@ internal static class CandidateModelProjection {
     }
 
     /// <summary>Projects ordinary single-master content, preserving each specimen's named or unnamed native picture profile.</summary>
-    internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document, bool includePictureNames = true) {
+    internal static CandidatePublicationSpec SingleMasterContent(PublisherDocument document, bool includePictureNames = true) =>
+        Content(document, includePictureNames, composeProfiles: false);
+
+    /// <summary>Combines ordinary master artwork with physical-page linked/layout text and one qualified table.</summary>
+    internal static CandidatePublicationSpec ComposedContent(PublisherDocument document) =>
+        Content(document, includePictureNames: true, composeProfiles: true);
+
+    private static CandidatePublicationSpec Content(PublisherDocument document, bool includePictureNames, bool composeProfiles) {
         PublisherPage master = SingleMaster(document);
+        if (composeProfiles && (master.Tables.Count != 0 || document.Pages.Sum(page => page.Tables.Count) > 1))
+            throw new NotSupportedException("The composed specimen supports at most one physical-page table and no master table.");
         var objects = new List<CandidateObjectSpec>();
+        var stories = new Dictionary<uint, CandidateStorySpec>();
         AddPage(master, 0, true);
         for (int index = 0; index < document.Pages.Count; index++) AddPage(document.Pages[index], index, false);
         return SingleMasterSpecification(document, master, objects);
 
         void AddPage(PublisherPage page, int index, bool onMaster) {
-            if (page.Tables.Count != 0) throw new NotSupportedException("Tables require their separate writer profile.");
+            if (!composeProfiles && page.Tables.Count != 0) throw new NotSupportedException("Tables require their separate writer profile.");
             var frames = page.TextFrames.ToDictionary(frame => frame.Id);
             var pictures = page.Pictures.ToDictionary(picture => picture.Id);
             var shapes = page.Shapes.ToDictionary(shape => shape.Id);
+            var tables = page.Tables.ToDictionary(table => table.Id);
             foreach (uint id in page.ObjectIds) {
                 if (frames.TryGetValue(id, out PublisherTextFrame? frame)) {
+                    bool hasLayout = composeProfiles && !onMaster && !frame.PreviousFrameId.HasValue && !frame.NextFrameId.HasValue;
+                    CandidateStorySpec story;
+                    if (!composeProfiles || onMaster) story = OrdinaryStory(document, frame);
+                    else {
+                        if (hasLayout) UnlinkedFrameLayout(frame); else PlainFrameLayout(frame);
+                        if (!stories.TryGetValue(frame.StoryId, out story!)) {
+                            story = CandidateStorySpec.Styled(document.TextStories.Single(item => item.Id == frame.StoryId));
+                            stories.Add(frame.StoryId, story);
+                        }
+                    }
                     objects.Add(new CandidateObjectSpec(CandidateObjectKind.TextBox,
                         new CandidatePlacement(frame.X, frame.Y, frame.Width, frame.Height),
-                        OrdinaryStory(document, frame), PageIndex: index,
-                        ColumnSpacing: frame.ColumnSpacing, OnMaster: onMaster));
+                        story, PageIndex: index, ColumnSpacing: frame.ColumnSpacing, OnMaster: onMaster,
+                        FrameOrder: frame.Order, FrameLayout: hasLayout ? frame : null));
                 } else if (pictures.TryGetValue(id, out PublisherPicture? picture)) {
                     if (!picture.CanEdit || !picture.ImageId.HasValue)
                         throw new NotSupportedException("The picture has no qualified image and placement model.");
@@ -146,6 +163,12 @@ internal static class CandidateModelProjection {
                     objects.Add(new CandidateObjectSpec(CandidateObjectKind.Rectangle,
                         new CandidatePlacement(shape.X, shape.Y, shape.Width, shape.Height),
                         PageIndex: index, Paint: paint, OnMaster: onMaster));
+                } else if (tables.TryGetValue(id, out PublisherTable? table)) {
+                    CompleteTable(table);
+                    objects.Add(new CandidateObjectSpec(CandidateObjectKind.Table,
+                        new CandidatePlacement(table.X, table.Y, table.Width, table.Height),
+                        CandidateStorySpec.Table(table, document.TextStories.Single(story => story.Id == table.StoryId)),
+                        PageIndex: index, Table: table));
                 } else throw new NotSupportedException("An owned object has no supported model projection.");
             }
         }
@@ -162,6 +185,18 @@ internal static class CandidateModelProjection {
         if (frame.ColumnCount != 1 || !frame.Padding.Equals(OfficeTextPadding.Empty)
             || frame.VerticalAlignment != OfficeTextVerticalAlignment.Top || frame.WrapObjectIds.Count != 0)
             throw new NotSupportedException("Inset, multicolumn, aligned and wrapped frames require their separate writer profiles.");
+    }
+
+    private static void UnlinkedFrameLayout(PublisherTextFrame frame) {
+        if (frame.PreviousFrameId.HasValue || frame.NextFrameId.HasValue || frame.WrapObjectIds.Count != 0
+            || frame.ColumnCount is < 1 or > 3)
+            throw new NotSupportedException("The layout specimen requires unlinked, unwrapped one-to-three-column frames.");
+    }
+
+    private static void CompleteTable(PublisherTable table) {
+        if (table.RowCount != 2 || table.ColumnCount != 2 || table.Cells.Count != 4 || !table.HasTextMapping
+            || !table.HasPlacement || !table.StoryId.HasValue || table.Cells.Any(cell => cell.RowSpan != 1 || cell.ColumnSpan != 1))
+            throw new NotSupportedException("The table specimen requires the qualified complete unmerged 2x2 grid.");
     }
 
     private static IReadOnlyList<PublisherTextFrame> FramePage(PublisherPage page) {

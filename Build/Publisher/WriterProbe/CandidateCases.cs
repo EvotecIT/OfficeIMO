@@ -30,6 +30,10 @@ internal static class CandidateCases {
             if (secondValue != null) throw new ArgumentException("The master content specimen accepts one image path.");
             return CandidateMasterContent.Create(ReadImage(value));
         }
+        if (kind == "newsletter") {
+            if (secondValue != null) throw new ArgumentException("The newsletter specimen accepts one image path.");
+            return CandidateNewsletter.Create(ReadImage(value));
+        }
         if (kind == "mixed-object-pages") {
             if (secondValue != null) throw new ArgumentException("The mixed object specimen accepts one image path.");
             return CandidateMixedPages.Create(ReadImage(value));

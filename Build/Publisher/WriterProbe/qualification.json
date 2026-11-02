@@ -30617,5 +30617,150 @@
       "Generated variants have encoded-artifact reload evidence only; native opening, editing, saving and appearance require separate qualification.",
       "Public native creation remains unavailable."
     ]
+  },
+  "composedNewsletterProfile": {
+    "scope": "Opt-in newsletter composition through one final canonical PublisherDocument, combining ordinary master content, physical-page linked and layout text, a borderless 2x2 table, rectangle artwork and a shared embedded image.",
+    "sourceFiles": [
+      "CandidateNewsletter.cs",
+      "CandidateModelProjection.cs",
+      "CandidateCases.cs"
+    ],
+    "image": {
+      "path": "OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/MasterContent/native-mastercontent.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    "candidates": [
+      {
+        "kind": "newsletter",
+        "sha256": "1f2e381ec31f6078bf7fbbb6a03dd1d28c68c9b3a52b4572c75f22fc4cb7b44d",
+        "bytes": 14848,
+        "physicalPages": 3,
+        "stories": 6
+      },
+      {
+        "kind": "newsletter-edited",
+        "sha256": "07f49984a7e15478a41fda18bc6d8ba69afa45bab555a9b64e29569c69d0998d",
+        "bytes": 16384,
+        "physicalPages": 4,
+        "stories": 6
+      }
+    ],
+    "proof": [
+      "ComposesMasterLinkedColumnsTableAndSharedImagesWithExactSourceCopy",
+      "ProjectsLateComposedStoryTableLayoutAssetAndTopologyEdits",
+      "RefusesMasterOrMultipleTablesAndLinkedColumnLayoutsInComposition"
+    ],
+    "validation": {
+      "artifactChecksPassed": 35,
+      "artifactChecksFailed": 0,
+      "existingProfileBaselinesUnchanged": true,
+      "probeAndHarnessBuildWarnings": 0,
+      "nativeNoOpSourceSavesByteIdentical": true
+    },
+    "managedRendering": [
+      {
+        "variant": "newsletter",
+        "pages": 3,
+        "pdf": {
+          "name": "managed.pdf",
+          "bytes": 3496,
+          "sha256": "a16f116c78d50819458cc6d7c7977b7b15bff03496f523f10e09f941099a1ecc"
+        },
+        "svgPages": [
+          {
+            "name": "page-001.svg",
+            "bytes": 390206,
+            "sha256": "86587e66649b98426b55988bdbf9c12992163d50be0fb576ef8efa45220d7765"
+          },
+          {
+            "name": "page-002.svg",
+            "bytes": 382218,
+            "sha256": "a48925129b44b8798ee0fc46df937b9a89f61637dc1b3ec878cd0f8e3242213a"
+          },
+          {
+            "name": "page-003.svg",
+            "bytes": 170145,
+            "sha256": "9301ba512b474909b2b50edf27f70bff95d6bca90e2160dd6bd4c7c57b2ffff8"
+          }
+        ],
+        "input": "Generated native PUB reloaded by PublisherDocument.Load",
+        "visualInspection": "Each PDF page rasterized at 96 DPI with Poppler and inspected; readable content, recurring master, table/columns/assets and expected continuation pages observed."
+      },
+      {
+        "variant": "newsletter-edited",
+        "pages": 4,
+        "pdf": {
+          "name": "managed.pdf",
+          "bytes": 5191,
+          "sha256": "bf0bf7e36fabdeef31b42a85f1972909ee49b5c57f5fed256c0aaa9e1c144e53"
+        },
+        "svgPages": [
+          {
+            "name": "page-001.svg",
+            "bytes": 391550,
+            "sha256": "3a5b6a63c921728840b9bc758480baba570ab2a063c9b154675795ddf4628e9f"
+          },
+          {
+            "name": "page-002.svg",
+            "bytes": 382929,
+            "sha256": "727c579b42c1e9904b9233101ccc21eb69569970a1a43b102bac73833168f347"
+          },
+          {
+            "name": "page-003.svg",
+            "bytes": 179407,
+            "sha256": "c331c8f4d2e552db98c3378f03849f986196c1c5ec65c8ef6dbc1eafb66b1097"
+          },
+          {
+            "name": "page-004.svg",
+            "bytes": 11520,
+            "sha256": "145539ada83e31d9f9252f301a408c9ed7172def8b3101152435fd895e4c5a2b"
+          }
+        ],
+        "input": "Generated native PUB reloaded by PublisherDocument.Load",
+        "visualInspection": "Each PDF page rasterized at 96 DPI with Poppler and inspected; readable content, recurring master, table/columns/assets and expected continuation pages observed."
+      }
+    ],
+    "nativeOpening": {
+      "binaryVersion": "16.0.20527.20088",
+      "binarySha256": "bde9fab571349cdfdf54a9a77677d385458c213ccacf27a5c9f8b4924a2d90ed",
+      "method": "Normal Explorer file association, before any native resave; synthetic files only.",
+      "original": {
+        "opened": true,
+        "physicalPages": 3,
+        "pagesInspected": [
+          1,
+          2,
+          3
+        ],
+        "observations": [
+          "Shared master heading, image and rectangle recur on all pages.",
+          "Linked body continuation, independent sidebar, two-column text, complete calendar cells and page image are visible."
+        ],
+        "repairOrRecoveryConsentAccepted": false,
+        "repairOrRecoveryPromptObserved": false
+      },
+      "edited": {
+        "opened": true,
+        "physicalPages": 4,
+        "inspection": "Updated lead and four-page navigation observed. Full page inspection incomplete after licensing notices and desktop input.",
+        "repairOrRecoveryConsentAccepted": false,
+        "repairOrRecoveryPromptObserved": false
+      },
+      "nativeEditingQualified": false,
+      "nativeResaveQualified": false,
+      "quantitativeAppearanceParityQualified": false,
+      "limitations": [
+        "Installed Publisher reports an unlicensed/expired product and permits reading/printing; native editing and saving remain unqualified.",
+        "Licensing/retirement notices are separate from publication repair and recovery."
+      ]
+    },
+    "limits": [
+      "Source-free Letter pages and one explicitly applied centered master with ordinary master text/artwork.",
+      "At most one complete unmerged borderless physical-page 2x2 table; master and multiple tables refuse.",
+      "Linked frames require ordinary unwrapped single-column Top-aligned layout. Unlinked physical frames admit the existing one-to-three-column layout profile.",
+      "Existing shared formatting and ordinary object limits remain unchanged; unsupported combinations refuse.",
+      "Native reading/opening evidence does not qualify native editing/resaving, general appearance parity or public native creation."
+    ],
+    "canClosePUB00": false
   }
 }

@@ -63,7 +63,7 @@ internal static class Program {
             Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\ncreate <blank-pages|text-pages> <candidate.pub> <page-count>\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
             Console.Error.WriteLine("edit-paragraphs <input.pub> <candidate.pub> <story-id> <paragraph-run-arrays.json>");
             Console.Error.WriteLine("wrap-order <input.pub> <candidate.pub> <object-order-and-frame-wraps.json>");
-            Console.Error.WriteLine("create <object-pages|mixed-object-pages|master-content> <candidate.pub> <image-path>");
+            Console.Error.WriteLine("create <object-pages|mixed-object-pages|master-content|newsletter> <candidate.pub> <image-path>");
             Console.Error.WriteLine("create <linked-story|linked-story-overflow> <candidate.pub>");
             Console.Error.WriteLine("create <table|table-edited> <candidate.pub>");
             Console.Error.WriteLine("create <frame-layout|frame-layout-edited> <candidate.pub>");

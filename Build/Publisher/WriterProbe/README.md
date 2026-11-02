@@ -37,6 +37,8 @@ dotnet $probe create shared-image-pages ./candidate-shared-images.pub ./first.pn
 dotnet $probe create mixed-object-pages ./candidate-mixed-objects.pub ./image.png
 dotnet $probe create master-content ./candidate-master-content.pub ./image.png
 
+dotnet $probe create newsletter ./candidate-newsletter.pub ./image.png
+
 dotnet $probe create multiple-masters ./candidate-multiple-masters.pub
 
 dotnet $probe create paired-masters ./candidate-paired-masters.pub
@@ -294,8 +296,9 @@ and repair-free opening remain unassessed.
 
 ## Creation cases
 
-All cases use Letter-size physical pages, one master and the same ordered
-`CandidatePublicationSpec`. Object IDs, story keys, layout identifiers and SPIDs
+All cases use Letter-size physical pages and the same ordered
+`CandidatePublicationSpec`. Most use one master; the multiple/paired-master
+specimens carry their explicitly authored definitions. Object IDs, story keys, layout identifiers and SPIDs
 are assigned once and shared by the Contents, OfficeArt and Quill serializers.
 Text boxes and rectangles each own an independent story; pictures have no story.
 Page, picture and image-asset counts depend on the selected case.
@@ -311,6 +314,7 @@ Page, picture and image-asset counts depend on the selected case.
 | `shared-image-pages` | Uses public existing-image authoring for first/last-page placements of one asset, plus a distinct last-page asset. Native FBSE counts and delayed payloads follow model identity. Two PNG paths required. |
 | `mixed-object-pages` | Projects the final public model with overlapping rectangle/picture/text/rectangle on the first page and text/picture/rectangle/picture on the last, with an empty middle page. Three pictures share one asset; two text frames own independent stories. One PNG path required. |
 | `master-content` | Projects the final public authoring model: one centered master owns a rectangle, picture and single-paragraph text frame and is applied to three Letter pages. Page-owned foreground overlaps the master; one page picture reuses the master asset. Current object order, geometry, paint, stories and referenced asset identity supply the codec inputs. One PNG path required. |
+| `newsletter` | Projects one final public model combining a recurring master heading, logo and rule with linked body text, an independent sidebar, a two-column story, a borderless 2×2 calendar and a page picture sharing the master asset. Three physical pages and six complete stories; one PNG path required. |
 | `linked-story`, `linked-story-overflow` | Projects the final public model with an empty applied master. One story flows through three frames on pages 1, 3 and 2, alongside an independent label. Fixed Arial text and 18-point line spacing; the longer specimen retains terminal overflow. |
 | `frame-layout`, `frame-layout-edited` | Projects six final public-model text frames on two pages with an empty applied master: one/two/three columns, asymmetric and fractional insets, full intercolumn gaps and Top/Center/Bottom alignment. The edited case applies two columns, a 14-point full gap, 9/3/15/6-point insets and Bottom alignment. |
 | `table`, `table-edited` | Projects the final public model of a borderless 2×2 table with unequal tracks, bold headers, an empty final cell and independent label, with an empty applied master. The edited specimen adds a first-cell paragraph and refills the last cell. |
@@ -347,7 +351,7 @@ version `0x00010000`, a reserved zero WORD, zero context flags at unaligned offs
 6 and a zero following-byte count at offset 10.
 
 `CandidateModelProjection` derives the text-page, master-content, mixed-page, object/image-page,
-linked-story, frame-layout, table and multiple/paired-master codec inputs from the final `PublisherDocument`;
+linked-story, frame-layout, table, newsletter and multiple/paired-master codec inputs from the final `PublisherDocument`;
 none maintains a second editable object list. Current picture bounds, source
 crops, referenced image bytes and model asset identities supply the codec. Named
 profiles derive their native filename and OfficeArt basename from the current
@@ -379,6 +383,18 @@ story automatic-hyphenation settings use the same native flag encoder as source
 saving, preserving false separately from the omitted default. These edited variants
 have encoded-artifact reload evidence; native editing, saving and appearance
 remain separate qualification requirements.
+
+`ComposedContent` combines the ordinary master/object profile with physical-page
+linked and unlinked layout frames and at most one qualified table. It caches
+linked stories by model identity and uses the existing graph, Quill and OfficeArt
+encoders for all objects. Master tables, multiple tables, linked columns/insets,
+wrap references and broader table grids remain outside this composition profile.
+The newsletter and a later edited four-page variant have normal file-association
+opening evidence in Microsoft Publisher before any native resave, without recovery
+consent. All three initial pages were inspected; the edited variant has opening
+evidence and partial page inspection. Native editing/resaving and quantitative
+appearance parity remain unqualified. OfficeIMO PDF renderings of both variants
+were inspected separately and do not replace native interoperability evidence.
 
 The page graph has `physical page count + 5` ordered references: one master,
 the physical pages and four utility pages. `DpgMaster=1` and `DpgSpecial=5`
