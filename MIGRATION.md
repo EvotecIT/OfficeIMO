@@ -1520,7 +1520,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Word
 
 <details>
-<summary>365 changes</summary>
+<summary>366 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -1836,6 +1836,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Word.WordFieldFormat.Mergeformat` | Renamed | `OfficeIMO.Word.WordFieldFormat.MergeFormat` | Enum members use PascalCase; PowerShell scripts are unaffected because PowerShell compares enum names case-insensitively. |
 | Naming | `OfficeIMO.Word.WordFieldFormat.Roman` | Renamed | `OfficeIMO.Word.WordFieldFormat.UpperRoman` | PowerShell compares enum names case-insensitively |
 | Naming | `OfficeIMO.Word.WordFieldFormat.roman` | Renamed | `OfficeIMO.Word.WordFieldFormat.LowerRoman` | PowerShell compares enum names case-insensitively |
+| Naming | `WordDocument.SignPackageSignature(path, provider, certificate[, options])` | Renamed | `WordDocument.SignPackage(path, provider, certificate, options)` | Pass OfficePackageSigningOptions explicitly for shared signing; WordPackageSigningOptions selects the richer Word-specific result. The same requirement applies to TrySignPackage. Static ValidateSignatures retains optional validation settings. |
 | Naming | `WordDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `WordDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
 | Options | `OfficeIMO.Word.Legacy.LegacyWordImportOptions` | Kept | `OfficeIMO.Word.Legacy.LegacyWordImportOptions` | Retain this documented advanced model or its incoming public options/result contract under the approved visibility rule. |
 | Options | `OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions` | Merged | `OfficeIMO.Word.WordLoadOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
@@ -3457,6 +3458,18 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 </details>
 
+#### OfficeIMO.Email
+
+<details>
+<summary>2 changes</summary>
+
+| Topic | 3.5 | Change | 3.6 | Details |
+| --- | --- | --- | --- | --- |
+| Naming | `EmailDocumentReader.Read / ReadAsync` | Renamed | `EmailDocumentReader.ReadDocument / ReadDocumentAsync` | EmailDocumentReader.ReadDocument / ReadDocumentAsync |
+| Naming | `EmailDocumentReader.ReadStreaming / ReadStreamingAsync` | Renamed | `ReadDocument / ReadDocumentAsync(input, EmailReadContentStorage.TemporaryFiles, ...)` | Dispose EmailReadResult after using temporary-file payloads. Memory remains the default for the ordinary ReadDocument overloads. |
+
+</details>
+
 #### OfficeIMO.Epub
 
 <details>
@@ -3464,7 +3477,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Naming | `EpubDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `EpubDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
+| Naming | `EpubDocument.ValidatePackageSignatures(path, provider, options)` | Renamed | `EpubDocument.ValidateSignatures(path, provider, options)` | SignPackage and TrySignPackage retain their existing provider and format-specific evidence contracts. |
 
 </details>
 
@@ -3512,7 +3525,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Naming | `OdfDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `OdfDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
+| Naming | `OdfDocument.ValidatePackageSignatures(path, provider, options)` | Renamed | `OdfDocument.ValidateSignatures(path, provider, options)` | SignPackage and TrySignPackage retain their existing provider and format-specific evidence contracts. |
 
 </details>
 
@@ -3575,10 +3588,14 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Reader.Core
 
 <details>
-<summary>1 change</summary>
+<summary>5 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Naming | `OfficeDocumentReader.Read / EnumerateChunks / EnumerateChunksAsync` | Renamed | `OfficeDocumentReader.Enumerate / EnumerateAsync` | Enumerate is lazy. Dispose the enumerator on early exit; document processors and handlers without incremental support use the documented materialized fallback. |
+| Naming | `OfficeDocumentReader.ReadAsync(...)` | Renamed | `(await reader.ReadDocumentAsync(...)).Chunks` | (await reader.ReadDocumentAsync(...)).Chunks |
+| Naming | `OfficeDocumentReader.ReadFolder / ReadFolderDocuments` | Renamed | `EnumerateFolder / EnumerateFolderDocuments` | EnumerateFolder / EnumerateFolderDocuments |
+| Naming | `OfficeDocumentReader.ReadTables / ReadTableExports / ReadVisuals / ReadVisualExports / ReadAssets / ReadStructured` | Renamed | `reader.ReadDocument(...).ExtractTables / ExportTables / ExtractVisuals / ExportVisuals / ExtractAssets / ExtractStructured` | Read the document once, then extract or export from its result. Existing chunks, tables and visuals have matching extraction/export extensions. Await ReadDocumentAsync before extraction. |
 | reading | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null)` | Changed | `OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null, CancellationToken cancellationToken = default)` | Search accepts cooperative cancellation for both literal and regular-expression matching. Existing source calls compile unchanged; binary consumers must recompile and method-group bindings must include the token or use a lambda. C# literal matching remains the default. |
 
 </details>
@@ -3597,10 +3614,17 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.Visio
 
 <details>
-<summary>1 change</summary>
+<summary>8 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
+| Authoring | `VisioFluentDocument.Page / ExistingPage / FirstPage / PageOrAdd / BackgroundPage` | Renamed | `AddPage / GetPage / GetPage(0) / GetOrAddPage / AddBackgroundPage` | Use the same physical arguments and defaults as VisioDocument, with an optional configure callback. |
+| Authoring | `VisioFluentPage.Rect / Square / Circle / Ellipse / Diamond / Process / Decision / Data / TextBox / Margins / Master / Title; VisioFluentShape.Style` | Renamed | `AddRectangle / AddSquare / AddCircle / AddEllipse / AddDiamond / AddProcess / AddDecision / AddData / AddTextBox / SetMargins / AddShape / AddTitle; ApplyStyle` | Use Add-prefixed primitive names and OfficeLength arguments. Native page and shape models own preparation and return the created shape; fluent wrappers return their scope. Fluent operations now use the model ID validation and exception contract, including InvalidOperationException for duplicate page-object IDs. |
+| Authoring | `VisioFluentPage.Stencil / Connect / Shape / Container / Layer; VisioFluentConnector.Style` | Renamed | `AddStencilShape / AddConnector / GetShape / AddContainer / AddLayer; ApplyStyle` | Use the model argument order for stencils and connectors; configure callbacks remain optional fluent composition. |
+| Units | `VisioDocument.AddPage(name, double width, double height, unit) / VisioPage.AddRectangle(double...) / SetMargins(double..., unit)` | Renamed | `AddPage(name, OfficeLength? width, OfficeLength? height, scaleUnit) / AddRectangle(OfficeLength...) / SetMargins(OfficeLength...)` | Wrap physical values in OfficeLength. Shape creation, constructors, page Size and margins use the same length contract; native formulas and source rendering remain numeric inches internally. |
+| Units | `VisioPage.Width / Height / WidthCentimeters / HeightCentimeters / PageWidth / PageHeight` | Renamed | `VisioPage.Width / Height : OfficeLength` | Use OfficeLength.Inches, Centimeters, Millimeters or Points when setting dimensions, and ToInches/ToCentimeters when a numeric value is needed. OfficeLength rounds physical values to whole EMUs; native imported geometry and formulas retain their original numeric precision internally. |
+| Units | `VisioShape.PinX / PinY / Width / Height / LocPinX / LocPinY / GetBounds()` | Renamed | `VisioShape physical geometry : OfficeLength` | VisioShape physical geometry : OfficeLength |
+| Units | `VisioShapeBounds(double...) / numeric bounds properties; ResizeShape(..., width, height, unit); VisioShapeSelection.Size(double, double)` | Changed | `VisioShapeBounds(OfficeLength...) / OfficeLength bounds; ResizeShape(..., OfficeLength, OfficeLength); Size(OfficeLength, OfficeLength)` | Wrap each physical value in OfficeLength and convert explicitly when numeric native coordinates are needed. |
 | Naming | `VisioDocument.ValidatePackageSignatures / SignPackageSignature / TrySignPackageSignature` | Renamed | `VisioDocument.ValidateSignatures / SignPackage / TrySignPackage` | Use InspectSignatures for inspection and ValidateSignatures / SignPackage / TrySignPackage for provider-backed package operations. |
 
 </details>
