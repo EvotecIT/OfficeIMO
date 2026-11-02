@@ -3600,6 +3600,14 @@ Automatic card composition fits up to eight cards per slide and honors
 `MaxColumns`. Set `PowerPointDeckContinuationOptions.CardsPerSlide = 6` to keep
 the previous continuation limit.
 
+## PowerPoint duplicated slides share images
+
+`DuplicateSlide` now points the copy at the source slide's image parts instead of
+copying them, as PowerPoint does. Replacing an image through OfficeIMO still writes
+a new part for that slide only. If you write image bytes directly through
+`OpenXmlDocument`, that change now shows on every slide sharing the part; replace
+the image with `PowerPointPicture.UpdateImage` instead.
+
 ## HTML paragraph spacing
 
 The HTML engine gives `p` elements browser-default margins of `1em` above and
