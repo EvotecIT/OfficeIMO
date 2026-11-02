@@ -44,7 +44,7 @@ public sealed class XpsAccessibilityTests {
         var doc = Described(format, canvas); var page = doc.Pages[0];
         page.ReplaceStoryFragmentsMarkup(Fragments(doc, null, null, new XElement(doc.StructureNamespace + "FigureStructure",
             new XElement(doc.StructureNamespace + "NamedElement", new XAttribute("NameReference", "Graphic")))));
-        doc = XpsDocument.Load(doc.Save()); page = doc.Pages[0];
+        doc = XpsDocument.Load(doc.ToBytes()); page = doc.Pages[0];
         var native = Assert.Single(Assert.Single(doc.ReadLogicalStructure().Stories).Blocks).Children[0].Content!;
         Assert.Equal(Short, native.AccessibilityName); Assert.Equal(Long, native.AccessibilityHelpText);
         var svg = XElement.Parse(page.ToSvg().Svg); XNamespace ns = svg.Name.Namespace;

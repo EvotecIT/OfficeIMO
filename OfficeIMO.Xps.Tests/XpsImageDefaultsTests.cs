@@ -18,7 +18,7 @@ public sealed class XpsImageDefaultsTests {
             string source = document.AddResource("Images/source" + Path.GetExtension(group.Key), File.ReadAllBytes(Path.Combine(fixtures, group.Key)),
                 group.Key.EndsWith(".tif", StringComparison.Ordinal) ? "image/tiff" : "image/jpeg");
             document.AddPage(16, 8).AddImage(source, 0, 0, 16, 8);
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             if (group.Key.Contains("oriented"))
                 Assert.Equal("0,0,16,8", (string?)page.GetMarkup().Descendants().Single(e => e.Name.LocalName == "ImageBrush").Attribute("Viewbox"));
             Assert.Empty(page.ToSvg().Diagnostics);

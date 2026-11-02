@@ -20,7 +20,7 @@ public sealed class XpsRadialBoundaryTests {
     [InlineData(XpsFormat.OpenXps, 160, "-1,0.3,0.4,1,150,-20", false, true)]
     public void NativePadUsesSmallestContainingEllipseAndOutsideEndpoint(XpsFormat format, int focus, string matrix, bool alpha, bool stroke) {
         var document = Create(format, focus, matrix, alpha, stroke);
-        var page = XpsDocument.Load(document.Save()).Pages[0];
+        var page = XpsDocument.Load(document.ToBytes()).Pages[0];
         var values = matrix.Split(',').Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray();
         var inverse = new OfficeTransform(values[0], values[1], values[2], values[3], values[4], values[5]).Invert();
         var raster = Raster(page);
@@ -104,7 +104,7 @@ public sealed class XpsRadialBoundaryTests {
         markup.Descendants().Single(e => e.Name.LocalName == "Path").SetAttributeValue("Data", right == 128 ? "M0,10H128V150H0Z" : "M10,10H140V150H10Z");
         markup.Descendants().Single(e => e.Name.LocalName == "RadialGradientBrush").SetAttributeValue("SpreadMethod", spread);
         page.ReplaceMarkup(markup);
-        var raster = Raster(XpsDocument.Load(document.Save()).Pages[0]);
+        var raster = Raster(XpsDocument.Load(document.ToBytes()).Pages[0]);
         foreach (var xy in new[] { (20, 20), (60, 40), (100, 80), (right - 10, 130) }) {
             double px = (xy.Item1 + .5 - 160) / 60D, py = (xy.Item2 + .5 - 80) / 25D;
             double ratio = -(px * px + py * py) / (2 * px);

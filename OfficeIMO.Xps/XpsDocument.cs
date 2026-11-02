@@ -4,6 +4,10 @@ namespace OfficeIMO.Xps;
 
 /// <summary>A portable XPS/OpenXPS document sequence. Retains unmodified native package parts.</summary>
 public sealed partial class XpsDocument {
+    private string? _filePath;
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+
     private readonly Dictionary<string, byte[]> _parts = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _types = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<XpsPage> _pages = new();
@@ -39,7 +43,9 @@ public sealed partial class XpsDocument {
     /// <summary>Loads from a file without retaining handles.</summary>
     public static XpsDocument Load(string path, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {
         using var stream = File.OpenRead(path);
-        return Load(stream, options, cancellationToken);
+        var document = Load(stream, options, cancellationToken);
+        document._filePath = Path.GetFullPath(path);
+        return document;
     }
     /// <summary>Loads from bytes with bounded package and XML expansion.</summary>
     public static XpsDocument Load(byte[] bytes, XpsReadOptions? options = null, CancellationToken cancellationToken = default) {

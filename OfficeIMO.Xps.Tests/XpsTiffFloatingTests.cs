@@ -40,7 +40,7 @@ public sealed class XpsTiffFloatingTests {
                     expected[offset] = converted.R; expected[offset + 1] = converted.G; expected[offset + 2] = converted.B;
                 }
             }
-            var page = XpsDocument.Load(document.Save()).Pages[0];
+            var page = XpsDocument.Load(document.ToBytes()).Pages[0];
             var svg = page.ToSvg();
             Assert.Empty(svg.Diagnostics);
             var direct = OfficeDrawingRasterRenderer.Render(page.ToDrawing(), background: OfficeColor.White);

@@ -24,7 +24,7 @@ public sealed class XpsDocumentStructureTests {
         Assert.Equal(new[] { "4", "1" }, StoryPages(doc));
         document.RemovePageAt(3);
         Assert.Equal(new[] { "1" }, StoryPages(doc));
-        var reopened = XpsDocument.Load(doc.Save());
+        var reopened = XpsDocument.Load(doc.ToBytes());
         Assert.Equal(new[] { "1" }, StoryPages(reopened));
         Assert.Equal("keep", (string?)Structure(reopened).Attribute(XName.Get("custom", "urn:extension")));
         Assert.Equal("3", (string?)Structure(reopened).Element(XName.Get("StoryFragmentReference", "urn:extension"))!.Attribute("Page"));
@@ -50,9 +50,9 @@ public sealed class XpsDocumentStructureTests {
     [InlineData("Root")]
     [InlineData("External")]
     public void InvalidKnownStructureRejectsEditsAtomically(string invalid) {
-        var doc = Fixture(XpsFormat.Xps, invalid); byte[] before = doc.Save();
+        var doc = Fixture(XpsFormat.Xps, invalid); byte[] before = doc.ToBytes();
         Assert.Throws<InvalidDataException>(() => doc.Documents[0].MovePage(0, 1));
-        Assert.Equal(before, doc.Save());
+        Assert.Equal(before, doc.ToBytes());
         Assert.Equal(3, doc.Pages.Count);
     }
 
@@ -79,7 +79,7 @@ public sealed class XpsDocumentStructureTests {
                 new XElement(ns + "StoryFragmentReference", new XAttribute("Page", "3"))),
             new XElement(ext + "StoryFragmentReference", new XAttribute("Page", "3")));
         doc.AddResource(StructurePart, Encoding.UTF8.GetBytes(structure.ToString()), XpsPackage.Type("documentstructure"));
-        using var output = new MemoryStream(); var bytes = doc.Save(); output.Write(bytes, 0, bytes.Length);
+        using var output = new MemoryStream(); var bytes = doc.ToBytes(); output.Write(bytes, 0, bytes.Length);
         using (var zip = new ZipArchive(output, ZipArchiveMode.Update, true)) {
             var relationship = new XElement(XpsPackage.Relationships + "Relationships", new XElement(XpsPackage.Relationships + "Relationship",
                 new XAttribute("Id", "structure"), new XAttribute("Type", XpsPackage.Namespace(format) + "/documentstructure"),

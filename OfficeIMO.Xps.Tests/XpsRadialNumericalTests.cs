@@ -42,7 +42,7 @@ public sealed class XpsRadialNumericalTests {
     [InlineData(XpsFormat.OpenXps, "Reflect", false)]
     public void BoundedLargeRadiusFieldsRemainPaintedInRasterAndPdf(XpsFormat format, string spread, bool small) {
         var document = Create(format, spread, small);
-        document = XpsDocument.Load(document.Save());
+        document = XpsDocument.Load(document.ToBytes());
         var native = OfficeDrawingRasterRenderer.Render(document.Pages[0].ToDrawing(), background: OfficeColor.White);
         var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(document.ToPdf())).Pages);
         var readback = OfficeDrawingRasterRenderer.Render(pdfPage.ToDrawing(), scale: 4D / 3D, background: OfficeColor.White);
