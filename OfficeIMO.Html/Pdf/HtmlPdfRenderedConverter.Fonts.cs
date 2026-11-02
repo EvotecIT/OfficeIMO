@@ -143,12 +143,39 @@ internal static partial class HtmlPdfRenderedConverter {
         }
         if (options.TryGetNamedFontProgram(face, out PdfCore.PdfTrueTypeFontProgram? trueType)
             && trueType != null
-            && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, trueType).Count == 0) {
+            && CoverageMemo.Covers(trueType, text, static (program, value) =>
+                PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, (PdfCore.PdfTrueTypeFontProgram)program).Count == 0)) {
             return true;
         }
         return options.TryGetNamedOpenTypeCffFontProgram(face, out PdfCore.PdfOpenTypeCffFontProgram? cff)
             && cff != null
-            && PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cff).Count == 0;
+            && CoverageMemo.Covers(cff, text, static (program, value) =>
+                PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, (PdfCore.PdfOpenTypeCffFontProgram)program).Count == 0);
+    }
+
+    /// <summary>
+    /// Family resolution, style planning and painting ask whether the same program covers the
+    /// same run several times. The answer depends only on the immutable program and the text,
+    /// and diagnostic analysis records no glyph usage, so it is remembered per program.
+    /// </summary>
+    private sealed class CoverageMemo {
+        private const int MaximumEntries = 8192;
+        private const int MaximumTextLength = 1024;
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, CoverageMemo> Memos = new();
+        private readonly Dictionary<string, bool> _answers = new(StringComparer.Ordinal);
+
+        internal static bool Covers(object program, string text, Func<object, string, bool> analyze) {
+            if (text.Length > MaximumTextLength) return analyze(program, text);
+            CoverageMemo memo = Memos.GetValue(program, static _ => new CoverageMemo());
+            lock (memo._answers) {
+                if (memo._answers.TryGetValue(text, out bool known)) return known;
+            }
+            bool covered = analyze(program, text);
+            lock (memo._answers) {
+                if (memo._answers.Count < MaximumEntries) memo._answers[text] = covered;
+            }
+            return covered;
+        }
     }
 
     private static PdfCore.PdfStandardFont MapFont(
