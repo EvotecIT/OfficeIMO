@@ -35,7 +35,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any()
             && saved.Slides[0].Tables.Single().GetCell(1, 2).Text == "1200.5"
-            && saved.Slides[1].Tables.Single().GetCell(0, 0).Text == "A😀B\nZażółć — café",
+            && saved.Slides[1].Tables.Single().GetCell(0, 0).Text == "A😀B" + Environment.NewLine + "Zażółć — café",
             "NativeAOT table PPTX did not retain content through save/reopen.");
         foreach (var options in new[] { new IWorkKeynoteWriteOptions { MaximumTables = 2 },
             new IWorkKeynoteWriteOptions { MaximumTableCells = 20 } }) {

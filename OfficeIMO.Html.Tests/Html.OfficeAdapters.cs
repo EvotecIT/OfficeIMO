@@ -1702,9 +1702,9 @@ public partial class HtmlOfficeAdapters {
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes);
         PowerPointTable table = Assert.Single(slide.Tables);
 
-        Assert.Equal("Line 1\nLine 2  with  spacing", textBox.Text);
+        Assert.Equal("Line 1" + Environment.NewLine + "Line 2  with  spacing", textBox.Text);
         Assert.Equal("A  B", table.GetCell(0, 0).Text);
-        Assert.Equal("First\nSecond", table.GetCell(0, 1).Text);
+        Assert.Equal("First" + Environment.NewLine + "Second", table.GetCell(0, 1).Text);
     }
 
     [Fact]

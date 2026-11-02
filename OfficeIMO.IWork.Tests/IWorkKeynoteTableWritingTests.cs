@@ -75,7 +75,7 @@ public sealed class IWorkKeynoteTableWritingTests {
         var shapes = reopened.Slides[0].Shapes.ToArray();
         Assert.IsType<PowerPointTextBox>(shapes[0]); var saved = Assert.IsType<PowerPointTable>(shapes[1]);
         Assert.IsType<PowerPointTextBox>(shapes[2]);
-        Assert.Equal("A😀B\nZażółć", saved.GetCell(0, 0).Text);
+        Assert.Equal("A😀B" + Environment.NewLine + "Zażółć", saved.GetCell(0, 0).Text);
         Assert.Equal("=SUM(A1:A2)", saved.GetCell(0, 1).Text);
         Assert.Equal("-1234.5", saved.GetCell(1, 0).Text);
         Assert.Equal("TRUE", saved.GetCell(1, 1).Text);
