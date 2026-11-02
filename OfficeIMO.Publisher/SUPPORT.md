@@ -95,7 +95,7 @@ still consume the image-processing byte budget.
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
 | Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control measurement and glyph output. Plain printable-ASCII native contexts span color, threshold and space boundaries, retaining glyph slices for raster/SVG/PDF; broader scripts, decorations and producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment; undeclared stops use the qualified text-engine default or publication fallback | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed. With no usable default-tab carrier, layout reports `PUB_DEFAULT_TAB_UNASSESSED` and uses the generic 36-point grid. Native device advances and broader tabbed-line placement remain separate rendering limits |
-| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; anchor-cell fills and exact existing shared-border styles are editable; qualified text edits preserve complete story partitions, and bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` identify those operations. Unavailable geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`. Native style saving requires existing unambiguous visible solid utility fields; visibility changes, edge topology, cell-specific padding and other paint remain unqualified |
+| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; anchor-cell fills and shared-border ranges are editable; qualified text edits preserve complete story partitions, and bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` identify those operations. Unavailable geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`. Native saving requires qualified existing solid utility records and unambiguous owning fields; local color insertion is supported, while utility/edge topology, cell-specific padding and other paint remain unqualified |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
@@ -1061,9 +1061,9 @@ from explicit stale-preview invalidation. Restoring the original styles before
 saving copies the original publication bytes exactly. Microsoft Publisher opens,
 exports, separately saves and reopens both edited outputs: all four native cell
 inventories match their controls, and four PDF page pairs match at 100 dpi.
-This profile requires unambiguous existing local color/width fields and exact
-signed-EMU widths. Visibility changes and utility-record insertion/removal refuse
-native output, including under Allow. Native cell editing after opening the
+This scalar profile requires unambiguous existing local color/width fields and
+exact signed-EMU widths. Utility-record insertion/removal refuses native output,
+including under Allow. Native cell editing after opening the
 generated output, broader paint and repair-free opening remain unqualified.
 
 The internal `table-decorated` and `table-decorated-edited` specimens create a
@@ -1082,9 +1082,32 @@ native PDF pairs match at 100 dpi. The direct scalar edit produces the same PUB
 bytes as creating the edited model. The four workflows cover three distinct
 candidate byte sequences. This is a bounded unmerged rectangular utility profile,
 with one SPID cluster per drawing. Decorated merged-table creation, native source
-utility-record insertion/removal, visibility changes, broader layouts and the
+utility-record insertion/removal, broader visibility/paint definitions, layouts and the
 general public native writer remain unqualified. Managed/native pixel parity,
 native cell editing and repair-free acceptance remain separate open criteria.
+
+The `tableCellFillVisibility` record qualifies clearing and activating existing
+solid cell utilities, including insertion of a missing local RGB scalar. One
+local scalar must own the filled use-bit; unrelated boolean uses, secondary
+tables and latent colors remain preserved. Missing color insertion uses the
+existing property-table and enclosing-record length rewriter, without allocating
+utility records or changing drawing instances/counts. Unsupported paint,
+ambiguous owning fields and complex or BLIP-role local fill-boolean fields refuse
+output even under Allow. Edited output reports `PUB_NATIVE_TABLE_FILL_UNQUALIFIED`
+for broader native/producer uncertainty.
+
+Three independent controls cover hiding the first fill, activating the previously
+unfilled third cell, reversing their visible states with latent colors retained,
+and combined first-cell paragraph growth. Their complete Escher streams match
+public source output. Five public saves from independent, generated and native-
+resaved sources complete native opening, export, SaveAs and reopen: ten complete
+native cell/grid inventories and ten PDF pairs match the controls at 100 dpi.
+After the unsupported-boolean guard fix, all five emitted PUB byte sequences
+remain identical to the native-qualified inputs. Reverting the current semantic
+edits before saving returns the original bytes exactly. Visibility definitions
+without a qualified local owner, non-solid/transparent paint, utility-record
+insertion/removal, broader producer/layout profiles, native cell editing and
+repair-free acceptance remain unqualified. Public native creation remains gated.
 
 The internal `frame-layout` and `frame-layout-edited` creation specimens carry
 six frames on two pages from public `SetTextFrameLayout` snapshots into the

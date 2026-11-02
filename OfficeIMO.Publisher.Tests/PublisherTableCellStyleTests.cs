@@ -72,6 +72,9 @@ public sealed class PublisherTableCellStyleTests {
         Assert.Contains(document.ReadReport.FidelityDiagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_STYLE_UNSUPPORTED"
             && diagnostic.LossKind == OfficeConversionLossKind.Omission);
         Assert.Equal(input, document.ToPubBytes());
+        document.SetTableCellFillColor(table.Id, 0, 0, OfficeColor.FromRgb(20, 40, 60));
+        Assert.Throws<OfficeIMO.OfficeConversionException>(() => document.ToPubBytes(
+            new PublisherSaveOptions { LossPolicy = OfficeIMO.OfficeConversionLossPolicy.Allow }));
     }
 
     [Theory]

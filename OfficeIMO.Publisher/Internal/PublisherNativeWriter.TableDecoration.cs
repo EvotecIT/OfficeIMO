@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherNativeWriter {
-    /// <summary>Patches only qualified existing utility scalars; adding records, visibility changes and grid edits remain refused.</summary>
+    /// <summary>Edits existing utility fills and border scalars; utility insertion/removal and grid changes remain refused.</summary>
     private void CompareTableDecoration(PublisherTableState before, PublisherTableState after) {
         if (before.CellFills.SequenceEqual(after.CellFills) && before.BorderSegments.SequenceEqual(after.BorderSegments)) return;
         string location = "Contents/object/" + before.Id;
@@ -12,10 +12,10 @@ internal sealed partial class PublisherNativeWriter {
             _token.ThrowIfCancellationRequested();
             if (before.CellFills[i] == after.CellFills[i]) continue;
             PublisherTableArtwork[] owners = artwork.Where(item => item.Value(0x2001) == 0 && item.Value(0x2003) == i).ToArray();
-            if (!before.CellFills[i].HasValue || !after.CellFills[i].HasValue || after.CellFills[i]!.Value.A != 255 || owners.Length != 1) {
-                Reject(location, "Cell fill saving requires one existing visible solid utility fill; visibility changes and record insertion are not qualified."); continue;
+            if (owners.Length != 1) {
+                Reject(location, "Cell fill saving requires one unambiguous existing native utility record."); continue;
             }
-            Color(owners[0], after.CellFills[i]!.Value);
+            TableFill(owners[0], before.CellFills[i], after.CellFills[i], location);
         }
         if (before.BorderSegments.Count != after.BorderSegments.Count) {
             Reject(location, "Adding or removing native shared border records is not qualified."); return;

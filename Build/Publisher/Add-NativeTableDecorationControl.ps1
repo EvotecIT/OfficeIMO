@@ -8,10 +8,14 @@ function Add-NativeTableDecorationControl {
     Changes the first cell's fill and selected border colors and widths.
     .PARAMETER TextEdited
     Grows the first cell to two paragraphs while keeping its initial decoration.
+    .PARAMETER FillVisibility
+    Hides the first cell fill and activates a lavender fill in the initially unfilled cell.
+    .PARAMETER RestoreFillVisibility
+    Applies the visibility changes, then restores their visible states while retaining the latent colors.
     .OUTPUTS
     The physical page count.
     #>
-    param($FirstPage, [switch] $Edited, [switch] $TextEdited)
+    param($FirstPage, [switch] $Edited, [switch] $TextEdited, [switch] $FillVisibility, [switch] $RestoreFillVisibility)
 
     $null = Add-NativeTableCreationControl -FirstPage $FirstPage
     $shape = $FirstPage.Shapes.Item('AuthoredTable')
@@ -56,6 +60,38 @@ function Add-NativeTableDecorationControl {
         $objects.Add($color)
         $color.RGB = $border.rgb
         $format.Weight = $border.width
+    }
+    if ($FillVisibility -or $RestoreFillVisibility) {
+        foreach ($change in @(
+            @{ row = 1; column = 1; visible = 0; rgb = $null },
+            @{ row = 2; column = 1; visible = -1; rgb = 0x00FFC0E0 }
+        )) {
+            $range = $table.Cells($change.row, $change.column, $change.row, $change.column)
+            $cell = $range.Item(1)
+            $format = $cell.Fill
+            $objects.Add($range)
+            $objects.Add($cell)
+            $objects.Add($format)
+            if ($null -ne $change.rgb) {
+                $format.Solid()
+                $format.Transparency = 0
+                $color = $format.ForeColor
+                $objects.Add($color)
+                $color.RGB = $change.rgb
+            }
+            $format.Visible = $change.visible
+        }
+        if ($RestoreFillVisibility) {
+            foreach ($change in @(@{ row = 1; column = 1; visible = -1 }, @{ row = 2; column = 1; visible = 0 })) {
+                $range = $table.Cells($change.row, $change.column, $change.row, $change.column)
+                $cell = $range.Item(1)
+                $format = $cell.Fill
+                $objects.Add($range)
+                $objects.Add($cell)
+                $objects.Add($format)
+                $format.Visible = $change.visible
+            }
+        }
     }
     if ($TextEdited) {
         $range = $table.Cells(1, 1, 1, 1)

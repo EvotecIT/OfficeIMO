@@ -110,6 +110,9 @@ internal sealed partial class PublisherNativeWriter {
         if (writer._patches.Count != 0) diagnostics.Add(Finding("PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
             "Guarded fixed-size OfficeArt slots changed. Streams outside the prepared replacements and directory metadata are retained. Repair-free opening, native edit acceptance and opaque semantic preservation require independent qualification.",
             OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
+        if (writer._hasTableFillProperties) diagnostics.Add(Finding("PUB_NATIVE_TABLE_FILL_UNQUALIFIED",
+            "Existing cell utility visibility or a local solid-color property changed. Filled use-bits retain unrelated boolean uses; color insertion rewrites enclosing OfficeArt lengths while preserving unrelated records and drawing instances. Native repair-free acceptance and broader producer/style behavior remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Escher/tables"));
         if (writer._hasTableBounds) diagnostics.Add(Finding("PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED",
             "A direct table frame moved or its fixed tracks were proportionally resized. Cell ownership, complete stories and unrelated native records are retained. Native reflow, editing, resave/reopen and repair-free opening remain unassessed.",
             OfficeConversionLossKind.Unassessed, "Contents/tables"));

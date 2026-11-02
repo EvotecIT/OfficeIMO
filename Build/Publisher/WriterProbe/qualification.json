@@ -33568,7 +33568,7 @@
     "limits": [
       "Native repair-positive/recovery and repair-free acceptance remain unresolved; cancelled trust control is not retried.",
       "No public source-free native writer promotion.",
-      "Native source border insertion/removal and fill visibility changes remain open; rectangular utility creation is qualified separately in tableDecorationCreation.",
+      "Native source utility insertion/removal remains open; fill visibility/local color insertion is qualified separately in tableCellFillVisibility, rectangular utility creation in tableDecorationCreation.",
       "Native cell editing after opening these output files, cell-specific padding, gradients and broader paint remain unqualified.",
       "Native PDF comparisons are finite independent-control evidence; no general managed/native pixel parity claim.",
       "Earlier generation codecs remain separate."
@@ -33991,9 +33991,204 @@
       "PUB00 repair-positive/recovery and repair-free acceptance remain unresolved; cancelled trust/recovery control is untouched.",
       "Public source-free native writing remains gated.",
       "Decorated merged creation, composed/larger utility drawings, dynamic rows and broader layouts require qualification.",
-      "Native source utility insertion/removal and fill visibility changes remain refused.",
+      "Native source utility insertion/removal remains refused; qualified existing fill visibility is covered separately in tableCellFillVisibility.",
       "Native cell editing after opening these outputs remains unqualified.",
       "No managed/native pixel parity or earlier-generation lifecycle inference."
+    ],
+    "canClosePUB00": false,
+    "canPromotePublicNativeCreation": false
+  },
+  "tableCellFillVisibility": {
+    "sourceBaseCommit": "dbdf14346a77019accb76d21376f67a56a4e4eb1",
+    "scope": "Existing rectangular solid cell utility clearing/activation, local RGB insertion, latent-color preservation and composition with cell-paragraph growth.",
+    "publicOperation": "SetTableCellFillColor(tableId, anchorRow, anchorColumn, OfficeColor?, CancellationToken)",
+    "codec": {
+      "binding": "Exact retained F004/F00A/table 0x6802 and local property slots; original bytes are guarded.",
+      "visibility": "Exactly one local scalar 0x01BF owning useFilled 0x00100000; change only filled 0x00000010, retaining other uses/values.",
+      "color": "Replace an unambiguous existing local RGB or insert 0x0181 into one qualified primary FOPT through existing Core property editor and Publisher source rewriter.",
+      "preservation": "Hiding retains latent RGB. Other properties, secondary records, drawing-instance prefixes, utility counts and unrelated logical streams remain retained; optional stale-preview invalidation is explicit.",
+      "composition": "Fixed visibility patches precede structured FOPT/enclosing-length rewriting; Quill growth remains independently owned.",
+      "refusals": "Unsupported paint/opacity/shadows/ownership, complex or BLIP local boolean roles, ambiguous filled owners, unavailable local visibility owner and utility allocation/removal refuse even with Allow.",
+      "diagnostic": "PUB_NATIVE_TABLE_FILL_UNQUALIFIED retains broader producer/native-repair uncertainty."
+    },
+    "nativeBinary": {
+      "name": "Microsoft Publisher",
+      "version": "16.0",
+      "executableVersion": "16.0.20527.20112",
+      "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+      "powershell": "7.6.9",
+      "automationSecurity": 3
+    },
+    "independentControls": [
+      {
+        "case": "TableFillVisibility",
+        "publicationSha256": "cc43f38611b9048c6d3b6eebcdc8114566f23d2be71f12354a5f568068a6d3c5",
+        "pdfSha256": "3f4e92ed4bc78c2fb31a116e0c1c4b0d5c8d83f8d50bc5f3b99f46fbb3fd1988",
+        "metadataSha256": "72e680dbd20cfc5f87d39937e3d11e5b42cd03566b7bc3548ae2fd4e0c9cd093"
+      },
+      {
+        "case": "TableFillVisibilityRestored",
+        "publicationSha256": "d226d140d081bfae8b2463d3c686d9109d23ad5626b44ccf0e797e7c2a8cf297",
+        "pdfSha256": "d51f506dc26439f15263c573ab1054537bad47befe8488878b0a0c64c65c4eca",
+        "metadataSha256": "0d2bd7a65d174fe55f2902b2af31d8210f7ef11ea8734e61586f1db979e26410"
+      },
+      {
+        "case": "TableFillVisibilityText",
+        "publicationSha256": "61501273662dad616836309002b444335bcd2cd0c6d1b6b961d93e6cda639db7",
+        "pdfSha256": "08f385443c3deb5e07f4e1065aa20cdcff75bc2e0717849ce98243820eb47a9b",
+        "metadataSha256": "61313b8e18057bbe565f89324f2fb49fa092d719be01546cce5e8a5bfe1a174a"
+      }
+    ],
+    "cohorts": [
+      {
+        "case": "forward",
+        "independentControl": "TableFillVisibility",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "73320ba698706996c7ee97cc0f3bd64bdd2ec91f63fa73162772be2ebb32606b",
+        "resavedSha256": "e59f0b66a3faeace34eb1211b8fd6d76e42aef6097a610361183d18b1aca6523",
+        "matchedInventories": 2,
+        "exactNativePdfPairs": 2,
+        "artifactSha256": {
+          "candidate-input.pub": "73320ba698706996c7ee97cc0f3bd64bdd2ec91f63fa73162772be2ebb32606b",
+          "native-initial-inventory.json": "2c7b4e555ee9584ecc3489ec9ac2af451da0c9fe553288960eca81bd75d97b15",
+          "native-initial.pdf": "a84fc7352e643b88e5cf7a728729191b23bc21d2c21df3676be71101fcaa5048",
+          "native-resaved-inventory.json": "92cb21fa57320b83e620eb110b4e6e8eb0de49b92475a09025b5a96917b192c0",
+          "native-resaved.pdf": "76d3285197f50f000c25ac58d19dd5d432cc1de45e307ada719619e1fa16d737",
+          "native-resaved.pub": "e59f0b66a3faeace34eb1211b8fd6d76e42aef6097a610361183d18b1aca6523",
+          "native-validation.json": "8319d54e93dcaab806830cfb57b76c8e3d4644ee9d94fd7bf9b24de5b165154c"
+        }
+      },
+      {
+        "case": "restored",
+        "independentControl": "TableFillVisibilityRestored",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "ff3c62ad65ce511179732e51f579635c7922568d49445137c2931beb201ce379",
+        "resavedSha256": "06e08624f4fc7d90d212d27af19c2cfef2b06bdd4638132f03b4dc84130f72fd",
+        "matchedInventories": 2,
+        "exactNativePdfPairs": 2,
+        "artifactSha256": {
+          "candidate-input.pub": "ff3c62ad65ce511179732e51f579635c7922568d49445137c2931beb201ce379",
+          "native-initial-inventory.json": "eedd9f3db01f48b646e8b4aaec735dac96bd47ded45ebde419140b9a26baea31",
+          "native-initial.pdf": "75d6cfc7abef39921e9b0a66dd587f611f962c6e76b80c081652582386766655",
+          "native-resaved-inventory.json": "35afff6eafaca1972d0e4373043abc9df8f45c26b8e0aa6b492c147130d678d0",
+          "native-resaved.pdf": "784066fb82354579394a5bddd79633b4ef44f94be5755b01e3eab1eb32419c01",
+          "native-resaved.pub": "06e08624f4fc7d90d212d27af19c2cfef2b06bdd4638132f03b4dc84130f72fd",
+          "native-validation.json": "3520a1f8212046a0a20dff73278882e2c0f95ea070100ace166a7dc565701746"
+        }
+      },
+      {
+        "case": "text",
+        "independentControl": "TableFillVisibilityText",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "794dfbe34fe7e657753c093a660b14796d51a65630f994c2c2785b83de061536",
+        "resavedSha256": "fc974e3161929af84dcc3b54cf5b1e5dc7b9659de2e2fbd5b6428990fdfa9342",
+        "matchedInventories": 2,
+        "exactNativePdfPairs": 2,
+        "artifactSha256": {
+          "candidate-input.pub": "794dfbe34fe7e657753c093a660b14796d51a65630f994c2c2785b83de061536",
+          "native-initial-inventory.json": "e51e1e6d4e2f884a4f610a8a05dbf934033b1f78f776a82284a7a0ae47e43056",
+          "native-initial.pdf": "98d85925a018b42972dbb5a958798d041726f820642d5f6d68f2c44fb1a95a9c",
+          "native-resaved-inventory.json": "c040f22930a2c60097825ce1cfc4b8e23a0232334a801cb6b5e3a5341075976e",
+          "native-resaved.pdf": "84fe5d14050deb55feb82829361d11d959c6fc4c48df7f38012b723aab1a4b7f",
+          "native-resaved.pub": "fc974e3161929af84dcc3b54cf5b1e5dc7b9659de2e2fbd5b6428990fdfa9342",
+          "native-validation.json": "c4792f6695b7c1004ab9d19050eb3854f2dcd704ef0616f6966db170dcc5aa65"
+        }
+      },
+      {
+        "case": "generated",
+        "independentControl": "TableFillVisibility",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "3883c8b809b51892bca9a368f26564474765f56d9d817a5c0c41103570bf2546",
+        "resavedSha256": "6604b3ec90286a96b9bde680e032dfb926d127587197fe2f1712b61ed89a5f50",
+        "matchedInventories": 2,
+        "exactNativePdfPairs": 2,
+        "artifactSha256": {
+          "candidate-input.pub": "3883c8b809b51892bca9a368f26564474765f56d9d817a5c0c41103570bf2546",
+          "native-initial-inventory.json": "09f87f251e5f50c24b66425f657240979f129e164c4a397c6c9dd0860fbe00ee",
+          "native-initial.pdf": "90b96d9466be589a8af73943d9d072583a0d5dc87041a6a19b195b6f00100e43",
+          "native-resaved-inventory.json": "38e117bbdac00e518eeadf0dc6208536c6d3778c9fe82458605dedb5d84fd810",
+          "native-resaved.pdf": "918cf85587a47b1ab12455a410f75db0c7da43bc13041fb75a735c521df3eda9",
+          "native-resaved.pub": "6604b3ec90286a96b9bde680e032dfb926d127587197fe2f1712b61ed89a5f50",
+          "native-validation.json": "72ccd86095d62502abfcbb2c6878685d6090a30509c6c2ec8653d7358c859fcb"
+        }
+      },
+      {
+        "case": "normalized",
+        "independentControl": "TableFillVisibility",
+        "stage": "Full",
+        "status": "OpenedExportedResavedAndReopened",
+        "candidateSha256": "67ce67545cf4f705d6c8b864bb71cfeb9fdd5ead3db1c2cbde441fa58fcbcbe0",
+        "resavedSha256": "0a00c2b547db6476c182df3c76ab2cee4d00bb61ca8e47947bd3437dedb2ee06",
+        "matchedInventories": 2,
+        "exactNativePdfPairs": 2,
+        "artifactSha256": {
+          "candidate-input.pub": "67ce67545cf4f705d6c8b864bb71cfeb9fdd5ead3db1c2cbde441fa58fcbcbe0",
+          "native-initial-inventory.json": "e6ca32edd44f183953b6d8ba7254b56f25b90ab039acf59fbc52c37f1364ece8",
+          "native-initial.pdf": "f6bbb61b3e0a4ec1aeca23f4527df108aba26bee0389bbb288ebfa1330a74128",
+          "native-resaved-inventory.json": "ba8cc1097cd5ccce65e4a37a4c910c9afd6525902f1a8431093607b1a6b306b7",
+          "native-resaved.pdf": "cee6491f256c0dfe08cc3e1e134ad17e30feb35d7563814c63e5975d29d97f97",
+          "native-resaved.pub": "0a00c2b547db6476c182df3c76ab2cee4d00bb61ca8e47947bd3437dedb2ee06",
+          "native-validation.json": "6127ab594c78fc78a4c29c4487e02a229fe59d1a9f3f5ab35bb211d60306704e"
+        }
+      }
+    ],
+    "proof": {
+      "independentCompleteEscherMatches": 3,
+      "exactOriginalPubAfterSemanticReversion": true,
+      "nativeInventoryMatches": 10,
+      "nativePdfPixelPairsAt100Dpi": 10,
+      "changedPixels": 0,
+      "postreviewByteIdentity": [
+        {
+          "case": "forward",
+          "byteIdenticalToNativeQualifiedInput": true,
+          "sha256": "73320ba698706996c7ee97cc0f3bd64bdd2ec91f63fa73162772be2ebb32606b"
+        },
+        {
+          "case": "restored",
+          "byteIdenticalToNativeQualifiedInput": true,
+          "sha256": "ff3c62ad65ce511179732e51f579635c7922568d49445137c2931beb201ce379"
+        },
+        {
+          "case": "text",
+          "byteIdenticalToNativeQualifiedInput": true,
+          "sha256": "794dfbe34fe7e657753c093a660b14796d51a65630f994c2c2785b83de061536"
+        },
+        {
+          "case": "generated",
+          "byteIdenticalToNativeQualifiedInput": true,
+          "sha256": "3883c8b809b51892bca9a368f26564474765f56d9d817a5c0c41103570bf2546"
+        },
+        {
+          "case": "normalized",
+          "byteIdenticalToNativeQualifiedInput": true,
+          "sha256": "67ce67545cf4f705d6c8b864bb71cfeb9fdd5ead3db1c2cbde441fa58fcbcbe0"
+        }
+      ],
+      "currentCallerPublisherSha256": "8bf1d8490512418231a296dcc617211227bd6d42be08ce9264e8a3f7b474d1e5",
+      "scope": "Finite native cell/grid/appearance comparisons; no managed/native pixel-parity or native repair-free inference."
+    },
+    "verification": {
+      "focusedNet10": 21,
+      "fullPublisherNet10": 1128,
+      "tableNet8": 111,
+      "tableNet472": 111,
+      "skipped": 0,
+      "builds": "Unsigned clean netstandard2.0 Publisher and source-built net8 PSWriteOffice.",
+      "powershell": "Four public fill-edit calls produce exact native-qualified bytes; five PDF workflows retain text and paint colors/counts.",
+      "nativeScripts": "Four changed native scripts parse in PowerShell7.6.9 and WindowsPowerShell5.1.26100.9711.",
+      "review": "One independent read-only review and its single targeted confirmation. P3 unsupported complex-peer masking reproduced red, fixed by rejecting non-scalar local boolean peers, and confirmed closed."
+    },
+    "limits": [
+      "No new native utility record allocation/removal or grid topology support in source saving.",
+      "Non-solid/transparent paint, missing local filled use ownership, unsupported roles and broader producer/layout profiles require qualification.",
+      "Native cell editing after opening saved output, repair-positive/recovery and repair-free acceptance remain unqualified.",
+      "Public source-free native writing remains gated; cancelled trust/recovery control is untouched.",
+      "Earlier-generation lifecycle codecs remain separate."
     ],
     "canClosePUB00": false,
     "canPromotePublicNativeCreation": false

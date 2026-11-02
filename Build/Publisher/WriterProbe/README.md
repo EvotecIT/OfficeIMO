@@ -663,7 +663,7 @@ recoloring and shared-border color/width edits through the public canonical mode
 The complete saved Escher stream matches the independent control in both
 directions. Native initial/resaved inventories retain all cell text, spans, tracks,
 fills and edges; four PDF page pairs match at 100 dpi. The writer guards existing
-local scalar slots and refuses visibility changes, utility-record insertion or
+local scalar slots and refuses utility-record insertion or
 removal, ambiguous ownership and widths without an exact signed-EMU encoding.
 Restoring original styles before saving returns the exact original PUB bytes.
 This does not qualify native source utility insertion/removal, native cell
@@ -679,9 +679,22 @@ input complete Full validation: eight cell/grid inventories and eight native PDF
 pairs match independent controls at 100 dpi. Four workflows cover three distinct
 candidate byte sequences; a direct source scalar edit equals fresh edited creation.
 The earlier blank, borderless-table and merged-table bytes remain unchanged.
-Decorated merges, source utility insertion/removal, native visibility changes,
+Decorated merges, source utility insertion/removal, broader native visibility definitions,
 larger/composed utility drawings, native cell editing and repair-free acceptance
 remain open; public native creation remains gated.
+
+The `tableCellFillVisibility` record qualifies hiding/activating existing solid
+cell utilities and inserting a missing local RGB scalar through the existing
+source property editor. Owning filled use-bits, unrelated masks, opaque records,
+latent colors and drawing-instance prefixes remain retained. Three independent
+controls cover changed/restored visibility and combined paragraph growth; their
+complete Escher streams match public source saves. Five Full workflows include
+independent, generated and native-resaved input: ten cell/grid inventories and
+ten native PDF pairs match controls at 100 dpi. The unsupported complex-peer
+regression is fixed and confirmed; post-fix output bytes match every native-
+validated input. Non-solid/transparent paint, ambiguous/unsupported boolean
+roles, missing local visibility ownership, utility insertion/removal, broader
+native producers and repair-free acceptance remain outside this profile.
 
 The generated file and a public `SetPictureBounds` edit each match independently
 authored `ImagePages` and `ImagePagesEdited` controls before and after native

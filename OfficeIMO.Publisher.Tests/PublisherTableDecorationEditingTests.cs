@@ -30,7 +30,7 @@ public sealed class PublisherTableDecorationEditingTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void Visibility_changes_remain_in_the_model_and_refuse_native_output_until_restored(bool insert) {
+    public void Cell_fill_visibility_saves_and_restores_to_exact_original_source(bool insert) {
         byte[] source = Fixture(false);
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable original = document.Pages[0].Tables[0];
@@ -39,8 +39,10 @@ public sealed class PublisherTableDecorationEditingTests {
         OfficeColor? requested = insert ? OfficeColor.FromRgb(20, 40, 60) : null;
         document.SetTableCellFillColor(original.Id, row, 0, requested);
         Assert.Equal(requested, document.Pages[0].Tables[0].Cells.Single(cell => cell.RowIndex == row && cell.ColumnIndex == 0).FillColor);
-        OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToPubBytes(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
-        Assert.Contains(error.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
+        var result = document.ToPubBytesResult(new PublisherSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        PublisherNativeWritingTests.AssertPreservedStorage(source, result.Value);
+        Assert.Equal(requested, PublisherDocument.Load(result.Value).Pages[0].Tables[0].Cells.Single(cell => cell.RowIndex == row && cell.ColumnIndex == 0).FillColor);
+        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_TABLE_FILL_UNQUALIFIED" && item.LossKind == OfficeConversionLossKind.Unassessed);
         document.SetTableCellFillColor(original.Id, row, 0, prior);
         Assert.Equal(source, document.ToPubBytes());
     }

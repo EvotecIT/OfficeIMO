@@ -135,7 +135,7 @@ internal sealed class PublisherEscherReader {
             for (int index = 0; index < (table.Initial >> 4); index++) {
                 int position = table.Offset + index * 6;
                 ushort operation = _data.U16(position), property = (ushort)(operation & 0x3FFF);
-                if (property is 0x0181 or 0x0182 or 0x01C0 or 0x01C1 or 0x01CB)
+                if (property is 0x0181 or 0x0182 or 0x01BF or 0x01C0 or 0x01C1 or 0x01CB)
                     slots.Add(new PublisherNativePropertySlot(operation, new PublisherNativeValueSlot(position + 2, _data.U32(position + 2))));
             }
         return new PublisherNativeShapeBinding(id, _data.U32(fsp.Offset), container.Offset, container.Length, fsp.Offset,

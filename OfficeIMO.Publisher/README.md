@@ -598,12 +598,19 @@ solid shared edge along an ordered horizontal or vertical grid range, or clears
 that range with `null`. It splits overlapping collinear edges and retains their
 outside fragments, perpendicular edges and unrelated ranges. Ranges through
 merged-cell interiors are rejected. Both operations update rendering transactionally.
-Native source saving supports recoloring existing visible solid fills and changing
-existing shared-border color/width through unambiguous local scalar fields. It
-refuses visibility changes, record insertion/removal and widths without an exact
+Native source saving supports solid recoloring, clearing and activation through
+qualified existing cell utility records, preserving latent colors when hidden.
+A missing local color field can be inserted; visibility requires an unambiguous
+local owning field. Existing shared-border color/width edits use qualified local
+scalars. Unsupported paint, utility-record insertion/removal and widths without an exact
 signed-EMU representation. Native source insertion/removal of shared edges, gradients,
 cell-specific padding and broader native appearances remain separate profiles.
 Unsupported paint is reported rather than presented as an observed empty style.
+
+Fill visibility changes compose with supported cell-paragraph growth. Native
+source saving refuses ambiguous visibility ownership and unsupported complex or
+BLIP-role boolean fields, including under `Allow`. See the [qualified fill
+visibility profile](SUPPORT.md#native-cell-fills-and-shared-borders) for exact limits.
 
 ```csharp
 var styledTable = publication.Pages[0].Tables.First();

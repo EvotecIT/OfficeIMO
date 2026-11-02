@@ -5,7 +5,7 @@ namespace OfficeIMO.Publisher;
 
 public sealed partial class PublisherDocument {
     /// <summary>Sets the opaque solid fill, or clears the fill, of the cell anchored at the given zero-based coordinates.</summary>
-    /// <remarks>Covered merged positions are rejected. Existing snapshots remain unchanged. Native source saving currently supports recoloring an existing visible solid fill; changing visibility or inserting paint records is refused. Validation, cancellation or projection failure leaves the document unchanged.</remarks>
+    /// <remarks>Covered merged positions are rejected. Existing snapshots remain unchanged. Qualified existing native cell utilities support solid recoloring, clearing and activation through an unambiguous visibility field; a missing local color field can be added. Latent colors are preserved when hiding a fill. Utility-record creation and unsupported paint remain refused. Validation, cancellation or projection failure leaves the document unchanged.</remarks>
     public void SetTableCellFillColor(uint tableId, int rowIndex, int columnIndex, OfficeColor? color,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
