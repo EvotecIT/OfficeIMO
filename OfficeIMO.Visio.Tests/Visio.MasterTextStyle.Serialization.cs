@@ -25,7 +25,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         };
         if (profile == 1) { style!.TextLocPinX = 0.5; style.TextLocPinY = 0.1; style.TextAngle = Math.PI / 2; }
         if (profile == 2) { style!.TextWidth = 0.8; style.TextHeight = 0.4; }
-        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), profile == 3 ? "Blueprint text" : "");
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), profile == 3 ? "Blueprint text" : "") { LinePattern = 0, FillPattern = 0, TextStyle = style };
         VisioMaster master = document.RegisterMaster("Default frame", blueprint);
         VisioPage seed = document.AddPage("Seed").Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
         VisioShape blank = seed.AddShape("blank", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, seed.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, seed.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, seed.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, seed.DefaultUnit)));
@@ -162,7 +162,7 @@ public sealed class VisioMasterTextStyleSerializationTests {
         else Assert.Null(master.Shape.TextStyle.Size);
     }
 
-    private static VisioShape Blueprint(string? name) => new("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "Styled master");
+    private static VisioShape Blueprint(string? name) => new("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "Styled master") { NameU = name };
 
     private static VisioTextStyle FrameStyle() => new() {
         FontFamily = "Arial", Size = 16, Bold = true, Color = OfficeColor.Red,

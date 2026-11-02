@@ -13,9 +13,9 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Application Containers", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape api = page.AddStencilShape(VisioStencils.Network.Get("server"), "api", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), "API");
-            VisioShape worker = page.AddStencilShape(VisioStencils.Network.Get("server"), "worker", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), "Worker");
-            VisioShape queue = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "queue", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.6, page.DefaultUnit)), "Queue");
+            VisioShape api = page.AddStencilShape(VisioStencils.Network.Get("server"), "api", OfficeLength.Inches(3), OfficeLength.Inches(5.5), "API");
+            VisioShape worker = page.AddStencilShape(VisioStencils.Network.Get("server"), "worker", OfficeLength.Inches(6), OfficeLength.Inches(5.5), "Worker");
+            VisioShape queue = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "queue", OfficeLength.Inches(4.5), OfficeLength.Inches(3.6), "Queue");
 
             page.AddConnector(api, queue, ConnectorKind.Dynamic, VisioSide.Bottom, VisioSide.Top).Label = "publish";
             page.AddConnector(queue, worker, ConnectorKind.Dynamic, VisioSide.Top, VisioSide.Bottom).Label = "consume";

@@ -15,9 +15,9 @@ namespace OfficeIMO.Examples.Visio {
             page.AddLayer("Infrastructure");
             page.AddLayer("Annotations").Print = false;
 
-            VisioShape server = page.AddStencilShape(VisioStencils.Network.Get("server"), "server", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Server");
-            VisioShape database = page.AddStencilShape(VisioStencils.Network.Get("database"), "database", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Database");
-            VisioShape note = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "note", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Internal note");
+            VisioShape server = page.AddStencilShape(VisioStencils.Network.Get("server"), "server", OfficeLength.Inches(2), OfficeLength.Inches(5), "Server");
+            VisioShape database = page.AddStencilShape(VisioStencils.Network.Get("database"), "database", OfficeLength.Inches(5), OfficeLength.Inches(5), "Database");
+            VisioShape note = page.AddStencilShape(VisioStencils.BasicShapes.Get("rectangle"), "note", OfficeLength.Inches(8), OfficeLength.Inches(5), "Internal note");
             VisioConnector connector = page.AddConnector(server, database, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
             connector.Label = "SQL";
 

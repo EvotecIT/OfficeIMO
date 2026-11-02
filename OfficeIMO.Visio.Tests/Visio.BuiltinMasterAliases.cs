@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
-            document.RegisterMaster("CustomAudit", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
+            document.RegisterMaster("CustomAudit", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "CustomAudit" });
 
             document.AsFluent()
                 .AddPage("Flow", p => p

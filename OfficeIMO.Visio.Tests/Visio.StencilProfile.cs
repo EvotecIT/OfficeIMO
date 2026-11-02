@@ -246,13 +246,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilProfilePreservesDistinctSameIdMasters() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioMaster first = new("1", "PackageA", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty)) {
+            VisioMaster first = new("1", "PackageA", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "PackageA" }) {
                 IsPackageBacked = true,
                 StencilId = "pkg.a",
                 StencilName = "Package A",
                 StencilSourcePackagePath = "a.vssx"
             };
-            VisioMaster second = new("1", "PackageB", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty)) {
+            VisioMaster second = new("1", "PackageB", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "PackageB" }) {
                 IsPackageBacked = true,
                 StencilId = "pkg.b",
                 StencilName = "Package B",

@@ -38,7 +38,10 @@ public sealed class VisioGeneratedChildPrimitivesTests {
     [Fact]
     public void RootMasterKeepsItsRegisteredPrimitiveIdentity() {
         var document = VisioDocument.Create();
-        var blueprint = new VisioShape("root", OfficeLength.Inches(1), OfficeLength.Inches(.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
+        var blueprint = new VisioShape("root", OfficeLength.Inches(1), OfficeLength.Inches(.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "") {
+            NameU = "Triangle", FillColor = OfficeColor.Blue, LinePattern = 0,
+            TextStyle = new VisioTextStyle { Size = 12 }
+        };
         var master = document.RegisterMaster("Ellipse", blueprint);
         VisioPage page = document.AddPage("Page", OfficeLength.Inches(4), OfficeLength.Inches(4));
         VisioShape instance = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
@@ -73,17 +76,17 @@ public sealed class VisioGeneratedChildPrimitivesTests {
     }
 
     private static VisioShape Blueprint() {
-        var root = new VisioShape("root", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(6), OfficeLength.Inches(2), "");
+        var root = new VisioShape("root", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(6), OfficeLength.Inches(2), "") { FillPattern = 0, LinePattern = 0 };
         root.Children.Add(Primitive("ellipse", "Ellipse", 1));
         root.Children.Add(Primitive("diamond", "Diamond", 3));
-        var nested = new VisioShape("nested", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
+        var nested = new VisioShape("nested", OfficeLength.Inches(5), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "") { FillPattern = 0, LinePattern = 0 };
         nested.Children.Add(Primitive("triangle", "Triangle", 1));
         root.Children.Add(nested);
         return root;
     }
 
     private static VisioShape Primitive(string id, string kind, double x) =>
-        new(id, OfficeLength.Inches(x), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "");
+        new(id, OfficeLength.Inches(x), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "") { NameU = kind, FillColor = OfficeColor.Blue, LinePattern = 0 };
 
     private static void AssertSilhouettes(VisioPage page) {
         XElement ellipse = ShapeGroup(page, "instance:ellipse");

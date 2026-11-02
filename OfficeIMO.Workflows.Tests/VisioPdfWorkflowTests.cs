@@ -248,7 +248,7 @@ public sealed class VisioPdfWorkflowTests {
     private static void WriteSource(string path, bool hyperlink = false) {
         VisioDocument source = VisioDocument.Create(Path.GetExtension(path) == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing);
         VisioPage first = source.AddPage("First"); first.Width = OfficeLength.Inches(5); first.Height = OfficeLength.Inches(3);
-        VisioShape shape = first.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, first.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, first.DefaultUnit)), "WorkflowCaption");
+        VisioShape shape = first.AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "WorkflowCaption");
         if (hyperlink) shape.AddHyperlink("https://example.com");
         VisioPage second = source.AddPage("Blank"); second.Width = OfficeLength.Inches(2); second.Height = OfficeLength.Inches(1.5);
         if (Path.GetExtension(path) == ".vsdx") source.Save(path);

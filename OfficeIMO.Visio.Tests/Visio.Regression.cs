@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void DirectMasterOverloadUsesPageDefaultUnit() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Metric", OfficeLength.Centimeters(21), OfficeLength.Centimeters(29.7), scaleUnit: VisioMeasurementUnit.Centimeters);
-            VisioMaster master = new("1", "MetricRect", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
+            VisioMaster master = new("1", "MetricRect", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "MetricRect" });
 
             VisioShape shape = page.AddShape("shape-1", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Metric");
 

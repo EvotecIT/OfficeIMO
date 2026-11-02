@@ -15,11 +15,11 @@ namespace OfficeIMO.Tests {
 
             VisioShape masterRectShape = new("0", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty);
             VisioMaster rectMaster = new("2", "Rectangle", masterRectShape);
-            VisioShape rect = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "First");
+            VisioShape rect = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "First") { Master = rectMaster };
 
             VisioShape masterSquareShape = new("0", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(2), string.Empty);
             VisioMaster squareMaster = new("3", "Square", masterSquareShape);
-            VisioShape square = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Second");
+            VisioShape square = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Second") { Master = squareMaster };
 
             page.Shapes.Add(rect);
             page.Shapes.Add(square);

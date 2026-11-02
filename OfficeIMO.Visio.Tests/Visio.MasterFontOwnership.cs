@@ -136,7 +136,9 @@ public sealed class VisioMasterFontOwnershipTests {
     public void NewModeledMasterChildKeepsDestinationFontIdentity() {
         VisioDocument source = Load(Faces + Master);
         VisioMaster master = source.GetMaster("Shared fonts");
-        master.Shape.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Authored child"));
+        master.Shape.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Authored child") {
+            TextStyle = new VisioTextStyle { FontFamily = "Destination family", Size = 10 }
+        });
         VisioDocument destination = Destination("Destination family", VisioPackageType.Stencil);
         destination.RegisterMaster(master);
         foreach (VisioDocument candidate in new[] { destination, VisioDocument.Load(new MemoryStream(destination.ToBytes())) }) {

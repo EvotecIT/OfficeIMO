@@ -11,7 +11,12 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            VisioShape shape = new("1", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(4), OfficeLength.Inches(6), string.Empty);
+            VisioShape shape = new("1", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(4), OfficeLength.Inches(6), string.Empty) {
+                LineWeight = 0.02,
+                LocPinX = OfficeLength.Inches(1.5),
+                LocPinY = OfficeLength.Inches(2.5),
+                Angle = 0.3,
+            };
             page.Shapes.Add(shape);
             document.Save();
 

@@ -145,9 +145,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Friendly IDs", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
-            VisioShape api = new("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API");
-            VisioShape database = new("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database");
-            VisioShape existingCopy = new("api-copy", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Existing copy");
+            VisioShape api = new("api", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "API") { NameU = "Rectangle" };
+            VisioShape database = new("db", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Database") { NameU = "Rectangle" };
+            VisioShape existingCopy = new("api-copy", OfficeLength.Inches(2), OfficeLength.Inches(3), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Existing copy") { NameU = "Rectangle" };
             page.Shapes.Add(api);
             page.Shapes.Add(database);
             page.Shapes.Add(existingCopy);

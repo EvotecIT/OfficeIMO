@@ -34,15 +34,15 @@ namespace OfficeIMO.Examples.Visio {
             double y1 = 15; // upper row
             double y2 = 9;  // lower row
 
-            var rect = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.5, page.DefaultUnit)), "Rectangle"); rect.FillColor = Color.LightBlue; rect.LineColor = Color.DarkBlue; rect.LineWeight = 0.02;
-            var square = page.AddSquare(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.5, page.DefaultUnit)), "Square"); square.FillColor = Color.Beige; square.LineColor = Color.Brown; square.LineWeight = 0.02;
+            var rect = page.AddRectangle(OfficeLength.Centimeters(4.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(4.0), OfficeLength.Centimeters(2.5), "Rectangle"); rect.FillColor = Color.LightBlue; rect.LineColor = Color.DarkBlue; rect.LineWeight = 0.02;
+            var square = page.AddSquare(OfficeLength.Centimeters(10.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(3.5), "Square"); square.FillColor = Color.Beige; square.LineColor = Color.Brown; square.LineWeight = 0.02;
             var circle = page.AddCircle(OfficeLength.Centimeters(16.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(3.5), "Circle"); circle.FillColor = Color.LightGreen; circle.LineColor = Color.DarkGreen; circle.LineWeight = 0.02;
-            var ellipse = page.AddEllipse(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(22.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.0, page.DefaultUnit)), "Ellipse"); ellipse.FillColor = Color.MistyRose; ellipse.LineColor = Color.IndianRed; ellipse.LineWeight = 0.02;
-            var diamond = page.AddDiamond(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(27.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.0, page.DefaultUnit)), "Diamond"); diamond.FillColor = Color.Lavender; diamond.LineColor = Color.MediumPurple; diamond.LineWeight = 0.02;
+            var ellipse = page.AddEllipse(OfficeLength.Centimeters(22.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(4.5), OfficeLength.Centimeters(3.0), "Ellipse"); ellipse.FillColor = Color.MistyRose; ellipse.LineColor = Color.IndianRed; ellipse.LineWeight = 0.02;
+            var diamond = page.AddDiamond(OfficeLength.Centimeters(27.0), OfficeLength.Centimeters(y1), OfficeLength.Centimeters(3.5), OfficeLength.Centimeters(3.0), "Diamond"); diamond.FillColor = Color.Lavender; diamond.LineColor = Color.MediumPurple; diamond.LineWeight = 0.02;
 
             // Row 2: Triangle plus a few connectors (cm)
-            var triangle = page.AddTriangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.0, page.DefaultUnit)), "Triangle"); triangle.FillColor = Color.LightGoldenrodYellow; triangle.LineColor = Color.Goldenrod; triangle.LineWeight = 0.02;
-            var endShape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(18.0, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.0, page.DefaultUnit)), "End"); endShape.FillColor = Color.LightGray; endShape.LineColor = Color.DimGray; endShape.LineWeight = 0.02;
+            var triangle = page.AddTriangle(OfficeLength.Centimeters(6.5), OfficeLength.Centimeters(y2), OfficeLength.Centimeters(4.0), OfficeLength.Centimeters(3.0), "Triangle"); triangle.FillColor = Color.LightGoldenrodYellow; triangle.LineColor = Color.Goldenrod; triangle.LineWeight = 0.02;
+            var endShape = page.AddRectangle(OfficeLength.Centimeters(18.0), OfficeLength.Centimeters(y2), OfficeLength.Centimeters(4.5), OfficeLength.Centimeters(3.0), "End"); endShape.FillColor = Color.LightGray; endShape.LineColor = Color.DimGray; endShape.LineWeight = 0.02;
 
             // No explicit connection-point handling; AddConnector ensures side glue internally when sides are specified
 
@@ -55,9 +55,9 @@ namespace OfficeIMO.Examples.Visio {
             // Page 2: rotations and angled connectors
             var page2 = doc.AddPage("Rotations", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21.0), scaleUnit: VisioMeasurementUnit.Centimeters);
             double y3 = 12;
-            var r2 = page2.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y3, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page2.DefaultUnit)), "Rect 30deg"); r2.NameU = "Rectangle"; r2.Angle = Math.PI / 6;
-            var d2 = page2.AddDiamond(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(12, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y3, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.5, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.0, page2.DefaultUnit)), "Diamond -45deg"); d2.Angle = -Math.PI / 4;
-            var c2 = page2.AddCircle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(20, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y3, page2.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.0, page2.DefaultUnit)), "Circle 15deg"); c2.Angle = Math.PI / 12;
+            var r2 = page2.AddRectangle(OfficeLength.Centimeters(5), OfficeLength.Centimeters(y3), OfficeLength.Centimeters(4), OfficeLength.Centimeters(2), "Rect 30deg"); r2.NameU = "Rectangle"; r2.Angle = Math.PI / 6;
+            var d2 = page2.AddDiamond(OfficeLength.Centimeters(12), OfficeLength.Centimeters(y3), OfficeLength.Centimeters(3.5), OfficeLength.Centimeters(3.0), "Diamond -45deg"); d2.Angle = -Math.PI / 4;
+            var c2 = page2.AddCircle(OfficeLength.Centimeters(20), OfficeLength.Centimeters(y3), OfficeLength.Centimeters(3.0), "Circle 15deg"); c2.Angle = Math.PI / 12;
             // angled connectors among rotated shapes (use API to glue to shape sides)
             page2.AddConnector(r2, d2, ConnectorKind.RightAngle).LineColor = Color.Gray;
             page2.AddConnector(d2, c2, ConnectorKind.Straight).LineColor = Color.Gray;
@@ -68,7 +68,7 @@ namespace OfficeIMO.Examples.Visio {
             var page3 = doc.AddPage("Connectors", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21.0), scaleUnit: VisioMeasurementUnit.Centimeters);
             // Add a labeled rectangle box quickly
             VisioShape MakeBox(double x, double y, double w, double h, string text, Color fill, Color line) {
-                var s = page3.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(x, page3.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(y, page3.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(w, page3.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(h, page3.DefaultUnit)), text);
+                var s = page3.AddRectangle(OfficeLength.Centimeters(x), OfficeLength.Centimeters(y), OfficeLength.Centimeters(w), OfficeLength.Centimeters(h), text);
                 s.FillColor = fill; s.LineColor = line; s.LineWeight = 0.02;
                 return s;
             }

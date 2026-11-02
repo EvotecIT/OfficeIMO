@@ -98,7 +98,7 @@ public class VisioFreeConnectorTests {
     [Fact]
     public void AttachedEndpointUsesNestedShapeCoordinates() {
         var document = VisioDocument.Create(); var page = document.AddPage("Group");
-        var group = new VisioShape("group", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(4), "");
+        var group = new VisioShape("group", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(4), "") { Angle = Math.PI / 2 };
         var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), ""); group.Children.Add(child); page.Shapes.Add(group);
         var connector = page.AddConnector("route", new OfficePoint(1, 1), new OfficePoint(2, 2));
         page.ReconnectConnectorEnd(connector, child, VisioSide.Left);
@@ -133,7 +133,7 @@ public class VisioFreeConnectorTests {
         var shape = xml.Descendants(Legacy + "Page").Elements(Legacy + "Shapes").Elements(Legacy + "Shape").Single();
         var transform = shape.Element(Legacy + "XForm")!; var text = shape.Element(Legacy + "TextXForm")!;
         double Read(XElement parent, string name) => double.Parse(parent.Element(Legacy + name)!.Value, CultureInfo.InvariantCulture);
-        var frame = new VisioShape("frame") { PinX = OfficeLength.Inches(Read(transform, "PinX")), PinY = OfficeLength.Inches(Read(transform, "PinY")), LocPinX = OfficeLength.Inches(Read(transform, "LocPinX")), LocPinY = OfficeLength.Inches(Read(transform, "LocPinY")), Angle = Read(transform, "Angle") };
+        var frame = new VisioShape("frame") { PinXInches = Read(transform, "PinX"), PinYInches = Read(transform, "PinY"), LocPinXInches = Read(transform, "LocPinX"), LocPinYInches = Read(transform, "LocPinY"), Angle = Read(transform, "Angle") };
         var point = frame.GetAbsolutePoint(Read(text, "TxtPinX"), Read(text, "TxtPinY"));
         Assert.Equal((1 + endX) / 2, point.X, 8); Assert.Equal((1 + endY) / 2, point.Y, 8);
         Assert.Equal(0, frame.Angle + Read(text, "TxtAngle"), 8);

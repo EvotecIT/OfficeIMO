@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Visio {
 
             VisioDocument document = VisioDocument.Create(filePath);
             document.AsFluent()
-                .Info(info => info.AddTitle("Basic Visio").Author("OfficeIMO"))
+                .Info(info => info.Title("Basic Visio").Author("OfficeIMO"))
                 .AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11), VisioMeasurementUnit.Inches, configure: p => p
                     .AddRectangle("start", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle")
                     .GetShape("start", s => s

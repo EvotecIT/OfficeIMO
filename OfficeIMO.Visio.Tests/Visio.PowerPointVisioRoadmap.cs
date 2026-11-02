@@ -260,8 +260,12 @@ namespace OfficeIMO.Tests {
         public void FitToContentUsesNestedGroupTransformsInPageCoordinates() {
             VisioDocument document = VisioDocument.Create();
             VisioPage page = document.AddPage("Nested", OfficeLength.Inches(20), OfficeLength.Inches(20));
-            var group = new VisioShape("group", OfficeLength.Inches(10), OfficeLength.Inches(10), OfficeLength.Inches(4), OfficeLength.Inches(4), string.Empty);
-            var child = new VisioShape("child", OfficeLength.Inches(8), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "Far child");
+            var group = new VisioShape("group", OfficeLength.Inches(10), OfficeLength.Inches(10), OfficeLength.Inches(4), OfficeLength.Inches(4), string.Empty) {
+                Type = "Group", LocPinX = OfficeLength.Inches(2), LocPinY = OfficeLength.Inches(2)
+            };
+            var child = new VisioShape("child", OfficeLength.Inches(8), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), "Far child") {
+                LocPinX = OfficeLength.Inches(1), LocPinY = OfficeLength.Inches(1)
+            };
             group.Children.Add(child);
             page.Shapes.Add(group);
 
@@ -283,7 +287,10 @@ namespace OfficeIMO.Tests {
         public void NestedContainerRefitUsesParentCoordinates() {
             VisioDocument document = VisioDocument.Create();
             VisioPage page = document.AddPage("Nested containers", OfficeLength.Inches(20), OfficeLength.Inches(20));
-            var group = new VisioShape("group", OfficeLength.Inches(10), OfficeLength.Inches(10), OfficeLength.Inches(8), OfficeLength.Inches(6), string.Empty);
+            var group = new VisioShape("group", OfficeLength.Inches(10), OfficeLength.Inches(10), OfficeLength.Inches(8), OfficeLength.Inches(6), string.Empty) {
+                Type = "Group", LocPinX = OfficeLength.Inches(4), LocPinY = OfficeLength.Inches(3),
+                Angle = Math.PI / 6D
+            };
             var container = new VisioShape("container", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Container");
             container.SetUserCell("msvStructureType", "Container", "STR");
             var member = new VisioShape("member", OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(1.4), OfficeLength.Inches(0.8), "Nested member");

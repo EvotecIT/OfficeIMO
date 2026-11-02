@@ -54,8 +54,8 @@ namespace OfficeIMO.Tests {
             VisioShape masterShape = new("0", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty);
             VisioMaster master = new("2", "Rectangle", masterShape);
 
-            VisioShape shape1 = new("1", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Rectangle");
-            VisioShape shape2 = new("3", OfficeLength.Inches(3), OfficeLength.Inches(4), OfficeLength.Inches(2), OfficeLength.Inches(3), "Rectangle");
+            VisioShape shape1 = new("1", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Rectangle") { Master = master };
+            VisioShape shape2 = new("3", OfficeLength.Inches(3), OfficeLength.Inches(4), OfficeLength.Inches(2), OfficeLength.Inches(3), "Rectangle") { Master = master };
             page.Shapes.Add(shape1);
             page.Shapes.Add(shape2);
             document.Save();

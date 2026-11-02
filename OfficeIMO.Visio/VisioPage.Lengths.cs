@@ -5,13 +5,17 @@ public partial class VisioPage {
     public VisioShape AddContainer(string id, OfficeLength pinX, OfficeLength pinY, OfficeLength width, OfficeLength height, string? text = null, VisioContainerOptions? options = null) => AddContainerInches(id, pinX.ToInches(), pinY.ToInches(), width.ToInches(), height.ToInches(), text, options);
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
-    public VisioPage SetMargins(OfficeLength margin) => SetMarginsInches(margin.ToInches(), VisioMeasurementUnit.Inches);
+    public VisioPage SetMargins(OfficeLength margin) => SetMargins(margin, margin, margin, margin);
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
-    public VisioPage SetMargins(OfficeLength horizontal, OfficeLength vertical) => SetMarginsInches(horizontal.ToInches(), vertical.ToInches(), VisioMeasurementUnit.Inches);
+    public VisioPage SetMargins(OfficeLength horizontal, OfficeLength vertical) => SetMargins(horizontal, horizontal, vertical, vertical);
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
-    public VisioPage SetMargins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom) => SetMarginsInches(left.ToInches(), right.ToInches(), top.ToInches(), bottom.ToInches(), VisioMeasurementUnit.Inches);
+    public VisioPage SetMargins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom) {
+        SetMarginsInches(left.ToInches(), right.ToInches(), top.ToInches(), bottom.ToInches(), VisioMeasurementUnit.Inches);
+        _marginUnit = DefaultUnit;
+        return this;
+    }
 
     /// <summary>Applies physical lengths to the native Visio geometry.</summary>
     public VisioShape AddShape(string id, VisioMaster master, OfficeLength x, OfficeLength y, OfficeLength w, OfficeLength h, string? text = null) => AddShapeInches(id, master, x.ToInches(), y.ToInches(), w.ToInches(), h.ToInches(), text, VisioMeasurementUnit.Inches);

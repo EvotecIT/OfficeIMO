@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
         public void VisualQualityAnalyzerIgnoresGeneratedBackgroundCaptionAdornments() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("BackgroundCaption", OfficeLength.Inches(7), OfficeLength.Inches(5));
-            VisioShape background = new("zone", OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(2), string.Empty);
+            VisioShape background = new("zone", OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(2), string.Empty) { NameU = "Rectangle" };
             page.Shapes.Add(background);
             background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
             VisioShape caption = page.AddTextBox("zone-label", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.85, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.3, page.DefaultUnit)), "Zone");
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
         public void VisualQualityAnalyzerIgnoresCalloutsPlacedOnBackgroundSurfaces() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("BackgroundCallout", OfficeLength.Inches(7), OfficeLength.Inches(5));
-            VisioShape background = new("lane", OfficeLength.Inches(3), OfficeLength.Inches(2.5), OfficeLength.Inches(5), OfficeLength.Inches(2.5), string.Empty);
+            VisioShape background = new("lane", OfficeLength.Inches(3), OfficeLength.Inches(2.5), OfficeLength.Inches(5), OfficeLength.Inches(2.5), string.Empty) { NameU = "Rectangle" };
             page.Shapes.Add(background);
             background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
             VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Target");

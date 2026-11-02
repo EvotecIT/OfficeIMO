@@ -9,6 +9,8 @@ If OfficeIMO saves you time, please consider supporting the work through [GitHub
 
 Page dimensions, shape pins and sizes, and print margins use `OfficeLength`. Construct values with `OfficeLength.Inches`, `Centimeters`, `Millimeters` or `Points`; use `ToInches()` only at a numeric native-coordinate boundary. `scaleUnit` controls native drawing-scale metadata and does not reinterpret physical lengths.
 
+`OfficeLength` rounds public physical values to whole EMUs. Imported native geometry and formulas retain their numeric precision internally.
+
 ## Install
 
 ```powershell

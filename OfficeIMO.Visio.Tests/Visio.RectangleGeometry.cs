@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rect"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rect") { NameU = "Rectangle" });
             document.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);

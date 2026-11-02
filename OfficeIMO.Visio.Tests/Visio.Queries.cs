@@ -23,7 +23,10 @@ namespace OfficeIMO.Tests {
                 LocPinX = OfficeLength.Inches(2),
                 LocPinY = OfficeLength.Inches(1.5
             )};
-            VisioShape child = new("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
+            VisioShape child = new("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child") {
+                Name = "Nested child",
+                NameU = "NestedChild"
+            };
             VisioShape grandChild = new("grandchild", OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), OfficeLength.Inches(0.4), OfficeLength.Inches(0.4), "Grandchild");
 
             child.Children.Add(grandChild);

@@ -1211,7 +1211,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             loaded.UseMastersByDefault = true;
-            loaded.Pages[0].Shapes.Insert(0, new VisioShape("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Diamond"));
+            loaded.Pages[0].Shapes.Insert(0, new VisioShape("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Diamond") { NameU = "Diamond" });
 
             string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             loaded.Save(savedPath);
@@ -1300,7 +1300,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle") { NameU = "Rectangle" });
             document.Save();
 
             RewritePage(filePath, pageDoc => {
@@ -1353,7 +1353,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle") { NameU = "Rectangle" });
             document.Save();
             return filePath;
         }

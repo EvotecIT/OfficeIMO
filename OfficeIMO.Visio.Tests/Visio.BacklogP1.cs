@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         public void FluentDuplicateShapeIdsThrowHelpfulError() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
-            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 document.AsFluent()
                     .AddPage("Page1", p => p
                         .AddRectangle("dup", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Left")
@@ -70,6 +70,7 @@ namespace OfficeIMO.Tests {
                     .End());
 
             Assert.Contains("dup", exception.Message);
+            Assert.Single(document.GetPage(0).Shapes);
         }
 
         [Fact]
@@ -163,11 +164,11 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioMaster rectangleMaster = new("2", "Rectangle", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
-            VisioMaster ellipseMaster = new("2", "Ellipse", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
+            VisioMaster rectangleMaster = new("2", "Rectangle", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "Rectangle" });
+            VisioMaster ellipseMaster = new("2", "Ellipse", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "Ellipse" });
 
-            VisioShape rectangle = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle");
-            VisioShape ellipse = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Ellipse");
+            VisioShape rectangle = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle") { NameU = "Rectangle", Master = rectangleMaster };
+            VisioShape ellipse = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Ellipse") { NameU = "Ellipse", Master = ellipseMaster };
             page.Shapes.Add(rectangle);
             page.Shapes.Add(ellipse);
 

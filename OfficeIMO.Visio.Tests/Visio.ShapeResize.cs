@@ -73,8 +73,9 @@ public class VisioShapeResizeTests {
     [Fact]
     public void QuarterTurnChildAndTextFramesUseTheirOwnSwappedAxes() {
         var document = VisioDocument.Create(); var page = document.AddPage("Page");
-        var group = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), "");
-        var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "text");
+        var group = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), "") { Type = "Group" };
+        var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), "text") { Angle = Math.PI / 2,
+            TextStyle = new VisioTextStyle { TextAngle = Math.PI / 2, TextPinX = .3, TextPinY = .4, TextLocPinX = .2, TextLocPinY = .1 } };
         group.Children.Add(child); page.Shapes.Add(group);
         page.ResizeShape(group, OfficeLength.Inches(8), OfficeLength.Inches(2));
         Assert.Equal(2, child.PinX.ToInches()); Assert.Equal(1, child.PinY.ToInches());
@@ -113,9 +114,10 @@ public class VisioShapeResizeTests {
     [InlineData(true)]
     public void UnsupportedRotatedFramesLeaveTheEntireTreeUnchanged(bool textFrame) {
         var document = VisioDocument.Create(); var page = document.AddPage("Page");
-        var root = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), "");
+        var root = new VisioShape("group", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(4), "") { Type = "Group" };
         root.Children.Add(new VisioShape("first", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "valid"));
-        var child = new VisioShape("second", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "unsupported");
+        var child = new VisioShape("second", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "unsupported") { Angle = textFrame ? 0 : .3,
+            TextStyle = new VisioTextStyle { TextAngle = textFrame ? .3 : 0, TextWidth = .7 } };
         root.Children.Add(child); page.Shapes.Add(root);
         byte[] before = document.ToLegacyXmlResult().Value;
         Assert.Throws<NotSupportedException>(() => page.ResizeShape(root, OfficeLength.Inches(8), OfficeLength.Inches(2)));

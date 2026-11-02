@@ -24,7 +24,7 @@ public sealed class PdfPostprocessingFailureEvidenceTests {
                 source.Save(input);
             } else if (extension == ".vdx") {
                 var source = VisioDocument.Create();
-                source.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Caption");
+                source.AddPage("Page").AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Caption");
                 source.SaveLegacyXml(input, allowOmissions: true);
             } else if (extension == ".docx") {
                 using var source = WordDocument.Create(input);

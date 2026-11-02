@@ -14,18 +14,18 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Stencil Catalog", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21.0), scaleUnit: VisioMeasurementUnit.Centimeters);
 
-            VisioShape start = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "start", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(15, page.DefaultUnit)), "Receive request");
-            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart, "branch", "decision", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(13, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(15, page.DefaultUnit)), "Approved?");
+            VisioShape start = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "start", OfficeLength.Centimeters(5), OfficeLength.Centimeters(15), "Receive request");
+            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart, "branch", "decision", OfficeLength.Centimeters(13), OfficeLength.Centimeters(15), "Approved?");
             VisioStencilShape archiveStencil = VisioStencils.All.Search("data-store").First();
-            VisioShape storage = page.AddStencilShape(archiveStencil, "storage", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(21, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(15, page.DefaultUnit)), "Archive");
+            VisioShape storage = page.AddStencilShape(archiveStencil, "storage", OfficeLength.Centimeters(21), OfficeLength.Centimeters(15), "Archive");
             VisioStencilShape wireless = VisioStencils.Network.Search("access-point").First();
-            VisioShape accessPoint = page.AddStencilShape(wireless, "wifi", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(21, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), "Wi-Fi");
+            VisioShape accessPoint = page.AddStencilShape(wireless, "wifi", OfficeLength.Centimeters(21), OfficeLength.Centimeters(9), "Wi-Fi");
             VisioStencilCatalog custom = VisioStencilCatalog.Create("Custom Infrastructure", catalog => catalog
                 .Add("custom.cache", "Cache", "Process", "Infrastructure", 2.2, 1.0, "redis", "memory-store"));
             string manifestPath = Path.Combine(folderPath, "Custom Infrastructure.officeimo-visio-stencils.xml");
             custom.Save(manifestPath);
             VisioStencilCatalog reusableCustom = VisioStencilCatalog.Load(manifestPath);
-            VisioShape cache = page.AddStencilShape(custom, "redis", "cache", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(13, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), "Cache");
+            VisioShape cache = page.AddStencilShape(custom, "redis", "cache", OfficeLength.Centimeters(13), OfficeLength.Centimeters(9), "Cache");
 
             foreach (VisioShape shape in new[] { start, decision, storage, accessPoint, cache }) {
                 shape.FillColor = Color.FromRgb(231, 244, 255);

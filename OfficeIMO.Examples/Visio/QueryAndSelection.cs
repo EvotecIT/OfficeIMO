@@ -13,10 +13,10 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Ownership", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Receive request");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Review request");
-            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approved", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Approved?");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3.5, page.DefaultUnit)), "Archive");
+            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(2), OfficeLength.Inches(6), "Receive request");
+            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(5), OfficeLength.Inches(6), "Review request");
+            VisioShape decision = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approved", OfficeLength.Inches(8), OfficeLength.Inches(6), "Approved?");
+            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(8), OfficeLength.Inches(3.5), "Archive");
 
             page.AddConnector(intake, review, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).EndArrow = EndArrow.Triangle;
             page.AddConnector(review, decision, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).EndArrow = EndArrow.Triangle;

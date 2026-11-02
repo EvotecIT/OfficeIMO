@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             var doc = VisioDocument.Create(filePath);
             doc.UseMastersByDefault = true;
             var page = doc.AddPage("Page-1", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
-            var s1 = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "A");
-            var s2 = new VisioShape("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "B");
+            var s1 = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "A") { NameU = "Rectangle", FillColor = Color.LightBlue };
+            var s2 = new VisioShape("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(1.5), OfficeLength.Inches(1), "B") { NameU = "Rectangle", FillColor = Color.LightGreen };
             page.Shapes.Add(s1);
             page.Shapes.Add(s2);
             // Kind defaults to Dynamic; leave it.

@@ -24,8 +24,8 @@ public sealed class VisioDrawingProjectionTests {
             var projected = candidate.ToDrawings();
             Assert.Equal(3, projected.Value.Count);
             Assert.Equal((216D, 144D), (projected.Value[0].Width, projected.Value[0].Height));
-            Assert.Equal(0.072, projected.Value[1].Width, 9);
-            Assert.Equal(0.144, projected.Value[1].Height, 9);
+            Assert.Equal(OfficeLength.Inches(0.001).ToPoints(), projected.Value[1].Width, 9);
+            Assert.Equal(OfficeLength.Inches(0.002).ToPoints(), projected.Value[1].Height, 9);
             Assert.Empty(projected.Value[1].Elements);
             PdfDocumentConversionResult conversion = candidate.ToPdfDocumentResult(DiagramOptions());
             PdfDocument pdf = PdfDocument.Load(new System.IO.MemoryStream(conversion.ToBytes()));

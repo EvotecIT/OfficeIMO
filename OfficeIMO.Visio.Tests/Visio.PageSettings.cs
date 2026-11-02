@@ -43,8 +43,8 @@ namespace OfficeIMO.Tests {
             loaded.Save(roundTripPath);
 
             Assert.Empty(VisioValidator.Validate(roundTripPath));
-            string centimeterInches = XmlConvert.ToString(1D.ToInches(VisioMeasurementUnit.Centimeters));
-            AssertPageSettingsXml(roundTripPath, "Settings", centimeterInches, centimeterInches, centimeterInches, centimeterInches, "1", "1", "0", unit: "CM");
+            string centimeterInches = XmlConvert.ToString(OfficeLength.Centimeters(1).ToInches());
+            AssertPageSettingsXml(roundTripPath, "Settings", centimeterInches, centimeterInches, centimeterInches, centimeterInches, "1", "1", "0", unit: "IN");
 
             VisioDocument reloadedRoundTrip = VisioDocument.Load(roundTripPath);
             VisioPage reloadedSettings = reloadedRoundTrip.Pages.Single(current => current.Name == "Settings");

@@ -768,7 +768,7 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Grouped Label Avoidance").Size(OfficeLength.Inches(6), OfficeLength.Inches(3));
             VisioShape source = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Source");
             VisioShape target = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Target");
-            VisioShape group = new("group", OfficeLength.Inches(3), OfficeLength.Inches(1.5), OfficeLength.Inches(1.2), OfficeLength.Inches(1), string.Empty);
+            VisioShape group = new("group", OfficeLength.Inches(3), OfficeLength.Inches(1.5), OfficeLength.Inches(1.2), OfficeLength.Inches(1), string.Empty) { Type = "Group", FillPattern = 0 };
             group.SetUserCell("msvStructureType", "Container");
             VisioShape child = new("child", OfficeLength.Inches(0.6), OfficeLength.Inches(0.5), OfficeLength.Inches(1), OfficeLength.Inches(0.4), "Child");
             group.Children.Add(child);
@@ -1069,7 +1069,7 @@ namespace OfficeIMO.Tests {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Groups").Size(OfficeLength.Inches(5), OfficeLength.Inches(5));
-            VisioShape group = new("group", OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), string.Empty);
+            VisioShape group = new("group", OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(2), string.Empty) { Type = "Group", FillPattern = 0 };
             VisioShape child = new("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             group.Children.Add(child);
             page.Shapes.Add(group);

@@ -90,10 +90,20 @@ public sealed class VisioLayerRenderingTests {
         VisioDocument document = VisioDocument.Create();
         VisioPage page = document.AddPage("Independent children").Size(OfficeLength.Inches(4), OfficeLength.Inches(2));
         page.AddLayer("Hidden").Visible = false;
-        var group = new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(4), OfficeLength.Inches(2), "Hidden parent");
-        var visible = new VisioShape("2", OfficeLength.Inches(0.7), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Visible child");
-        var unassigned = new VisioShape("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Unassigned child");
-        var hidden = new VisioShape("4", OfficeLength.Inches(3.3), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Hidden child");
+        var group = new VisioShape("1", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(4), OfficeLength.Inches(2), "Hidden parent") {
+            Type = "Group", NameU = "Parent", FillColor = OfficeColor.Red, LinePattern = 0,
+            TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Missing Hidden Parent Font" }
+        };
+        var visible = new VisioShape("2", OfficeLength.Inches(0.7), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Visible child") {
+            NameU = "Visible child", FillColor = OfficeColor.Blue, LinePattern = 0,
+            TextStyle = new VisioTextStyle { FontFamily = "OfficeIMO Missing Visible Child Font" }
+        };
+        var unassigned = new VisioShape("3", OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Unassigned child") {
+            NameU = "Unassigned child", FillColor = OfficeColor.Green, LinePattern = 0
+        };
+        var hidden = new VisioShape("4", OfficeLength.Inches(3.3), OfficeLength.Inches(1), OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), "Hidden child") {
+            NameU = "Hidden child", FillColor = OfficeColor.Red, LinePattern = 0
+        };
         group.Children.Add(visible); group.Children.Add(unassigned); group.Children.Add(hidden);
         page.Shapes.Add(group);
         page.AddToLayer("Hidden", group).AddToLayer("Hidden", hidden);

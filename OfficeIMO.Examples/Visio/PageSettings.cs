@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Visio {
             page.AutoResizeDrawing = false;
             page.AllowShapeSplitting = false;
             page.UiVisibility = VisioPageUiVisibility.Normal;
-            page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.25, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Print-ready page");
+            page.AddRectangle(OfficeLength.Inches(5.5), OfficeLength.Inches(4.25), OfficeLength.Inches(2.4), OfficeLength.Inches(1), "Print-ready page");
 
             document.Save();
 

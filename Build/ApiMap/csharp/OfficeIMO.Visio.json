@@ -17,7 +17,7 @@
       "action": "rename",
       "new": "VisioPage.Width / Height : OfficeLength",
       "category": "units",
-      "replacement": "Use OfficeLength.Inches, Centimeters, Millimeters or Points when setting dimensions, and ToInches/ToCentimeters when a numeric value is needed.",
+      "replacement": "Use OfficeLength.Inches, Centimeters, Millimeters or Points when setting dimensions, and ToInches/ToCentimeters when a numeric value is needed. OfficeLength rounds physical values to whole EMUs; native imported geometry and formulas retain their original numeric precision internally.",
       "reason": "Physical dimensions have explicit units; the unit-specific and obsolete aliases are removed.",
       "applied": true
     },
@@ -57,7 +57,7 @@
       "action": "rename",
       "new": "AddRectangle / AddSquare / AddCircle / AddEllipse / AddDiamond / AddProcess / AddDecision / AddData / AddTextBox / SetMargins / AddShape / AddTitle; ApplyStyle",
       "category": "authoring",
-      "replacement": "Use Add-prefixed primitive names and OfficeLength arguments. Native page and shape models own preparation and return the created shape; fluent wrappers return their scope.",
+      "replacement": "Use Add-prefixed primitive names and OfficeLength arguments. Native page and shape models own preparation and return the created shape; fluent wrappers return their scope. Fluent operations now use the model ID validation and exception contract, including InvalidOperationException for duplicate page-object IDs.",
       "reason": "Fluent creation forwards to the same object-model methods, including explicit-ID overloads.",
       "applied": true
     },

@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
 
             double pinX = GetCellValue(shape, "PinX");
             double pinY = GetCellValue(shape, "PinY");
-            AssertApproximately(2.047244040636296, pinX);
-            AssertApproximately(6.73228320203895, pinY);
+            AssertApproximately(OfficeLength.Inches(2.047244040636296).ToInches(), pinX);
+            AssertApproximately(OfficeLength.Inches(6.73228320203895).ToInches(), pinY);
         }
 
         private static XDocument LoadXml(ZipArchive zip, string entryPath) {

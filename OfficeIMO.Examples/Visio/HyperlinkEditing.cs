@@ -12,9 +12,9 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Linked Architecture", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape portal = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Portal");
-            VisioShape api = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "API");
-            VisioShape runbook = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Runbook");
+            VisioShape portal = page.AddRectangle(OfficeLength.Inches(2), OfficeLength.Inches(5.5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Portal");
+            VisioShape api = page.AddRectangle(OfficeLength.Inches(5.5), OfficeLength.Inches(5.5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "API");
+            VisioShape runbook = page.AddRectangle(OfficeLength.Inches(9), OfficeLength.Inches(5.5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Runbook");
 
             portal.FillColor = Color.LightYellow;
             portal.AddHyperlink("https://github.com/EvotecIT/OfficeIMO", "OfficeIMO repository");

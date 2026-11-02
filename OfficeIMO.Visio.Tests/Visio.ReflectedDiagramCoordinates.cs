@@ -49,7 +49,7 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     [Fact]
     public void PublicAbsolutePointIncludesUnreflectedContainingGroups() {
         var document = VisioDocument.Create(); var page = document.AddPage("Coordinates");
-        var group = new VisioShape("group", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(4), "");
+        var group = new VisioShape("group", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(4), OfficeLength.Inches(4), "") { Angle = Math.PI / 2 };
         var child = new VisioShape("child", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
         group.Children.Add(child); page.Shapes.Add(group);
         var point = child.GetAbsolutePoint(0, 1);
@@ -191,8 +191,8 @@ public sealed class VisioReflectedDiagramCoordinateTests {
     }
 
     private static void AssertBounds(double left, double bottom, double right, double top, ShapeBounds bounds) {
-        Assert.Equal(left, bounds.Left.ToInches(), 8); Assert.Equal(bottom, bounds.Bottom.ToInches(), 8);
-        Assert.Equal(right, bounds.Right.ToInches(), 8); Assert.Equal(top, bounds.Top.ToInches(), 8);
+        Assert.Equal(OfficeLength.Inches(left), bounds.Left); Assert.Equal(OfficeLength.Inches(bottom), bounds.Bottom);
+        Assert.Equal(OfficeLength.Inches(right), bounds.Right); Assert.Equal(OfficeLength.Inches(top), bounds.Top);
     }
 
     private static VisioDocument Create(bool flipX, bool flipY, double angle = 0,

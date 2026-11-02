@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Visio {
 
             var doc = VisioDocument.Create(filePath);
             doc.AsFluent()
-               .Info(i => i.AddTitle("Fluent Visio").Author("OfficeIMO"))
+               .Info(i => i.Title("Fluent Visio").Author("OfficeIMO"))
                .AddPage("Page-1", p => p
                    .AddRectangle("S1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start")
                    .AddDiamond("D1", OfficeLength.Inches(4), OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(2), "Decision")

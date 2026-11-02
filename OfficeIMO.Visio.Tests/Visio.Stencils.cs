@@ -1431,7 +1431,7 @@ namespace OfficeIMO.Tests {
             });
             VisioStencilShape stencil = catalog.Get("rectangle");
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            document.RegisterMaster("Rectangle", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty), "builtin-rectangle");
+            document.RegisterMaster("Rectangle", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "Rectangle" }, "builtin-rectangle");
             VisioPage page = document.AddPage("Replace");
             VisioShape shape = page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Shape");
 

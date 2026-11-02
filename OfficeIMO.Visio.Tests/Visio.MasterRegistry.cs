@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
 
-            VisioShape blueprint = new("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty);
+            VisioShape blueprint = new("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "CustomProcess" };
             VisioMaster registered = document.RegisterMaster("CustomProcess", blueprint, "42");
 
             Assert.True(document.TryGetMaster("CustomProcess", out VisioMaster? found));
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RegisterMasterPreservesDistinctMastersWithDuplicateNameU() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioMaster first = new("1", "DuplicateName", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
-            VisioMaster second = new("2", "DuplicateName", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
+            VisioMaster first = new("1", "DuplicateName", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "DuplicateName" });
+            VisioMaster second = new("2", "DuplicateName", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "DuplicateName" });
 
             document.RegisterMaster(first);
             document.RegisterMaster(second);
@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RegisterMasterPreservesDistinctMastersWithDuplicatePackageIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
-            VisioMaster first = new("1", "PackageA", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
-            VisioMaster second = new("1", "PackageB", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
+            VisioMaster first = new("1", "PackageA", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "PackageA" });
+            VisioMaster second = new("1", "PackageB", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = "PackageB" });
 
             document.RegisterMaster(first);
             document.RegisterMaster(second);
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
         public void AddShapeByMasterNameUsesPageDefaultUnit() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            document.RegisterMaster("MetricRect", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty));
+            document.RegisterMaster("MetricRect", new VisioShape("1", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), string.Empty) { NameU = "MetricRect" });
 
             VisioPage page = document.AddPage("Metric", OfficeLength.Centimeters(21), OfficeLength.Centimeters(29.7), scaleUnit: VisioMeasurementUnit.Centimeters);
             VisioShape shape = page.AddShape("metric-1", "MetricRect", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.08, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2.54, page.DefaultUnit)), "Metric");

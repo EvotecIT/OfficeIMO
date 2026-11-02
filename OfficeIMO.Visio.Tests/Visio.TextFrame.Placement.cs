@@ -103,7 +103,16 @@ public sealed class VisioTextFramePlacementTests {
     [Fact]
     public void AuthoredSingleShapeMasterSuppliesItsTextStyleAndFrameToInstancesAndNativeMasterContent() {
         VisioDocument document = VisioDocument.Create();
-        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "MMMMMM");
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(0.5), OfficeLength.Inches(2), OfficeLength.Inches(1), "MMMMMM") {
+            Angle = Math.PI / 2, FillPattern = 0, LinePattern = 0,
+            TextStyle = new VisioTextStyle {
+                FontFamily = "Arial", Size = 16, Color = OfficeColor.Black, BackgroundColor = OfficeColor.Red,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center, VerticalAlignment = VisioTextVerticalAlignment.Middle,
+                LeftMargin = 0, RightMargin = 0, TopMargin = 0, BottomMargin = 0,
+                TextPinX = 1.5, TextPinY = 0.5, TextWidth = 1, TextHeight = 0.25,
+                TextLocPinX = 1, TextLocPinY = 0.125, TextAngle = -Math.PI / 2
+            }
+        };
         VisioMaster master = document.RegisterMaster("Authored frame", blueprint);
         VisioPage page = document.AddPage("Authored").Size(OfficeLength.Inches(8), OfficeLength.Inches(8));
         VisioShape instance = page.AddShape("instance", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));

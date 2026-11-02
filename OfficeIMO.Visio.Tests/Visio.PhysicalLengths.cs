@@ -31,7 +31,9 @@ public sealed class PhysicalLengthApiTests {
         Assert.Equal(2, Cell(nativeShape, "PinY"), 6);
         Assert.Equal(2, Cell(nativeShape, "Width"), 6);
         Assert.Equal(1, Cell(nativeShape, "Height"), 6);
-        var sheet = xml.Root!.Element(ns + "PageSheet")!;
+        using var pagesPart = zip.GetEntry("visio/pages/pages.xml")!.Open();
+        var pages = XDocument.Load(pagesPart);
+        var sheet = pages.Descendants(ns + "PageSheet").Single();
         Assert.Equal(21 / 2.54, Cell(sheet, "PageWidth"), 6);
         Assert.Equal(29.7 / 2.54, Cell(sheet, "PageHeight"), 6);
         Assert.Equal(0.5, Cell(sheet, "PageLeftMargin"), 6);

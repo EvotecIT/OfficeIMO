@@ -23,7 +23,7 @@ public sealed class VisioHyperlinkEffectiveMasterTests {
                 document.ImportStencilMasters(path);
             } finally { File.Delete(path); }
         } else {
-            var rectangle = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
+            var rectangle = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "") { NameU = "Rectangle" };
             rectangle.AddHyperlink("https://example.org/master-shape");
             rectangle.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child"));
             document.RegisterMaster("Rectangle", rectangle);
@@ -110,9 +110,9 @@ public sealed class VisioHyperlinkEffectiveMasterTests {
     public void NewMasterInstancesAndNestedCopiesKeepTheirCorrespondingMasterRowIdentities() {
         VisioDocument document = VisioDocument.Create();
         document.UseMastersByDefault = true;
-        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "");
+        var blueprint = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "") { NameU = "Links" };
         blueprint.AddHyperlink("https://example.org/master-root");
-        var childBlueprint = new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "");
+        var childBlueprint = new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "") { NameU = "Rectangle" };
         childBlueprint.AddHyperlink("https://example.org/master-child").RowName = "Row_2";
         blueprint.Children.Add(childBlueprint);
         VisioMaster master = document.RegisterMaster("Links", blueprint);

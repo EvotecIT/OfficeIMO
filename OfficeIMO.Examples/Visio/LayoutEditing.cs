@@ -14,10 +14,10 @@ namespace OfficeIMO.Examples.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Cleanup", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
 
-            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Receive request from customer");
-            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5.2, page.DefaultUnit)), "Review documentation and assign owner");
-            VisioShape approve = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approve", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(9, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4.1, page.DefaultUnit)), "Approved?");
-            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.8, page.DefaultUnit)), "Archive case data");
+            VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(2), OfficeLength.Inches(6), "Receive request from customer");
+            VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(6), OfficeLength.Inches(5.2), "Review documentation and assign owner");
+            VisioShape approve = page.AddStencilShape(VisioStencils.Flowchart.Get("decision"), "approve", OfficeLength.Inches(9), OfficeLength.Inches(4.1), "Approved?");
+            VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(5), OfficeLength.Inches(1.8), "Archive case data");
 
             foreach (VisioShape shape in new[] { intake, review, approve, archive }) {
                 shape.Data["CleanUp"] = "Yes";

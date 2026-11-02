@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
             // Native geometry is local to the connector; transform it to page inches.
             double Read(XElement element, string name) => double.Parse(CellValue(element, ns, name), System.Globalization.CultureInfo.InvariantCulture);
             var frame = new VisioShape("frame") {
-                PinX = OfficeLength.Inches(Read(connectorShape, "PinX")), PinY = OfficeLength.Inches(Read(connectorShape, "PinY")),
-                LocPinX = OfficeLength.Inches(Read(connectorShape, "LocPinX")), LocPinY = OfficeLength.Inches(Read(connectorShape, "LocPinY")), Angle = Read(connectorShape, "Angle")
+                PinXInches = Read(connectorShape, "PinX"), PinYInches = Read(connectorShape, "PinY"),
+                LocPinXInches = Read(connectorShape, "LocPinX"), LocPinYInches = Read(connectorShape, "LocPinY"), Angle = Read(connectorShape, "Angle")
             };
             var first = frame.GetAbsolutePoint(Read(lineToRows[0], "X"), Read(lineToRows[0], "Y"));
             var second = frame.GetAbsolutePoint(Read(lineToRows[1], "X"), Read(lineToRows[1], "Y"));

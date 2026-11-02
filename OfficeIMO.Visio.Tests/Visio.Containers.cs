@@ -325,7 +325,9 @@ namespace OfficeIMO.Tests {
         }
 
         private static VisioShape AddRect(VisioPage page, string id, double x, double y, double width, double height, string text) {
-            VisioShape shape = new(id, OfficeLength.Inches(x), OfficeLength.Inches(y), OfficeLength.Inches(width), OfficeLength.Inches(height), text);
+            VisioShape shape = new(id, OfficeLength.Inches(x), OfficeLength.Inches(y), OfficeLength.Inches(width), OfficeLength.Inches(height), text) {
+                NameU = "Rectangle"
+            };
             page.Shapes.Add(shape);
             return shape;
         }

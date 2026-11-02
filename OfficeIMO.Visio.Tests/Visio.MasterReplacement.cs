@@ -145,10 +145,10 @@ public sealed partial class VisioMasterReplacementTests {
     }
 
     private static VisioShape Blueprint(string rootId, string childId, string nestedId, string grandchildId, double width, double height, string childKind, string grandchildKind) {
-        var root = new VisioShape(rootId, OfficeLength.Inches(width / 2), OfficeLength.Inches(height / 2), OfficeLength.Inches(width), OfficeLength.Inches(height), "");
-        root.Children.Add(new VisioShape(childId, OfficeLength.Inches(width / 4), OfficeLength.Inches(height / 2), OfficeLength.Inches(width * .375), OfficeLength.Inches(height / 2), ""));
-        var nested = new VisioShape(nestedId, OfficeLength.Inches(width * .75), OfficeLength.Inches(height / 2), OfficeLength.Inches(width / 2), OfficeLength.Inches(height), "");
-        nested.Children.Add(new VisioShape(grandchildId, OfficeLength.Inches(width / 4), OfficeLength.Inches(height / 2), OfficeLength.Inches(width * .375), OfficeLength.Inches(height / 2), ""));
+        var root = new VisioShape(rootId, OfficeLength.Inches(width / 2), OfficeLength.Inches(height / 2), OfficeLength.Inches(width), OfficeLength.Inches(height), "") { FillPattern = 0, LinePattern = 0 };
+        root.Children.Add(new VisioShape(childId, OfficeLength.Inches(width / 4), OfficeLength.Inches(height / 2), OfficeLength.Inches(width * .375), OfficeLength.Inches(height / 2), "") { NameU = childKind });
+        var nested = new VisioShape(nestedId, OfficeLength.Inches(width * .75), OfficeLength.Inches(height / 2), OfficeLength.Inches(width / 2), OfficeLength.Inches(height), "") { FillPattern = 0, LinePattern = 0 };
+        nested.Children.Add(new VisioShape(grandchildId, OfficeLength.Inches(width / 4), OfficeLength.Inches(height / 2), OfficeLength.Inches(width * .375), OfficeLength.Inches(height / 2), "") { NameU = grandchildKind });
         root.Children.Add(nested); return root;
     }
     private static string MasterDefinition(VisioMaster master) {

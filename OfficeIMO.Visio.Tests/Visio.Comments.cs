@@ -20,7 +20,10 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Review", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
-            VisioShape api = new("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API");
+            VisioShape api = new("api", OfficeLength.Inches(3), OfficeLength.Inches(5), OfficeLength.Inches(2), OfficeLength.Inches(1), "API") {
+                Name = "Process",
+                NameU = "Process"
+            };
             page.Shapes.Add(api);
 
             VisioComment comment = page.AddComment(api, "Review security controls", "Przemyslaw", "PK", new VisioCommentOptions {

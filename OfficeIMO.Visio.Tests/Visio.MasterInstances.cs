@@ -87,7 +87,7 @@ public class VisioMasterInstancesTests {
     public void ImportIntoDocumentWithExistingFontsKeepsBothFontFamilies(bool guardedFont) {
         var stencil = VisioDocument.Create(VisioPackageType.Stencil);
         var root = new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "");
-        root.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Imported"));
+        root.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Imported") { TextStyle = new VisioTextStyle { FontFamily = "Consolas", Size = 12 } });
         stencil.RegisterMaster("Group", root);
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
         try {

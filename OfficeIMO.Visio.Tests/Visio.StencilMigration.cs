@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             VisioShape intake = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "intake", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Intake");
             VisioShape review = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "review", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Review");
             VisioShape archive = page.AddStencilShape(VisioStencils.Flowchart.Get("data"), "archive", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(8, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(6, page.DefaultUnit)), "Archive");
-            VisioShape custom = new("custom", OfficeLength.Inches(5), OfficeLength.Inches(3), OfficeLength.Inches(2.5), OfficeLength.Inches(1), "Custom");
+            VisioShape custom = new("custom", OfficeLength.Inches(5), OfficeLength.Inches(3), OfficeLength.Inches(2.5), OfficeLength.Inches(1), "Custom") { NameU = "LegacyCustom" };
             page.Shapes.Add(custom);
             review.FillColor = Color.LightYellow;
             review.SetShapeData("Owner", "Ops");
@@ -122,9 +122,9 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Catalog Queries", OfficeLength.Inches(11), OfficeLength.Inches(8.5));
             page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "worker", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(5, page.DefaultUnit)), "Worker");
-            VisioShape custom = new("legacy-system", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Legacy System");
+            VisioShape custom = new("legacy-system", OfficeLength.Inches(5), OfficeLength.Inches(5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Legacy System") { NameU = "LegacySystem" };
             page.Shapes.Add(custom);
-            VisioShape database = new("legacy-db", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Legacy DB");
+            VisioShape database = new("legacy-db", OfficeLength.Inches(8), OfficeLength.Inches(5), OfficeLength.Inches(2.2), OfficeLength.Inches(1), "Legacy DB") { NameU = "LegacyDataStore" };
             database.SetUserCell("Family", "DataStore");
             page.Shapes.Add(database);
             document.Save();

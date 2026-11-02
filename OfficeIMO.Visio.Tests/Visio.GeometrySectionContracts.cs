@@ -22,7 +22,7 @@ public sealed class VisioGeometrySectionContractTests {
         VisioPage page = document.AddPage("Generated").Size(OfficeLength.Inches(4), OfficeLength.Inches(3));
         foreach (string kind in kinds) {
             if (masters) document.RegisterMaster(kind, new VisioShape("blueprint", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
-            page.Shapes.Add(new VisioShape(kind, OfficeLength.Inches(2), OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
+            page.Shapes.Add(new VisioShape(kind, OfficeLength.Inches(2), OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = kind });
         }
 
         XElement[] sections = GetGeometry(document.ToBytes(), masters ? "visio/masters/" : "visio/pages/");
