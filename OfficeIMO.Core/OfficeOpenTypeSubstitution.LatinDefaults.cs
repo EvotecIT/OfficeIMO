@@ -161,9 +161,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         foreach (int index in features) {
             cancellationToken.ThrowIfCancellationRequested();
             int record = _featureList + 2 + index * 6;
-            string tag = ReadTag(record);
-            int setting = index == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
-                : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
+            int setting = LatinDefaultFeatureSetting(index, requiredFeature, ReadTag(record), settings);
             if (setting <= 0) continue;
             int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);
             int count = _reader.ReadUInt16(feature + 2);
@@ -180,5 +178,113 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int destination = 0;
         foreach (var lookup in lookups) result[destination++] = lookup;
         return result;
+    }
+
+    private static int LatinDefaultFeatureSetting(int featureIndex, int requiredFeature, string tag, OfficeTextFeatureSettings settings) =>
+        featureIndex == requiredFeature ? 1 : settings.TryGetValue(tag, out int explicitValue) ? explicitValue
+            : tag == "liga" || tag == "clig" || tag == "rlig" ? 1 : 0;
+
+    /// <summary>
+    /// Reports whether a selected Latin lookup that managed shaping declines could start a match on one of these glyphs.
+    /// </summary>
+    /// <remarks>
+    /// A declined lookup only simplifies output where its first-glyph coverage meets the run, or where a supported
+    /// lookup changes the run first. Tables whose features, lookups or coverage cannot be read are treated as applicable.
+    /// </remarks>
+    internal bool DeclinedLatinDefaultLookupMayApply(ICollection<int> glyphIds, OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
+        if (glyphIds == null) throw new ArgumentNullException(nameof(glyphIds));
+        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        try {
+            int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
+            if (features == null) return true;
+            int inspections = 0;
+            int operations = 0;
+            bool declined = false, applied = false;
+            foreach (int index in features) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int record = _featureList + 2 + index * 6;
+                if (LatinDefaultFeatureSetting(index, requiredFeature, ReadTag(record), settings) <= 0) continue;
+                int feature = Relative(_featureList, _reader.ReadUInt16(record + 4), 4);
+                int count = _reader.ReadUInt16(feature + 2);
+                if (count > MaximumLookupRecords) return true;
+                Ensure(feature + 4, checked(count * 2));
+                for (int lookup = 0; lookup < count; lookup++) {
+                    int lookupIndex = _reader.ReadUInt16(feature + 4 + lookup * 2);
+                    if (CanApplyLookup(lookupIndex, 0, ref inspections, cancellationToken)) {
+                        if (!applied) applied = LookupMayStartAt(lookupIndex, glyphIds, ref operations, cancellationToken);
+                        continue;
+                    }
+                    if (LookupMayStartAt(lookupIndex, glyphIds, ref operations, cancellationToken)) return true;
+                    declined = true;
+                }
+            }
+            // A supported lookup that changes this run can hand a declined lookup glyphs the run did not start with.
+            return declined && applied;
+        } catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
+            exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return true; }
+    }
+
+    private bool LookupMayStartAt(int lookupIndex, ICollection<int> glyphIds, ref int operations, CancellationToken cancellationToken) {
+        Ensure(_lookupList, 2);
+        int lookupCount = _reader.ReadUInt16(_lookupList);
+        if (lookupCount > MaximumLookupRecords || lookupIndex < 0 || lookupIndex >= lookupCount) return true;
+        Ensure(_lookupList + 2, checked(lookupCount * 2));
+        int lookup = Relative(_lookupList, _reader.ReadUInt16(_lookupList + 2 + lookupIndex * 2), 6);
+        int lookupType = _reader.ReadUInt16(lookup);
+        int subtableCount = _reader.ReadUInt16(lookup + 4);
+        if (subtableCount > MaximumSubtablesPerLookup) return true;
+        Ensure(lookup + 6, checked(subtableCount * 2));
+        for (int index = 0; index < subtableCount; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int subtable = Relative(lookup, _reader.ReadUInt16(lookup + 6 + index * 2), 4);
+            int type = lookupType;
+            if (lookupType == 7) {
+                Ensure(subtable, 8);
+                if (_reader.ReadUInt16(subtable) != 1) return true;
+                type = _reader.ReadUInt16(subtable + 2);
+                uint relative = _reader.ReadUInt32(subtable + 4);
+                if (relative > int.MaxValue) return true;
+                subtable = Relative(subtable, (int)relative, 4);
+            }
+            int coverage = FirstGlyphCoverage(type, subtable);
+            if (coverage < 0) return true;
+            foreach (int glyphId in glyphIds) {
+                if (CoverageIndex(coverage, glyphId, ref operations) >= 0) return true;
+            }
+        }
+        return false;
+    }
+
+    // Offset of the coverage that a subtable's first input glyph must match, or -1 when unknown.
+    private int FirstGlyphCoverage(int lookupType, int subtable) {
+        int format = _reader.ReadUInt16(subtable);
+        switch (lookupType) {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 8:
+                return Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
+            case 5:
+            case 6:
+                if (format == 1 || format == 2) return Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
+                if (format != 3) return -1;
+                int inputCount;
+                int firstInput;
+                if (lookupType == 5) {
+                    Ensure(subtable, 8);
+                    inputCount = _reader.ReadUInt16(subtable + 2);
+                    firstInput = subtable + 6;
+                } else {
+                    int backtrack = ReadBoundedCount(subtable + 2);
+                    int cursor = checked(subtable + 4 + backtrack * 2);
+                    Ensure(cursor, 4);
+                    inputCount = _reader.ReadUInt16(cursor);
+                    firstInput = cursor + 2;
+                }
+                return inputCount == 0 ? -1 : Relative(subtable, _reader.ReadUInt16(firstInput), 4);
+            default:
+                return -1;
+        }
     }
 }

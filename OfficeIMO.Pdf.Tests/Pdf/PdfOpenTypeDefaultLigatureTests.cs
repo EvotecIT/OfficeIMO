@@ -383,6 +383,17 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
 
+    [Fact]
+    public void UnsupportedLookupOutsideTheRunsGlyphsReportsNoLoss() {
+        // The declined IgnoreMarks ligature starts only on 's'; a run of 't' cannot reach it.
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('s', 't', scriptTag: "latn", lookupFlags: 8);
+        var report = new PdfConversionReport();
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.Text("tt")).ToBytes();
+        Assert.Contains("tt", PdfReadDocument.Open(pdf).ExtractText());
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
+    }
+
     [Theory]
     [InlineData("A ")]
     [InlineData("A B")]
