@@ -549,7 +549,7 @@ public class PdfPermissionPolicyTests {
         };
 
         PdfSanitizationResult sanitized = PdfDocument.Load(source, options).Sanitize();
-        PdfDocument updated = PdfDocument.Load(source, options).UpdateMetadata(title: "Authenticated title");
+        PdfDocument updated = PdfDocument.Load(source, options).UpdateProperties(title: "Authenticated title");
         Assert.True(sanitized.IsSanitized);
         Assert.Equal("Authenticated title", updated.Reader.Metadata().Title);
 

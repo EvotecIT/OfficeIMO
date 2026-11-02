@@ -67,8 +67,8 @@ namespace OfficeIMO.Visio {
                 .AsReadOnly();
 
             return new VisioInspectionSnapshot(
-                document.Title,
-                document.Author,
+                document.Properties.Title,
+                document.Properties.Author,
                 document.PackageTheme != null
                     ? string.IsNullOrWhiteSpace(document.PackageTheme.Name) ? document.PackageTheme.GetType().Name : document.PackageTheme.Name
                     : null,

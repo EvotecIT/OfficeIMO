@@ -170,9 +170,9 @@ namespace OfficeIMO.Excel {
             document._unchangedPackageBytes = null;
 
             // Initialize document property helpers
-            document.BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(document);
+            document.Properties = new ExcelBuiltinDocumentProperties(document);
             document.ApplicationProperties = new ExcelApplicationProperties(document);
-            document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
+            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
 
             if (theme != null) document.SetWorkbookThemeXml(CreateWorkbookThemeXml(theme));
@@ -211,9 +211,9 @@ namespace OfficeIMO.Excel {
                 _persistenceMode = persistenceMode,
             };
 
-            document.BuiltinDocumentProperties = new ExcelBuiltinDocumentProperties(document);
+            document.Properties = new ExcelBuiltinDocumentProperties(document);
             document.ApplicationProperties = new ExcelApplicationProperties(document);
-            document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
+            document.CustomProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
             ExcelChartAxisIdGenerator.Initialize(document._spreadSheetDocument);
             return document;

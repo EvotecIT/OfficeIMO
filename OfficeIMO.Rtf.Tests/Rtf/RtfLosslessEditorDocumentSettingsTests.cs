@@ -56,7 +56,7 @@ public class RtfLosslessEditorDocumentSettingsTests {
         Assert.False(settings.SnapToDrawingGrid);
         Assert.True(settings.DrawingGridUsesMargins);
         Assert.Equal(RtfTextDirection.LeftToRight, settings.Direction);
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 

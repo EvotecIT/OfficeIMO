@@ -16,3 +16,13 @@ static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAs<T>(this OfficeIMO.E
 static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel<T>(this OfficeIMO.Excel.ExcelDocument! document, OfficeIMO.Data.ParallelRowMappingOptions? parallelOptions = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel<T>(this OfficeIMO.Excel.ExcelDocument! document, System.Action<OfficeIMO.Data.RowMapper<T>!>! configure, OfficeIMO.Data.ParallelRowMappingOptions? parallelOptions = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 static OfficeIMO.Excel.ExcelDocumentMappingExtensions.RowsAsParallel<T>(this OfficeIMO.Excel.ExcelDocument! document, System.Func<System.Data.IDataRecord!, T>! factory, OfficeIMO.Data.ParallelRowMappingOptions? parallelOptions = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
+*REMOVED*OfficeIMO.Excel.ExcelDocument.BuiltinDocumentProperties.get -> OfficeIMO.Excel.ExcelBuiltinDocumentProperties!
+*REMOVED*OfficeIMO.Excel.ExcelDocument.CustomDocumentProperties.get -> OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection!
+*REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
+*REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.HasLoss.get -> bool
+*REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.RequireNoLoss() -> void
+*REMOVED*OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult.RequireNoLoss() -> OfficeIMO.Excel.ExcelDocument!
+OfficeIMO.Excel.ExcelDocument.CustomProperties.get -> OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection!
+OfficeIMO.Excel.ExcelDocument.Properties.get -> OfficeIMO.Excel.ExcelBuiltinDocumentProperties!
+OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult.ThrowIfLoss() -> void
+override OfficeIMO.Excel.ExcelSpreadsheetXmlReport.HasLoss.get -> bool

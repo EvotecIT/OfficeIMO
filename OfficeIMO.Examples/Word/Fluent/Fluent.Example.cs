@@ -13,12 +13,12 @@ namespace OfficeIMO.Examples.Word
             using (WordDocument document = WordDocument.Create(filePath))
             {
                 {
-                    document.BuiltinDocumentProperties.Title = "Fluent Document";
-                    document.BuiltinDocumentProperties.Creator = "Fluent Author";
-                    document.BuiltinDocumentProperties.Subject = "Fluent Subject";
-                    document.BuiltinDocumentProperties.Keywords = "fluent, api";
-                    document.BuiltinDocumentProperties.Description = "Created via fluent API";
-                    document.CustomDocumentProperties["Reviewed"] = new WordCustomProperty(true);
+                    document.Properties.Title = "Fluent Document";
+                    document.Properties.Creator = "Fluent Author";
+                    document.Properties.Subject = "Fluent Subject";
+                    document.Properties.Keywords = "fluent, api";
+                    document.Properties.Description = "Created via fluent API";
+                    document.CustomProperties["Reviewed"] = new WordCustomProperty(true);
                     var section1 = document.Sections.Last();
                     section1 = document.AddSection();
                     var paragraph2 = document.AddParagraph();

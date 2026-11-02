@@ -89,17 +89,17 @@ public sealed class PowerPointOdpReviewLossTests {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(),
             new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
-        source.BuiltinDocumentProperties.Title = "Quarterly slides";
-        source.BuiltinDocumentProperties.Creator = "Ada";
-        source.BuiltinDocumentProperties.Subject = "Forecast";
-        source.BuiltinDocumentProperties.Description = "Board review";
-        source.BuiltinDocumentProperties.Keywords = "private,forecast";
+        source.Properties.Title = "Quarterly slides";
+        source.Properties.Creator = "Ada";
+        source.Properties.Subject = "Forecast";
+        source.Properties.Description = "Board review";
+        source.Properties.Keywords = "private,forecast";
 
         OdfConversionResult<OdpPresentation> result = source.ToOpenDocumentResult();
-        Assert.Equal("Quarterly slides", result.Value.Metadata.Title);
-        Assert.Equal("Ada", result.Value.Metadata.Creator);
-        Assert.Equal("Forecast", result.Value.Metadata.Subject);
-        Assert.Equal("Board review", result.Value.Metadata.Description);
+        Assert.Equal("Quarterly slides", result.Value.Properties.Title);
+        Assert.Equal("Ada", result.Value.Properties.Creator);
+        Assert.Equal("Forecast", result.Value.Properties.Subject);
+        Assert.Equal("Board review", result.Value.Properties.Description);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "document-metadata" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
@@ -140,7 +140,7 @@ public sealed class PowerPointOdpReviewLossTests {
         source.OpenXmlDocument.PackageProperties.Language = "en-US";
         source.OpenXmlDocument.PackageProperties.Identifier = "urn:example:presentation";
         OdfConversionResult<OdpPresentation> result = source.ToOpenDocumentResult();
-        Assert.Equal("en-US", result.Value.Metadata.Language);
+        Assert.Equal("en-US", result.Value.Properties.Language);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "document-metadata" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(

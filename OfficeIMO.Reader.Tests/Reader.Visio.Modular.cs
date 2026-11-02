@@ -269,8 +269,8 @@ public sealed class ReaderVisioModularTests {
     private static MemoryStream BuildSampleVisio() {
         var stream = new MemoryStream();
         VisioDocument document = VisioDocument.Create(stream);
-        document.Title = "Topology";
-        document.Author = "OfficeIMO";
+        document.Properties.Title = "Topology";
+        document.Properties.Author = "OfficeIMO";
         VisioPage page = document.AddPage("Topology", 8, 5);
         VisioShape gateway = page.AddRectangle(1.5, 3.5, 1.4, 0.7, "Gateway");
         gateway.SetShapeData("Owner", "Platform", "Owner", VisioShapeDataType.String);

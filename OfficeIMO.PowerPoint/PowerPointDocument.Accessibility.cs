@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
             var findings = new List<PowerPointAccessibilityFinding>();
             var slideInfos = new List<PowerPointAccessibilitySlideInfo>(_slides.Count);
 
-            if (resolved.RequireDocumentTitle && string.IsNullOrWhiteSpace(BuiltinDocumentProperties.Title)) {
+            if (resolved.RequireDocumentTitle && string.IsNullOrWhiteSpace(Properties.Title)) {
                 findings.Add(new PowerPointAccessibilityFinding(PowerPointAccessibilitySeverity.Error,
                     "accessibility-missing-document-title",
                     "The presentation package does not define a document title."));

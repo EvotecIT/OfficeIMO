@@ -35,13 +35,13 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.AddSheet("Data").CellValue(1, 1, "Ready");
-                document.CustomDocumentProperties["Direct"] = new ExcelCustomProperty("Tracked");
+                document.CustomProperties["Direct"] = new ExcelCustomProperty("Tracked");
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
-                Assert.Equal("Tracked", document.CustomDocumentProperties["Direct"].Text);
-                document.CustomDocumentProperties.Clear();
+                Assert.Equal("Tracked", document.CustomProperties["Direct"].Text);
+                document.CustomProperties.Clear();
                 document.Save();
             }
 

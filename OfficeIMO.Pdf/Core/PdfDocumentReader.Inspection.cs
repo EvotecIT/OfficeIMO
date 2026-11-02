@@ -21,14 +21,14 @@ internal sealed partial class PdfDocumentReader {
     /// <summary>
     /// Reads PDF document metadata from the Info dictionary.
     /// </summary>
-    public PdfMetadata Metadata(PdfLoadOptions? readOptions = null) {
+    public PdfDocumentProperties Metadata(PdfLoadOptions? readOptions = null) {
         return DocumentInfo(readOptions).Metadata;
     }
 
     /// <summary>
     /// Attempts to read PDF document metadata, returning diagnostics when blocked or failed.
     /// </summary>
-    internal PdfOperationResult<PdfMetadata> MetadataResult(PdfLoadOptions? options = null) {
+    internal PdfOperationResult<PdfDocumentProperties> MetadataResult(PdfLoadOptions? options = null) {
         return _document.TryOperation("Read metadata", PdfPreflightCapability.ReadLogicalObjects, () => Metadata(options), ResolveReadOptions(options));
     }
 

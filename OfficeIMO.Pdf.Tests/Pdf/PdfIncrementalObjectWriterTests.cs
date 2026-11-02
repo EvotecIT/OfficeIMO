@@ -9,7 +9,7 @@ public class PdfIncrementalObjectWriterTests {
         byte[] source = PdfExternalDocumentCompatibilityTests.BuildXrefStreamPdfWithTrailingStaleDuplicatePage();
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
         int number = objects.Keys.Max() + 1;
-        objects[number] = new PdfIndirectObject(number, 0, PdfInfoDictionaryBuilder.BuildDictionary(new PdfMetadata { Title = "Classic revision" }));
+        objects[number] = new PdfIndirectObject(number, 0, PdfInfoDictionaryBuilder.BuildDictionary(new PdfDocumentProperties { Title = "Classic revision" }));
         byte[] classic = PdfIncrementalObjectWriter.Append(source, objects, PdfSyntax.ReadDocumentSecurityInfo(source), trailer,
             new[] { number }, infoObjectNumberOverride: number, format: PdfIncrementalXrefFormat.ClassicTable);
         Assert.True(PdfSyntax.ReadDocumentSecurityInfo(classic).HasXrefStreams);
@@ -32,7 +32,7 @@ public class PdfIncrementalObjectWriterTests {
         int infoObjectNumber = objects.Keys.Max() + 1;
         byte[] infoObject = PdfObjectBytes.WrapIndirectObject(
             infoObjectNumber,
-            PdfInfoDictionaryBuilder.Build(new PdfMetadata { Title = "Updated xref-stream title" }));
+            PdfInfoDictionaryBuilder.Build(new PdfDocumentProperties { Title = "Updated xref-stream title" }));
 
         byte[] updated = PdfIncrementalObjectWriter.Append(
             source,
@@ -60,7 +60,7 @@ public class PdfIncrementalObjectWriterTests {
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(source);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(source);
         int objectNumber = objects.Keys.Max() + 1;
-        byte[] raw = PdfObjectBytes.WrapIndirectObject(objectNumber, PdfInfoDictionaryBuilder.Build(new PdfMetadata()));
+        byte[] raw = PdfObjectBytes.WrapIndirectObject(objectNumber, PdfInfoDictionaryBuilder.Build(new PdfDocumentProperties()));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfIncrementalObjectWriter.Append(
             source,

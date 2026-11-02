@@ -45,7 +45,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged };
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
         Assert.True(rendered.HasLoss);
-        Assert.All(rendered.Diagnostics.Where(d => d.Severity != HtmlDiagnosticSeverity.Info), diagnostic =>
+        Assert.All(rendered.NativeDiagnostics.Where(d => d.Severity != HtmlDiagnosticSeverity.Info), diagnostic =>
             Assert.NotEqual(OfficeConversionLossKind.None, diagnostic.LossKind));
         options.Policy.RequireNoLoss = true;
         Assert.Throws<OfficeImageExportPolicyException>(() => document.ExportImage(OfficeImageExportFormat.Svg, options));

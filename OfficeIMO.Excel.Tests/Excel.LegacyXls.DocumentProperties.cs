@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound))) {
                     AssertLegacyDocumentProperties(document, created, modified, reviewedAt, binaryPayload, assertModified: true);
-                    Assert.Equal("7", document.BuiltinDocumentProperties.Revision);
+                    Assert.Equal("7", document.Properties.Revision);
                     document.Save(outputPath);
                 }
 
@@ -84,26 +84,26 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertLegacyDocumentProperties(ExcelDocument document, DateTime created, DateTime modified, DateTime reviewedAt, byte[] binaryPayload, bool assertModified) {
-            Assert.Equal("Legacy Metadata Workbook", document.BuiltinDocumentProperties.Title);
-            Assert.Equal("XLS metadata parity", document.BuiltinDocumentProperties.Subject);
-            Assert.Equal("OfficeIMO Legacy Import", document.BuiltinDocumentProperties.Creator);
-            Assert.Equal("xls, metadata, parity", document.BuiltinDocumentProperties.Keywords);
-            Assert.Equal("OLE SummaryInformation comments", document.BuiltinDocumentProperties.Description);
-            Assert.Equal("Legacy Category", document.BuiltinDocumentProperties.Category);
-            Assert.Equal("Metadata Reviewer", document.BuiltinDocumentProperties.LastModifiedBy);
-            AssertSameInstant(created, document.BuiltinDocumentProperties.Created);
+            Assert.Equal("Legacy Metadata Workbook", document.Properties.Title);
+            Assert.Equal("XLS metadata parity", document.Properties.Subject);
+            Assert.Equal("OfficeIMO Legacy Import", document.Properties.Creator);
+            Assert.Equal("xls, metadata, parity", document.Properties.Keywords);
+            Assert.Equal("OLE SummaryInformation comments", document.Properties.Description);
+            Assert.Equal("Legacy Category", document.Properties.Category);
+            Assert.Equal("Metadata Reviewer", document.Properties.LastModifiedBy);
+            AssertSameInstant(created, document.Properties.Created);
             if (assertModified) {
-                AssertSameInstant(modified, document.BuiltinDocumentProperties.Modified);
+                AssertSameInstant(modified, document.Properties.Modified);
             }
             Assert.Equal("EvotecIT", document.ApplicationProperties.Company);
             Assert.Equal("Workbook Manager", document.ApplicationProperties.Manager);
-            Assert.Equal("Ready", document.CustomDocumentProperties["ReleaseStatus"].Text);
-            Assert.Equal(1998, document.CustomDocumentProperties["Ticket"].NumberInteger);
-            Assert.Equal(98.5D, document.CustomDocumentProperties["Score"].NumberDouble);
-            Assert.True(document.CustomDocumentProperties["Reviewed"].Bool);
-            AssertSameInstant(reviewedAt, document.CustomDocumentProperties["ReviewedAt"].Date);
-            Assert.Equal(ExcelCustomPropertyType.Binary, document.CustomDocumentProperties["BinaryPayload"].PropertyType);
-            Assert.Equal(binaryPayload, document.CustomDocumentProperties["BinaryPayload"].Binary);
+            Assert.Equal("Ready", document.CustomProperties["ReleaseStatus"].Text);
+            Assert.Equal(1998, document.CustomProperties["Ticket"].NumberInteger);
+            Assert.Equal(98.5D, document.CustomProperties["Score"].NumberDouble);
+            Assert.True(document.CustomProperties["Reviewed"].Bool);
+            AssertSameInstant(reviewedAt, document.CustomProperties["ReviewedAt"].Date);
+            Assert.Equal(ExcelCustomPropertyType.Binary, document.CustomProperties["BinaryPayload"].PropertyType);
+            Assert.Equal(binaryPayload, document.CustomProperties["BinaryPayload"].Binary);
         }
 
         private static void AssertScalarCustomPropertyVariantTypes(ExcelDocument document, DateTime oleDate) {

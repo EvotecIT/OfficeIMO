@@ -27,13 +27,13 @@ public sealed class ExcelContentTypeDefaultsTests {
             PersistenceMode = DocumentPersistenceMode.Explicit
         })) {
             ExcelSheet sheet = document["Data"];
-            ExcelCustomProperty property = document.CustomDocumentProperties["Review"];
+            ExcelCustomProperty property = document.CustomProperties["Review"];
             Assert.Equal(42, sheet.CellAt(1, 1).GetValue<int>());
             Assert.Equal("Original metadata", property.Value);
 
             sheet.CellValue(1, 1, 84);
             property.Value = "Updated metadata";
-            document.BuiltinDocumentProperties.Title = "Updated title";
+            document.Properties.Title = "Updated title";
             document.Save(output);
         }
 
@@ -45,8 +45,8 @@ public sealed class ExcelContentTypeDefaultsTests {
         output.Position = 0;
         using var reopened = ExcelDocument.Load(output);
         Assert.Equal(84, reopened["Data"].CellAt(1, 1).GetValue<int>());
-        Assert.Equal("Updated metadata", reopened.CustomDocumentProperties["Review"].Value);
-        Assert.Equal("Updated title", reopened.BuiltinDocumentProperties.Title);
+        Assert.Equal("Updated metadata", reopened.CustomProperties["Review"].Value);
+        Assert.Equal("Updated title", reopened.Properties.Title);
     }
 
     private static byte[] CreateWorkbookWithInheritedXmlContentType(bool worksheetDefault) {

@@ -290,13 +290,13 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
-                document.BuiltinDocumentProperties.Title = "Performance Review";
+                document.Properties.Title = "Performance Review";
                 document.ApplicationProperties.Company = "Evotec";
             }
 
             memory.Position = 0;
             using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("Performance Review", loaded.BuiltinDocumentProperties.Title);
+            Assert.Equal("Performance Review", loaded.Properties.Title);
             Assert.Equal("Evotec", loaded.ApplicationProperties.Company);
         }
 
@@ -6425,7 +6425,7 @@ namespace OfficeIMO.Tests
             table.Rows.Add("Alpha");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.BuiltinDocumentProperties.Title = "Sales Export";
+                document.Properties.Title = "Sales Export";
                 var sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, tableName: "SalesTable");
 
@@ -6436,7 +6436,7 @@ namespace OfficeIMO.Tests
 
             memory.Position = 0;
             using var loaded = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-            Assert.Equal("Sales Export", loaded.BuiltinDocumentProperties.Title);
+            Assert.Equal("Sales Export", loaded.Properties.Title);
             Assert.True(loaded.Sheets[0].TryGetCellText(2, 1, out string? text));
             Assert.Equal("Alpha", text);
         }

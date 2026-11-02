@@ -16,7 +16,7 @@ public sealed class PdfPageExtractionSessionTests {
         outputs.AddRange(source.Pages.Split());
         outputs.AddRange(source.Pages.Split(PdfPageSelection.From(2), PdfPageSelection.From(1)));
         foreach (PdfDocument output in outputs) {
-            PdfMetadata metadata = PdfReadDocument.Open(output.ToBytes()).Metadata;
+            PdfDocumentProperties metadata = PdfReadDocument.Open(output.ToBytes()).Metadata;
             Assert.Equal("Original title", metadata.Title);
             Assert.Null(metadata.Author);
         }

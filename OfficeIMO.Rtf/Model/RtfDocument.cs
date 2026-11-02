@@ -85,8 +85,8 @@ public sealed partial class RtfDocument {
     /// <summary>XML namespace declarations from the RTF <c>xmlnstbl</c> destination.</summary>
     public IReadOnlyList<RtfXmlNamespace> XmlNamespaces => _xmlNamespaces.AsReadOnly();
 
-    /// <summary>Document information metadata.</summary>
-    public RtfDocumentInfo Info { get; private set; } = new RtfDocumentInfo();
+    /// <summary>Standard document properties stored in the RTF information group.</summary>
+    public RtfDocumentInfo Properties { get; private set; } = new RtfDocumentInfo();
 
     /// <summary>Document page size and margins.</summary>
     public RtfPageSetup PageSetup { get; private set; } = new RtfPageSetup();

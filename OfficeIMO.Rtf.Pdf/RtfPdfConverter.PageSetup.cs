@@ -9,10 +9,10 @@ internal static partial class RtfPdfConverter {
         }
 
         pdf.Meta(
-            title: document.Info.Title,
-            author: document.Info.Author,
-            subject: document.Info.Subject,
-            keywords: document.Info.Keywords);
+            title: document.Properties.Title,
+            author: document.Properties.Author,
+            subject: document.Properties.Subject,
+            keywords: document.Properties.Keywords);
     }
 
     private static void ApplyPageSetup(RtfDocument document, RtfPageSetup setup, PdfCore.PdfCreateOptions options) {

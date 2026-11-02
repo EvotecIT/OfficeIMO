@@ -96,7 +96,7 @@ internal static partial class RtfSemanticReader {
             ReadPageSetup(root, _document.PageSetup);
             ReadNoteSettings(root, _document.NoteSettings);
             ReadDocumentSettings(root, _document.Settings);
-            ReadInfo(root, _document.Info, ansiCodePage, unicodeSkipCount);
+            ReadInfo(root, _document.Properties, ansiCodePage, unicodeSkipCount);
             _document.ReplaceUserProperties(ReadUserProperties(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceDocumentVariables(ReadDocumentVariables(root, ansiCodePage, unicodeSkipCount));
             RtfHtmlEncapsulation? htmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount: 1);

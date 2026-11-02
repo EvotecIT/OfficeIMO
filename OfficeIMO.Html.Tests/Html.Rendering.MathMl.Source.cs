@@ -93,7 +93,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(HtmlDiagnosticSeverity.Info, normalized.Severity);
         Assert.Equal(OfficeConversionLossKind.None, normalized.LossKind);
         Assert.False(string.IsNullOrWhiteSpace(normalized.Detail));
-        Assert.DoesNotContain(rendered.Diagnostics, item => item.Source == normalized.Source && item.Severity != HtmlDiagnosticSeverity.Info);
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item => item.Source == normalized.Source && item.Severity != HtmlDiagnosticSeverity.Info);
     }
 
     [Fact]

@@ -229,7 +229,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(RtfDocumentCharacterSet.Ansi, result.Document.Settings.CharacterSet);
         Assert.Equal(1250, result.Document.Settings.AnsiCodePage);
-        Assert.Equal("ŁąŚ", result.Document.Info.Title);
+        Assert.Equal("ŁąŚ", result.Document.Properties.Title);
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
         Assert.Equal("ŁąŚ", paragraph.ToPlainText());
     }
@@ -246,7 +246,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(expectedCharacterSet, result.Document.Settings.CharacterSet);
         Assert.Null(result.Document.Settings.AnsiCodePage);
-        Assert.Equal(expectedText, result.Document.Info.Title);
+        Assert.Equal(expectedText, result.Document.Properties.Title);
         Assert.Equal(expectedText, Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
     }
@@ -259,7 +259,7 @@ public partial class RtfDocumentReadWriteTests {
 
         Assert.Equal(RtfDocumentCharacterSet.Mac, result.Document.Settings.CharacterSet);
         Assert.Equal(1252, result.Document.Settings.AnsiCodePage);
-        Assert.Equal("€", result.Document.Info.Title);
+        Assert.Equal("€", result.Document.Properties.Title);
         Assert.Equal("€", Assert.Single(result.Document.Paragraphs).ToPlainText());
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
     }

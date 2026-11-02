@@ -23,8 +23,8 @@ public sealed class ReaderRtfModularTests {
     [Fact]
     public void DocumentReaderRtf_RichResult_MapsMetadataLinksFormsTablesAndImagePayloads() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "Rich RTF";
-        document.Info.Author = "OfficeIMO";
+        document.Properties.Title = "Rich RTF";
+        document.Properties.Author = "OfficeIMO";
         RtfParagraph headerParagraph = document.AddHeader().AddParagraph("Confidential ");
         headerParagraph.AddText("header portal").SetHyperlink(new Uri("https://example.test/header"));
         RtfParagraph paragraph = document.AddParagraph("Portal ");

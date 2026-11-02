@@ -87,7 +87,7 @@ internal sealed partial class LegacyXlsPreservationSnapshot {
 
     // Compare values rather than a dirty flag: import can populate pending properties before this baseline.
     private static string CaptureCustomProperties(ExcelDocument document) => string.Join("\0",
-        document.CustomDocumentProperties.OrderBy(item => item.Key, StringComparer.Ordinal)
+        document.CustomProperties.OrderBy(item => item.Key, StringComparer.Ordinal)
             .Select(item => item.Value.ToOpenXml(item.Key).OuterXml + "\0" +
                 (item.Value.PropertyType == ExcelCustomPropertyType.DateTime
                     ? Convert.ToDateTime(item.Value.Value, System.Globalization.CultureInfo.InvariantCulture)

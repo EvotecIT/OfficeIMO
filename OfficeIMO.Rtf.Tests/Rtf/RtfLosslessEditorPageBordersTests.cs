@@ -42,7 +42,7 @@ public class RtfLosslessEditorPageBordersTests {
         Assert.Equal(2, borders.Top.ColorIndex);
         Assert.True(borders.Top.Frame);
         Assert.False(borders.Bottom.HasAnyValue);
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 

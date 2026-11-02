@@ -34,7 +34,7 @@ public sealed class StudioDocumentStructureTests {
         string root = CreateRoot();
         string path = CreateDocument(root);
         try {
-            PdfDocument.Load(path).UpdateMetadata(title: "  Original  ").Save(path);
+            PdfDocument.Load(path).UpdateProperties(title: "  Original  ").Save(path);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await model.OpenDocumentAsync(path);
 

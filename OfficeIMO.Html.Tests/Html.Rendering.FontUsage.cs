@@ -83,7 +83,7 @@ public sealed class HtmlFontUsageTests {
         HtmlRenderDocument rendered = await RenderAsync("p{font-family:Fallback}", "<p>Visible text</p>",
             "@font-face{font-family:Fallback;src:url('data:font/ttf;base64,AAECAw=='),url('https://font.example/good.ttf')}", missingFamily: null);
         Assert.False(rendered.HasLoss);
-        Assert.Equal(HtmlDiagnosticSeverity.Info, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported).Severity);
+        Assert.Equal(HtmlDiagnosticSeverity.Info, Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported).Severity);
     }
 
     [Fact]
@@ -164,7 +164,7 @@ public sealed class HtmlFontUsageTests {
         var rendered = await RenderAsync("p{font-family:'Good, Family',Missing}", "<p>Visible text</p>",
             "@font-face{font-family:'Good, Family';src:url('https://font.example/good.ttf')}");
         Assert.False(rendered.HasLoss);
-        Assert.Equal(HtmlDiagnosticSeverity.Info, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+        Assert.Equal(HtmlDiagnosticSeverity.Info, Assert.Single(rendered.NativeDiagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
     }
 
     private static async Task<HtmlRenderDocument> RenderAsync(string css, string body, string extraFaces = "", string? missingFamily = "Missing") =>

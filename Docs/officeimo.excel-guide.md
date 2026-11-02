@@ -35,7 +35,7 @@ reads current criteria and table ownership. Creating the handle preserves deferr
 workbook exports. `AddTableOfContents` returns the sheet it creates, and
 `AddPivotManualGrouping` returns the created `ExcelPivotGroupingInfo`.
 
-`CustomDocumentProperties.Add` returns the attached `ExcelCustomProperty`, so edits
+`CustomProperties.Add` returns the attached `ExcelCustomProperty`, so edits
 to the returned value are saved with the workbook. The collection also implements
 `IDictionary<string, ExcelCustomProperty>` and `ICollection<KeyValuePair<string, ExcelCustomProperty>>`.
 
@@ -794,7 +794,7 @@ Inspect named table definitions with `document.GetTables()` for the workbook or 
 
 Worksheet handles remain usable after saving, including when the save rebuilds the underlying package. You can keep an `ExcelSheet`, save the workbook, then continue editing or inspecting that worksheet. This includes saving a fresh workbook as a template or macro-enabled package and adding VBA to an open workbook. Removed worksheet handles still raise `InvalidOperationException` when inspected and cannot become handles to replacement sheets. Picture handles and captured mutation plans retain their separate package-lifetime checks.
 
-You can also retain `BuiltinDocumentProperties`, `ApplicationProperties`, and individual `CustomDocumentProperties` values across saves. Later edits update the current workbook; removing or replacing a custom property detaches its previous value. After a transactional mutation rolls back, retained worksheet handles read the restored metadata and can continue changing names and visibility.
+You can also retain `Properties`, `ApplicationProperties`, and individual `CustomProperties` values across saves. Later edits update the current workbook; removing or replacing a custom property detaches its previous value. After a transactional mutation rolls back, retained worksheet handles read the restored metadata and can continue changing names and visibility.
 
 ```csharp
 using var document = ExcelDocument.Load("sales.xlsx");

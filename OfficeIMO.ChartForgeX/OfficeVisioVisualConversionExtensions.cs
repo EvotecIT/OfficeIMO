@@ -41,7 +41,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             throw new NotSupportedException("Preserve layout is supported only for topology envelopes.");
 
         VisioDocument document = VisioDocument.Create();
-        document.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
+        document.Properties.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
         return ProjectPage(validated, document, options, enforceFidelity);
     }
 

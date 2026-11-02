@@ -30,8 +30,8 @@ namespace OfficeIMO.Examples.Excel
             };
             using var doc = ExcelDocument.Create(filePath);
             {
-                doc.BuiltinDocumentProperties.Title = "OfficeIMO — Clickable Hyperlinks Example";
-                doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+                doc.Properties.Title = "OfficeIMO — Clickable Hyperlinks Example";
+                doc.Properties.Creator = "OfficeIMO";
                 doc.ApplicationProperties.Company = "Evotec";
                 doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
             }

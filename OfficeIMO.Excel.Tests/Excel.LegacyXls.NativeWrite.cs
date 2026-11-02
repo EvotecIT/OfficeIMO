@@ -2735,16 +2735,16 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Metadata");
                     sheet.CellValue(1, 1, "Document metadata");
-                    document.BuiltinDocumentProperties.Title = "Native Metadata Workbook";
-                    document.BuiltinDocumentProperties.Subject = "Native XLS metadata parity";
-                    document.BuiltinDocumentProperties.Creator = "OfficeIMO Native Writer";
-                    document.BuiltinDocumentProperties.Keywords = "xls, native, metadata";
-                    document.BuiltinDocumentProperties.Description = "Native XLS SummaryInformation comments";
-                    document.BuiltinDocumentProperties.Category = "Native Category";
-                    document.BuiltinDocumentProperties.LastModifiedBy = "Native Reviewer";
-                    document.BuiltinDocumentProperties.Revision = "12";
-                    document.BuiltinDocumentProperties.Created = created;
-                    document.BuiltinDocumentProperties.LastPrinted = lastPrinted;
+                    document.Properties.Title = "Native Metadata Workbook";
+                    document.Properties.Subject = "Native XLS metadata parity";
+                    document.Properties.Creator = "OfficeIMO Native Writer";
+                    document.Properties.Keywords = "xls, native, metadata";
+                    document.Properties.Description = "Native XLS SummaryInformation comments";
+                    document.Properties.Category = "Native Category";
+                    document.Properties.LastModifiedBy = "Native Reviewer";
+                    document.Properties.Revision = "12";
+                    document.Properties.Created = created;
+                    document.Properties.LastPrinted = lastPrinted;
                     document.ApplicationProperties.Company = "EvotecIT";
                     document.ApplicationProperties.Manager = "Workbook Manager";
                     document.SetCustomDocumentProperty("ReleaseStatus", "Ready");
@@ -2772,16 +2772,16 @@ namespace OfficeIMO.Tests {
                     "\u0005SummaryInformation",
                     "\u0005DocumentSummaryInformation",
                     "Workbook");
-                Assert.Equal("Native Metadata Workbook", loaded.BuiltinDocumentProperties.Title);
-                Assert.Equal("Native XLS metadata parity", loaded.BuiltinDocumentProperties.Subject);
-                Assert.Equal("OfficeIMO Native Writer", loaded.BuiltinDocumentProperties.Creator);
-                Assert.Equal("xls, native, metadata", loaded.BuiltinDocumentProperties.Keywords);
-                Assert.Equal("Native XLS SummaryInformation comments", loaded.BuiltinDocumentProperties.Description);
-                Assert.Equal("Native Category", loaded.BuiltinDocumentProperties.Category);
-                Assert.Equal("Native Reviewer", loaded.BuiltinDocumentProperties.LastModifiedBy);
-                Assert.Equal("12", loaded.BuiltinDocumentProperties.Revision);
-                AssertSameInstant(created, loaded.BuiltinDocumentProperties.Created);
-                AssertSameInstant(lastPrinted, loaded.BuiltinDocumentProperties.LastPrinted);
+                Assert.Equal("Native Metadata Workbook", loaded.Properties.Title);
+                Assert.Equal("Native XLS metadata parity", loaded.Properties.Subject);
+                Assert.Equal("OfficeIMO Native Writer", loaded.Properties.Creator);
+                Assert.Equal("xls, native, metadata", loaded.Properties.Keywords);
+                Assert.Equal("Native XLS SummaryInformation comments", loaded.Properties.Description);
+                Assert.Equal("Native Category", loaded.Properties.Category);
+                Assert.Equal("Native Reviewer", loaded.Properties.LastModifiedBy);
+                Assert.Equal("12", loaded.Properties.Revision);
+                AssertSameInstant(created, loaded.Properties.Created);
+                AssertSameInstant(lastPrinted, loaded.Properties.LastPrinted);
                 Assert.Equal("EvotecIT", loaded.ApplicationProperties.Company);
                 Assert.Equal("Workbook Manager", loaded.ApplicationProperties.Manager);
                 Assert.Equal("Ready", loaded.CustomProperties["ReleaseStatus"].Text);

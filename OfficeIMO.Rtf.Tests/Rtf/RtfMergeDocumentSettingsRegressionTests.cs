@@ -8,13 +8,13 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
     public void AHeaderOnlySectionImportInvalidatesExistingPageCounts() {
         RtfDocument destination = RtfDocument.Create();
         destination.AddParagraph("Destination");
-        destination.Info.NumberOfPages = 1;
+        destination.Properties.NumberOfPages = 1;
         RtfDocument source = RtfDocument.Create();
         source.AddHeader().AddParagraph("Imported header");
 
         var result = destination.AppendDocument(source, new RtfDocumentMergeOptions { PreserveSections = true });
         Assert.Equal(2, destination.Sections.Count);
-        Assert.Null(destination.Info.NumberOfPages);
+        Assert.Null(destination.Properties.NumberOfPages);
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfMergeStatisticsInvalidated");
         Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
     }
@@ -64,23 +64,23 @@ public sealed class RtfMergeDocumentSettingsRegressionTests {
     public void AppendInvalidatesAggregateCountsOnlyWhenCombiningContent() {
         RtfDocument source = RtfDocument.Create();
         source.AddParagraph("Two words");
-        source.Info.NumberOfWords = 2;
+        source.Properties.NumberOfWords = 2;
         RtfDocument destination = RtfDocument.Create();
         destination.AddParagraph("One");
-        destination.Info.NumberOfPages = 1;
-        destination.Info.NumberOfWords = 1;
-        destination.Info.NumberOfCharacters = 3;
-        destination.Info.NumberOfCharactersWithSpaces = 3;
+        destination.Properties.NumberOfPages = 1;
+        destination.Properties.NumberOfWords = 1;
+        destination.Properties.NumberOfCharacters = 3;
+        destination.Properties.NumberOfCharactersWithSpaces = 3;
         var result = destination.AppendDocument(source);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == "RtfMergeStatisticsInvalidated" && item.Action == RtfConversionAction.Omitted);
-        Assert.Null(destination.Info.NumberOfPages);
-        Assert.Null(destination.Info.NumberOfWords);
-        Assert.Null(destination.Info.NumberOfCharacters);
-        Assert.Null(destination.Info.NumberOfCharactersWithSpaces);
-        Assert.Equal(2, source.Info.NumberOfWords);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == "RtfMergeStatisticsInvalidated" && item.Action == RtfConversionAction.Omitted);
+        Assert.Null(destination.Properties.NumberOfPages);
+        Assert.Null(destination.Properties.NumberOfWords);
+        Assert.Null(destination.Properties.NumberOfCharacters);
+        Assert.Null(destination.Properties.NumberOfCharactersWithSpaces);
+        Assert.Equal(2, source.Properties.NumberOfWords);
         RtfDocument empty = RtfDocument.Create();
-        empty.AppendDocument(source).Report.RequireNoLoss();
-        Assert.Equal(2, empty.Info.NumberOfWords);
+        empty.AppendDocument(source).Report.ThrowIfLoss();
+        Assert.Equal(2, empty.Properties.NumberOfWords);
     }
 
     [Fact]

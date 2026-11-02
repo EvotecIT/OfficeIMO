@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests
                     sheet.CellValue(2, 1, "Beta");
                     sheet.CellValue(3, 1, "Gamma");
 
-                    document.BuiltinDocumentProperties.Title = "Stream Title";
-                    document.BuiltinDocumentProperties.Creator = "Stream Creator";
+                    document.Properties.Title = "Stream Title";
+                    document.Properties.Creator = "Stream Creator";
                     document.ApplicationProperties.Company = "Stream Company";
                     document.ApplicationProperties.Manager = "Stream Manager";
 
@@ -89,8 +89,8 @@ namespace OfficeIMO.Tests
                 using var memory = new MemoryStream(File.ReadAllBytes(filePath));
                 using var fromStream = ExcelDocument.Load(memory);
 
-                Assert.Equal("Stream Title", fromStream.BuiltinDocumentProperties.Title);
-                Assert.Equal("Stream Creator", fromStream.BuiltinDocumentProperties.Creator);
+                Assert.Equal("Stream Title", fromStream.Properties.Title);
+                Assert.Equal("Stream Creator", fromStream.Properties.Creator);
                 Assert.Equal("Stream Company", fromStream.ApplicationProperties.Company);
                 Assert.Equal("Stream Manager", fromStream.ApplicationProperties.Manager);
 
@@ -126,8 +126,8 @@ namespace OfficeIMO.Tests
                     sheet.CellValue(2, 1, "Epsilon");
                     sheet.CellValue(3, 1, "Zeta");
 
-                    document.BuiltinDocumentProperties.Title = "Async Stream Title";
-                    document.BuiltinDocumentProperties.Creator = "Async Stream Creator";
+                    document.Properties.Title = "Async Stream Title";
+                    document.Properties.Creator = "Async Stream Creator";
                     document.ApplicationProperties.Company = "Async Stream Company";
                     document.ApplicationProperties.Manager = "Async Stream Manager";
 
@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests
                 using var memory = new MemoryStream(File.ReadAllBytes(filePath));
                 await using var fromStream = await ExcelDocument.LoadAsync(memory);
 
-                Assert.Equal("Async Stream Title", fromStream.BuiltinDocumentProperties.Title);
-                Assert.Equal("Async Stream Creator", fromStream.BuiltinDocumentProperties.Creator);
+                Assert.Equal("Async Stream Title", fromStream.Properties.Title);
+                Assert.Equal("Async Stream Creator", fromStream.Properties.Creator);
                 Assert.Equal("Async Stream Company", fromStream.ApplicationProperties.Company);
                 Assert.Equal("Async Stream Manager", fromStream.ApplicationProperties.Manager);
 

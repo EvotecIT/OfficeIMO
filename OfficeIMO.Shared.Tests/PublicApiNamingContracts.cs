@@ -412,7 +412,7 @@ public sealed class PublicApiNamingContracts {
             typeof(OfficeIMO.PowerPoint.PowerPointTableCellBorders)
         };
         string[] removedNames = {
-            "ApplicationProperties", "BuiltinDocumentProperties", "CapsStyle", "CompatibilityMode",
+            "ApplicationProperties", "Properties", "CapsStyle", "CompatibilityMode",
             "CoverPageTemplate", "CustomImagePartType", "WordImagePartType", "DocumentCleanupOptions", "ImageFillMode",
             "ShapeType", "SmartArtType", "TableOfContentStyle", "TargetFrame", "TextMatchType",
             "WrapTextImage", "ExecutionMode", "ExecutionPolicy", "HeaderFooterPosition",

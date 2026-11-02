@@ -112,7 +112,7 @@ public sealed class DrawPdfWorkflowTests {
         try {
             string input = Path.Combine(directory, "source" + extension), output = Path.Combine(directory, "result.pdf");
             var drawing = OdgDocument.Create();
-            drawing.Metadata.Title = "Unprojected metadata";
+            drawing.Properties.Title = "Unprojected metadata";
             drawing.AddPage("Rejected");
             if (extension == ".fodg") drawing.SaveFlatXml(input); else drawing.Save(input);
             byte[] original = { 1, 2, 3 };

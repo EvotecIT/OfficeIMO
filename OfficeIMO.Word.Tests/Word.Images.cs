@@ -85,8 +85,8 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithImages.docx");
             using var document = WordDocument.Create(filePath);
 
-            document.BuiltinDocumentProperties.Title = "This is sparta";
-            document.BuiltinDocumentProperties.Creator = "Przemek";
+            document.Properties.Title = "This is sparta";
+            document.Properties.Creator = "Przemek";
 
             var paragraph = document.AddParagraph("This paragraph starts with some text");
             paragraph.Text = "0th This paragraph started with some other text and was overwritten and made bold.";

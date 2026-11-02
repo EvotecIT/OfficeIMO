@@ -66,8 +66,8 @@ foreach (var sheet in workbook.Sheets) {
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("monthly.xlsx");
-workbook.BuiltinDocumentProperties.Title = "Monthly Report";
-workbook.BuiltinDocumentProperties.Creator = "OfficeIMO";
+workbook.Properties.Title = "Monthly Report";
+workbook.Properties.Creator = "OfficeIMO";
 var summary = workbook.AddSheet("Summary");
 summary.AddTable(new[] {
     new { Metric = "Users", Value = 1250 },
@@ -83,8 +83,8 @@ workbook.Save();
 ```csharp
 using var workbook = ExcelDocument.Create("props.xlsx");
 
-workbook.BuiltinDocumentProperties.Title = "Financial Report";
-workbook.BuiltinDocumentProperties.Creator = "Finance Team";
+workbook.Properties.Title = "Financial Report";
+workbook.Properties.Creator = "Finance Team";
 workbook.ApplicationProperties.Company = "Evotec";
 
 workbook.Save();

@@ -101,7 +101,7 @@ public sealed class DrawPdfConversionTests {
     [Fact]
     public void ImageCaptionsProjectWhileDocumentMetadataRemainsAnExplicitOmission() {
         OdgDocument source = CreateDrawing();
-        source.Metadata.Title = "Drawing title";
+        source.Properties.Title = "Drawing title";
         byte[] png = OfficeDrawingRasterRenderer.ToPng(new OfficeDrawing(2, 2).AddShape(OfficeShape.Rectangle(2, 2), 0, 0));
         var image = source.Pages[0].Shapes.AddImage(png, "caption.png", OdfRect.FromCentimeters(2, 3, 6, 2), "ImageCaption");
         var paragraph = image.AddParagraph("ImageCaptionMarker");

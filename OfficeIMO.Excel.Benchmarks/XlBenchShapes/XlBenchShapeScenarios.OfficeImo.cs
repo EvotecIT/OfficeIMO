@@ -227,8 +227,8 @@ internal static partial class XlBenchShapeScenarios {
 
     internal static byte[] OfficeImoProperties() {
         using var document = ExcelDocument.Load(new MemoryStream(PropertiesWorkbook));
-        document.BuiltinDocumentProperties.Title = PropertyTitle;
-        document.BuiltinDocumentProperties.Category = PropertyCategory;
+        document.Properties.Title = PropertyTitle;
+        document.Properties.Category = PropertyCategory;
         return Save(document);
     }
 

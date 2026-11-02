@@ -624,17 +624,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             if (properties.HasBuiltInProperties) {
-                document.BuiltinDocumentProperties.Title = properties.Title;
-                document.BuiltinDocumentProperties.Subject = properties.Subject;
-                document.BuiltinDocumentProperties.Creator = properties.Creator;
-                document.BuiltinDocumentProperties.Keywords = properties.Keywords;
-                document.BuiltinDocumentProperties.Description = properties.Description;
-                document.BuiltinDocumentProperties.Category = properties.Category;
-                document.BuiltinDocumentProperties.LastModifiedBy = properties.LastModifiedBy;
-                document.BuiltinDocumentProperties.Revision = properties.Revision;
-                document.BuiltinDocumentProperties.Created = properties.Created;
-                document.BuiltinDocumentProperties.Modified = properties.Modified;
-                document.BuiltinDocumentProperties.LastPrinted = properties.LastPrinted;
+                document.Properties.Title = properties.Title;
+                document.Properties.Subject = properties.Subject;
+                document.Properties.Creator = properties.Creator;
+                document.Properties.Keywords = properties.Keywords;
+                document.Properties.Description = properties.Description;
+                document.Properties.Category = properties.Category;
+                document.Properties.LastModifiedBy = properties.LastModifiedBy;
+                document.Properties.Revision = properties.Revision;
+                document.Properties.Created = properties.Created;
+                document.Properties.Modified = properties.Modified;
+                document.Properties.LastPrinted = properties.LastPrinted;
             }
 
             if (!string.IsNullOrEmpty(properties.Company)) {

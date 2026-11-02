@@ -12222,6 +12222,15 @@
       "files": [
         "OfficeIMO.PowerPoint/PowerPointDocument.UnifiedLifecycle.cs"
       ]
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
     }
   ],
   "packageMoves": [

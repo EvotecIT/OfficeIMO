@@ -308,7 +308,7 @@ public class PdfUtilityAdmissionCancellationTests {
         Buffer.BlockCopy(pdf, 0, prefixed, 3, pdf.Length);
         Action<Stream, Stream, PdfLoadOptions, CancellationToken>[] routes = {
             (input, output, limits, token) => PdfMetadataEditor.UpdateMetadata(input, output, limits, token, title: "Changed"),
-            (input, output, limits, token) => PdfMetadataEditor.ReplaceMetadata(input, output, new PdfMetadata { Title = "Changed" }, limits, token),
+            (input, output, limits, token) => PdfMetadataEditor.ReplaceMetadata(input, output, new PdfDocumentProperties { Title = "Changed" }, limits, token),
             (input, output, limits, token) => PdfMetadataEditor.SynchronizeMetadata(input, output, limits, token, title: "Changed")
         };
         foreach (var route in routes) {
@@ -350,7 +350,7 @@ public class PdfUtilityAdmissionCancellationTests {
         var encryption = new PdfStandardEncryptionOptions("reader") { OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128 };
         Action<PdfLoadOptions, CancellationToken>[] routes = {
             (limits, token) => PdfMetadataEditor.UpdateMetadata(sourcePath, outputPath, limits, token, title: "Changed"),
-            (limits, token) => PdfMetadataEditor.ReplaceMetadata(sourcePath, outputPath, new PdfMetadata { Title = "Changed" }, limits, token),
+            (limits, token) => PdfMetadataEditor.ReplaceMetadata(sourcePath, outputPath, new PdfDocumentProperties { Title = "Changed" }, limits, token),
             (limits, token) => PdfMetadataEditor.SynchronizeMetadata(sourcePath, outputPath, limits, token, title: "Changed"),
             (limits, token) => PdfSecurityEditor.Encrypt(sourcePath, outputPath, encryption, limits, token),
             (limits, token) => PdfSecurityEditor.Decrypt(sourcePath, outputPath, "owner", limits, token)
@@ -378,11 +378,11 @@ public class PdfUtilityAdmissionCancellationTests {
     public void DocumentMetadataAndSecurityFacadesPropagateCancellationAndPreserveTheirSource() {
         byte[] pdf = CreatePdf();
         PdfDocument document = PdfDocument.Load(pdf, new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = pdf.Length } });
-        var metadata = new PdfMetadata { Title = "Changed" };
+        var metadata = new PdfDocumentProperties { Title = "Changed" };
         var encryption = new PdfStandardEncryptionOptions("reader") { OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes128 };
         Func<CancellationToken, object>[] routes = {
-            token => document.UpdateMetadata(token, title: "Changed"),
-            token => document.ReplaceMetadata(metadata, token),
+            token => document.UpdateProperties(token, title: "Changed"),
+            token => document.ReplaceProperties(metadata, token),
             token => document.SynchronizeMetadata(token, title: "Changed"),
             token => document.AppendMetadataRevision(token, title: "Changed"),
             token => document.UpdateMetadataResult(token, title: "Changed"),
@@ -402,7 +402,7 @@ public class PdfUtilityAdmissionCancellationTests {
             Assert.Throws<OperationCanceledException>(() => route(cancellation.Token));
             Assert.Equal(pdf, document.ToBytes());
         }
-        Assert.Equal("Changed", document.UpdateMetadata(CancellationToken.None, title: "Changed").Inspect().Metadata.Title);
+        Assert.Equal("Changed", document.UpdateProperties(CancellationToken.None, title: "Changed").Inspect().Metadata.Title);
         Assert.Equal("Changed", document.SynchronizeMetadata(CancellationToken.None, title: "Changed").Inspect().Metadata.Title);
         byte[] revision = document.AppendMetadataRevision(CancellationToken.None, title: "Changed").ToBytes();
         Assert.Equal(pdf, revision.Take(pdf.Length).ToArray());
@@ -497,7 +497,7 @@ public class PdfUtilityAdmissionCancellationTests {
             (output, token) => PdfPageExtractor.ExtractPages(pdf, output, new[] { 1 }, null, token),
             (output, token) => PdfPageExtractor.ExtractPageRange(pdf, output, PdfPageRange.From(1, 1), null, token),
             (output, token) => PdfMetadataEditor.UpdateMetadata(pdf, output, null, token, title: "Changed"),
-            (output, token) => PdfMetadataEditor.ReplaceMetadata(pdf, output, new PdfMetadata { Title = "Changed" }, null, token),
+            (output, token) => PdfMetadataEditor.ReplaceMetadata(pdf, output, new PdfDocumentProperties { Title = "Changed" }, null, token),
             (output, token) => PdfMetadataEditor.SynchronizeMetadata(pdf, output, null, token, title: "Changed"),
             (output, token) => PdfPageImporter.AppendPages(new PdfPageImportOptions { CancellationToken = token }, pdf, pdf, output, null, 1),
             (output, token) => {

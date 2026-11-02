@@ -13,7 +13,7 @@ internal sealed partial class PdfWorkspace {
 
     internal bool CanEditAttachments => CanPlan(PdfMutationOperation.ModifyAttachments);
 
-    internal PdfMetadata? Metadata => DocumentInfo?.Metadata;
+    internal PdfDocumentProperties? Metadata => DocumentInfo?.Metadata;
 
     internal IReadOnlyList<PdfAttachmentInfo> Attachments => DocumentInfo?.Attachments ?? [];
 
@@ -21,7 +21,7 @@ internal sealed partial class PdfWorkspace {
         CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         // Empty strings clear a field; the engine keeps the Info dictionary and XMP packet in step.
         MutateBytesAsync(PdfWorkspaceOperationKind.Metadata, "Updated document properties", [],
-            bytes => LoadDocument(bytes).UpdateMetadata(title, author, subject, keywords).ToBytes(),
+            bytes => LoadDocument(bytes).UpdateProperties(title, author, subject, keywords).ToBytes(),
             cancellationToken, progress);
 
     internal Task EditBookmarksAsync(string description, IReadOnlyList<int> pages, Action<PdfBookmarkEditSession> edit,

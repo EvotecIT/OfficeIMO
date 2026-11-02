@@ -1831,6 +1831,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Word.FileNameField` | Renamed | `OfficeIMO.Word.WordFileNameField` | Format types start with the format name. |
 | Naming | `OfficeIMO.Word.RefField` | Renamed | `OfficeIMO.Word.WordRefField` | Format types start with the format name. |
 | Naming | `OfficeIMO.Word.SetField` | Renamed | `OfficeIMO.Word.WordSetField` | Format types start with the format name. |
+| Naming | `OfficeIMO.Word.WordDocument.BuiltinDocumentProperties` | Renamed | `OfficeIMO.Word.WordDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
+| Naming | `OfficeIMO.Word.WordDocument.CustomDocumentProperties` | Renamed | `OfficeIMO.Word.WordDocument.CustomProperties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
 | Naming | `OfficeIMO.Word.WordFieldFormat.ALPHABETICAL` | Renamed | `OfficeIMO.Word.WordFieldFormat.UpperLetter` | PowerShell compares enum names case-insensitively |
 | Naming | `OfficeIMO.Word.WordFieldFormat.Alphabetical` | Renamed | `OfficeIMO.Word.WordFieldFormat.LowerLetter` | PowerShell compares enum names case-insensitively |
 | Naming | `OfficeIMO.Word.WordFieldFormat.Mergeformat` | Renamed | `OfficeIMO.Word.WordFieldFormat.MergeFormat` | Enum members use PascalCase; PowerShell scripts are unaffected because PowerShell compares enum names case-insensitively. |
@@ -2312,6 +2314,8 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName = "")` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName = "")` | Sheet authoring uses AddSheet, matching ExcelSheet and the workbook Sheets collection. |
 | Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode)` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode)` | Sheet authoring uses AddSheet, matching ExcelSheet and the workbook Sheets collection. |
 | Naming | `OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken)` | Renamed | `OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken)` | Sheet authoring uses AddSheet, matching ExcelSheet and the workbook Sheets collection. |
+| Naming | `OfficeIMO.Excel.ExcelDocument.BuiltinDocumentProperties` | Renamed | `OfficeIMO.Excel.ExcelDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
+| Naming | `OfficeIMO.Excel.ExcelDocument.CustomDocumentProperties` | Renamed | `OfficeIMO.Excel.ExcelDocument.CustomProperties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
 | Options | `OfficeIMO.Excel.ExcelDocumentConversionOptions` | Merged | `OfficeIMO.OfficeConversionOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.Excel.ExcelHttpLoadOptions` | Merged | `OfficeIMO.Excel.ExcelLoadOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.Excel.ExcelReadOptions` | Renamed | `OfficeIMO.Excel.ExcelReaderOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
@@ -2948,6 +2952,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Units | `OfficeIMO.PowerPoint.PowerPointUnits.FromPoints(double points)` | Internal | &mdash; | OfficeLength factories and ToPoints/ToInches/ToEmus conversions |
 | Units | `OfficeIMO.PowerPoint.PowerPointUnits.ToInches(long emus)` | Internal | &mdash; | OfficeLength factories and ToPoints/ToInches/ToEmus conversions |
 | Units | `OfficeIMO.PowerPoint.PowerPointUnits.ToPoints(long emus)` | Internal | &mdash; | OfficeLength factories and ToPoints/ToInches/ToEmus conversions |
+| Naming | `OfficeIMO.PowerPoint.PowerPointDocument.BuiltinDocumentProperties` | Renamed | `OfficeIMO.PowerPoint.PowerPointDocument.Properties` | Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate. |
 | Naming | `OfficeIMO.PowerPoint.PowerPointPresentation` | Renamed | `OfficeIMO.PowerPoint.PowerPointDocument` | The document type follows WordDocument, ExcelDocument and PdfDocument. Document-specific conversion, image export and mutation types use Document in their names as well. |
 | Options | `OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportOptions` | Merged | `OfficeIMO.PowerPoint.PowerPointLoadOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
 | Options | `OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions` | Renamed | `OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions` | Options are {Format}{Create\|Load\|Save}Options, or {Format}{Target}ExportOptions / {Format}{Source}ImportOptions for conversions. |
@@ -7289,8 +7294,8 @@ Format-specific public type renames include:
 
 | OfficeIMO 3.0 or early 3.1 preview | OfficeIMO 3.1 |
 | --- | --- |
-| Word `ApplicationProperties` / `BuiltinDocumentProperties` | `WordApplicationProperties` / `WordBuiltinDocumentProperties` |
-| Excel `ApplicationProperties` / `BuiltinDocumentProperties` | `ExcelApplicationProperties` / `ExcelBuiltinDocumentProperties` |
+| Word `ApplicationProperties` / `Properties` | `WordApplicationProperties` / `WordBuiltinDocumentProperties` |
+| Excel `ApplicationProperties` / `Properties` | `ExcelApplicationProperties` / `ExcelBuiltinDocumentProperties` |
 | `CapsStyle` / `CompatibilityMode` / `CoverPageTemplate` | `WordCapsStyle` / `WordCompatibilityMode` / `WordCoverPageTemplate` |
 | `CustomImagePartType` / `WordImagePartType` / `ImageFillMode` / `WrapTextImage` | `OfficeImageFormat` / `WordImageFillMode` / `WordImageTextWrapping` |
 | `ShapeType` / `SmartArtType` | `WordShapeType` / `WordSmartArtType` |

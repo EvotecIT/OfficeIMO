@@ -31,7 +31,7 @@ public class RtfLosslessEncodingRegressionTests {
         editor.SetDocumentVariable("żName", "Łódź");
         editor.SetRevisionAuthor(0, "Przemysław");
         RtfDocument document = editor.ToReadResult().Document;
-        Assert.Equal("Zażółć", document.Info.Title);
+        Assert.Equal("Zażółć", document.Properties.Title);
         Assert.Equal("Czcionka ż", document.Fonts.Single(font => font.Id == 3).Name);
         Assert.Equal("Śródka", document.Styles.Single(style => style.Id == 5).Name);
         Assert.Equal("żName", Assert.Single(document.DocumentVariables).Name);

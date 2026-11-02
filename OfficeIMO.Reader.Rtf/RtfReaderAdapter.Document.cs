@@ -88,10 +88,10 @@ internal static partial class RtfReaderAdapter {
             SourceHash = source.SourceHash,
             LastWriteUtc = source.LastWriteUtc,
             LengthBytes = source.LengthBytes,
-            Title = document.Info.Title,
-            Author = document.Info.Author,
-            Subject = document.Info.Subject,
-            Keywords = document.Info.Keywords
+            Title = document.Properties.Title,
+            Author = document.Properties.Author,
+            Subject = document.Properties.Subject,
+            Keywords = document.Properties.Keywords
         };
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
             chunks,
@@ -336,8 +336,8 @@ internal static partial class RtfReaderAdapter {
             RtfMetadata("rtf-asset-count", "AssetCount", projection.Assets.Count),
             RtfMetadata("rtf-form-count", "FormFieldCount", projection.Forms.Count)
         };
-        if (document.Info.NumberOfPages.HasValue && document.Info.NumberOfPages.Value > 0) {
-            metadata.Add(RtfMetadata("rtf-page-count", "NumberOfPages", document.Info.NumberOfPages.Value));
+        if (document.Properties.NumberOfPages.HasValue && document.Properties.NumberOfPages.Value > 0) {
+            metadata.Add(RtfMetadata("rtf-page-count", "NumberOfPages", document.Properties.NumberOfPages.Value));
         }
         return metadata.AsReadOnly();
     }

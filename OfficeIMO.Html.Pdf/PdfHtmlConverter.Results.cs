@@ -245,7 +245,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static void ReportMetadataFidelity(
-        PdfCore.PdfMetadata metadata,
+        PdfCore.PdfDocumentProperties metadata,
         bool hasXmpMetadata,
         PdfToHtmlOptions options) {
         // The semantic body section retains all four fields even without a document shell.

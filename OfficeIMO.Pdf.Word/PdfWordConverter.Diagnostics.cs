@@ -294,16 +294,16 @@ namespace OfficeIMO.Pdf.Word {
             }
         }
 
-        private static void CopyMetadata(PdfCore.PdfMetadata source, WordDocument target) {
-            target.BuiltinDocumentProperties.Title = source.Title;
-            target.BuiltinDocumentProperties.Creator = source.Author;
-            target.BuiltinDocumentProperties.Subject = source.Subject;
-            target.BuiltinDocumentProperties.Keywords = source.Keywords;
+        private static void CopyMetadata(PdfCore.PdfDocumentProperties source, WordDocument target) {
+            target.Properties.Title = source.Title;
+            target.Properties.Creator = source.Author;
+            target.Properties.Subject = source.Subject;
+            target.Properties.Keywords = source.Keywords;
         }
 
 
         private static void ReportMetadataFidelity(
-            PdfCore.PdfMetadata source,
+            PdfCore.PdfDocumentProperties source,
             bool hasXmpMetadata,
             WordPdfImportOptions options) {
             int copiedFieldOmissionCount = 0;

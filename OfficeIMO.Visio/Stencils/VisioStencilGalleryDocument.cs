@@ -49,9 +49,9 @@ namespace OfficeIMO.Visio.Stencils {
             string title = string.IsNullOrWhiteSpace(effectiveOptions.Title)
                 ? catalog.Name + " Stencil Gallery"
                 : effectiveOptions.Title!;
-            document.Title = title;
+            document.Properties.Title = title;
             if (!string.IsNullOrWhiteSpace(effectiveOptions.Author)) {
-                document.Author = effectiveOptions.Author;
+                document.Properties.Author = effectiveOptions.Author;
             }
 
             document.UseMastersByDefault = effectiveOptions.UseMastersByDefault;

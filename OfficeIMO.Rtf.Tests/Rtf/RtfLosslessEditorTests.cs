@@ -44,8 +44,8 @@ public class RtfLosslessEditorTests {
 
         const string expected = @"{\rtf1\ansi{\*\generator New \{generator\} \u380?;}{\info{\title Keep}}\pard Body \'80\par}";
         Assert.Equal(expected, editor.ToRtf());
-        Assert.Equal("New {generator} ż", editor.ToReadResult().Document.Info.Generator);
-        Assert.Equal("Keep", editor.ToReadResult().Document.Info.Title);
+        Assert.Equal("New {generator} ż", editor.ToReadResult().Document.Properties.Generator);
+        Assert.Equal("Keep", editor.ToReadResult().Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -57,12 +57,12 @@ public class RtfLosslessEditorTests {
         editor.SetGenerator("OfficeIMO");
 
         Assert.Equal(@"{\rtf1\ansi\deff0{\*\generator OfficeIMO;}\pard Body\par}", editor.ToRtf());
-        Assert.Equal("OfficeIMO", editor.ToReadResult().Document.Info.Generator);
+        Assert.Equal("OfficeIMO", editor.ToReadResult().Document.Properties.Generator);
 
         editor.SetGenerator(null);
 
         Assert.Equal(rtf, editor.ToRtf());
-        Assert.Null(editor.ToReadResult().Document.Info.Generator);
+        Assert.Null(editor.ToReadResult().Document.Properties.Generator);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class RtfLosslessEditorTests {
         Assert.False(pageSetup.RtlGutter);
         Assert.False(pageSetup.Landscape);
         Assert.False(pageSetup.DifferentFirstPageHeaderFooter);
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -212,10 +212,10 @@ public class RtfLosslessEditorTests {
         Assert.Equal(expected, editor.ToRtf());
 
         RtfReadResult read = editor.ToReadResult();
-        Assert.Equal("New {title} ż", read.Document.Info.Title);
-        Assert.Equal("Evotec", read.Document.Info.Company);
-        Assert.Equal("https://example.test/", read.Document.Info.HyperlinkBase);
-        Assert.Null(read.Document.Info.Author);
+        Assert.Equal("New {title} ż", read.Document.Properties.Title);
+        Assert.Equal("Evotec", read.Document.Properties.Company);
+        Assert.Equal("https://example.test/", read.Document.Properties.HyperlinkBase);
+        Assert.Null(read.Document.Properties.Author);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -227,7 +227,7 @@ public class RtfLosslessEditorTests {
         editor.SetInfo(RtfDocumentInfoField.Title, "Created");
 
         Assert.Equal(@"{\rtf1\ansi{\info{\title Created}}\pard Body\par}", editor.ToRtf());
-        Assert.Equal("Created", editor.ToReadResult().Document.Info.Title);
+        Assert.Equal("Created", editor.ToReadResult().Document.Properties.Title);
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public class RtfLosslessEditorTests {
         editor.SetInfo(RtfDocumentInfoField.Title, null);
 
         Assert.Equal(@"{\rtf1\ansi\pard Body\par}", editor.ToRtf());
-        Assert.Null(editor.ToReadResult().Document.Info.Title);
+        Assert.Null(editor.ToReadResult().Document.Properties.Title);
     }
 
     [Fact]
@@ -255,7 +255,7 @@ public class RtfLosslessEditorTests {
         const string expected = @"{\rtf1\ansi{\info{\title Keep}{\creatim\yr2026\mo6\dy15\hr10\min20\sec30}\edmins42{\revtim\yr2026\mo6\dy16\hr11\min21\sec31}\nofwords120}\pard Body \'80\par}";
         Assert.Equal(expected, editor.ToRtf());
 
-        RtfDocumentInfo info = editor.ToReadResult().Document.Info;
+        RtfDocumentInfo info = editor.ToReadResult().Document.Properties;
         Assert.Equal(new DateTime(2026, 6, 15, 10, 20, 30), info.Created);
         Assert.Equal(new DateTime(2026, 6, 16, 11, 21, 31), info.Revised);
         Assert.Equal(42, info.EditingMinutes);
@@ -273,7 +273,7 @@ public class RtfLosslessEditorTests {
         editor.SetInfoNumber(RtfDocumentInfoNumberField.InternalVersion, 123);
 
         Assert.Equal(@"{\rtf1\ansi{\info{\printim\yr2026\mo1\dy2\hr3\min4\sec5}\vern123}\pard Body\par}", editor.ToRtf());
-        RtfDocumentInfo info = editor.ToReadResult().Document.Info;
+        RtfDocumentInfo info = editor.ToReadResult().Document.Properties;
         Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), info.Printed);
         Assert.Equal(123, info.InternalVersion);
     }
@@ -301,7 +301,7 @@ public class RtfLosslessEditorTests {
                 Assert.Equal("Region", variable.Name);
                 Assert.Equal("EMEA", variable.Value);
             });
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -388,7 +388,7 @@ public class RtfLosslessEditorTests {
                 Assert.Equal(3, xmlNamespace.Id);
                 Assert.Equal("urn:add", xmlNamespace.Uri);
             });
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -461,7 +461,7 @@ public class RtfLosslessEditorTests {
                 Assert.Equal(2, font.Id);
                 Assert.Equal("Added", font.Name);
             });
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"\pard\f1 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -617,7 +617,7 @@ public class RtfLosslessEditorTests {
                 Assert.Equal(RtfFileSource.Network, file.Sources);
             });
         Assert.Equal("urn:keep", Assert.Single(read.Document.XmlNamespaces).Uri);
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 
@@ -717,7 +717,7 @@ public class RtfLosslessEditorTests {
         RtfReadResult read = editor.ToReadResult();
         Assert.Equal(9, read.Document.RevisionRootSaveId);
         Assert.Equal(new[] { 15, 2048 }, read.Document.RevisionSaveIds);
-        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Equal("Keep", read.Document.Properties.Title);
         Assert.Contains(@"\pararsid20 Body \'80", editor.ToRtf(), StringComparison.Ordinal);
     }
 

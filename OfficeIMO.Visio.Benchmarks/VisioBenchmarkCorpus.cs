@@ -26,8 +26,8 @@ internal static class VisioBenchmarkCorpus {
 
     internal static VisioDocument CreateDocument(VisioBenchmarkScale scale) {
         VisioDocument document = VisioDocument.Create();
-        document.Title = $"Benchmark {scale.Name}";
-        document.Author = "OfficeIMO";
+        document.Properties.Title = $"Benchmark {scale.Name}";
+        document.Properties.Author = "OfficeIMO";
         for (int pageIndex = 0; pageIndex < scale.PageCount; pageIndex++) {
             VisioPage page = document.AddPage($"Page-{pageIndex + 1}", 20, 20);
             var shapes = new List<VisioShape>(scale.ShapesPerPage);

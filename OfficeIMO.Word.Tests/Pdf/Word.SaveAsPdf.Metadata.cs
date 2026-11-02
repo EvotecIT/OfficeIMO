@@ -8,13 +8,13 @@ namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
         public void Test_WordDocument_SaveAsPdf_Metadata() {
-            string docPath = Path.Combine(_directoryWithFiles, "PdfMetadata.docx");
-            string pdfPath = Path.Combine(_directoryWithFiles, "PdfMetadata.pdf");
+            string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentProperties.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentProperties.pdf");
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.BuiltinDocumentProperties.Title = "Pdf Title";
-                document.BuiltinDocumentProperties.Creator = "Pdf Author";
-                document.BuiltinDocumentProperties.Subject = "Pdf Subject";
-                document.BuiltinDocumentProperties.Keywords = "keyword1, keyword2";
+                document.Properties.Title = "Pdf Title";
+                document.Properties.Creator = "Pdf Author";
+                document.Properties.Subject = "Pdf Subject";
+                document.Properties.Keywords = "keyword1, keyword2";
                 document.AddParagraph("Test");
                 document.Save();
                 document.SaveAsPdf(pdfPath);
@@ -37,10 +37,10 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMetadata.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.BuiltinDocumentProperties.Title = "Native Pdf Title";
-                document.BuiltinDocumentProperties.Creator = "Native Pdf Author";
-                document.BuiltinDocumentProperties.Subject = "Native Pdf Subject";
-                document.BuiltinDocumentProperties.Keywords = "native, keyword";
+                document.Properties.Title = "Native Pdf Title";
+                document.Properties.Creator = "Native Pdf Author";
+                document.Properties.Subject = "Native Pdf Subject";
+                document.Properties.Keywords = "native, keyword";
                 document.AddParagraph("Native metadata");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFontMetadata.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.BuiltinDocumentProperties.Keywords = "native, keyword";
+                document.Properties.Keywords = "native, keyword";
                 document.AddParagraph("Native metadata font");
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions { FontFamily = "Times New Roman" });

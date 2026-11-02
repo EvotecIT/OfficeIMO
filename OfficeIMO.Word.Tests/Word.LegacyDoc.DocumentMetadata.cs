@@ -47,7 +47,7 @@ public partial class Word {
     [Fact]
     public void LegacyDoc_RequiredAssociatedStringsDoNotReplaceSummaryProperties() {
         using WordDocument source = CreateLegacyMetadataDocument(false);
-        source.BuiltinDocumentProperties.Title = "Document metadata";
+        source.Properties.Title = "Document metadata";
         byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] fib = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
@@ -60,7 +60,7 @@ public partial class Word {
         Assert.Equal(0, BitConverter.ToUInt16(table, offset + 4));
         for (int index = 0; index < 18; index++) Assert.Equal(0, BitConverter.ToUInt16(table, offset + 6 + index * 2));
         using WordDocument restored = WordDocument.Load(new MemoryStream(bytes));
-        Assert.Equal("Document metadata", restored.BuiltinDocumentProperties.Title);
+        Assert.Equal("Document metadata", restored.Properties.Title);
     }
 
     [Theory]

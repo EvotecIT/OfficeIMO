@@ -4,12 +4,12 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Updates metadata with cooperative cancellation, preserving the source document and its captured read limits.</summary>
-    public PdfDocument UpdateMetadata(CancellationToken cancellationToken, string? title = null, string? author = null,
+    public PdfDocument UpdateProperties(CancellationToken cancellationToken, string? title = null, string? author = null,
         string? subject = null, string? keywords = null) =>
         UpdateMetadata(title, author, subject, keywords, ReadOptions, cancellationToken);
 
     /// <summary>Replaces metadata with cooperative cancellation through parsing, rewriting and output adoption.</summary>
-    public PdfDocument ReplaceMetadata(PdfMetadata metadata, CancellationToken cancellationToken) {
+    public PdfDocument ReplaceProperties(PdfDocumentProperties metadata, CancellationToken cancellationToken) {
         Guard.NotNull(metadata, nameof(metadata));
         return ReplaceMetadata(metadata, ReadOptions, cancellationToken);
     }
@@ -34,7 +34,7 @@ public sealed partial class PdfDocument {
             options: options, cancellationToken: cancellationToken);
 
     /// <summary>Attempts metadata replacement with cancellation through planning, full rewriting and output adoption.</summary>
-    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfMetadata metadata, CancellationToken cancellationToken,
+    internal PdfOperationResult<PdfDocument> ReplaceMetadataResult(PdfDocumentProperties metadata, CancellationToken cancellationToken,
         PdfLoadOptions? options = null) {
         Guard.NotNull(metadata, nameof(metadata));
         return TryMutationOperation("Replace metadata", PdfPreflightCapability.ManipulatePages, PdfMutationOperation.UpdateMetadata,

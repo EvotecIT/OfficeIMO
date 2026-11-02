@@ -1001,7 +1001,7 @@ public class PdfTableStreamExportContracts {
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Invoice"))
             .ToBytes()))
-            .UpdateMetadata(title: "Invoice");
+            .UpdateProperties(title: "Invoice");
         WordPdfImportOptions visualOptions = WordPdfImportOptions.CreateVisualPages();
         visualOptions.IncludeMetadata = false;
         PdfWordConversionResult visualResult = opened.ConvertToWordWithEvidence(visualOptions);
@@ -1052,7 +1052,7 @@ public class PdfTableStreamExportContracts {
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
                 .Paragraph(paragraph => paragraph.Text("Invoice metadata source"))
                 .ToBytes()))
-            .UpdateMetadata(title: "Invoice", author: "Accounts payable");
+            .UpdateProperties(title: "Invoice", author: "Accounts payable");
         PdfDocumentReadResult logical = opened.Read();
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
         Assert.True(scope.HasDocumentMetadata);

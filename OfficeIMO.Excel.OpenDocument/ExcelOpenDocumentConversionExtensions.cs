@@ -22,9 +22,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelWorkbookInfo snapshot = source.Inspect();
         OdsDocument target = OdsDocument.Create();
         var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
-        target.Metadata.Title = snapshot.Title;
-        target.Metadata.Creator = snapshot.Author;
-        target.Metadata.Subject = snapshot.Subject;
+        target.Properties.Title = snapshot.Title;
+        target.Properties.Creator = snapshot.Author;
+        target.Properties.Subject = snapshot.Subject;
         ExportWorkbookDefaultFont(source, target);
         NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
@@ -410,9 +410,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         effective.Validate();
         ExcelDocument target = ExcelDocument.Create(new MemoryStream());
         var report = new OdfConversionReport("ODS", "XLSX");
-        target.BuiltinDocumentProperties.Title = source.Metadata.Title;
-        target.BuiltinDocumentProperties.Creator = source.Metadata.Creator;
-        target.BuiltinDocumentProperties.Subject = source.Metadata.Subject;
+        target.Properties.Title = source.Properties.Title;
+        target.Properties.Creator = source.Properties.Creator;
+        target.Properties.Subject = source.Properties.Subject;
         ImportWorkbookDefaultFont(source, target);
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
@@ -422,7 +422,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddSheet(ods.Name))).ToList();
         var sheetNameMap = sheetTargets.ToDictionary(pair => pair.Source.Name, pair => pair.Target.Name, StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges, sheetNameMap);
-        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Properties.Language);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;

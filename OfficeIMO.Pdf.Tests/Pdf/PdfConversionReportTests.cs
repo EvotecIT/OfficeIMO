@@ -218,7 +218,7 @@ public sealed class PdfConversionReportTests {
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Refresh source proof")),
             report);
 
-        PdfDocumentConversionResult processed = result.WithValue(result.Value.UpdateMetadata(title: "Processed refresh source proof"));
+        PdfDocumentConversionResult processed = result.WithValue(result.Value.UpdateProperties(title: "Processed refresh source proof"));
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Tests",
             "SaveTimeWarning",
@@ -263,7 +263,7 @@ public sealed class PdfConversionReportTests {
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Conversion proof text")),
             report);
 
-        PdfDocumentConversionResult processed = result.Process(document => document.UpdateMetadata(title: "Proof metadata"));
+        PdfDocumentConversionResult processed = result.Process(document => document.UpdateProperties(title: "Proof metadata"));
         PdfConversionProofReport proof = processed.AssessProof(new PdfConversionProofOptions()
             .RequireTextMarkers("Conversion proof text")
             .RequireWarningCodes("AcceptedTableSimplification")

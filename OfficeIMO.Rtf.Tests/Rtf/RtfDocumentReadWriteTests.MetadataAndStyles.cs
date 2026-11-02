@@ -336,7 +336,7 @@ public partial class RtfDocumentReadWriteTests {
         const string rtf = @"{\rtf1\ansi{\info{\title Title}{\subject Subject}{\author Author}{\manager Manager}{\company Company}{\operator Operator}{\category Category}{\keywords one,two}{\doccomm Comment}{\hlinkbase https://example.test/}{\creatim\yr2026\mo6\dy15\hr10\min20\sec30}{\revtim\yr2026\mo6\dy16\hr11\min21\sec31}\edmins42\nofpages7\nofwords120\nofchars600\nofcharsws700\vern123}\pard Body\par}";
 
         RtfReadResult result = RtfDocument.Read(rtf);
-        RtfDocumentInfo info = result.Document.Info;
+        RtfDocumentInfo info = result.Document.Properties;
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("Title", info.Title);
@@ -359,7 +359,7 @@ public partial class RtfDocumentReadWriteTests {
         Assert.Equal(123, info.InternalVersion);
 
         string written = result.Document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfDocumentInfo writtenInfo = RtfDocument.Read(written).Document.Info;
+        RtfDocumentInfo writtenInfo = RtfDocument.Read(written).Document.Properties;
 
         Assert.Contains(@"{\hlinkbase https://example.test/}", written, StringComparison.Ordinal);
         Assert.Contains(@"{\creatim\yr2026\mo6\dy15\hr10\min20\sec30}", written, StringComparison.Ordinal);
@@ -378,7 +378,7 @@ public partial class RtfDocumentReadWriteTests {
         RtfReadResult result = RtfDocument.Read(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
-        Assert.Equal("RichEdit 10.0.19041", result.Document.Info.Generator);
+        Assert.Equal("RichEdit 10.0.19041", result.Document.Properties.Generator);
         Assert.Equal("Body", Assert.Single(result.Document.Paragraphs).ToPlainText());
     }
 

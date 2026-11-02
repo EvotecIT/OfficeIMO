@@ -21,7 +21,7 @@ public sealed class OpenDocumentHardeningTests {
 
         Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
         OdtDocument document = OdtDocument.Load(new MemoryStream(package));
-        document.Metadata.Title = "Changed";
+        document.Properties.Title = "Changed";
         byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
         Assert.True(ContainsEntry(output, "META-INF/auditsignatures.xml"));
     }
@@ -35,7 +35,7 @@ public sealed class OpenDocumentHardeningTests {
 
         Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
         OdtDocument document = OdtDocument.Load(new MemoryStream(package));
-        document.Metadata.Title = "Changed";
+        document.Properties.Title = "Changed";
         byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
         Assert.True(ContainsEntry(output, entryName));
     }
@@ -49,7 +49,7 @@ public sealed class OpenDocumentHardeningTests {
 
         Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
         OdtDocument document = OdtDocument.Load(new MemoryStream(package));
-        document.Metadata.Title = "Changed";
+        document.Properties.Title = "Changed";
         byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
         Assert.True(ContainsEntry(output, entryName));
     }
@@ -153,7 +153,7 @@ public sealed class OpenDocumentHardeningTests {
         byte[] unchanged = signed.ToBytes();
         Assert.True(ContainsEntry(unchanged, "META-INF/documentsignatures.xml"));
 
-        signed.Metadata.Title = "Changed";
+        signed.Properties.Title = "Changed";
         Assert.Throws<InvalidOperationException>(() => signed.ToBytes());
         byte[] unsigned = signed.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
         Assert.False(ContainsEntry(unsigned, "META-INF/documentsignatures.xml"));

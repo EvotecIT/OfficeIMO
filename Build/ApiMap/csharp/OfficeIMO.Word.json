@@ -6642,6 +6642,24 @@
         "membersHiddenWithType": 2
       },
       "note": "Reviewed documentation roots, retained public signatures and actual cross-assembly callers; implementation access uses existing friends."
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.BuiltinDocumentProperties",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocument.Properties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.CustomDocumentProperties",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.WordDocument.CustomProperties",
+      "category": "naming",
+      "reason": "Standard document properties use one discoverable owner across formats; application properties, raw XMP and other format metadata stay separate.",
+      "applied": true
     }
   ],
   "packageMoves": [

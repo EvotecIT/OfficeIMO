@@ -12,8 +12,8 @@ public class VisioPackageMetadataContractTests {
     [InlineData(VisioPackageType.Stencil)]
     public void GeneratedAndLegacyConvertedPackagesHaveReadableMetadata(VisioPackageType family) {
         VisioDocument document = VisioDocument.Create(family);
-        document.Title = "Metadata control";
-        document.Author = "Test author";
+        document.Properties.Title = "Metadata control";
+        document.Properties.Author = "Test author";
         if (family == VisioPackageType.Stencil) {
             document.RegisterMaster("Symbol", new VisioShape("1", 1, 1, 1, 1, "Label"));
         } else {
@@ -25,8 +25,8 @@ public class VisioPackageMetadataContractTests {
         AssertMetadata(converted.ToBytes(), family);
         VisioDocument reopened = VisioDocument.Load(new MemoryStream(converted.ToBytes()));
         Assert.Equal(family, reopened.PackageType);
-        Assert.Equal(document.Title, reopened.Title);
-        Assert.Equal(document.Author, reopened.Author);
+        Assert.Equal(document.Properties.Title, reopened.Properties.Title);
+        Assert.Equal(document.Properties.Author, reopened.Properties.Author);
         AssertMetadata(reopened.ToBytes(), family);
     }
 

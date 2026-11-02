@@ -440,7 +440,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
 
-            presentation.BuiltinDocumentProperties.Title = "Changed title";
+            presentation.Properties.Title = "Changed title";
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);

@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_HeadingsAndFormatting() {
             using var doc = WordDocument.Create();
-            doc.BuiltinDocumentProperties.Title = "Test Document";
+            doc.Properties.Title = "Test Document";
 
             var h1 = doc.AddParagraph("Heading 1");
             h1.Style = WordParagraphStyles.Heading1;
@@ -725,8 +725,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_ImageAndMetadata() {
             using var doc = WordDocument.Create();
-            doc.BuiltinDocumentProperties.Title = "With Image";
-            doc.BuiltinDocumentProperties.Creator = "Tester";
+            doc.Properties.Title = "With Image";
+            doc.Properties.Creator = "Tester";
 
             string assetPath = Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png");
             var paragraph = doc.AddParagraph();
@@ -1365,7 +1365,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_AdditionalHeadElements() {
             using var doc = WordDocument.Create();
-            doc.BuiltinDocumentProperties.Creator = "Tester";
+            doc.Properties.Creator = "Tester";
             doc.AddParagraph("Content");
 
             var options = new WordHtmlExportOptions();
@@ -1383,10 +1383,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_CustomProperties_ExportAsTypedMetaWhenEnabled() {
             using var doc = WordDocument.Create();
-            doc.CustomDocumentProperties["ReviewStatus"] = new WordCustomProperty("Approved");
-            doc.CustomDocumentProperties["IsFinal"] = new WordCustomProperty(true);
-            doc.CustomDocumentProperties["Score"] = new WordCustomProperty(6.15);
-            doc.CustomDocumentProperties["ReviewedAt"] = new WordCustomProperty(new DateTime(2024, 1, 2, 3, 4, 5));
+            doc.CustomProperties["ReviewStatus"] = new WordCustomProperty("Approved");
+            doc.CustomProperties["IsFinal"] = new WordCustomProperty(true);
+            doc.CustomProperties["Score"] = new WordCustomProperty(6.15);
+            doc.CustomProperties["ReviewedAt"] = new WordCustomProperty(new DateTime(2024, 1, 2, 3, 4, 5));
 
             string defaultHtml = doc.ToHtml();
             Assert.DoesNotContain("word:custom:ReviewStatus", defaultHtml, StringComparison.OrdinalIgnoreCase);
@@ -1411,40 +1411,40 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_CustomProperties_RoundTripTypedMetaWhenEnabled() {
             using var doc = WordDocument.Create();
-            doc.CustomDocumentProperties["ReviewStatus"] = new WordCustomProperty("Approved");
-            doc.CustomDocumentProperties["IsFinal"] = new WordCustomProperty(true);
-            doc.CustomDocumentProperties["Score"] = new WordCustomProperty(6.15);
-            doc.CustomDocumentProperties["ReviewedAt"] = new WordCustomProperty(new DateTime(2024, 1, 2, 3, 4, 5));
+            doc.CustomProperties["ReviewStatus"] = new WordCustomProperty("Approved");
+            doc.CustomProperties["IsFinal"] = new WordCustomProperty(true);
+            doc.CustomProperties["Score"] = new WordCustomProperty(6.15);
+            doc.CustomProperties["ReviewedAt"] = new WordCustomProperty(new DateTime(2024, 1, 2, 3, 4, 5));
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeCustomProperties = true });
 
             using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
-            Assert.Equal("Approved", roundTrip.CustomDocumentProperties["ReviewStatus"].Text);
-            Assert.True(roundTrip.CustomDocumentProperties["IsFinal"].Bool);
-            Assert.Equal(6.15, roundTrip.CustomDocumentProperties["Score"].NumberDouble);
-            Assert.Equal(new DateTime(2024, 1, 2, 3, 4, 5), roundTrip.CustomDocumentProperties["ReviewedAt"].Date);
+            Assert.Equal("Approved", roundTrip.CustomProperties["ReviewStatus"].Text);
+            Assert.True(roundTrip.CustomProperties["IsFinal"].Bool);
+            Assert.Equal(6.15, roundTrip.CustomProperties["Score"].NumberDouble);
+            Assert.Equal(new DateTime(2024, 1, 2, 3, 4, 5), roundTrip.CustomProperties["ReviewedAt"].Date);
         }
 
         [Fact]
         public void Test_WordToHtml_BuiltinMetadata_RoundTrips() {
             using var doc = WordDocument.Create();
-            doc.BuiltinDocumentProperties.Title = "Round Trip Title";
-            doc.BuiltinDocumentProperties.Creator = "Ada";
-            doc.BuiltinDocumentProperties.Description = "Round trip description";
-            doc.BuiltinDocumentProperties.Keywords = "alpha,beta";
-            doc.BuiltinDocumentProperties.Subject = "Metadata subject";
+            doc.Properties.Title = "Round Trip Title";
+            doc.Properties.Creator = "Ada";
+            doc.Properties.Description = "Round trip description";
+            doc.Properties.Keywords = "alpha,beta";
+            doc.Properties.Subject = "Metadata subject";
             doc.AddParagraph("Content");
 
             string html = doc.ToHtml();
 
             using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
 
-            Assert.Equal("Round Trip Title", roundTrip.BuiltinDocumentProperties.Title);
-            Assert.Equal("Ada", roundTrip.BuiltinDocumentProperties.Creator);
-            Assert.Equal("Round trip description", roundTrip.BuiltinDocumentProperties.Description);
-            Assert.Equal("alpha,beta", roundTrip.BuiltinDocumentProperties.Keywords);
-            Assert.Equal("Metadata subject", roundTrip.BuiltinDocumentProperties.Subject);
+            Assert.Equal("Round Trip Title", roundTrip.Properties.Title);
+            Assert.Equal("Ada", roundTrip.Properties.Creator);
+            Assert.Equal("Round trip description", roundTrip.Properties.Description);
+            Assert.Equal("alpha,beta", roundTrip.Properties.Keywords);
+            Assert.Equal("Metadata subject", roundTrip.Properties.Subject);
         }
 
         [Fact]

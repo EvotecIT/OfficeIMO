@@ -340,8 +340,8 @@ namespace OfficeIMO.Tests {
                 IncludeStencilMetadataShapeData = true
             });
 
-            Assert.Equal("Reusable stencil review", document.Title);
-            Assert.Equal("OfficeIMO.Visio", document.Author);
+            Assert.Equal("Reusable stencil review", document.Properties.Title);
+            Assert.Equal("OfficeIMO.Visio", document.Properties.Author);
             Assert.True(document.UseMastersByDefault);
             Assert.Equal(4, document.Pages.Count);
             Assert.Equal("Stencil Gallery Overview", document.Pages[0].Name);

@@ -11,8 +11,8 @@ namespace OfficeIMO.Examples.Excel {
             using var doc = ExcelDocument.Create(filePath);
 
             // Built-in document properties
-            doc.BuiltinDocumentProperties.Title = "Scan Summary";
-            doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            doc.Properties.Title = "Scan Summary";
+            doc.Properties.Creator = "OfficeIMO";
             doc.ApplicationProperties.Company = "Evotec";
 
             var sheet = doc.AddSheet("Summary");

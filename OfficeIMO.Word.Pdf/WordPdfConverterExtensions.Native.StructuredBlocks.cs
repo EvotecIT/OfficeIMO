@@ -250,22 +250,22 @@ namespace OfficeIMO.Word.Pdf {
 
             if (key.Equals("Title", StringComparison.OrdinalIgnoreCase) ||
                 key.IndexOf("Title[", StringComparison.OrdinalIgnoreCase) >= 0) {
-                return EmptyToNull(document.BuiltinDocumentProperties?.Title);
+                return EmptyToNull(document.Properties?.Title);
             }
 
             if (key.Equals("Subtitle", StringComparison.OrdinalIgnoreCase) ||
                 key.Equals("Subject", StringComparison.OrdinalIgnoreCase)) {
-                return EmptyToNull(document.BuiltinDocumentProperties?.Subject);
+                return EmptyToNull(document.Properties?.Subject);
             }
 
             if (key.Equals("Author", StringComparison.OrdinalIgnoreCase) ||
                 key.Equals("Creator", StringComparison.OrdinalIgnoreCase)) {
-                return EmptyToNull(document.BuiltinDocumentProperties?.Creator);
+                return EmptyToNull(document.Properties?.Creator);
             }
 
             if (key.Equals("Date", StringComparison.OrdinalIgnoreCase)) {
-                DateTime? date = document.BuiltinDocumentProperties?.Created ??
-                                 document.BuiltinDocumentProperties?.Modified;
+                DateTime? date = document.Properties?.Created ??
+                                 document.Properties?.Modified;
                 return date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
             }
 

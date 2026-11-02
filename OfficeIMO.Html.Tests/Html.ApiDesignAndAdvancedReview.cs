@@ -228,7 +228,7 @@ public partial class Html {
     [Fact]
     public void WordFieldReviewPolicy_PreservesStoredResultAndMakesInstructionsInertOptInMetadata() {
         using WordDocument document = WordDocument.Create();
-        document.BuiltinDocumentProperties.Creator = "Stored Author";
+        document.Properties.Creator = "Stored Author";
         document.AddParagraph("Author: ").AddField(WordFieldType.Author);
 
         HtmlTextConversionResult visible = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {

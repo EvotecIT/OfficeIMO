@@ -60,7 +60,7 @@ public class RtfNativeNoteModeTests {
         RtfReadResult read = RtfDocument.Read(Source(controls));
         Assert.Equal(Source(controls), read.ToRtfLossless());
         RtfDocument copy = read.Document.Clone();
-        copy.Info.Title = "Edited metadata";
+        copy.Properties.Title = "Edited metadata";
         string written = copy.ToRtf();
         Assert.Contains(normalizedMode, written);
         if (normalizedMode != @"\fet2") Assert.DoesNotContain(@"\fet2", written);
@@ -69,7 +69,7 @@ public class RtfNativeNoteModeTests {
         Assert.Equal(endnote ? 1 : 0, direct.EndNotes.Count);
         Assert.Equal(endnote ? 1 : 0, normalized.EndNotes.Count);
         Assert.Equal(endnote ? 0 : 1, normalized.FootNotes.Count);
-        Assert.Null(read.Document.Info.Title);
+        Assert.Null(read.Document.Properties.Title);
     }
 
     [Fact]

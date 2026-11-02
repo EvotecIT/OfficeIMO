@@ -45,8 +45,8 @@ internal static class ReaderComparisonCorpus {
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Status";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention marker";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Ready";
-            document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
-            document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
+            document.Properties.Created = FixedPackageTimestamp;
+            document.Properties.Modified = FixedPackageTimestamp;
             document.Save();
         }
 
@@ -75,8 +75,8 @@ internal static class ReaderComparisonCorpus {
                 sheet.Cell(2, 1, "Spreadsheet retention marker");
                 sheet.Cell(2, 2, "Reader team");
                 sheet.Cell(2, 3, "Ready");
-                document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
-                document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
+                document.Properties.Created = FixedPackageTimestamp;
+                document.Properties.Modified = FixedPackageTimestamp;
                 document.Save();
             }
 
@@ -105,8 +105,8 @@ internal static class ReaderComparisonCorpus {
             slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
             slide.Notes.Text = "Presenter notes retention marker";
             presentation.Save();
-            presentation.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
-            presentation.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
+            presentation.Properties.Created = FixedPackageTimestamp;
+            presentation.Properties.Modified = FixedPackageTimestamp;
         }
 
         return Case("pptx", "evidence-deck.pptx", NormalizeOfficePackage(stream.ToArray()),

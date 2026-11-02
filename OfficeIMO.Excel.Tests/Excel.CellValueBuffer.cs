@@ -288,13 +288,13 @@ namespace OfficeIMO.Tests {
                     DifferentialFillColorArgb = "C6EFCE"
                 });
                 sheet.AddChart(OfficeChartType.Line, new ExcelChartDataRange("Data", 1, 2, 200, 1, true), new ExcelChartOptions { Row = 1, Column = 6 });
-                document.BuiltinDocumentProperties.Title = "Sales report";
+                document.Properties.Title = "Sales report";
                 Assert.True(document.HasPendingDirectCellValues);
             }, options: null);
 
             using ExcelDocument reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
-            Assert.Equal("Sales report", reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal("Sales report", reopened.Properties.Title);
             var part = reopened.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
             Assert.Equal("Sales", part.TableDefinitionParts.Single().Table!.Name!.Value);
             Assert.Single(part.DrawingsPart!.ChartParts);

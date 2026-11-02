@@ -142,7 +142,7 @@ public sealed class ExcelLegacyNativePreservationTests {
         document.Sheets[0].CellValue(1, 1, "Pending work edit");
         switch (pendingWork) {
             case 4: document.SetCustomDocumentProperty("PreservationNote", "Requested metadata"); break;
-            case 5: document.BuiltinDocumentProperties.Title = "Requested title"; break;
+            case 5: document.Properties.Title = "Requested title"; break;
         }
         using var output = new MemoryStream(); output.WriteByte(42);
         Assert.Throws<NotSupportedException>(() => {
@@ -180,22 +180,22 @@ public sealed class ExcelLegacyNativePreservationTests {
     public void Fractional_timestamp_edits_are_not_silently_discarded(int property, bool encrypted) {
         DateTime baseline = new(2026, 10, 19, 12, 30, 0, DateTimeKind.Utc);
         using var seed = ExcelDocument.Load(new MemoryStream(File.ReadAllBytes(Fixture)));
-        seed.BuiltinDocumentProperties.Created = baseline;
-        seed.BuiltinDocumentProperties.Modified = baseline;
-        seed.BuiltinDocumentProperties.LastPrinted = baseline;
+        seed.Properties.Created = baseline;
+        seed.Properties.Modified = baseline;
+        seed.Properties.LastPrinted = baseline;
         seed.SetCustomDocumentProperty("ReviewedAt", baseline);
         var metadata = OfficeIMO.Excel.LegacyXls.Write.LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(seed)
             .ToDictionary(item => item.Name, item => item.Bytes);
         Assert.True(OfficeCompoundFileReader.TryRead(File.ReadAllBytes(Fixture), out OfficeCompoundFile? compound, out string? error), error);
         using var document = ExcelDocument.Load(new MemoryStream(OfficeCompoundFileWriter.Rewrite(compound!, metadata)));
-        Assert.Equal(baseline, document.CustomDocumentProperties["ReviewedAt"].Date);
+        Assert.Equal(baseline, document.CustomProperties["ReviewedAt"].Date);
         using var unchanged = new MemoryStream(); document.Save(unchanged, ExcelFileFormat.Xls);
         DateTime changed = baseline.AddTicks(1);
         switch (property) {
-            case 0: document.BuiltinDocumentProperties.Created = changed; break;
-            case 1: document.BuiltinDocumentProperties.Modified = changed; break;
-            case 2: document.BuiltinDocumentProperties.LastPrinted = changed; break;
-            case 3: document.CustomDocumentProperties["ReviewedAt"].Value = changed; break;
+            case 0: document.Properties.Created = changed; break;
+            case 1: document.Properties.Modified = changed; break;
+            case 2: document.Properties.LastPrinted = changed; break;
+            case 3: document.CustomProperties["ReviewedAt"].Value = changed; break;
         }
         using var output = new MemoryStream(); output.WriteByte(42);
         Assert.Throws<NotSupportedException>(() => {

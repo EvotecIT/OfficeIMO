@@ -10,7 +10,7 @@ public sealed class TypographyReviewClosureTests {
     [Fact]
     public void OdsTextCaseMaterializationUsesDocumentLanguage() {
         OdsDocument source = OdsDocument.Create();
-        source.Metadata.Language = "tr-TR";
+        source.Properties.Language = "tr-TR";
         OdsCell cell = source.AddSheet("Text").Cell(0, 0);
         cell.SetString("i");
         cell.TextTransform = OdfTextTransform.Uppercase;
@@ -23,7 +23,7 @@ public sealed class TypographyReviewClosureTests {
     [Fact]
     public void OdsTextCaseMaterializationFallsBackToInvariantCulture() {
         OdsDocument source = OdsDocument.Create();
-        source.Metadata.Language = "not-a-culture";
+        source.Properties.Language = "not-a-culture";
         OdsCell cell = source.AddSheet("Text").Cell(0, 0);
         cell.SetString("i");
         cell.TextTransform = OdfTextTransform.Uppercase;

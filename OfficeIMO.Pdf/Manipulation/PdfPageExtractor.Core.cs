@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfPageExtractor {
     internal static byte[] ExtractPages(
         Dictionary<int, PdfIndirectObject> sourceObjects,
-        PdfMetadata metadata,
+        PdfDocumentProperties metadata,
         int[] pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
         IEnumerable<AdditionalObject>? additionalObjects = null,

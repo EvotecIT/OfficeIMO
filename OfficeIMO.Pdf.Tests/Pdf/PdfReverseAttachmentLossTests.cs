@@ -289,7 +289,7 @@ public sealed class PdfReverseAttachmentLossTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Invoice"))
             .ToBytes();
-        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateMetadata(
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateProperties(
             title: "Invoice title", author: "Invoice author", subject: "Invoice subject", keywords: "invoice");
         var options = new PdfToHtmlOptions {
             Profile = profile,
@@ -317,7 +317,7 @@ public sealed class PdfReverseAttachmentLossTests {
         PdfDocument source = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
                 .Paragraph(paragraph => paragraph.Text("Invoice"))
                 .ToBytes()))
-            .UpdateMetadata(author: "Invoice author");
+            .UpdateProperties(author: "Invoice author");
         PdfHtmlConversionResult retained = source.ToHtmlResult(new PdfToHtmlOptions {
             Profile = profile,
             IncludeMetadata = true

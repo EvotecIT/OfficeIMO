@@ -44,8 +44,8 @@ document.Save();
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("report.docx");
-document.BuiltinDocumentProperties.Title = "My Report";
-document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+document.Properties.Title = "My Report";
+document.Properties.Creator = "OfficeIMO";
 var introduction = document.AddParagraph("Introduction");
 introduction.Style = WordParagraphStyles.Heading1;
 introduction.Bold = true;

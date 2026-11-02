@@ -21,8 +21,8 @@ public class CoverPageTests : VerifyTestBase {
         using var document = WordDocument.Create();
         document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
         document.PageSettings.PageSize = WordPageSize.A4;
-        document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-        document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+        document.Properties.Title = "Cover Page Templates";
+        document.Properties.Subject = "How to use Cover Pages with TOC";
         document.ApplicationProperties.Company = "Evotec Services";
         document.Settings.UpdateFieldsOnOpen = true;
 
@@ -47,8 +47,8 @@ public class CoverPageTests : VerifyTestBase {
     [Fact]
     public async Task AddingCoverPage2() {
         using var document = WordDocument.Create();
-        document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-        document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+        document.Properties.Title = "Cover Page Templates";
+        document.Properties.Subject = "How to use Cover Pages with TOC";
 
         document.Settings.UpdateFieldsOnOpen = true;
 

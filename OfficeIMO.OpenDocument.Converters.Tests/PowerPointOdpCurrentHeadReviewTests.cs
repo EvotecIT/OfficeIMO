@@ -447,7 +447,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     public void CustomOdpGeneratorIsMetadataLoss() {
         OdpPresentation source = OdpPresentation.Create();
         source.AddSlide();
-        source.Metadata.Generator = "External editor";
+        source.Properties.Generator = "External editor";
 
         OdfConversionResult<PowerPointDocument> conversion = source.ToPowerPointDocumentResult();
         using PowerPointDocument target = conversion.Value;

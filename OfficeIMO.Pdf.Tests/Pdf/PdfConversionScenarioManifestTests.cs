@@ -330,7 +330,7 @@ public sealed class PdfConversionScenarioManifestTests {
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5), StringComparison.Ordinal);
-        Assert.Equal("RTF PDF Roundtrip Gate", imported.Info.Title);
+        Assert.Equal("RTF PDF Roundtrip Gate", imported.Properties.Title);
         Assert.Contains("RTF PDF Roundtrip Gate", read.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Rich run marker", read.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Table cell marker", read.ExtractText(), StringComparison.Ordinal);
@@ -352,7 +352,7 @@ public sealed class PdfConversionScenarioManifestTests {
             headingCount = logical.Headings.Count,
             tableCount = logical.Tables.Count,
             importedParagraphCount = imported.Paragraphs.Count,
-            importedTitle = imported.Info.Title,
+            importedTitle = imported.Properties.Title,
             acceptedDegradation = "PDF to RTF import is semantic logical text reconstruction, not lossless fixed-layout visual reconstruction."
         };
 
@@ -2231,10 +2231,10 @@ public sealed class PdfConversionScenarioManifestTests {
 
     private static RtfDocument CreateRtfRoundtripDocument() {
         RtfDocument document = RtfDocument.Create();
-        document.Info.Title = "RTF PDF Roundtrip Gate";
-        document.Info.Author = "OfficeIMO";
-        document.Info.Subject = "RTF PDF semantic proof";
-        document.Info.Keywords = "rtf,pdf,roundtrip";
+        document.Properties.Title = "RTF PDF Roundtrip Gate";
+        document.Properties.Author = "OfficeIMO";
+        document.Properties.Subject = "RTF PDF semantic proof";
+        document.Properties.Keywords = "rtf,pdf,roundtrip";
         document.PageSetup.SetPaperSize(7200, 7200);
         document.PageSetup.SetMargins(leftTwips: 720, rightTwips: 720, topTwips: 720, bottomTwips: 720);
 

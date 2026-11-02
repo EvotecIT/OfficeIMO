@@ -345,7 +345,7 @@ internal static partial class PdfRedactionApplier {
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, effectiveOptions.CancellationToken);
         generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, sourceStreamIdentities, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
-        PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 || searchedMetadata.Info ? new PdfMetadata() : document.UncheckedMetadata;
+        PdfDocumentProperties metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 || searchedMetadata.Info ? new PdfDocumentProperties() : document.UncheckedMetadata;
         byte[] rewritten = RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf, mutationPlan, textSearch, effectiveOptions.CancellationToken);
         if (mutationOperation == PdfMutationOperation.Redact && !document.Security.HasEncryption && PdfSyntax.RequiresRedactionNormalization(document))
             RequireClassicRedactionOutput(rewritten, readOptions, mutationPlan!, effectiveOptions.CancellationToken);

@@ -83,8 +83,8 @@ public sealed class ExcelLegacyCryptoApiStorageTests {
             Assert.False(raw.Streams.ContainsKey("\u0005SummaryInformation"));
         }
         using var document = ExcelDocument.LoadEncrypted(new MemoryStream(bytes), "test-password");
-        Assert.Equal("Encrypted summary native control", document.BuiltinDocumentProperties.Title);
-        Assert.Equal("Nested inert VBA storage acceptance", document.BuiltinDocumentProperties.Subject);
+        Assert.Equal("Encrypted summary native control", document.Properties.Title);
+        Assert.Equal("Nested inert VBA storage acceptance", document.Properties.Subject);
         Assert.Equal(10, document.Sheets.Count); Assert.Equal(4, document.LegacyXlsChartSheets.Count);
         var native = LegacyXlsWorkbook.Load(bytes, new() { Password = "test-password" });
         var projectStorage = OfficeCompoundStorage.Extract(native.SourceCompoundFile!, "_VBA_PROJECT_CUR");

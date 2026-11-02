@@ -44,12 +44,12 @@ internal static class PdfInfoDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string Build(PdfMetadata metadata) => BuildMetadataBuilder(metadata, CancellationToken.None).ToString();
+    internal static string Build(PdfDocumentProperties metadata) => BuildMetadataBuilder(metadata, CancellationToken.None).ToString();
 
-    internal static byte[] BuildBytesCancellable(PdfMetadata metadata, CancellationToken cancellationToken) =>
+    internal static byte[] BuildBytesCancellable(PdfDocumentProperties metadata, CancellationToken cancellationToken) =>
         PdfEncoding.Latin1GetBytesCancellable(BuildMetadataBuilder(metadata, cancellationToken), cancellationToken);
 
-    private static StringBuilder BuildMetadataBuilder(PdfMetadata metadata, CancellationToken cancellationToken) {
+    private static StringBuilder BuildMetadataBuilder(PdfDocumentProperties metadata, CancellationToken cancellationToken) {
         Guard.NotNull(metadata, nameof(metadata));
         cancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder("<< ");
@@ -70,7 +70,7 @@ internal static class PdfInfoDictionaryBuilder {
         return sb;
     }
 
-    internal static PdfDictionary BuildDictionary(PdfMetadata metadata) {
+    internal static PdfDictionary BuildDictionary(PdfDocumentProperties metadata) {
         Guard.NotNull(metadata, nameof(metadata));
         var dictionary = new PdfDictionary();
         AddInfoString(dictionary, "Title", metadata.Title);

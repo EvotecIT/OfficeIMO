@@ -608,7 +608,7 @@ public sealed partial class PdfDocumentConversionResult : IOfficeConversionResul
             HasRequiredMetadata(options);
     }
 
-    private static void AddMetadataIssues(List<PdfConversionProofIssue> issues, PdfMetadata metadata, PdfConversionProofOptions options) {
+    private static void AddMetadataIssues(List<PdfConversionProofIssue> issues, PdfDocumentProperties metadata, PdfConversionProofOptions options) {
         AddMetadataIssue(issues, "Metadata.Title", options.RequiredMetadataTitle, metadata.Title);
         AddMetadataIssue(issues, "Metadata.Author", options.RequiredMetadataAuthor, metadata.Author);
         AddMetadataIssue(issues, "Metadata.Subject", options.RequiredMetadataSubject, metadata.Subject);

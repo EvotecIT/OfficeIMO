@@ -1344,7 +1344,7 @@ foreach (PdfLogicalPage page in result.Pages) {
 }
 
 string markdown = result.ExtractMarkdown();
-PdfMetadata metadata = result.Metadata;
+PdfDocumentProperties metadata = result.Metadata;
 PdfDocumentSecurityInfo security = result.Security;
 IReadOnlyList<PdfOutlineItem> outlines = result.Outlines;
 IReadOnlyList<PdfLogicalLinkAnnotation> links = result.Links;

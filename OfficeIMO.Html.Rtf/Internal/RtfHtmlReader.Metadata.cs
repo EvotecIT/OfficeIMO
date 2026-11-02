@@ -34,8 +34,8 @@ internal static partial class RtfHtmlReader {
                 case "title":
                     if (_titleDepth > 0) {
                         _titleDepth--;
-                        if (_titleDepth == 0 && _titleText != null && !string.IsNullOrWhiteSpace(_titleText.ToString()) && string.IsNullOrWhiteSpace(_document.Info.Title)) {
-                            _document.Info.Title = _titleText.ToString().Trim();
+                        if (_titleDepth == 0 && _titleText != null && !string.IsNullOrWhiteSpace(_titleText.ToString()) && string.IsNullOrWhiteSpace(_document.Properties.Title)) {
+                            _document.Properties.Title = _titleText.ToString().Trim();
                         }
 
                         return true;
@@ -74,66 +74,66 @@ internal static partial class RtfHtmlReader {
             switch (name!.Trim().ToLowerInvariant()) {
                 case "author":
                 case "officeimo-rtf-author":
-                    _document.Info.Author = EmptyToNull(content);
+                    _document.Properties.Author = EmptyToNull(content);
                     break;
                 case "keywords":
                 case "officeimo-rtf-keywords":
-                    _document.Info.Keywords = EmptyToNull(content);
+                    _document.Properties.Keywords = EmptyToNull(content);
                     break;
                 case "description":
                 case "officeimo-rtf-subject":
-                    _document.Info.Subject = EmptyToNull(content);
+                    _document.Properties.Subject = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-title":
-                    _document.Info.Title = EmptyToNull(content);
+                    _document.Properties.Title = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-manager":
-                    _document.Info.Manager = EmptyToNull(content);
+                    _document.Properties.Manager = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-company":
-                    _document.Info.Company = EmptyToNull(content);
+                    _document.Properties.Company = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-operator":
-                    _document.Info.Operator = EmptyToNull(content);
+                    _document.Properties.Operator = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-category":
-                    _document.Info.Category = EmptyToNull(content);
+                    _document.Properties.Category = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-comments":
-                    _document.Info.Comments = EmptyToNull(content);
+                    _document.Properties.Comments = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-hyperlink-base":
-                    _document.Info.HyperlinkBase = EmptyToNull(content);
+                    _document.Properties.HyperlinkBase = EmptyToNull(content);
                     break;
                 case "officeimo-rtf-created":
-                    _document.Info.Created = ParseTimestamp(content);
+                    _document.Properties.Created = ParseTimestamp(content);
                     break;
                 case "officeimo-rtf-revised":
-                    _document.Info.Revised = ParseTimestamp(content);
+                    _document.Properties.Revised = ParseTimestamp(content);
                     break;
                 case "officeimo-rtf-printed":
-                    _document.Info.Printed = ParseTimestamp(content);
+                    _document.Properties.Printed = ParseTimestamp(content);
                     break;
                 case "officeimo-rtf-backed-up":
-                    _document.Info.BackedUp = ParseTimestamp(content);
+                    _document.Properties.BackedUp = ParseTimestamp(content);
                     break;
                 case "officeimo-rtf-editing-minutes":
-                    _document.Info.EditingMinutes = ParseInteger(content);
+                    _document.Properties.EditingMinutes = ParseInteger(content);
                     break;
                 case "officeimo-rtf-pages":
-                    _document.Info.NumberOfPages = ParseInteger(content);
+                    _document.Properties.NumberOfPages = ParseInteger(content);
                     break;
                 case "officeimo-rtf-words":
-                    _document.Info.NumberOfWords = ParseInteger(content);
+                    _document.Properties.NumberOfWords = ParseInteger(content);
                     break;
                 case "officeimo-rtf-characters":
-                    _document.Info.NumberOfCharacters = ParseInteger(content);
+                    _document.Properties.NumberOfCharacters = ParseInteger(content);
                     break;
                 case "officeimo-rtf-characters-with-spaces":
-                    _document.Info.NumberOfCharactersWithSpaces = ParseInteger(content);
+                    _document.Properties.NumberOfCharactersWithSpaces = ParseInteger(content);
                     break;
                 case "officeimo-rtf-internal-version":
-                    _document.Info.InternalVersion = ParseInteger(content);
+                    _document.Properties.InternalVersion = ParseInteger(content);
                     break;
                 case "officeimo-rtf-header-footer":
                     ReadHeaderFooter(token, content);

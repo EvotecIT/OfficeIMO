@@ -152,7 +152,7 @@ public class PdfMetadataSynchronizationTests {
 
     [Fact]
     public void XmpSynchronizer_RejectsPacketsWithoutRdfInsteadOfDiscardingThem() {
-        var metadata = new PdfMetadata { Title = "Unsafe replacement" };
+        var metadata = new PdfDocumentProperties { Title = "Unsafe replacement" };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             PdfXmpMetadataSynchronizer.Synchronize("<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" />", metadata));

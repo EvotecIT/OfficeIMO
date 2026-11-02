@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             bool materializeRasterImages = true) {
             var report = new TranslationReport();
             var plan = new GoogleSlidesTranslationPlan(report) { SlideCount = presentation.Slides.Count };
-            string? title = !string.IsNullOrWhiteSpace(options.Title) ? options.Title! : presentation.BuiltinDocumentProperties.Title;
+            string? title = !string.IsNullOrWhiteSpace(options.Title) ? options.Title! : presentation.Properties.Title;
             if (string.IsNullOrWhiteSpace(title)) title = "Presentation";
             var batch = new GoogleSlidesBatch(title!, presentation.SlideSize.Width.ToPoints(), presentation.SlideSize.Height.ToPoints(), plan);
 

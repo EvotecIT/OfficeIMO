@@ -21,9 +21,9 @@ public class BasicDocumentTests : VerifyTestBase {
     [Fact]
     public async Task BasicEmptyWord() {
         using var document = WordDocument.Create();
-        document.BuiltinDocumentProperties.Title = "This is my title";
-        document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-        document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+        document.Properties.Title = "This is my title";
+        document.Properties.Creator = "Przemysław Kłys";
+        document.Properties.Keywords = "word, docx, test";
         _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
