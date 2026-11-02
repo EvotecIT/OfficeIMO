@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>Opt-in OfficeIMO and plain Open XML SDK comparison of the public XLBench scenario shapes.</summary>
 internal static class XlBenchShapeRunner {
-    private sealed record Scenario(string Name, Func<int> OfficeImo, Func<int> OpenXml, Action<string, byte[]>? Validate, Func<byte[]>? OfficeImoOutput, Func<byte[]>? OpenXmlOutput);
+    private sealed record Scenario(string Name, Func<int> OfficeImo, Func<int>? OpenXml, Action<string, byte[]>? Validate, Func<byte[]>? OfficeImoOutput, Func<byte[]>? OpenXmlOutput);
 
     private static readonly Scenario[] Scenarios = [
         new("write", () => OfficeWork(XlBenchShapeScenarios.OfficeImoWrite()), () => OfficeWork(XlBenchShapeScenarios.OpenXmlWrite()),
@@ -26,6 +26,8 @@ internal static class XlBenchShapeRunner {
         new("insert", () => (int)XlBenchShapeScenarios.OfficeImoInsert(null), () => (int)XlBenchShapeScenarios.OpenXmlInsert(null),
             XlBenchShapeValidation.Insert, () => Capture(XlBenchShapeScenarios.OfficeImoInsert), () => Capture(XlBenchShapeScenarios.OpenXmlInsert)),
         new("insert-save", () => OfficeWork(Capture(XlBenchShapeScenarios.OfficeImoInsert)), () => OfficeWork(Capture(XlBenchShapeScenarios.OpenXmlInsert)), null, null, null),
+        new("calc", () => (int)XlBenchShapeScenarios.OfficeImoCalc(null), null,
+            XlBenchShapeValidation.Calc, () => Capture(XlBenchShapeScenarios.OfficeImoCalc), null),
         new("template", () => OfficeWork(XlBenchShapeScenarios.OfficeImoTemplate()), () => OfficeWork(XlBenchShapeScenarios.OpenXmlTemplate()),
             XlBenchShapeValidation.Template, XlBenchShapeScenarios.OfficeImoTemplate, XlBenchShapeScenarios.OpenXmlTemplate),
         new("properties", () => OfficeWork(XlBenchShapeScenarios.OfficeImoProperties()), () => OfficeWork(XlBenchShapeScenarios.OpenXmlProperties()),
@@ -46,8 +48,18 @@ internal static class XlBenchShapeRunner {
             string output = "n/a";
             if (scenario.Validate != null) {
                 scenario.Validate($"{scenario.Name} OfficeIMO", scenario.OfficeImoOutput!());
-                scenario.Validate($"{scenario.Name} OpenXML", scenario.OpenXmlOutput!());
+                if (scenario.OpenXmlOutput != null) {
+                    scenario.Validate($"{scenario.Name} OpenXML", scenario.OpenXmlOutput());
+                }
                 output = "validated";
+            }
+
+            if (scenario.OpenXml == null) {
+                // The SDK has no calculation engine, so the scenario has no SDK counterpart.
+                var alone = BenchmarkMeasurement.MeasureGroup(warmup, iterations, [scenario.OfficeImo])[0];
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                    $"| {scenario.Name} | {alone.MedianMilliseconds:F1} | {alone.MedianAllocatedBytes / 1_048_576d:F2} | n/a | n/a | n/a | n/a | {output} |"));
+                continue;
             }
 
             var results = BenchmarkMeasurement.MeasureGroup(warmup, iterations, [scenario.OfficeImo, scenario.OpenXml]);

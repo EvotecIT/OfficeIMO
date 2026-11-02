@@ -6,7 +6,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>Deterministic data and source workbooks with the shapes of the public XLBench scenarios.</summary>
 /// <remarks>ClosedXML is the neutral producer of the source workbooks, as in XLBench. All setup runs outside measurement.</remarks>
-internal static class XlBenchShapeData {
+internal static partial class XlBenchShapeData {
     internal const int WriteRows = 50_000;
     internal const int ReadRows = 50_000;
     internal const int EditRows = 500;
@@ -86,6 +86,7 @@ internal static class XlBenchShapeData {
                 Prices[w][s] = Math.Round(40 + random.NextDouble() * 600, 2);
             }
         }
+        BuildCalcRows();
     }
 
     internal static string ColumnName(int column) {
