@@ -22,7 +22,7 @@ public class CsvHeaderNormalizationTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Name\nAlpha,Beta\n",
-            new CsvReaderOptions { DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Preserve });
+            new CsvLoadOptions { DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Preserve });
 
         Assert.Equal(new[] { "Name", "Name" }, parsed.Header);
         Assert.Equal("Alpha", parsed.AsEnumerable().Single().AsString("Name"));
@@ -38,7 +38,7 @@ public class CsvHeaderNormalizationTests
     {
         var ex = Assert.Throws<CsvException>(() => CsvDocument.Parse(
             "Name,Name\nAlpha,Beta\n",
-            new CsvReaderOptions { DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Throw }));
+            new CsvLoadOptions { DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Throw }));
 
         Assert.Contains("duplicate column name 'Name'", ex.Message);
     }
@@ -56,7 +56,7 @@ public class CsvHeaderNormalizationTests
     {
         var parsed = CsvDocument.Parse(
             ",H1,,H2\nAlpha,Beta,Gamma,Delta\n",
-            new CsvReaderOptions { GenerateMissingHeaderNames = true });
+            new CsvLoadOptions { GenerateMissingHeaderNames = true });
 
         Assert.Equal(new[] { "H3", "H1", "H4", "H2" }, parsed.Header);
     }
@@ -64,7 +64,7 @@ public class CsvHeaderNormalizationTests
     [Fact]
     public void W3C_Duplicate_Headers_Are_Normalized()
     {
-        var parsed = CsvDocument.Parse("#Fields: date time time\n2026-07-07 10:00 10:01\n", new CsvReaderOptions { Delimiter = ' ' });
+        var parsed = CsvDocument.Parse("#Fields: date time time\n2026-07-07 10:00 10:01\n", new CsvLoadOptions { Delimiter = ' ' });
         var row = Assert.Single(parsed.AsEnumerable());
 
         Assert.Equal(new[] { "date", "time", "time_2" }, parsed.Header);

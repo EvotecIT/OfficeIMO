@@ -74,7 +74,7 @@ foreach (var row in csv.Rows) {
 ```csharp
 using System.Text;
 
-var csv = CsvDocument.Load("data.csv", new CsvReaderOptions {
+var csv = CsvDocument.Load("data.csv", new CsvLoadOptions {
     Delimiter = '\t',
     HasHeaderRow = true,
     Encoding = Encoding.UTF8
@@ -83,8 +83,9 @@ var csv = CsvDocument.Load("data.csv", new CsvReaderOptions {
 
 ### Forward-only reading
 
-`CsvReaderOptions` supplies parsing and projection settings to both `Load` and
-`OpenReader`. For large files, open a forward-only `CsvDataReader` instead of
+`CsvLoadOptions` supplies parsing settings to `Load` and `Parse`.
+`CsvReaderOptions` supplies parsing and projection settings to `OpenReader`.
+Shared parsing concepts use the same property names and defaults on both types. For large files, open a forward-only `CsvDataReader` instead of
 loading a document:
 
 ```csharp

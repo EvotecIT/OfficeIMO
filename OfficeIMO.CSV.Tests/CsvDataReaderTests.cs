@@ -19,7 +19,7 @@ public class CsvDataReaderTests
         CsvLoadMode mode = (CsvLoadMode)modeValue;
         var doc = CsvDocument.Parse(
             "Value,Value\n1,Alpha\n2,Beta\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 Mode = mode,
                 DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Preserve
@@ -111,7 +111,7 @@ public class CsvDataReaderTests
             .Build();
         var doc = CsvDocument.Parse(
             "Id,Active\n1,true\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var reader = doc.CreateDataReader(new CsvReaderOptions { Schema = schema });
 
         Assert.Throws<InvalidOperationException>(() => reader.GetInt32(0));
@@ -131,7 +131,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "Name\nAlpha\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var reader = doc.CreateDataReader();
 
         Assert.True(reader.HasRows);
@@ -152,7 +152,7 @@ public class CsvDataReaderTests
             .Build();
         var doc = CsvDocument.Parse(
             "Score,Optional\n2,NULL\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 Mode = CsvLoadMode.Stream,
                 NullValue = "NULL"
             });
@@ -268,7 +268,7 @@ public class CsvDataReaderTests
             .Build();
         var doc = CsvDocument.Parse(
             $"Id,Name,Score,Created,Active,BatchId\n{int.MinValue},Alpha,-12.50,01/02/2026 03:04:05,1,{guid}\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
 
         using var reader = doc.CreateDataReader(new CsvReaderOptions { Schema = schema });
 
@@ -328,7 +328,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "Id,Name\n1,Alpha\n2,Beta\n3,Gamma\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
 
         using var reader = doc.CreateDataReader(new CsvReaderOptions { InferSchema = true, SchemaSampleRows = 2 });
 
@@ -350,7 +350,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "Id,Name\n1,Alpha\n2,Beta\n,Gamma\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
 
         using var reader = doc.CreateDataReader(new CsvReaderOptions { InferSchema = true, SchemaSampleRows = 2 });
         Assert.True(reader.Read());
@@ -371,7 +371,7 @@ public class CsvDataReaderTests
             csv.Append(i).Append(",Name-").Append(i).Append('\n');
         }
 
-        var doc = CsvDocument.Parse(csv.ToString(), new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+        var doc = CsvDocument.Parse(csv.ToString(), new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var reader = doc.CreateDataReader(new CsvReaderOptions
         {
             InferSchema = true,
@@ -540,7 +540,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "Id,Note\n1,<null>\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 Mode = CsvLoadMode.Stream,
                 NullValue = "<null>",
@@ -567,7 +567,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "Name,Note,Value\nA,b\"c\nd\",E\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
 
         using var reader = doc.CreateDataReader();
 
@@ -582,7 +582,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "First,Second\nshort\nexplicit,\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 Mode = CsvLoadMode.Stream,
                 NullValue = string.Empty
@@ -606,7 +606,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "Id,Note\n1,<null>\n",
-            new CsvReaderOptions { NullValue = "<null>" });
+            new CsvLoadOptions { NullValue = "<null>" });
 
         using var reader = doc.CreateDataReader();
 
@@ -625,7 +625,7 @@ public class CsvDataReaderTests
     {
         var doc = CsvDocument.Parse(
             "First,Second\n1\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 Mode = CsvLoadMode.Stream,
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
@@ -697,7 +697,7 @@ public class CsvDataReaderTests
             .Build();
         var doc = CsvDocument.Parse(
             "Id\n 1 \n\"1,234\"\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var reader = doc.CreateDataReader(new CsvReaderOptions { Schema = schema });
 
         Assert.True(reader.Read());

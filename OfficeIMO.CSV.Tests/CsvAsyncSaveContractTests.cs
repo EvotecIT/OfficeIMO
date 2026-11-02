@@ -35,7 +35,7 @@ public class CsvAsyncSaveContractTests
         Assert.Equal(0, output.Position);
         Assert.Equal(expected.ToArray(), output.ToArray());
         Assert.Equal(document.ToString(), CsvDocument.Load(output,
-            new CsvReaderOptions { CompressionType = compression }).ToString());
+            new CsvLoadOptions { CompressionType = compression }).ToString());
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public class CsvAsyncSaveContractTests
         Assert.True(output.CanWrite);
         Assert.True(output.AsyncWrites > 0);
         using var input = new MemoryStream(output.Bytes);
-        Assert.Equal(document.ToString(), CsvDocument.Load(input, new CsvReaderOptions { CompressionType = compression }).ToString());
+        Assert.Equal(document.ToString(), CsvDocument.Load(input, new CsvLoadOptions { CompressionType = compression }).ToString());
     }
 
     [Fact]

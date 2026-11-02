@@ -376,7 +376,6 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         if (document == null)
         {
             ApplyCultureDelimiter();
-            var options = CreateLoadOptions();
 
             foreach (var resolved in ResolveInputPaths())
             {
@@ -389,6 +388,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
                 {
                     _rowWriter.Reset();
                     _parseErrors.Clear();
+                    var options = CreateReaderInputOptions();
                     if (_asDataReader)
                     {
                         WriteDataReader(resolved, options);
@@ -409,7 +409,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
                 }
 
                 _parseErrors.Clear();
-                document = CsvDocument.Load(resolved, options);
+                document = CsvDocument.Load(resolved, CreateLoadOptions());
                 _rowWriter.Reset();
                 WriteDocumentRows(document, System.IO.Path.GetFileNameWithoutExtension(resolved));
                 WriteCollectedParseErrors(resolved);
@@ -523,7 +523,61 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         }
     }
 
-    private CsvReaderOptions CreateLoadOptions()
+    private CsvLoadOptions CreateLoadOptions()
+    {
+        var options = new CsvLoadOptions
+        {
+            HasHeaderRow = Header is null && !NoHeader.IsPresent,
+            Header = Header,
+            SkipInitialRecords = SkipRows,
+            Delimiter = Delimiter,
+            DelimiterText = DelimiterText,
+            DetectDelimiter = DetectDelimiter.IsPresent,
+            DelimiterCandidates = DelimiterCandidates,
+            TrimWhitespace = TrimWhitespace,
+            AllowEmptyLines = AllowEmptyLines.IsPresent,
+            SkipCommentRowsBeforeHeader = SkipCommentRowsBeforeHeader,
+            SkipCommentRows = SkipCommentRows.IsPresent,
+            CommentCharacter = CommentCharacter,
+            RecognizeW3CFieldsHeader = RecognizeW3CFieldsHeader,
+            ColumnCountMismatchPolicy = ColumnCountMismatchPolicy,
+            CancellationToken = _cancellation.Token,
+            ProgressReportInterval = ProgressInterval ?? 0,
+            ProgressCallback = ProgressInterval.HasValue ? WriteCsvProgress : null,
+            ParseErrorAction = ParseErrorAction,
+            CollectParseErrors = CollectParseErrors.IsPresent,
+            MaxParseErrors = MaxParseErrors,
+            ParseErrors = _parseErrors,
+            MaxFieldLength = MaxFieldLength,
+            MaxQuotedFieldLength = MaxQuotedFieldLength,
+            NormalizeQuotes = NormalizeQuotes.IsPresent,
+            InternStrings = InternStrings.IsPresent
+        };
+
+        CsvPowerShellOptionBuilder.ApplyLoadOptions(
+            options,
+            DuplicateHeaderBehavior,
+            NullValue,
+            DateTimeFormats,
+            QuoteParsingMode,
+            StaticColumns,
+            CompressionType,
+            MaxDecompressedBytes);
+
+        if (Culture != null)
+        {
+            options.Culture = Culture;
+        }
+
+        if (Encoding != null)
+        {
+            options.Encoding = Encoding;
+        }
+
+        return options;
+    }
+
+    private CsvReaderOptions CreateReaderInputOptions()
     {
         var options = new CsvReaderOptions
         {

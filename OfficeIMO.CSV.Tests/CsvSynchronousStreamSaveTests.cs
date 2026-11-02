@@ -33,7 +33,7 @@ public class CsvSynchronousStreamSaveTests
         Assert.Equal(0, output.Position);
         Assert.Equal(document.ToBytes(options), output.ToArray());
         Assert.Equal("Name,Notes\nAlpha,\"Łódź, line1\nline2\"\n",
-            CsvDocument.Load(output, new CsvReaderOptions { CompressionType = compression }).ToString(options));
+            CsvDocument.Load(output, new CsvLoadOptions { CompressionType = compression }).ToString(options));
     }
 
     [Theory]

@@ -88,7 +88,7 @@ public sealed class CsvDataReaderApiTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
 
         var document = await CsvDocument.LoadAsync(stream,
-            new CsvReaderOptions { CancellationToken = openingCancellation.Token });
+            new CsvLoadOptions { CancellationToken = openingCancellation.Token });
         using DbDataReader reader = document.CreateDataReader();
         openingCancellation.Cancel();
 
@@ -588,7 +588,7 @@ public sealed class CsvDataReaderApiTests {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Value\n1,Alpha\n2,Beta\n"));
         CsvDocument document = CsvDocument.Load(
             stream,
-            new CsvReaderOptions { Mode = CsvLoadMode.InMemory });
+            new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
         using var cancellation = new CancellationTokenSource();
         var culture = new CancelingInferenceCulture(cancellation);
         document.WithCulture(culture);

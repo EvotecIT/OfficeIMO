@@ -15,20 +15,20 @@ internal static partial class CsvFile
     /// <summary>
     /// Opens a text reader for a CSV file, applying compression from the supplied options or file extension.
     /// </summary>
-    internal static TextReader OpenTextReader(string path, CsvReaderOptions? options = null, int bufferSize = 256 * 1024)
+    internal static TextReader OpenTextReader(string path, CsvParsingSettings? options = null, int bufferSize = 256 * 1024)
     {
         if (string.IsNullOrWhiteSpace(path))
         {
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        options ??= new CsvReaderOptions();
+        options ??= new CsvParsingSettings();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: false);
         return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
     }
 
-    internal static TextReader OpenTextReaderForAsyncRead(string path, CsvReaderOptions options,
+    internal static TextReader OpenTextReaderForAsyncRead(string path, CsvParsingSettings options,
         int bufferSize = 256 * 1024, int? largeFileBufferSize = null)
     {
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
@@ -55,7 +55,7 @@ internal static partial class CsvFile
         }
     }
 
-    internal static TextReader OpenTextReader(Stream source, CsvReaderOptions options, bool leaveOpen, int bufferSize = 256 * 1024)
+    internal static TextReader OpenTextReader(Stream source, CsvParsingSettings options, bool leaveOpen, int bufferSize = 256 * 1024)
     {
         Stream input = OpenReadStream(source, options, leaveOpen);
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
@@ -70,7 +70,7 @@ internal static partial class CsvFile
     /// <summary>
     /// Applies the same input bounds and ownership to byte and text readers over a supplied stream.
     /// </summary>
-    internal static Stream OpenReadStream(Stream source, CsvReaderOptions options, bool leaveOpen)
+    internal static Stream OpenReadStream(Stream source, CsvParsingSettings options, bool leaveOpen)
     {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (!source.CanRead) throw new ArgumentException("Source stream must be readable.", nameof(source));
@@ -193,7 +193,7 @@ internal static partial class CsvFile
         return CsvCompressionType.None;
     }
 
-    internal static Stream OpenReadStream(string path, CsvReaderOptions options, int bufferSize, bool useAsync)
+    internal static Stream OpenReadStream(string path, CsvParsingSettings options, int bufferSize, bool useAsync)
     {
         var compressionType = ResolveCompression(options.CompressionType, path);
         EnsureCompressionSupported(compressionType);
@@ -216,7 +216,7 @@ internal static partial class CsvFile
         return stream;
     }
 
-    private static void ValidateMaxInputBytes(CsvReaderOptions options)
+    private static void ValidateMaxInputBytes(CsvParsingSettings options)
     {
         if (options.MaxInputBytes <= 0)
         {
@@ -274,7 +274,7 @@ internal static partial class CsvFile
             _ => throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, "Unsupported CSV compression type.")
         };
 
-    private static void ValidateMaxDecompressedBytes(CsvReaderOptions options)
+    private static void ValidateMaxDecompressedBytes(CsvParsingSettings options)
     {
         if (options.MaxDecompressedBytes is { } maxBytes && maxBytes < 0)
         {

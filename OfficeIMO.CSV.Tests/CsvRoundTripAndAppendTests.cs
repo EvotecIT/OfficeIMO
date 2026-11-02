@@ -124,7 +124,7 @@ public class CsvRoundTripAndAppendTests
     {
         string effectiveDelimiter = delimiter.Length == 0 ? "," : delimiter;
         string text = "A" + effectiveDelimiter + "B" + Environment.NewLine + "東京" + effectiveDelimiter + "4" + Environment.NewLine;
-        CsvDocument document = CsvDocument.Parse(text, new CsvReaderOptions { DelimiterText = delimiter });
+        CsvDocument document = CsvDocument.Parse(text, new CsvLoadOptions { DelimiterText = delimiter });
         Assert.Equal(effectiveDelimiter, document.DelimiterText);
         Assert.Equal(effectiveDelimiter[0], document.Delimiter);
         Assert.Equal(text, document.ToString());

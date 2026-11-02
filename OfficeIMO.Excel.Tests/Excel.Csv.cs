@@ -84,7 +84,7 @@ public class ExcelCsvExtensionsTests {
 
     [Fact]
     public void CsvDocumentImportReportsFallbackForEmptyDelimiterText() {
-        var csv = CsvDocument.Parse("Name,Value\nAlpha,1\n", new CsvReaderOptions { DelimiterText = "" });
+        var csv = CsvDocument.Parse("Name,Value\nAlpha,1\n", new CsvLoadOptions { DelimiterText = "" });
         using var document = ExcelDocument.Create();
         ExcelCsvImportResult result = document.ImportCsv(csv);
         Assert.Equal(",", result.DelimiterText);

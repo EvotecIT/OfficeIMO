@@ -3447,7 +3447,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 #### OfficeIMO.CSV
 
 <details>
-<summary>16 changes</summary>
+<summary>15 changes</summary>
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
@@ -3463,10 +3463,9 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Action<RowMapper<T>> configure, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Action<RowMapper<T>> configure, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls. |
 | Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Func<IDataRecord, T> factory, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, Func<IDataRecord, T> factory, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls. |
 | Conversion | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, ParallelRowMappingOptions options = null, CancellationToken cancellationToken = default)` | Changed | `OfficeIMO.CSV.CsvMappingExtensions.RowsAsParallel<T>(this CsvDocument document, ParallelRowMappingOptions parallelOptions = null, CsvReaderOptions options = null, CancellationToken cancellationToken = default)` | Mapping uses the shared OfficeIMO.Data reader contract. Rename the mapping options argument to parallelOptions. Put CSV projection settings in options; pass cancellationToken by name when migrating positional calls. |
-| Options | `OfficeIMO.CSV.CsvDataReaderOptions` | Merged | `OfficeIMO.CSV.CsvReaderOptions` | Combine Schema, InferSchema and ParallelProcessing with parsing settings in one CsvReaderOptions object. Rename SchemaSampleSize to SchemaSampleRows. |
+| Options | `OfficeIMO.CSV.CsvDataReaderOptions` | Merged | `OfficeIMO.CSV.CsvReaderOptions` | Combine Schema, InferSchema and ParallelProcessing with parsing settings in CsvReaderOptions for OpenReader. Load and Parse keep CsvLoadOptions. Rename SchemaSampleSize to SchemaSampleRows. |
 | Options | `OfficeIMO.CSV.CsvDataReaderOptions.SchemaSampleSize` | Renamed | `OfficeIMO.CSV.CsvReaderOptions.SchemaSampleRows` | Keep the sample-row count; only the property and containing options type change. CSV decimal inference is unchanged; use an explicit Schema to select other column types. |
 | Options | `OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleSize` | Renamed | `OfficeIMO.CSV.CsvDataTableOptions.SchemaSampleRows` | Keep the sample-row count. CsvDataTableOptions retains its separate TableName and table-schema projection contract. |
-| Options | `OfficeIMO.CSV.CsvLoadOptions` | Merged | `OfficeIMO.CSV.CsvReaderOptions` | Move parsing and loading settings into CsvReaderOptions; pass the same options type to Load, Parse and OpenReader. |
 
 </details>
 

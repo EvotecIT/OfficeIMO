@@ -42,7 +42,7 @@ public class CsvColumnMappingOptionsTests {
     [InlineData(2)]
     [InlineData(3)]
     public void OptionalAliasesCultureAndFormatsApplyAcrossMappingPaths(int path) {
-        var document = CsvDocument.Parse(Text, new CsvReaderOptions { Delimiter = ';' });
+        var document = CsvDocument.Parse(Text, new CsvLoadOptions { Delimiter = ';' });
         Item[] items;
         if (path == 0) items = document.RowsAs<Item>(Configure).ToArray();
         else if (path == 1) {

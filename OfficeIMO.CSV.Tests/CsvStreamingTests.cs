@@ -47,7 +47,7 @@ public class CsvStreamingTests
 
             CsvDocument document = await CsvDocument.LoadAsync(
                 path,
-                new CsvReaderOptions { CompressionType = CsvCompressionType.GZip });
+                new CsvLoadOptions { CompressionType = CsvCompressionType.GZip });
 
             Assert.Equal("Alice", Assert.Single(document.AsEnumerable()).AsString("Name"));
         }
@@ -69,7 +69,7 @@ public class CsvStreamingTests
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
 
             await Assert.ThrowsAsync<InvalidDataException>(() =>
-                CsvDocument.LoadAsync(path, new CsvReaderOptions { MaxDecompressedBytes = 4 }));
+                CsvDocument.LoadAsync(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
         }
         finally
         {
@@ -86,7 +86,7 @@ public class CsvStreamingTests
             File.WriteAllText(path, "Id,Name\n1,Alice\n", Encoding.UTF8);
             var options = new CsvReaderOptions { MaxInputBytes = 8 };
 
-            Assert.Throws<InvalidDataException>(() => CsvDocument.Load(path, options));
+            Assert.Throws<InvalidDataException>(() => CsvDocument.Load(path, new CsvLoadOptions { MaxInputBytes = 8 }));
             Assert.Throws<InvalidDataException>(() =>
                 CsvDocument.ReadRows(path, (_, _) => { }, options));
             Assert.Throws<InvalidDataException>(() =>
@@ -102,7 +102,7 @@ public class CsvStreamingTests
                 CsvDocument.ReadRowFieldSpans(path, ref visitor, options);
             });
 #endif
-            await Assert.ThrowsAsync<InvalidDataException>(() => CsvDocument.LoadAsync(path, options));
+            await Assert.ThrowsAsync<InvalidDataException>(() => CsvDocument.LoadAsync(path, new CsvLoadOptions { MaxInputBytes = 8 }));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 CsvDocument.OpenReader(path,
@@ -152,7 +152,7 @@ public class CsvStreamingTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             CsvDocument.LoadAsync(
                 stream,
-                new CsvReaderOptions { CancellationToken = cancellation.Token }));
+                new CsvLoadOptions { CancellationToken = cancellation.Token }));
 
         Assert.Equal(2, stream.Position);
     }
@@ -164,13 +164,13 @@ public class CsvStreamingTests
         using var syncStream = new MemoryStream(bytes);
         syncStream.Position = 3;
         Assert.Throws<InvalidDataException>(() =>
-            CsvDocument.Load(syncStream, new CsvReaderOptions { MaxInputBytes = 8 }));
+            CsvDocument.Load(syncStream, new CsvLoadOptions { MaxInputBytes = 8 }));
         Assert.Equal(3, syncStream.Position);
 
         using var asyncStream = new MemoryStream(bytes);
         asyncStream.Position = 4;
         await Assert.ThrowsAsync<InvalidDataException>(() =>
-            CsvDocument.LoadAsync(asyncStream, new CsvReaderOptions { MaxInputBytes = 8 }));
+            CsvDocument.LoadAsync(asyncStream, new CsvLoadOptions { MaxInputBytes = 8 }));
         Assert.Equal(4, asyncStream.Position);
     }
 
@@ -202,7 +202,7 @@ public class CsvStreamingTests
         {
             File.WriteAllText(tempPath, "Id,Name\n1,Alice\n2,Bob\n3,Charlie\n");
 
-            var options = new CsvReaderOptions { Mode = CsvLoadMode.Stream };
+            var options = new CsvLoadOptions { Mode = CsvLoadMode.Stream };
             var doc = CsvDocument.Load(tempPath, options);
 
             var rows = doc.AsEnumerable().ToList();
@@ -229,7 +229,7 @@ public class CsvStreamingTests
                 .AddRow(1, "Alice")
                 .Save(tempPath, new CsvSaveOptions { NewLine = "\n" });
 
-            var options = new CsvReaderOptions { Mode = CsvLoadMode.Stream };
+            var options = new CsvLoadOptions { Mode = CsvLoadMode.Stream };
             var doc = CsvDocument.Load(tempPath, options);
 
             options.CompressionType = CsvCompressionType.None;
@@ -259,7 +259,7 @@ public class CsvStreamingTests
             };
             var doc = CsvDocument.Load(
                 tempPath,
-                new CsvReaderOptions {
+                new CsvLoadOptions {
                     Mode = CsvLoadMode.Stream,
                     StaticColumns = staticColumns
                 });
@@ -283,7 +283,7 @@ public class CsvStreamingTests
     public void StreamingMode_Disallows_FilterUntilMaterialized()
     {
         var csv = "Id,Value\n1,A\n2,B\n";
-        var doc = CsvDocument.Parse(csv, new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+        var doc = CsvDocument.Parse(csv, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         Assert.Throws<InvalidOperationException>(() => doc.Filter(_ => true));
     }
 
@@ -1410,7 +1410,7 @@ public class CsvStreamingTests
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        var doc = CsvDocument.Load(stream, new CsvReaderOptions { Mode = CsvLoadMode.InMemory });
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
         var rows = doc.AsEnumerable().ToList();
 
         Assert.Equal(2, rows.Count);
@@ -1423,7 +1423,7 @@ public class CsvStreamingTests
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        var doc = CsvDocument.Load(stream, new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var firstPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
         var secondPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
 
@@ -1439,7 +1439,7 @@ public class CsvStreamingTests
         var stream = new MemoryStream(bytes, writable: false);
         stream.Position = stream.Length;
 
-        var doc = CsvDocument.Load(stream, new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var rows = doc.AsEnumerable().ToList();
 
         Assert.Single(rows);
@@ -1454,7 +1454,7 @@ public class CsvStreamingTests
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
         using var stream = new NonSeekableReadStream(bytes);
 
-        var doc = CsvDocument.Load(stream, new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var firstPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
         var secondPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
 

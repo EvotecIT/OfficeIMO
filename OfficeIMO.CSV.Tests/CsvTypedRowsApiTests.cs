@@ -195,7 +195,7 @@ public sealed class CsvTypedRowsApiTests {
             CultureInfo.InvariantCulture,
             DateTimeStyles.RoundtripKind);
 
-        DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv, options).RowsAs<DateTimeRow>());
+        DateTimeRow materialized = Assert.Single(CsvDocument.Parse(csv, new CsvLoadOptions { DateTimeFormats = new[] { "O" } }).RowsAs<DateTimeRow>());
         using var reader = CsvDocument.OpenReader(new System.IO.StringReader(csv), options: options);
         DateTimeRow forwardOnly = Assert.Single(reader.RowsAs<DateTimeRow>());
 
@@ -260,7 +260,7 @@ public sealed class CsvTypedRowsApiTests {
         const string secret = "customer-secret-value";
         CsvDocument document = CsvDocument.Parse(
             $"Order Id\n{secret}\n",
-            new CsvReaderOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
+            new CsvLoadOptions { MappingErrorValuePolicy = DataMappingErrorValuePolicy.Redact });
 
         DataMappingException exception = Assert.Throws<DataMappingException>(() =>
             document.RowsAs<SalesRow>().ToArray());

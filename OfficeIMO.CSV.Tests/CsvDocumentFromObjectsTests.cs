@@ -798,7 +798,7 @@ public class CsvDocumentFromObjectsTests
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
 
             Assert.Throws<InvalidDataException>(() =>
-                CsvDocument.Load(path, new CsvReaderOptions { MaxDecompressedBytes = 4 }));
+                CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
         }
         finally
         {
@@ -825,7 +825,7 @@ public class CsvDocumentFromObjectsTests
         {
             File.WriteAllText(path, "Name,Value\nAlpha,1\n");
 
-            CsvDocument document = CsvDocument.Load(path, new CsvReaderOptions { MaxDecompressedBytes = 1 });
+            CsvDocument document = CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 1 });
 
             Assert.Equal("Alpha", Assert.Single(document.AsEnumerable()).AsString("Name"));
         }

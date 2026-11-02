@@ -17,7 +17,7 @@ public class CsvDocumentBasicsTests
 
         CsvDocument parsed = CsvDocument.Parse(
             "\"" + value + "\"\n",
-            new CsvReaderOptions { HasHeaderRow = false });
+            new CsvLoadOptions { HasHeaderRow = false });
 
         Assert.Equal(value, parsed.AsEnumerable().Single().AsString("Column1"));
     }
@@ -29,7 +29,7 @@ public class CsvDocumentBasicsTests
 
         CsvDocument parsed = CsvDocument.Parse(
             "\"" + value + "\",done\n",
-            new CsvReaderOptions { HasHeaderRow = false });
+            new CsvLoadOptions { HasHeaderRow = false });
 
         CsvRow row = parsed.AsEnumerable().Single();
         Assert.Equal(value, row.AsString("Column1"));
@@ -43,7 +43,7 @@ public class CsvDocumentBasicsTests
 
         Assert.Throws<CsvParseException>(() => CsvDocument.Parse(
             value,
-            new CsvReaderOptions { HasHeaderRow = false }));
+            new CsvLoadOptions { HasHeaderRow = false }));
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class CsvDocumentBasicsTests
     {
         CsvDocument parsed = CsvDocument.Parse(
             "A,\"a\" \"b\"\nc\"\n",
-            new CsvReaderOptions { HasHeaderRow = false, TrimWhitespace = true });
+            new CsvLoadOptions { HasHeaderRow = false, TrimWhitespace = true });
 
         CsvRow row = parsed.AsEnumerable().Single();
         Assert.Equal("A", row.AsString("Column1"));
@@ -63,7 +63,7 @@ public class CsvDocumentBasicsTests
     {
         CsvDocument parsed = CsvDocument.Parse(
             "A||\"a\" \"b\"\nc\"\n",
-            new CsvReaderOptions { HasHeaderRow = false, TrimWhitespace = true, DelimiterText = "||" });
+            new CsvLoadOptions { HasHeaderRow = false, TrimWhitespace = true, DelimiterText = "||" });
 
         CsvRow row = parsed.AsEnumerable().Single();
         Assert.Equal("A", row.AsString("Column1"));
@@ -99,7 +99,7 @@ public class CsvDocumentBasicsTests
            .AddRow("Ola", 12);
 
         var text = doc.ToString();
-        var options = new CsvReaderOptions { Delimiter = ';' };
+        var options = new CsvLoadOptions { Delimiter = ';' };
         var parsed = CsvDocument.Parse(text, options);
 
         Assert.Equal(';', parsed.Delimiter);
@@ -112,7 +112,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Field1;Field2;Field3\n1,2,3,4;5,6,7,8;9,10,11,12\n",
-            new CsvReaderOptions { DetectDelimiter = true });
+            new CsvLoadOptions { DetectDelimiter = true });
 
         Assert.Equal(';', parsed.Delimiter);
         Assert.Equal(new[] { "Field1", "Field2", "Field3" }, parsed.Header);
@@ -124,7 +124,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name|Value\nAlpha|1\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 DetectDelimiter = true,
                 DelimiterCandidates = new[] { ';', '|' },
                 Mode = CsvLoadMode.Stream
@@ -147,7 +147,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,  spaced  \n",
-            new CsvReaderOptions { TrimWhitespace = true });
+            new CsvLoadOptions { TrimWhitespace = true });
 
         Assert.Equal("spaced", parsed.AsEnumerable().Single().AsString("Value"));
     }
@@ -157,7 +157,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "\"Name\",\"Value\"\n\"Alpha\",\"  spaced  \"\n",
-            new CsvReaderOptions { TrimWhitespace = true });
+            new CsvLoadOptions { TrimWhitespace = true });
 
         Assert.Equal("  spaced  ", parsed.AsEnumerable().Single().AsString("Value"));
     }
@@ -175,7 +175,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "   \nName;Value\nAlpha;1\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 DetectDelimiter = true,
                 TrimWhitespace = true
@@ -192,7 +192,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "\nName;Value\nAlpha;1\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 DetectDelimiter = true,
                 AllowEmptyLines = true,
@@ -219,7 +219,7 @@ public class CsvDocumentBasicsTests
         doc.AddRow(1, $"hello{delimiter}world");
         var text = doc.ToString();
 
-        var parsed = CsvDocument.Parse(text, new CsvReaderOptions { Delimiter = delimiter });
+        var parsed = CsvDocument.Parse(text, new CsvLoadOptions { Delimiter = delimiter });
         var value = parsed.AsEnumerable().Single().AsString("Value");
         Assert.Equal($"hello{delimiter}world", value);
     }
@@ -243,7 +243,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             $"Name,Value\n{row}\n",
-            new CsvReaderOptions { TrimWhitespace = true });
+            new CsvLoadOptions { TrimWhitespace = true });
 
         Assert.Equal(expected, parsed.AsEnumerable().Single().AsString("Value"));
     }
@@ -291,7 +291,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Alpha,1\nBeta,2\n",
-            new CsvReaderOptions { Header = new[] { "Name", "Value" } });
+            new CsvLoadOptions { Header = new[] { "Name", "Value" } });
 
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
         Assert.Equal(2, parsed.AsEnumerable().Count());
@@ -303,7 +303,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "generated by vendor\nexported 2026-06-25\nName,Value\nAlpha,1\n",
-            new CsvReaderOptions { SkipInitialRecords = 2 });
+            new CsvLoadOptions { SkipInitialRecords = 2 });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -315,7 +315,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "generated,by,vendor,with,commas\nName;Value\nAlpha;1\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -331,7 +331,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note\nmetadata,with,commas\nName;Value\nAlpha;1\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -348,7 +348,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Fields: Old Value\nName,Value\nAlpha,1\n",
-            new CsvReaderOptions { SkipInitialRecords = 1 });
+            new CsvLoadOptions { SkipInitialRecords = 1 });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -361,7 +361,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "metadata\n#Fields: date time\n2026-06-25 12:00\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 Delimiter = ' ',
                 SkipInitialRecords = 1,
@@ -380,7 +380,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "# generated \"by tool\nName,Value\nA,1\n",
-            new CsvReaderOptions());
+            new CsvLoadOptions());
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -393,7 +393,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "# generated \"by tool\nName\nAlpha\n",
-            new CsvReaderOptions());
+            new CsvLoadOptions());
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name" }, parsed.Header);
@@ -405,7 +405,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "# generated \"by tool\nName;Value\nA;1\n",
-            new CsvReaderOptions { DetectDelimiter = true });
+            new CsvLoadOptions { DetectDelimiter = true });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(';', parsed.Delimiter);
@@ -419,7 +419,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note \"ignored\nstill ignored\"\nName,Value\nA,1\n",
-            new CsvReaderOptions());
+            new CsvLoadOptions());
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -432,7 +432,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note \"one\ntwo\nthree\"\nName,Value\nA,1\n",
-            new CsvReaderOptions());
+            new CsvLoadOptions());
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -445,7 +445,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note,\"one\ntwo\nthree\"\nName,Value\nA,1\n",
-            new CsvReaderOptions());
+            new CsvLoadOptions());
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -458,7 +458,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note,\"a\nstill,has,commas\nend\"\nName;Value\nA;1\n",
-            new CsvReaderOptions { DetectDelimiter = true });
+            new CsvLoadOptions { DetectDelimiter = true });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(';', parsed.Delimiter);
@@ -472,7 +472,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#note \"ignored\nstill,has,commas\"\nName;Value\nA;1\n",
-            new CsvReaderOptions { DetectDelimiter = true });
+            new CsvLoadOptions { DetectDelimiter = true });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(';', parsed.Delimiter);
@@ -486,7 +486,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#a,b,c\n1;2;3\n4;5;6\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 DetectDelimiter = true,
                 HasHeaderRow = false
             });
@@ -504,7 +504,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Alpha,1\nBeta;2\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 DetectDelimiter = true,
                 Header = new[] { "Name", "Value" }
             });
@@ -521,7 +521,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "A,B;C\n#x,y,z\n1;2;3\n",
-            new CsvReaderOptions { DetectDelimiter = true });
+            new CsvLoadOptions { DetectDelimiter = true });
 
         var rows = parsed.AsEnumerable().ToArray();
         Assert.Equal(',', parsed.Delimiter);
@@ -566,7 +566,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "metadata\nAlpha,1\nBeta,2\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 Header = new[] { "Name", "Value" },
                 SkipInitialRecords = 1
             });
@@ -583,7 +583,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "metadata\nName,Value\nAlpha,1\nBeta,2\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 Mode = CsvLoadMode.Stream,
                 SkipInitialRecords = 1
             });
@@ -620,7 +620,7 @@ public class CsvDocumentBasicsTests
     {
         var ex = Assert.Throws<CsvException>(() => CsvDocument.Parse(
             "Name,Value\nAlpha\n",
-            new CsvReaderOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
+            new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
 
         Assert.Contains("header defines 2 columns", ex.Message);
     }
@@ -630,7 +630,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha\nBeta,2,Extra\n",
-            new CsvReaderOptions { Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var rows = parsed.AsEnumerable().ToArray();
 
         Assert.Equal(string.Empty, rows[0].AsString("Value"));
@@ -675,7 +675,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Name,Value\nAlpha,1\n",
-            new CsvReaderOptions { SkipCommentRowsBeforeHeader = false });
+            new CsvLoadOptions { SkipCommentRowsBeforeHeader = false });
 
         Assert.Equal(new[] { "#Name", "Value" }, parsed.Header);
         Assert.Single(parsed.AsEnumerable());
@@ -699,7 +699,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\n# ignored\nBeta,2\n",
-            new CsvReaderOptions { SkipCommentRows = true });
+            new CsvLoadOptions { SkipCommentRows = true });
 
         var rows = parsed.AsEnumerable().ToArray();
 
@@ -713,7 +713,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\n#Fields: old value\nAlpha,1\n",
-            new CsvReaderOptions { SkipCommentRows = true });
+            new CsvLoadOptions { SkipCommentRows = true });
 
         var row = Assert.Single(parsed.AsEnumerable());
 
@@ -727,7 +727,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "A,B;C\n#Fields: old,value\n1;2;3\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 DetectDelimiter = true,
                 SkipCommentRows = true
@@ -742,7 +742,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Fields: old,value\n1;2\n3;4\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 DetectDelimiter = true,
                 HasHeaderRow = false,
@@ -758,7 +758,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\n#note,\"ignored\nstill ignored\"\nAlpha,1\n",
-            new CsvReaderOptions { SkipCommentRows = true });
+            new CsvLoadOptions { SkipCommentRows = true });
 
         var row = Assert.Single(parsed.AsEnumerable());
 
@@ -771,7 +771,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\n; ignored\nBeta,2\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 SkipCommentRows = true,
                 CommentCharacter = ';'
             });
@@ -787,7 +787,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Version: 1.0\n#Fields: date time cs-uri\n2026-06-24 12:00 /index\n",
-            new CsvReaderOptions { Delimiter = ' ' });
+            new CsvLoadOptions { Delimiter = ' ' });
 
         Assert.Equal(new[] { "date", "time", "cs-uri" }, parsed.Header);
         Assert.Single(parsed.AsEnumerable());
@@ -799,7 +799,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Fields: date  time cs-uri\n2026-06-24 12:00 /index\n",
-            new CsvReaderOptions { Delimiter = ' ' });
+            new CsvLoadOptions { Delimiter = ' ' });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "date", "time", "cs-uri" }, parsed.Header);
@@ -813,7 +813,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Version: 1.0\n#Fields: date time cs-uri\n#Software: test\n2026-06-24 12:00 /index\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 Delimiter = ' ',
                 SkipCommentRows = true
             });
@@ -828,7 +828,7 @@ public class CsvDocumentBasicsTests
     {
         var parsed = CsvDocument.Parse(
             "#Version: 1.0\n#Fields: date time cs-uri\n2026-06-24 12:00 /index\n",
-            new CsvReaderOptions { Delimiter = ' ', Mode = CsvLoadMode.Stream });
+            new CsvLoadOptions { Delimiter = ' ', Mode = CsvLoadMode.Stream });
 
         Assert.Equal(new[] { "date", "time", "cs-uri" }, parsed.Header);
         Assert.Single(parsed.AsEnumerable());

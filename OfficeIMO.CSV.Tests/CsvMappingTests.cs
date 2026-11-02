@@ -674,7 +674,7 @@ public class CsvMappingTests
     {
         var doc = CsvDocument.Parse(
             "Created\n07-Jul-2026\n",
-            new CsvReaderOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
+            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
 
         var row = Assert.Single(doc.RowsAs<EventRow>(map => map
             .FromColumn<DateTime>("Created", (item, value) => item with { Created = value })));

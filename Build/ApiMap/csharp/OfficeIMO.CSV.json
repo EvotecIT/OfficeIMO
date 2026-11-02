@@ -2,19 +2,11 @@
   "package": "OfficeIMO.CSV",
   "changes": [
     {
-      "old": "OfficeIMO.CSV.CsvLoadOptions",
-      "kind": "type",
-      "action": "merge",
-      "new": "OfficeIMO.CSV.CsvReaderOptions",
-      "replacement": "Move parsing and loading settings into CsvReaderOptions; pass the same options type to Load, Parse and OpenReader.",
-      "category": "options"
-    },
-    {
       "old": "OfficeIMO.CSV.CsvDataReaderOptions",
       "kind": "type",
       "action": "merge",
       "new": "OfficeIMO.CSV.CsvReaderOptions",
-      "replacement": "Combine Schema, InferSchema and ParallelProcessing with parsing settings in one CsvReaderOptions object. Rename SchemaSampleSize to SchemaSampleRows.",
+      "replacement": "Combine Schema, InferSchema and ParallelProcessing with parsing settings in CsvReaderOptions for OpenReader. Load and Parse keep CsvLoadOptions. Rename SchemaSampleSize to SchemaSampleRows.",
       "category": "options"
     },
     {

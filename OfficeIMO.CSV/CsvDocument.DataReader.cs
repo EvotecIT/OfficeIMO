@@ -76,16 +76,16 @@ public sealed partial class CsvDocument
             var text = ReadAllTextWithCancellation(
                 boundedReader,
                 options.CancellationToken);
-            return Parse(text, options).CreateDataReader(options);
+            return ParseText(text, options.Parsing).CreateDataReader(options);
         }
 #endif
 
         if (!CanUseSinglePassFileDataReader(options))
         {
-            return Load(path, options).CreateDataReader(options);
+            return LoadFromPath(path, options.Parsing).CreateDataReader(options);
         }
 
-        options = ResolveLoadOptions(() => CsvFile.OpenTextReader(path, options, FileBufferSize), options);
+        options = ResolveReaderOptions(() => CsvFile.OpenTextReader(path, options, FileBufferSize), options);
         var reader = CsvFile.OpenTextReader(path, options, FileBufferSize);
         IEnumerator<IReadOnlyList<string>>? records = null;
 
@@ -103,7 +103,7 @@ public sealed partial class CsvDocument
             {
                 records.Dispose();
                 reader.Dispose();
-                return Load(path, options).CreateDataReader(options);
+                return LoadFromPath(path, options.Parsing).CreateDataReader(options);
             }
 
             var header = AppendStaticColumnsToHeader(NormalizeParsedHeader(records.Current, options), options);
@@ -169,7 +169,7 @@ public sealed partial class CsvDocument
         {
             return CanUseSinglePassFileDataReader(options)
                 ? CreateSinglePassNonSeekableDataReader(stream, options)
-                : Load(stream, options).CreateDataReader(options);
+                : LoadFromStream(stream, options.Parsing).CreateDataReader(options);
         }
 
         long startPosition = stream.Position;
@@ -311,7 +311,7 @@ public sealed partial class CsvDocument
         }
 
         using var snapshotStream = new MemoryStream(snapshot, writable: false);
-        return Load(snapshotStream, options).CreateDataReader(options);
+        return LoadFromStream(snapshotStream, options.Parsing).CreateDataReader(options);
     }
 
     /// <summary>
@@ -364,7 +364,7 @@ public sealed partial class CsvDocument
                     _dateTimeFormats), options);
             }
 
-            CsvReaderOptions readerLoadOptions = _streamingSource.Options.Clone();
+            CsvParsingSettings readerLoadOptions = _streamingSource.Options.Clone();
             return CsvParallelDataReader.Apply(new CsvDataReader(
                 columns,
                 _streamingSource.ReadReusableStringRows(readerLoadOptions),
@@ -558,7 +558,7 @@ public sealed partial class CsvDocument
             CanUseMemoryBackedFileText(path, options);
     }
 
-    private static bool CanUseMemoryBackedFileText(string path, CsvReaderOptions options)
+    private static bool CanUseMemoryBackedFileText(string path, CsvParsingSettings options)
     {
         if (options.Mode != CsvLoadMode.Stream ||
             CsvFile.ResolveCompression(options.CompressionType, path) != CsvCompressionType.None)
@@ -708,7 +708,7 @@ public sealed partial class CsvDocument
         }
 #endif
 
-        CsvReaderOptions inferenceOptions = _streamingSource!.Options.Clone();
+        CsvParsingSettings inferenceOptions = _streamingSource!.Options.Clone();
         return CreateStreamingStringInferredDataReader(schemaSampleSize, inferenceOptions, cancellationToken);
     }
 

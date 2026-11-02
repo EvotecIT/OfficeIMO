@@ -12,7 +12,7 @@ internal static partial class CsvParser
 #if NET8_0_OR_GREATER
     private static bool TryFillTextDataReaderBatchScalar(
         string text,
-        CsvReaderOptions options,
+        CsvParsingSettings options,
         ref CsvTextFieldSpanReadState state,
         CsvTextDataReaderBatch batch,
         CancellationToken cancellationToken)

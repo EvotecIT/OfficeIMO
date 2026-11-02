@@ -12,11 +12,53 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvLoadFeatureParityTests
 {
     [Fact]
+    public void LoadAndReaderOptionsShareParsingPolicyAndCloneMutableHeaders()
+    {
+        const string text = "Ada;12,50\n";
+        var loadOptions = new CsvLoadOptions {
+            Delimiter = ';',
+            Header = new[] { "Name", "Amount" },
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            Encoding = System.Text.Encoding.Unicode,
+            MaxInputBytes = 128
+        };
+        var readerOptions = new CsvReaderOptions {
+            Delimiter = ';',
+            Header = new[] { "Name", "Amount" },
+            Culture = System.Globalization.CultureInfo.GetCultureInfo("pl-PL"),
+            Encoding = System.Text.Encoding.Unicode,
+            MaxInputBytes = 128
+        };
+        var loadSnapshot = loadOptions.Clone();
+        var readerSnapshot = readerOptions.Clone();
+        loadOptions.Header![0] = "Changed";
+        readerOptions.Header![0] = "Changed";
+        byte[] bytes = System.Text.Encoding.Unicode.GetBytes(text);
+        using var loadedSource = new MemoryStream(bytes);
+        using var readerSource = new MemoryStream(bytes);
+        CsvDocument loaded = CsvDocument.Load(loadedSource, loadSnapshot);
+        CsvDocument parsed = CsvDocument.Parse(text, loadSnapshot);
+        using CsvDataReader reader = CsvDocument.OpenReader(readerSource, readerSnapshot);
+
+        foreach (CsvDocument document in new[] { loaded, parsed }) {
+            Assert.Equal(new[] { "Name", "Amount" }, document.Header);
+            CsvRow row = Assert.Single(document.AsEnumerable());
+            Assert.Equal("Ada", row.AsString("Name"));
+            Assert.Equal(12.50m, row.Get<decimal>("Amount"));
+        }
+        Assert.Equal("Name", reader.GetName(0));
+        Assert.True(reader.Read());
+        Assert.Equal("Ada", reader.GetString(0));
+        Assert.Equal(12.50m, reader.GetDecimal(1));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
     public void Load_Appends_Static_Columns_To_Materialized_Rows()
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\nBeta,2\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 StaticColumns = new Dictionary<string, object?> {
                     ["SourceFile"] = "input.csv",
                     ["BatchId"] = 42
@@ -34,7 +76,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 Mode = CsvLoadMode.Stream,
                 StaticColumns = new Dictionary<string, object?> {
                     ["SourceFile"] = "stream.csv"
@@ -52,7 +94,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,<null>\n",
-            new CsvReaderOptions { NullValue = "<null>" });
+            new CsvLoadOptions { NullValue = "<null>" });
 
         var row = Assert.Single(parsed.AsEnumerable());
 
@@ -64,7 +106,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Created\n07-Jul-2026\n",
-            new CsvReaderOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
+            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
 
         var row = Assert.Single(parsed.AsEnumerable());
 
@@ -87,7 +129,7 @@ public class CsvLoadFeatureParityTests
         var ex = Assert.Throws<CsvParseException>(() =>
             CsvDocument.Parse(
                 "Name,Value\nAlpha,\"one\"two\n",
-                new CsvReaderOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict }));
+                new CsvLoadOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict }));
 
         Assert.Contains("Invalid quoted field", ex.Message);
     }
@@ -97,7 +139,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Created\n07-Jul-2026\n",
-            new CsvReaderOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } })
+            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } })
             .EnsureSchema(schema => schema.Column("Created").AsDateTime().Required());
 
         parsed.Validate(out var errors);
@@ -186,7 +228,7 @@ public class CsvLoadFeatureParityTests
         Assert.Throws<OperationCanceledException>(() =>
             CsvDocument.Parse(
                 "Name\nAlpha\n",
-                new CsvReaderOptions { CancellationToken = cancellation.Token }));
+                new CsvLoadOptions { CancellationToken = cancellation.Token }));
     }
 
     [Fact]
@@ -196,7 +238,7 @@ public class CsvLoadFeatureParityTests
 
         CsvDocument.Parse(
             "Name\nAlpha\nBeta\nGamma\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 ProgressReportInterval = 2,
                 ProgressCallback = progress => reports.Add(progress.RecordsRead)
             });
@@ -230,7 +272,7 @@ public class CsvLoadFeatureParityTests
         var errors = new List<CsvParseError>();
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,1\nBroken,\"one\"two\nBeta,2\n",
-            new CsvReaderOptions {
+            new CsvLoadOptions {
                 QuoteParsingMode = CsvQuoteParsingMode.Strict,
                 ParseErrorAction = CsvParseErrorAction.SkipRow,
                 CollectParseErrors = true,
@@ -248,7 +290,7 @@ public class CsvLoadFeatureParityTests
         var errors = new List<CsvParseError>();
         var parsed = CsvDocument.Parse(
             "Name\nOk\nTooLong\nFine\n",
-            new CsvReaderOptions
+            new CsvLoadOptions
             {
                 MaxFieldLength = 4,
                 ParseErrorAction = CsvParseErrorAction.SkipRow,
@@ -267,7 +309,7 @@ public class CsvLoadFeatureParityTests
         var ex = Assert.Throws<CsvParseException>(() =>
             CsvDocument.Parse(
                 "Name\nTooLong\n",
-                new CsvReaderOptions { MaxFieldLength = 3 }));
+                new CsvLoadOptions { MaxFieldLength = 3 }));
 
         Assert.Contains("exceeds the configured maximum", ex.Message);
     }
@@ -277,7 +319,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name,Value\nAlpha,\u201CHello\u201D\n",
-            new CsvReaderOptions { NormalizeQuotes = true });
+            new CsvLoadOptions { NormalizeQuotes = true });
 
         Assert.Equal("\"Hello\"", Assert.Single(parsed.AsEnumerable()).AsString("Value"));
     }
@@ -287,7 +329,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name\nAlpha\nAlpha\n",
-            new CsvReaderOptions { InternStrings = true });
+            new CsvLoadOptions { InternStrings = true });
 
         var rows = parsed.AsEnumerable().ToArray();
         Assert.Same(rows[0]["Name"], rows[1]["Name"]);
@@ -298,7 +340,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name||Value\nAlpha||\"one||two\"\nBeta||2\n",
-            new CsvReaderOptions { DelimiterText = "||" });
+            new CsvLoadOptions { DelimiterText = "||" });
 
         var rows = parsed.AsEnumerable().ToArray();
 
@@ -312,7 +354,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "#||\"note\ncontinued\"\nName||Value\nAlpha||1\n",
-            new CsvReaderOptions { DelimiterText = "||" });
+            new CsvLoadOptions { DelimiterText = "||" });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
@@ -324,7 +366,7 @@ public class CsvLoadFeatureParityTests
     {
         var parsed = CsvDocument.Parse(
             "Name\tValue\nAlpha\t1\n",
-            new CsvReaderOptions { DelimiterText = "\t" });
+            new CsvLoadOptions { DelimiterText = "\t" });
 
         var row = Assert.Single(parsed.AsEnumerable());
         Assert.Equal(new[] { "Name", "Value" }, parsed.Header);

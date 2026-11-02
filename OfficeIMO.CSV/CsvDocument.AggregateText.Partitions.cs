@@ -79,7 +79,7 @@ public sealed partial class CsvDocument
 
     private static void AccumulateTextPartition<TAccumulator>(
         string text,
-        CsvReaderOptions options,
+        CsvParsingSettings options,
         int columnCount,
         CsvTextPartition partition,
         CsvRecordAccumulator<TAccumulator> accumulate,

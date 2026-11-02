@@ -12,9 +12,11 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Loads a CSV document from disk.
     /// </summary>
-    public static CsvDocument Load(string path, CsvReaderOptions? options = null)
+    public static CsvDocument Load(string path, CsvLoadOptions? options = null) =>
+        LoadFromPath(path, options?.Parsing.Clone() ?? new CsvParsingSettings());
+
+    private static CsvDocument LoadFromPath(string path, CsvParsingSettings fileOptions)
     {
-        var fileOptions = options?.Clone() ?? new CsvReaderOptions();
         var encoding = fileOptions.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         return LoadInternal(() => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize), fileOptions, encoding);
     }
@@ -39,7 +41,7 @@ public sealed partial class CsvDocument
 
         var fileOptions = options?.Clone() ?? new CsvReaderOptions();
         var readerFactory = () => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, fileOptions);
+        var resolvedOptions = ResolveReaderOptions(readerFactory, fileOptions);
         using var reader = readerFactory();
         ReadRows(reader, rowAction, resolvedOptions);
     }
@@ -64,7 +66,7 @@ public sealed partial class CsvDocument
 
         var fileOptions = options?.Clone() ?? new CsvReaderOptions();
         var readerFactory = () => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, fileOptions);
+        var resolvedOptions = ResolveReaderOptions(readerFactory, fileOptions);
         using var reader = readerFactory();
         ReadRowsReusable(reader, rowAction, resolvedOptions);
     }
@@ -91,7 +93,7 @@ public sealed partial class CsvDocument
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            var resolvedOptions = ResolveReaderOptions(() => new StringReader(text), options);
             using var bufferedReader = new StringReader(text);
             ReadRows(bufferedReader, rowAction, resolvedOptions);
             return;
@@ -173,7 +175,7 @@ public sealed partial class CsvDocument
         if (options.DetectDelimiter)
         {
             var text = reader.ReadToEnd();
-            var resolvedOptions = ResolveLoadOptions(() => new StringReader(text), options);
+            var resolvedOptions = ResolveReaderOptions(() => new StringReader(text), options);
             using var bufferedReader = new StringReader(text);
             ReadRowsReusable(bufferedReader, rowAction, resolvedOptions);
             return;
@@ -267,7 +269,10 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="stream">Source stream.</param>
     /// <param name="options">Load options.</param>
-    public static CsvDocument Load(Stream stream, CsvReaderOptions? options = null)
+    public static CsvDocument Load(Stream stream, CsvLoadOptions? options = null) =>
+        LoadFromStream(stream, options?.Parsing.Clone() ?? new CsvParsingSettings());
+
+    private static CsvDocument LoadFromStream(Stream stream, CsvParsingSettings options)
     {
         if (stream == null)
         {
@@ -279,7 +284,6 @@ public sealed partial class CsvDocument
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
-        options = options?.Clone() ?? new CsvReaderOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         byte[] snapshot = OfficeStreamReader.ReadAllBytes(
             stream,
@@ -296,10 +300,10 @@ public sealed partial class CsvDocument
     }
 
     /// <summary>Asynchronously loads a CSV document from disk.</summary>
-    public static async Task<CsvDocument> LoadAsync(string path, CsvReaderOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task<CsvDocument> LoadAsync(string path, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        CsvReaderOptions resolved = options?.Clone() ?? new CsvReaderOptions();
+        CsvParsingSettings resolved = options?.Parsing.Clone() ?? new CsvParsingSettings();
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             resolved.CancellationToken);
@@ -312,11 +316,11 @@ public sealed partial class CsvDocument
     }
 
     /// <summary>Asynchronously loads a CSV document from a caller-owned stream.</summary>
-    public static async Task<CsvDocument> LoadAsync(Stream stream, CsvReaderOptions? options = null, CancellationToken cancellationToken = default)
+    public static async Task<CsvDocument> LoadAsync(Stream stream, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-        CsvReaderOptions resolved = options?.Clone() ?? new CsvReaderOptions();
+        CsvParsingSettings resolved = options?.Parsing.Clone() ?? new CsvParsingSettings();
         using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
             resolved.CancellationToken);
@@ -360,16 +364,18 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Parses a CSV document from text.
     /// </summary>
-    public static CsvDocument Parse(string text, CsvReaderOptions? options = null)
+    public static CsvDocument Parse(string text, CsvLoadOptions? options = null) =>
+        ParseText(text, options?.Parsing.Clone() ?? new CsvParsingSettings());
+
+    private static CsvDocument ParseText(string text, CsvParsingSettings options)
     {
-        options = options?.Clone() ?? new CsvReaderOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         return LoadInternal(() => new StringReader(text), options, encoding, text);
     }
 
-    private static CsvDocument LoadInternal(Func<TextReader> readerFactory, CsvReaderOptions options, Encoding encoding, string? sourceText = null)
+    private static CsvDocument LoadInternal(Func<TextReader> readerFactory, CsvParsingSettings options, Encoding encoding, string? sourceText = null)
     {
-        options = ResolveLoadOptions(readerFactory, options);
+        options = ResolveParsingSettings(readerFactory, options);
         var initialRecordsToSkip = GetInitialRecordsToSkip(options);
         var document = new CsvDocument(
             options.Mode,
@@ -469,12 +475,12 @@ public sealed partial class CsvDocument
         Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction,
         IReadOnlyList<string> header,
         IReadOnlyList<string> values,
-        CsvReaderOptions options)
+        CsvParsingSettings options)
     {
         rowAction(header, BuildParsedStringValues(values, header.Count, options));
     }
 
-    private static string[]? NormalizeExplicitHeader(CsvReaderOptions options)
+    private static string[]? NormalizeExplicitHeader(CsvParsingSettings options)
     {
         if (options.Header is null)
         {
@@ -497,7 +503,7 @@ public sealed partial class CsvDocument
 
     private static bool TryReadHeader(
         IEnumerator<CsvParser.CsvParsedRecord> enumerator,
-        CsvReaderOptions options,
+        CsvParsingSettings options,
         out IReadOnlyList<string> header,
         out int consumedRecordCount)
     {
@@ -534,7 +540,7 @@ public sealed partial class CsvDocument
         return false;
     }
 
-    private static bool TryGetW3CFieldsHeader(IReadOnlyList<string> record, CsvReaderOptions options, out IReadOnlyList<string> header)
+    private static bool TryGetW3CFieldsHeader(IReadOnlyList<string> record, CsvParsingSettings options, out IReadOnlyList<string> header)
     {
         header = Array.Empty<string>();
         if (!options.RecognizeW3CFieldsHeader || record.Count == 0)
@@ -568,7 +574,7 @@ public sealed partial class CsvDocument
         return false;
     }
 
-    private static int GetInitialRecordsToSkip(CsvReaderOptions options)
+    private static int GetInitialRecordsToSkip(CsvParsingSettings options)
     {
         if (options.SkipInitialRecords < 0)
         {
@@ -578,7 +584,7 @@ public sealed partial class CsvDocument
         return options.SkipInitialRecords;
     }
 
-    private static void ReadRecordsSkippingInitial(TextReader reader, CsvReaderOptions options, int recordsToSkip, Action<string[]> recordAction)
+    private static void ReadRecordsSkippingInitial(TextReader reader, CsvParsingSettings options, int recordsToSkip, Action<string[]> recordAction)
     {
         if (recordsToSkip == 0)
         {
@@ -598,7 +604,7 @@ public sealed partial class CsvDocument
         });
     }
 
-    private static void ReadRecordsReusableSkippingInitial(TextReader reader, CsvReaderOptions options, int recordsToSkip, Action<IReadOnlyList<string>> recordAction)
+    private static void ReadRecordsReusableSkippingInitial(TextReader reader, CsvParsingSettings options, int recordsToSkip, Action<IReadOnlyList<string>> recordAction)
     {
         if (recordsToSkip == 0)
         {
@@ -618,7 +624,7 @@ public sealed partial class CsvDocument
         });
     }
 
-    private static void ReadRecordsWithMetadataSkippingInitial(TextReader reader, CsvReaderOptions options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
+    private static void ReadRecordsWithMetadataSkippingInitial(TextReader reader, CsvParsingSettings options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
     {
         if (recordsToSkip == 0)
         {
@@ -638,7 +644,7 @@ public sealed partial class CsvDocument
         });
     }
 
-    private static void ReadRecordsReusableWithMetadataSkippingInitial(TextReader reader, CsvReaderOptions options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
+    private static void ReadRecordsReusableWithMetadataSkippingInitial(TextReader reader, CsvParsingSettings options, int recordsToSkip, Action<CsvParser.CsvParsedRecord> recordAction)
     {
         if (recordsToSkip == 0)
         {
@@ -658,6 +664,6 @@ public sealed partial class CsvDocument
         });
     }
 
-    private static bool IsCommentRecord(CsvParser.CsvParsedRecord record, CsvReaderOptions options) =>
+    private static bool IsCommentRecord(CsvParser.CsvParsedRecord record, CsvParsingSettings options) =>
         record.StartsWithCommentCharacter;
 }

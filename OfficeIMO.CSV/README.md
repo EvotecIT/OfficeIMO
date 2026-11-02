@@ -42,9 +42,11 @@ new CsvDocument()
 | Read rows once with a forward-only cursor | `CsvDocument.OpenReader(...)` |
 | Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenReaderAsync(...)` |
 
-`CsvReaderOptions` controls parsing, loading and reader projection. It includes
-`Schema`, `InferSchema`, `SchemaSampleRows` and `ParallelProcessing` alongside
-delimiter, header, culture, encoding and input-limit settings. `OpenReader` accepts
+`CsvLoadOptions` controls `Load`, `LoadAsync` and `Parse`. `CsvReaderOptions`
+controls forward-only readers and reader projection. Both use the same delimiter,
+header, culture, encoding and input-limit property names and defaults. Reader
+options also include `Schema`, `InferSchema`, `SchemaSampleRows` and
+`ParallelProcessing`. `OpenReader` accepts
 a file path, `Stream` or `TextReader` and returns `CsvDataReader`, which derives
 from `DbDataReader`. `OpenReaderAsync` accepts a path or stream and returns
 `Task<CsvDataReader>` on .NET 8 and later.
@@ -143,7 +145,7 @@ DataTable table = document.ToDataTable();
 Infer a schema from sampled rows when the incoming file should define the import contract:
 
 ```csharp
-var document = CsvDocument.Load("input.csv", new CsvReaderOptions {
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
     DateTimeFormats = new[] { "dd-MMM-yyyy" }
 });
 
@@ -156,10 +158,11 @@ document.EnsureInferredSchema()
 
 Use a profile to select explicit defaults, then edit the returned options for the
 file's dialect. Each call creates independent options; existing constructors and
-APIs retain their current defaults.
+APIs retain their current defaults. Use `CreateReaderOptions(profile)` for
+`OpenReader` and `CreateLoadOptions(profile)` for loaded documents.
 
 ```csharp
-CsvReaderOptions input = CsvProfiles.CreateLoadOptions(CsvProfile.Strict);
+CsvLoadOptions input = CsvProfiles.CreateLoadOptions(CsvProfile.Strict);
 input.Delimiter = ';';
 CsvDocument document = CsvDocument.Load("input.csv", input);
 
@@ -557,7 +560,7 @@ On .NET 8 and later, explicit `DateOnly` and `TimeOnly` targets are supported by
 `AsTimeOnly()`. Default schema inference remains `DateTime`, so moving between
 target frameworks does not silently change a column's inferred type.
 
-Set `CsvReaderOptions.MappingErrorValuePolicy` to
+Set `CsvLoadOptions.MappingErrorValuePolicy` (or `CsvReaderOptions.MappingErrorValuePolicy` for a reader) to
 `DataMappingErrorValuePolicy.Redact` when schema and row-mapping failures must
 not include source values or custom-converter exception details. The default is
 `Include` for compatibility.
@@ -681,7 +684,7 @@ Console.WriteLine(string.Join(", ", document.Header));
 Use `DuplicateHeaderBehavior` when a pipeline needs to preserve source names exactly or reject ambiguous files:
 
 ```csharp
-var strict = new CsvReaderOptions {
+var strict = new CsvLoadOptions {
     DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Throw
 };
 
@@ -691,7 +694,7 @@ CsvDocument.Load("input.csv", strict);
 Append static metadata columns during import when a database or audit pipeline needs source context on every row:
 
 ```csharp
-var document = CsvDocument.Load("input.csv", new CsvReaderOptions {
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
     StaticColumns = new Dictionary<string, object?> {
         ["SourceFile"] = "input.csv",
         ["ImportedUtc"] = DateTime.UtcNow
@@ -702,7 +705,7 @@ var document = CsvDocument.Load("input.csv", new CsvReaderOptions {
 Use `NullValue` and `DateTimeFormats` when a CSV producer uses explicit null tokens or non-default date shapes:
 
 ```csharp
-var document = CsvDocument.Load("input.csv", new CsvReaderOptions {
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
     NullValue = "<null>",
     DateTimeFormats = new[] { "dd-MMM-yyyy", "yyyyMMdd-HHmmss" }
 });
@@ -713,7 +716,7 @@ DateTime created = document.AsEnumerable().First().AsDateTime("Created");
 The parser defaults to lenient quoted-field handling for compatibility with common PowerShell CSV imports. Use strict mode when malformed quotes should fail the import:
 
 ```csharp
-var document = CsvDocument.Load("input.csv", new CsvReaderOptions {
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
     QuoteParsingMode = CsvQuoteParsingMode.Strict
 });
 ```
@@ -723,7 +726,7 @@ Use `DelimiterText` for multi-character delimiters such as `||` or `::`. Quoted 
 ```csharp
 var document = CsvDocument.Parse(
     "Name||Value\nAlpha||\"one||two\"\n",
-    new CsvReaderOptions { DelimiterText = "||" });
+    new CsvLoadOptions { DelimiterText = "||" });
 
 document.Save("pipes.csv", new CsvSaveOptions {
     DelimiterText = "||",

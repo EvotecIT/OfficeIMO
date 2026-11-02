@@ -24,7 +24,7 @@ internal static partial class CsvParser
         private const int BufferSize = 256 * 1024;
         private const int FallbackTextBufferSize = 128 * 1024;
 
-        private readonly CsvReaderOptions _options;
+        private readonly CsvParsingSettings _options;
         private readonly Encoding _encoding;
         private readonly byte _delimiter;
         private readonly byte _commentCharacter;
@@ -51,7 +51,7 @@ internal static partial class CsvParser
 
         private CsvUtf8StreamDataReaderRowSource(
             Stream stream,
-            CsvReaderOptions options,
+            CsvParsingSettings options,
             Encoding encoding,
             byte[] buffer,
             int length,
@@ -72,7 +72,7 @@ internal static partial class CsvParser
 
         internal static bool TryCreate(
             Stream stream,
-            CsvReaderOptions options,
+            CsvParsingSettings options,
             out CsvUtf8StreamDataReaderRowSource? rows)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(BufferSize);

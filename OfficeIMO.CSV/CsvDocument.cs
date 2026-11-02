@@ -711,7 +711,7 @@ public sealed partial class CsvDocument
         _rows.Add(new CsvRow(this, aligned));
     }
 
-    private void AddParsedRowInternal(IReadOnlyList<string> values, CsvReaderOptions options)
+    private void AddParsedRowInternal(IReadOnlyList<string> values, CsvParsingSettings options)
     {
         _rowsAreParsedStringsOnly = (_rows.Count == 0 || _rowsAreParsedStringsOnly) &&
             options.NullValue is null &&

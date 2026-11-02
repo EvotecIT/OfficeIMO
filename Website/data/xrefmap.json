@@ -1,7 +1,7 @@
 {
-  "generatedAtUtc": "2026-11-02T13:28:49.1802950Z",
-  "sourceCount": 4,
-  "referenceCount": 100539,
+  "generatedAtUtc": "2026-11-02T16:35:35.5204290Z",
+  "sourceCount": 2,
+  "referenceCount": 100588,
   "duplicateCount": 0,
   "references": [
     {
@@ -5960,6 +5960,24 @@
       "aliases": [
         "global::OfficeIMO.CSV.CsvFormulaInjectionPolicy.Preserve",
         "OfficeIMO.CSV.CsvFormulaInjectionPolicy.Preserve"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.CSV.CsvLoadOptions.DefaultMaxCommentContinuationLines",
+      "name": "CsvLoadOptions.DefaultMaxCommentContinuationLines",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#field-defaultmaxcommentcontinuationlines",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DefaultMaxCommentContinuationLines",
+        "OfficeIMO.CSV.CsvLoadOptions.DefaultMaxCommentContinuationLines"
+      ]
+    },
+    {
+      "uid": "F:OfficeIMO.CSV.CsvLoadOptions.DefaultMaxInputBytes",
+      "name": "CsvLoadOptions.DefaultMaxInputBytes",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#field-defaultmaxinputbytes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DefaultMaxInputBytes",
+        "OfficeIMO.CSV.CsvLoadOptions.DefaultMaxInputBytes"
       ]
     },
     {
@@ -119867,43 +119885,43 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.Load(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.Load(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions)",
       "name": "CsvDocument.Load",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-load-io-stream-officeimo-csv-csvreaderoptions",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-load-io-stream-officeimo-csv-csvloadoptions",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.Load",
         "OfficeIMO.CSV.CsvDocument.Load",
-        "OfficeIMO.CSV.CsvDocument.Load(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions)"
+        "OfficeIMO.CSV.CsvDocument.Load(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.Load(System.String,OfficeIMO.CSV.CsvReaderOptions)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.Load(System.String,OfficeIMO.CSV.CsvLoadOptions)",
       "name": "CsvDocument.Load",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-load-string-officeimo-csv-csvreaderoptions",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-load-string-officeimo-csv-csvloadoptions",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.Load",
         "OfficeIMO.CSV.CsvDocument.Load",
-        "OfficeIMO.CSV.CsvDocument.Load(System.String,OfficeIMO.CSV.CsvReaderOptions)"
+        "OfficeIMO.CSV.CsvDocument.Load(System.String,OfficeIMO.CSV.CsvLoadOptions)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.LoadAsync(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.LoadAsync(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.LoadAsync",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-loadasync-io-stream-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-loadasync-io-stream-officeimo-csv-csvloadoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.LoadAsync",
         "OfficeIMO.CSV.CsvDocument.LoadAsync",
-        "OfficeIMO.CSV.CsvDocument.LoadAsync(System.IO.Stream,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.LoadAsync(System.IO.Stream,OfficeIMO.CSV.CsvLoadOptions,System.Threading.CancellationToken)"
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.LoadAsync(System.String,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.LoadAsync(System.String,OfficeIMO.CSV.CsvLoadOptions,System.Threading.CancellationToken)",
       "name": "CsvDocument.LoadAsync",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-loadasync-string-officeimo-csv-csvreaderoptions-threading-cancellationtoken",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-loadasync-string-officeimo-csv-csvloadoptions-threading-cancellationtoken",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.LoadAsync",
         "OfficeIMO.CSV.CsvDocument.LoadAsync",
-        "OfficeIMO.CSV.CsvDocument.LoadAsync(System.String,OfficeIMO.CSV.CsvReaderOptions,System.Threading.CancellationToken)"
+        "OfficeIMO.CSV.CsvDocument.LoadAsync(System.String,OfficeIMO.CSV.CsvLoadOptions,System.Threading.CancellationToken)"
       ]
     },
     {
@@ -119957,13 +119975,13 @@
       ]
     },
     {
-      "uid": "M:OfficeIMO.CSV.CsvDocument.Parse(System.String,OfficeIMO.CSV.CsvReaderOptions)",
+      "uid": "M:OfficeIMO.CSV.CsvDocument.Parse(System.String,OfficeIMO.CSV.CsvLoadOptions)",
       "name": "CsvDocument.Parse",
-      "href": "/api/csv/officeimo-csv-csvdocument/#method-parse-string-officeimo-csv-csvreaderoptions",
+      "href": "/api/csv/officeimo-csv-csvdocument/#method-parse-string-officeimo-csv-csvloadoptions",
       "aliases": [
         "global::OfficeIMO.CSV.CsvDocument.Parse",
         "OfficeIMO.CSV.CsvDocument.Parse",
-        "OfficeIMO.CSV.CsvDocument.Parse(System.String,OfficeIMO.CSV.CsvReaderOptions)"
+        "OfficeIMO.CSV.CsvDocument.Parse(System.String,OfficeIMO.CSV.CsvLoadOptions)"
       ]
     },
     {
@@ -120623,6 +120641,61 @@
       ]
     },
     {
+      "uid": "M:OfficeIMO.CSV.CsvLoadOptions.#ctor",
+      "name": "CsvLoadOptions.CsvLoadOptions",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#constructor-ctor",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.#ctor",
+        "OfficeIMO.CSV.CsvLoadOptions.#ctor"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvLoadOptions.Clone",
+      "name": "CsvLoadOptions.Clone",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#method-clone",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.Clone",
+        "OfficeIMO.CSV.CsvLoadOptions.Clone"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvLoadOptions.Equals(System.Object)",
+      "name": "CsvLoadOptions.Equals",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#method-equals-object",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.Equals",
+        "OfficeIMO.CSV.CsvLoadOptions.Equals",
+        "OfficeIMO.CSV.CsvLoadOptions.Equals(System.Object)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvLoadOptions.GetHashCode",
+      "name": "CsvLoadOptions.GetHashCode",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#method-gethashcode",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.GetHashCode",
+        "OfficeIMO.CSV.CsvLoadOptions.GetHashCode"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvLoadOptions.GetType",
+      "name": "CsvLoadOptions.GetType",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#method-gettype",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.GetType",
+        "OfficeIMO.CSV.CsvLoadOptions.GetType"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvLoadOptions.ToString",
+      "name": "CsvLoadOptions.ToString",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#method-tostring",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.ToString",
+        "OfficeIMO.CSV.CsvLoadOptions.ToString"
+      ]
+    },
+    {
       "uid": "M:OfficeIMO.CSV.CsvMappingExtensions.Equals(System.Object)",
       "name": "CsvMappingExtensions.Equals",
       "href": "/api/csv/officeimo-csv-csvmappingextensions/#method-equals-object",
@@ -121032,6 +121105,16 @@
         "global::OfficeIMO.CSV.CsvProfiles.CreateLoadOptions",
         "OfficeIMO.CSV.CsvProfiles.CreateLoadOptions",
         "OfficeIMO.CSV.CsvProfiles.CreateLoadOptions(OfficeIMO.CSV.CsvProfile)"
+      ]
+    },
+    {
+      "uid": "M:OfficeIMO.CSV.CsvProfiles.CreateReaderOptions(OfficeIMO.CSV.CsvProfile)",
+      "name": "CsvProfiles.CreateReaderOptions",
+      "href": "/api/csv/officeimo-csv-csvprofiles/#method-createreaderoptions-officeimo-csv-csvprofile",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvProfiles.CreateReaderOptions",
+        "OfficeIMO.CSV.CsvProfiles.CreateReaderOptions",
+        "OfficeIMO.CSV.CsvProfiles.CreateReaderOptions(OfficeIMO.CSV.CsvProfile)"
       ]
     },
     {
@@ -552420,6 +552503,16 @@
       ]
     },
     {
+      "uid": "OfficeIMO.CSV.CsvLoadOptions",
+      "name": "CsvLoadOptions",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/",
+      "aliases": [
+        "CsvLoadOptions",
+        "global::OfficeIMO.CSV.CsvLoadOptions",
+        "T:OfficeIMO.CSV.CsvLoadOptions"
+      ]
+    },
+    {
       "uid": "OfficeIMO.CSV.CsvMappingExtensions",
       "name": "CsvMappingExtensions",
       "href": "/api/csv/officeimo-csv-csvmappingextensions/",
@@ -619217,6 +619310,357 @@
       "aliases": [
         "global::OfficeIMO.CSV.CsvException.TargetSite",
         "OfficeIMO.CSV.CsvException.TargetSite"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.AllowEmptyLines",
+      "name": "CsvLoadOptions.AllowEmptyLines",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-allowemptylines",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.AllowEmptyLines",
+        "OfficeIMO.CSV.CsvLoadOptions.AllowEmptyLines"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.CancellationToken",
+      "name": "CsvLoadOptions.CancellationToken",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-cancellationtoken",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.CancellationToken",
+        "OfficeIMO.CSV.CsvLoadOptions.CancellationToken"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.CollectParseErrors",
+      "name": "CsvLoadOptions.CollectParseErrors",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-collectparseerrors",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.CollectParseErrors",
+        "OfficeIMO.CSV.CsvLoadOptions.CollectParseErrors"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.ColumnCountMismatchPolicy",
+      "name": "CsvLoadOptions.ColumnCountMismatchPolicy",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-columncountmismatchpolicy",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.ColumnCountMismatchPolicy",
+        "OfficeIMO.CSV.CsvLoadOptions.ColumnCountMismatchPolicy"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.CommentCharacter",
+      "name": "CsvLoadOptions.CommentCharacter",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-commentcharacter",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.CommentCharacter",
+        "OfficeIMO.CSV.CsvLoadOptions.CommentCharacter"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.CompressionType",
+      "name": "CsvLoadOptions.CompressionType",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-compressiontype",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.CompressionType",
+        "OfficeIMO.CSV.CsvLoadOptions.CompressionType"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.Culture",
+      "name": "CsvLoadOptions.Culture",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-culture",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.Culture",
+        "OfficeIMO.CSV.CsvLoadOptions.Culture"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.DateTimeFormats",
+      "name": "CsvLoadOptions.DateTimeFormats",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-datetimeformats",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DateTimeFormats",
+        "OfficeIMO.CSV.CsvLoadOptions.DateTimeFormats"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.Delimiter",
+      "name": "CsvLoadOptions.Delimiter",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-delimiter",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.Delimiter",
+        "OfficeIMO.CSV.CsvLoadOptions.Delimiter"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.DelimiterCandidates",
+      "name": "CsvLoadOptions.DelimiterCandidates",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-delimitercandidates",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DelimiterCandidates",
+        "OfficeIMO.CSV.CsvLoadOptions.DelimiterCandidates"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.DelimiterText",
+      "name": "CsvLoadOptions.DelimiterText",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-delimitertext",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DelimiterText",
+        "OfficeIMO.CSV.CsvLoadOptions.DelimiterText"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.DetectDelimiter",
+      "name": "CsvLoadOptions.DetectDelimiter",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-detectdelimiter",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DetectDelimiter",
+        "OfficeIMO.CSV.CsvLoadOptions.DetectDelimiter"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.DetectEncodingFromByteOrderMarks",
+      "name": "CsvLoadOptions.DetectEncodingFromByteOrderMarks",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-detectencodingfrombyteordermarks",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DetectEncodingFromByteOrderMarks",
+        "OfficeIMO.CSV.CsvLoadOptions.DetectEncodingFromByteOrderMarks"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.DuplicateHeaderBehavior",
+      "name": "CsvLoadOptions.DuplicateHeaderBehavior",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-duplicateheaderbehavior",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.DuplicateHeaderBehavior",
+        "OfficeIMO.CSV.CsvLoadOptions.DuplicateHeaderBehavior"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.Encoding",
+      "name": "CsvLoadOptions.Encoding",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-encoding",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.Encoding",
+        "OfficeIMO.CSV.CsvLoadOptions.Encoding"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.GenerateMissingHeaderNames",
+      "name": "CsvLoadOptions.GenerateMissingHeaderNames",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-generatemissingheadernames",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.GenerateMissingHeaderNames",
+        "OfficeIMO.CSV.CsvLoadOptions.GenerateMissingHeaderNames"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.HasHeaderRow",
+      "name": "CsvLoadOptions.HasHeaderRow",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-hasheaderrow",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.HasHeaderRow",
+        "OfficeIMO.CSV.CsvLoadOptions.HasHeaderRow"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.Header",
+      "name": "CsvLoadOptions.Header",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-header",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.Header",
+        "OfficeIMO.CSV.CsvLoadOptions.Header"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.InternStrings",
+      "name": "CsvLoadOptions.InternStrings",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-internstrings",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.InternStrings",
+        "OfficeIMO.CSV.CsvLoadOptions.InternStrings"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MappingErrorValuePolicy",
+      "name": "CsvLoadOptions.MappingErrorValuePolicy",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-mappingerrorvaluepolicy",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MappingErrorValuePolicy",
+        "OfficeIMO.CSV.CsvLoadOptions.MappingErrorValuePolicy"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MaxCommentContinuationLines",
+      "name": "CsvLoadOptions.MaxCommentContinuationLines",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-maxcommentcontinuationlines",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MaxCommentContinuationLines",
+        "OfficeIMO.CSV.CsvLoadOptions.MaxCommentContinuationLines"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MaxDecompressedBytes",
+      "name": "CsvLoadOptions.MaxDecompressedBytes",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-maxdecompressedbytes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MaxDecompressedBytes",
+        "OfficeIMO.CSV.CsvLoadOptions.MaxDecompressedBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MaxFieldLength",
+      "name": "CsvLoadOptions.MaxFieldLength",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-maxfieldlength",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MaxFieldLength",
+        "OfficeIMO.CSV.CsvLoadOptions.MaxFieldLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MaxInputBytes",
+      "name": "CsvLoadOptions.MaxInputBytes",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-maxinputbytes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MaxInputBytes",
+        "OfficeIMO.CSV.CsvLoadOptions.MaxInputBytes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MaxParseErrors",
+      "name": "CsvLoadOptions.MaxParseErrors",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-maxparseerrors",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MaxParseErrors",
+        "OfficeIMO.CSV.CsvLoadOptions.MaxParseErrors"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.MaxQuotedFieldLength",
+      "name": "CsvLoadOptions.MaxQuotedFieldLength",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-maxquotedfieldlength",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.MaxQuotedFieldLength",
+        "OfficeIMO.CSV.CsvLoadOptions.MaxQuotedFieldLength"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.NormalizeQuotes",
+      "name": "CsvLoadOptions.NormalizeQuotes",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-normalizequotes",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.NormalizeQuotes",
+        "OfficeIMO.CSV.CsvLoadOptions.NormalizeQuotes"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.NullValue",
+      "name": "CsvLoadOptions.NullValue",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-nullvalue",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.NullValue",
+        "OfficeIMO.CSV.CsvLoadOptions.NullValue"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.ParseErrorAction",
+      "name": "CsvLoadOptions.ParseErrorAction",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-parseerroraction",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.ParseErrorAction",
+        "OfficeIMO.CSV.CsvLoadOptions.ParseErrorAction"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.ParseErrors",
+      "name": "CsvLoadOptions.ParseErrors",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-parseerrors",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.ParseErrors",
+        "OfficeIMO.CSV.CsvLoadOptions.ParseErrors"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.ProgressCallback",
+      "name": "CsvLoadOptions.ProgressCallback",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-progresscallback",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.ProgressCallback",
+        "OfficeIMO.CSV.CsvLoadOptions.ProgressCallback"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.ProgressReportInterval",
+      "name": "CsvLoadOptions.ProgressReportInterval",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-progressreportinterval",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.ProgressReportInterval",
+        "OfficeIMO.CSV.CsvLoadOptions.ProgressReportInterval"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.QuoteParsingMode",
+      "name": "CsvLoadOptions.QuoteParsingMode",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-quoteparsingmode",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.QuoteParsingMode",
+        "OfficeIMO.CSV.CsvLoadOptions.QuoteParsingMode"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.RecognizeW3CFieldsHeader",
+      "name": "CsvLoadOptions.RecognizeW3CFieldsHeader",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-recognizew3cfieldsheader",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.RecognizeW3CFieldsHeader",
+        "OfficeIMO.CSV.CsvLoadOptions.RecognizeW3CFieldsHeader"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.SkipCommentRows",
+      "name": "CsvLoadOptions.SkipCommentRows",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-skipcommentrows",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.SkipCommentRows",
+        "OfficeIMO.CSV.CsvLoadOptions.SkipCommentRows"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.SkipCommentRowsBeforeHeader",
+      "name": "CsvLoadOptions.SkipCommentRowsBeforeHeader",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-skipcommentrowsbeforeheader",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.SkipCommentRowsBeforeHeader",
+        "OfficeIMO.CSV.CsvLoadOptions.SkipCommentRowsBeforeHeader"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.SkipInitialRecords",
+      "name": "CsvLoadOptions.SkipInitialRecords",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-skipinitialrecords",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.SkipInitialRecords",
+        "OfficeIMO.CSV.CsvLoadOptions.SkipInitialRecords"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.StaticColumns",
+      "name": "CsvLoadOptions.StaticColumns",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-staticcolumns",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.StaticColumns",
+        "OfficeIMO.CSV.CsvLoadOptions.StaticColumns"
+      ]
+    },
+    {
+      "uid": "P:OfficeIMO.CSV.CsvLoadOptions.TrimWhitespace",
+      "name": "CsvLoadOptions.TrimWhitespace",
+      "href": "/api/csv/officeimo-csv-csvloadoptions/#property-trimwhitespace",
+      "aliases": [
+        "global::OfficeIMO.CSV.CsvLoadOptions.TrimWhitespace",
+        "OfficeIMO.CSV.CsvLoadOptions.TrimWhitespace"
       ]
     },
     {
@@ -968023,7 +968467,7 @@
       ]
     }
   ],
-  "previousReferenceCount": 100463,
-  "referenceDeltaCount": 76,
-  "referenceDeltaPercent": 0.0756
+  "previousReferenceCount": 100588,
+  "referenceDeltaCount": 0,
+  "referenceDeltaPercent": 0
 }

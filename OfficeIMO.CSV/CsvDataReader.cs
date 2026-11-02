@@ -42,7 +42,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
     bool IDataReaderMappingMetadata.RequireAllColumnsMapped => false;
     DataMappingErrorValuePolicy IDataReaderMappingErrorMetadata.MappingErrorValuePolicy => _mappingErrorValuePolicy;
     private readonly IDisposable? _rowOwner;
-    private readonly CsvReaderOptions? _stringRowOptions;
+    private readonly CsvParsingSettings? _stringRowOptions;
     private readonly CancellationToken _processingCancellationToken;
     private readonly object?[]? _staticColumnValues;
     private readonly int _sourceColumnCount;
@@ -87,7 +87,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null,
         CancellationToken processingCancellationToken = default,
-        CsvReaderOptions? operationCancellationOptions = null,
+        CsvParsingSettings? operationCancellationOptions = null,
         string? delimiterText = null)
     {
         _columns = columns;
@@ -110,7 +110,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         CsvDataColumnProjection[] columns,
         IEnumerable<IReadOnlyList<string>> rows,
         int sourceColumnCount,
-        CsvReaderOptions options,
+        CsvParsingSettings options,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         IDisposable? rowOwner = null)
@@ -136,7 +136,7 @@ public partial class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata
         CsvDataColumnProjection[] columns,
         CsvDataReaderTextRowSource rows,
         int sourceColumnCount,
-        CsvReaderOptions options,
+        CsvParsingSettings options,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         int initialRowIndex = -1,
