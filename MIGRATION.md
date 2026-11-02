@@ -7847,3 +7847,22 @@ PDF paragraph font sizes, indents, spacing and tab positions/widths now use `Off
 - `SetTableTotals` and `SetTableTotalsByName` reject `ExcelTableTotalsFunction.Custom`, because the mapping has no formula. Write the totals cell with `CellFormula` instead.
 - Table names that read as cell references, such as `Q1`, `R`, `C` or `R1C1`, now get a `_` prefix, and `ExcelTableNameValidationMode.Strict` rejects them. Use the name the API returns in structured references.
 - Disposing an `ExcelWorkbookWriter` before writing a table throws `InvalidOperationException` and leaves the destination untouched. Write at least one table, or don't create the writer.
+
+## Excel reads, header-only tables and the streaming writer
+
+- `ExcelSheet.EnumerateCells` and `EnumerateRange` report rich-value errors such as `#CALC!` and `#SPILL!` after an edit as they do before it, instead of the cached `#VALUE!`. Compare against the actual error text.
+- Read-only cell enumeration through `ExcelDocumentReader` throws `FormatException` for a cell whose `t` attribute is not a valid cell type, as the editable document already did, instead of reading the value as a number. `<v></v>` reads as an empty value and whitespace-only values keep their whitespace.
+- An enumeration of an unchanged workbook reads the cells as they were when it started; edits made while it runs appear in the next enumeration. Enumerate again after editing, or call `ToList()` first when a loop edits the cells it reads.
+- Header-only tables, such as `AddTable` with an empty `DataTable` or a range like `A1:B1`, get a blank data row, so `GetTableRange` reports `A1:B2`. The row below the header must not belong to another table; stacking header-only tables directly on top of each other now throws `InvalidOperationException` for the overlap. Leave a free row between them.
+- File-backed documents (`ExcelLoadOptions.FileBacked`) read through a private copy of their temporary package, so reads can use about twice the temporary disk space of the workbook. Size temporary storage for that.
+- `ExcelDocument.CreateWriter` and `ExcelWriterOptions.RequireStreaming` accept `AutoFit = true` instead of throwing `ArgumentException`. The writer spools each worksheet's rows to a temporary file to measure the columns before writing them, so it needs temporary disk space for the largest sheet.
+
+## PowerPoint text formatting and line breaks
+
+`PowerPointTableCell.Bold`, `Italic`, `FontSize`, `FontName` and `Color` apply to every run and line break in the cell instead of only the first run. Use `AddRun` or the paragraph's runs to format part of a cell. Text box formatting setters also reach line breaks.
+
+`\n`, `\r\n` and `\r` in text assigned to cells, runs, shapes, titles and chart titles are written as `a:br` line breaks, one run per line with the same formatting, instead of raw characters that did not break the line. `TextBox.Text` and `Notes.Text` still start a paragraph at each hard break and now treat `\r` the same way; `\v` stays a soft break inside the paragraph. Line breaks in fields become spaces.
+
+## HTML conversion of text no font covers
+
+PDF and image conversions no longer throw `HtmlConversionException` when no available font covers a character. They paint the base character or a replacement box, keep the source text for extraction and report `HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced`. Set `FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss` to keep failing with the `unsupported-text-glyph` diagnostic, or supply a covering face through `Fonts` or a policy-approved `@font-face`.
