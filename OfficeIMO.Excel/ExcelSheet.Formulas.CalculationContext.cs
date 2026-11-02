@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel {
             internal Dictionary<string, Dictionary<string, string>> CacheKeys { get; } = new(StringComparer.Ordinal);
             /// <summary>Resolved ranges whose every cell held its final value for the pass, with the deepest dependency among them.</summary>
             internal Dictionary<(object Part, int R1, int C1, int R2, int C2), (FormulaArgumentValue[] Values, int Depth)> Ranges { get; } = new();
+            /// <summary>Lookup ranges that hold formulas or array output, which lookups keep reading cell by cell.</summary>
+            internal HashSet<(object Part, int R1, int C1, int R2, int C2)> LazyRanges { get; } = new();
             private SharedStringCache? _sharedStrings;
             private long _sharedStringMutationVersion;
             private FormulaDefinedNameResolutionCatalog? _definedNames;

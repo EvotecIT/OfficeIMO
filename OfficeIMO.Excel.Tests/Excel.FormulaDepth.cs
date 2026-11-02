@@ -945,6 +945,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_FormulaEvaluator_LookupStopsReadingAtItsMatch() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddSheet("Lookup");
+            sheet.CellValue(1, 1, "a");
+            sheet.CellFormula(2, 1, "B1");
+            sheet.CellFormula(1, 2, "MATCH(\"a\",A1:A2,0)");
+
+            document.Calculate();
+
+            // Reading A2 would reach B1 itself; the match in A1 ends the search before it.
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 2, out string? position));
+            Assert.Equal("1", position);
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_EnforcesDependencyDepthAcrossWorksheets() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet source = document.AddSheet("Source");
